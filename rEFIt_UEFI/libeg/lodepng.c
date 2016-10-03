@@ -6295,20 +6295,3 @@ unsigned encode(const std::string& filename,
 #endif /* LODEPNG_COMPILE_PNG */
 } /* namespace lodepng */
 #endif /*LODEPNG_COMPILE_CPP*/
-
-// EXPORT FOR CLOVER ==>
-#ifdef LODEPNG_COMPILE_ENCODER
-unsigned eglodepng_encode(unsigned char** out, size_t* outsize, const unsigned char* image, size_t w, size_t h)
-{
-  return lodepng_encode_memory(out, outsize, image, (unsigned)w, (unsigned)h, LCT_RGBA, 8);
-}
-#endif /*LODEPNG_COMPILE_ENCODER*/
-
-#ifdef LODEPNG_COMPILE_DECODER
-unsigned eglodepng_decode(unsigned char** out, size_t* w, size_t* h, const unsigned char* in, size_t insize)
-{
-  return lodepng_decode32(out, (unsigned*)w, (unsigned*)h, in, insize);
-}
-// EXPORT FOR CLOVER <==
-
-#endif /*LODEPNG_COMPILE_DECODER*/

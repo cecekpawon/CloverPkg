@@ -905,16 +905,6 @@ unsigned compress(std::vector<unsigned char>& out, const std::vector<unsigned ch
 } /* namespace lodepng */
 #endif /*LODEPNG_COMPILE_CPP*/
 
-// EXPORT FOR CLOVER ==>
-#ifdef LODEPNG_COMPILE_ENCODER
-unsigned eglodepng_encode(unsigned char** out, size_t* outsize, const unsigned char* image, size_t w, size_t h);
-#endif /*LODEPNG_COMPILE_ENCODER*/
-
-#ifdef LODEPNG_COMPILE_DECODER
-unsigned eglodepng_decode(unsigned char** out, size_t* w, size_t* h, const unsigned char* in, size_t insize);
-#endif /*LODEPNG_COMPILE_DECODER*/
-// EXPORT FOR CLOVER <==
-
 /*
 TODO:
 [.] test if there are no memory leaks or security exploits - done a lot but needs to be checked often
