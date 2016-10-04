@@ -567,7 +567,7 @@ EFI_STATUS    InitRefitLib(IN EFI_HANDLE ImageHandle);
 VOID          UninitRefitLib();
 //EFI_STATUS    ReinitRefitLib();
 EFI_STATUS    ReinitSelfLib();
-VOID          PauseForKey(IN CHAR16 *Msg);
+//VOID          PauseForKey(IN CHAR16 *Msg);
 BOOLEAN       IsEmbeddedTheme();
 
 VOID          CreateList(OUT VOID ***ListPtr, OUT UINTN *ElementCount, IN UINTN InitialElementCount);

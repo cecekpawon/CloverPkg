@@ -50,35 +50,27 @@
 
 // Console defines and variables
 
-UINTN ConWidth;
-UINTN ConHeight;
-CHAR16 *BlankLine = NULL;
+UINTN     ConWidth, ConHeight;
+CHAR16    *BlankLine = NULL;
 
 // UGA defines and variables
 
-INTN   UGAWidth;
-INTN   UGAHeight;
-BOOLEAN AllowGraphicsMode;
+INTN      UGAWidth, UGAHeight;
+BOOLEAN   AllowGraphicsMode;
 
-EG_RECT  BannerPlace = {0, 0, 0, 0};
+EG_RECT   BannerPlace = {0, 0, 0, 0};
 
-EG_PIXEL StdBackgroundPixel           = { 0xbf, 0xbf, 0xbf, 0xff};
-EG_PIXEL MenuBackgroundPixel          = { 0x00, 0x00, 0x00, 0x00};
-//EG_PIXEL InputBackgroundPixel         = { 0xcf, 0xcf, 0xcf, 0x80};
-EG_PIXEL BlueBackgroundPixel          = { 0x7f, 0x0f, 0x0f, 0xff};
-//EG_PIXEL EmbeddedBackgroundPixel      = { 0xaa, 0xaa, 0xaa, 0x80};
-EG_PIXEL DarkBackgroundPixel          = { 0x0, 0x0, 0x0, 0xFF };
-EG_PIXEL SelectionBackgroundPixel     = { 0xef, 0xef, 0xef, 0xff }; //non-trasparent
+EG_PIXEL  StdBackgroundPixel           = { 0xbf, 0xbf, 0xbf, 0xff},
+          MenuBackgroundPixel          = { 0x00, 0x00, 0x00, 0x00},
+          BlueBackgroundPixel          = { 0x7f, 0x0f, 0x0f, 0xff},
+          DarkBackgroundPixel          = { 0x0, 0x0, 0x0, 0xFF },
+          //InputBackgroundPixel         = { 0xcf, 0xcf, 0xcf, 0x80},
+          //EmbeddedBackgroundPixel      = { 0xaa, 0xaa, 0xaa, 0x80},
+          SelectionBackgroundPixel     = { 0xef, 0xef, 0xef, 0xff }; //non-trasparent
 
-EG_IMAGE *BackgroundImage = NULL;
-EG_IMAGE *Banner = NULL;
-EG_IMAGE *BigBack = NULL;
+EG_IMAGE  *BackgroundImage = NULL, *Banner = NULL, *BigBack = NULL;
 
-static BOOLEAN GraphicsScreenDirty;
-
-// general defines and variables
-
-static BOOLEAN haveError = FALSE;
+static    BOOLEAN GraphicsScreenDirty, haveError = FALSE;
 
 //
 // Updates console variables, according to ConOut resolution
@@ -104,9 +96,11 @@ UpdateConsoleVars() {
 
   // make a buffer for a whole text line
   BlankLine = AllocatePool((ConWidth + 1) * sizeof(CHAR16));
+
   for (i = 0; i < ConWidth; i++){
     BlankLine[i] = ' ';
   }
+
   BlankLine[i] = 0;
 }
 
@@ -173,7 +167,7 @@ CalculateNudgePosition (
   INTN    ImageDimension,
   INTN    ScreenDimension
 ) {
-  INTN    value=Position;
+  INTN    value = Position;
 
   if ((NudgeValue != INITVALUE) && (NudgeValue != 0) && (NudgeValue >= -32) && (NudgeValue <= 32)) {
     if ((value + NudgeValue >=0) && ((value + NudgeValue) <= (ScreenDimension - ImageDimension))) {
@@ -234,6 +228,7 @@ HybridRepositioning (
     posThemeDesign = ConvertEdgeAndPercentageToPixelPosition(Edge, Value, ImageDimension, DesignScreenDimension);
     // Try repositioning by center first
     pos = RepositionFixedByCenter(posThemeDesign, ScreenDimension, DesignScreenDimension);
+
     // If out of edges, try repositioning by gaps on edges
     if (!IsImageWithinScreenLimits(pos, ImageDimension, ScreenDimension)) {
       pos = RepositionRelativeByGapsOnEdges(posThemeDesign, ImageDimension, ScreenDimension, DesignScreenDimension);
@@ -275,7 +270,8 @@ InitScreen (
 }
 
 static
-VOID SwitchToText (
+VOID
+SwitchToText (
   IN BOOLEAN    CursorEnabled
 ) {
   egSetGraphicsModeEnabled(FALSE);
@@ -367,7 +363,7 @@ FinishExternalScreen () {
   if (haveError) {
     // leave error messages on screen in case of error,
     // wait for a key press, and then switch
-    PauseForKey(L"was error, press any key\n");
+    //PauseForKey(L"was error, press any key\n");
     SwitchToText(FALSE);
   }
 
@@ -397,6 +393,7 @@ ReadAllKeyStrokes () {
   return GotKeyStrokes;
 }
 
+#if 0
 VOID
 PauseForKey (
   CHAR16    *msg
@@ -433,7 +430,6 @@ DebugPause() {
 }
 #endif
 
-/*
 VOID
 EndlessIdleLoop () {
   UINTN index;
@@ -443,7 +439,6 @@ EndlessIdleLoop () {
     gBS->WaitForEvent(1, &gST->ConIn->WaitForKey, &index);
   }
 }
-*/
 
 //
 // Error handling
@@ -453,14 +448,13 @@ VOID StatusToString (OUT CHAR16 *Buffer, EFI_STATUS Status) {
   UnicodeSPrint(Buffer, 64, L"EFI Error %r", Status);
 }
 */
+#endif
 
 BOOLEAN
 CheckFatalError (
   IN EFI_STATUS   Status,
   IN CHAR16       *where
 ) {
-  //CHAR16 ErrorName[64];
-
   if (!EFI_ERROR(Status)) {
     return FALSE;
   }
@@ -509,15 +503,6 @@ SwitchToGraphicsAndClear () {
   }
 }
 
-/*
-typedef struct {
-  INTN  XPos;
-  INTN  YPos;
-  INTN  Width;
-  INTN  Height;
-} EG_RECT;
-*/
-
 VOID
 BltClearScreen (
   IN BOOLEAN    ShowBanner
@@ -531,12 +516,6 @@ BltClearScreen (
     if (!Banner) {
       // Banner is not loaded yet
       if (IsEmbeddedTheme()) {
-        // embedded theme - use text as banner
-        //Banner = egCreateImage(7 * StrLen(L"CLOVER"), 32, TRUE);
-        //egFillImage(Banner, &MenuBackgroundPixel);
-        //egRenderText(L"CLOVER", Banner, 0, 0, 0xFFFF);
-        //CopyMem(&BlueBackgroundPixel, &StdBackgroundPixel, sizeof(EG_PIXEL));
-        //DebugLog(1, "Text <%s> rendered\n", L"Clover");
         Banner = BuiltinIcon(BUILTIN_ICON_BANNER);
         CopyMem(&BlueBackgroundPixel, &StdBackgroundPixel, sizeof(EG_PIXEL));
       } else  {
@@ -556,16 +535,22 @@ BltClearScreen (
       BannerPlace.Height = (BanHeight >= Banner->Height) ? (INTN)Banner->Height : BanHeight;
       // Check if new style placement value was used for banner in theme.plist
       if (
-        (((INT32)GlobalConfig.BannerPosX >=0) && ((INT32)GlobalConfig.BannerPosX <=100)) &&
-        (((INT32)GlobalConfig.BannerPosY >=0) && ((INT32)GlobalConfig.BannerPosY <=100))
+        (((INT32)GlobalConfig.BannerPosX >= 0) && ((INT32)GlobalConfig.BannerPosX <= 100)) &&
+        (((INT32)GlobalConfig.BannerPosY >= 0) && ((INT32)GlobalConfig.BannerPosY <= 100))
       ) {
         // Check if screen size being used is different from theme origination size.
         // If yes, then recalculate the placement % value.
         // This is necessary because screen can be a different size, but banner is not scaled.
-        BannerPlace.XPos = HybridRepositioning(GlobalConfig.BannerEdgeHorizontal,
-          GlobalConfig.BannerPosX, BannerPlace.Width,  UGAWidth,  GlobalConfig.ThemeDesignWidth );
-        BannerPlace.YPos = HybridRepositioning(GlobalConfig.BannerEdgeVertical,
-          GlobalConfig.BannerPosY, BannerPlace.Height, UGAHeight, GlobalConfig.ThemeDesignHeight);
+        BannerPlace.XPos = HybridRepositioning (
+                              GlobalConfig.BannerEdgeHorizontal,
+                              GlobalConfig.BannerPosX, BannerPlace.Width,  UGAWidth,  GlobalConfig.ThemeDesignWidth
+                            );
+
+        BannerPlace.YPos = HybridRepositioning (
+                              GlobalConfig.BannerEdgeVertical,
+                              GlobalConfig.BannerPosY, BannerPlace.Height, UGAHeight, GlobalConfig.ThemeDesignHeight
+                            );
+
         // Check if banner is required to be nudged.
         BannerPlace.XPos = CalculateNudgePosition(BannerPlace.XPos, GlobalConfig.BannerNudgeX, Banner->Width,  UGAWidth);
         BannerPlace.YPos = CalculateNudgePosition(BannerPlace.YPos, GlobalConfig.BannerNudgeY, Banner->Height, UGAHeight);
@@ -599,7 +584,10 @@ BltClearScreen (
     BigBack = egLoadImage(ThemeDir, GlobalConfig.BackgroundName, FALSE);
   }
 
-  if ((BackgroundImage != NULL) && ((BackgroundImage->Width != UGAWidth) || (BackgroundImage->Height != UGAHeight))) {
+  if (
+    (BackgroundImage != NULL) &&
+    ((BackgroundImage->Width != UGAWidth) || (BackgroundImage->Height != UGAHeight))
+  ) {
     // Resolution changed
     egFreeImage(BackgroundImage);
     BackgroundImage = NULL;
@@ -743,6 +731,7 @@ BltImageAlpha (
     Width,
     BackgroundImage->Width
   );
+
   egComposeImage(NewImage, CompImage, 0, 0);
   egFreeImage(CompImage);
 
@@ -840,7 +829,6 @@ BltImageCompositeBadge (
                 (CompWidth > TotalWidth) ? CompWidth : TotalWidth,
                 (CompHeight > TotalHeight) ? CompHeight : TotalHeight,
                 TRUE,
-                //IsEmbeddedTheme () ? &EmbeddedBackgroundPixel : &MenuBackgroundPixel
                 &MenuBackgroundPixel
               );
 
@@ -922,20 +910,7 @@ BltImageCompositeBadge (
     }
   }
 
-  // blit to screen and clean up
-  //if (!IsEmbeddedTheme()) { // regular theme
-  //if (GlobalConfig.NonSelectedGrey && !Selected) {
-  //  BltImageAlpha (CompImage, XPos, YPos, &MenuBackgroundPixel, -16);
-  //} else {
-  //  BltImageAlpha (CompImage, XPos, YPos, &MenuBackgroundPixel, 16);
-  //}
   BltImageAlpha (CompImage, XPos, YPos, &MenuBackgroundPixel, (GlobalConfig.NonSelectedGrey && !Selected) ? -16 : 16);
-
-  /*
-    } else { // embedded theme - don't use BltImageAlpha as it can't handle refit's built in image
-      egDrawImageArea(CompImage, 0, 0, TotalWidth, TotalHeight, XPos, YPos);
-    }
-  */
 
   egFreeImage (CompImage);
   egFreeImage (NewBaseImage);
@@ -971,7 +946,7 @@ UpdateAnime (
   UINT64      Now;
   INTN        x, y, MenuWidth = 50;
 
-  if (!Screen || !Screen->AnimeRun || !Screen->Film || GlobalConfig.TextOnly){
+  if (!Screen || !Screen->AnimeRun || !Screen->Film || GlobalConfig.TextOnly) {
    return;
   }
 
@@ -1055,9 +1030,9 @@ VOID
 InitAnime (
   REFIT_MENU_SCREEN   *Screen
 ) {
-  CHAR16    FileName[256], *Path;
-  EG_IMAGE  *p = NULL, *Last = NULL;
-  GUI_ANIME *Anime;
+  CHAR16      FileName[256], *Path;
+  EG_IMAGE    *p = NULL, *Last = NULL;
+  GUI_ANIME   *Anime;
 
   if (!Screen || GlobalConfig.TextOnly){
     return;
@@ -1067,18 +1042,26 @@ InitAnime (
 
   // Check if we should clear old film vars (no anime or anime path changed)
   //
-  if (gThemeOptionsChanged || !Anime || !Screen->Film || IsEmbeddedTheme() || !Screen->Theme ||
-      (/*gThemeChanged && */StriCmp(GlobalConfig.Theme, Screen->Theme) != 0)) {
+  if (
+    gThemeOptionsChanged ||
+    !Anime ||
+    !Screen->Film ||
+    IsEmbeddedTheme() ||
+    !Screen->Theme ||
+    (/*gThemeChanged && */StriCmp(GlobalConfig.Theme, Screen->Theme) != 0)
+  ) {
     //DBG(" free screen\n");
     if (Screen->Film) {
       //free images in the film
-      INTN i;
+      INTN  i;
+
       for (i = 0; i <= Screen->Frames; i++) { //really there are N+1 frames
         // free only last occurrence of repeated frames
         if ((Screen->Film[i] != NULL) && ((i == Screen->Frames) || (Screen->Film[i] != Screen->Film[i+1]))) {
           FreePool(Screen->Film[i]);
         }
       }
+
       FreePool(Screen->Film);
       Screen->Film = NULL;
     }
@@ -1096,10 +1079,12 @@ InitAnime (
 
     if (Path && Screen->Film) {
       // Look through contents of the directory
-      UINTN i;
+      UINTN   i;
+
       for (i = 0; i < Anime->Frames; i++) {
         UnicodeSPrint(FileName, 512, L"%s\\%s_%03d.png", Path, Path, i);
         //DBG("Try to load file %s\n", FileName);
+
         p = egLoadImage(ThemeDir, FileName, TRUE);
         if (!p) {
           p = Last;
@@ -1107,6 +1092,7 @@ InitAnime (
         } else {
           Last = p;
         }
+
         Screen->Film[i] = p;
       }
 
@@ -1119,15 +1105,15 @@ InitAnime (
         Screen->FrameTime = Anime->FrameTime;
         Screen->Once = Anime->Once;
         Screen->Theme = AllocateCopyPool(StrSize(GlobalConfig.Theme), GlobalConfig.Theme);
-      } /*else {
-        DBG("Film[0] == NULL\n");
-      } */
+      }
     }
   }
   // Check if a new style placement value has been specified
-  if (Anime && (Anime->FilmX >=0) && (Anime->FilmX <=100) &&
-      (Anime->FilmY >=0) && (Anime->FilmY <=100) &&
-      (Screen->Film != NULL) && (Screen->Film[0] != NULL)) {
+  if (
+    Anime && (Anime->FilmX >=0) && (Anime->FilmX <=100) &&
+    (Anime->FilmY >=0) && (Anime->FilmY <=100) &&
+    (Screen->Film != NULL) && (Screen->Film[0] != NULL)
+  ) {
     // Check if screen size being used is different from theme origination size.
     // If yes, then recalculate the animation placement % value.
     // This is necessary because screen can be a different size, but anim is not scaled.
@@ -1138,6 +1124,7 @@ InitAnime (
                                 UGAWidth,
                                 GlobalConfig.ThemeDesignWidth
                               );
+
     Screen->FilmPlace.YPos = HybridRepositioning(
                                 Anime->ScreenEdgeVertical,
                                 Anime->FilmY,
@@ -1161,7 +1148,8 @@ InitAnime (
     Screen->FilmPlace.Width = 0;
     Screen->FilmPlace.Height = 0;
   }
-  if (Screen->Film != NULL && Screen->Film[0] != NULL) {
+
+  if ((Screen->Film != NULL) && (Screen->Film[0] != NULL)) {
     // Anime seems OK, init it
     Screen->AnimeRun = TRUE;
     Screen->CurrentFrame = 0;
@@ -1178,7 +1166,9 @@ GetAnime (
 ) {
   GUI_ANIME   *Anime;
 
-  if (!Screen || !GuiAnime) return FALSE;
+  if (!Screen || !GuiAnime) {
+    return FALSE;
+  }
 
   for (Anime = GuiAnime; Anime != NULL && Anime->ID != Screen->ID; Anime = Anime->Next);
 

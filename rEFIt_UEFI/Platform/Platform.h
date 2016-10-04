@@ -331,14 +331,12 @@ typedef enum {
 #define MSR_THERMAL_TARGET            0x01A2   /* TjMax limited use - not for Penryn or older     */
 #define MSR_TURBO_RATIO_LIMIT         0x01AD   /* limited use - not for Penryn or older     */
 
-
 //#define IA32_ENERGY_PERF_BIAS       0x01B0
 ////MSR 000001B0                                      0000-0000-0000-0005
 //#define MSR_PACKAGE_THERM_STATUS    0x01B1
 ////MSR 000001B1                                      0000-0000-8838-0000
 //#define IA32_PLATFORM_DCA_CAP       0x01F8
 ////MSR 000001FC                                      0000-0000-0004-005F
-
 
 // Sandy Bridge & JakeTown specific 'Running Average Power Limit' MSR's.
 #define MSR_RAPL_POWER_UNIT           0x606     /* R/O */
@@ -556,8 +554,6 @@ struct _oper_region {
 };
 
 typedef struct _oper_region OPER_REGION;
-
-
 
 typedef struct _DRIVERS_FLAGS {
   BOOLEAN AptioFixLoaded;
@@ -779,7 +775,7 @@ typedef struct {
   UINT16                  BacklightLevel;
   BOOLEAN                 BacklightLevelConfig;
   BOOLEAN                 IntelBacklight;
-  BOOLEAN                 MemoryFix;
+  //BOOLEAN                 MemoryFix;
   BOOLEAN                 WithKexts;
   BOOLEAN                 NoCaches;
 
@@ -813,10 +809,10 @@ typedef struct {
   BOOLEAN                 ReuseFFFF;
 
   //PCI devices
-  UINT32                  FakeATI;    
+  UINT32                  FakeATI;
   UINT32                  FakeNVidia;
   UINT32                  FakeIntel;
-  UINT32                  FakeLAN;   
+  UINT32                  FakeLAN;
   UINT32                  FakeWIFI;
 
   //Graphics
@@ -912,7 +908,7 @@ typedef struct {
   CHAR16                  BlockKexts[64];
 
   //ACPI tables
-  UINTN    SortedACPICount;
+  UINTN                   SortedACPICount;
 
   CHAR16                  **SortedACPI;
 
@@ -1281,7 +1277,6 @@ FillInputs (
 VOID
 ApplyInputs ();
 
-
 BOOLEAN
 IsValidGuidAsciiString (
   IN CHAR8 *Str
@@ -1465,7 +1460,7 @@ UINT64
 GetEfiTimeInMs (IN EFI_TIME *T);
 
 EFI_STATUS EFIAPI
-LogDataHub(
+LogDataHub (
   IN  EFI_GUID  *TypeGuid,
   IN  CHAR16    *Name,
   IN  VOID      *Data,
@@ -1528,33 +1523,23 @@ CARDLIST
   UINT32 SubId
 );
 
-VOID
-AddCard (
-  CONST   CHAR8     *Model,
-          UINT32    Id,
-          UINT32    SubId,
-          UINT64    VideoRam,
-          UINTN     VideoPorts,
-          BOOLEAN   LoadVBios
-);
-
 //ACPI
 EFI_STATUS
-PatchACPI(IN REFIT_VOLUME *Volume, CHAR8 *OSVersion);
+PatchACPI (
+  IN  REFIT_VOLUME  *Volume,
+      CHAR8         *OSVersion
+);
 
 EFI_STATUS
-PatchACPI_OtherOS(CHAR16* OsSubdir, BOOLEAN DropSSDT);
+PatchACPI_OtherOS (
+  CHAR16    *OsSubdir,
+  BOOLEAN   DropSSDT
+);
 
 UINT8
 Checksum8 (
   VOID    *startPtr,
   UINT32  len
-);
-
-BOOLEAN
-tableSign (
-        CHAR8   *table,
-  CONST CHAR8   *sgn
 );
 
 VOID
@@ -1564,9 +1549,6 @@ SaveOemDsdt (
 
 VOID
 SaveOemTables ();
-
-EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE
-*GetFadt ();
 
 UINT32
 FixAny (
@@ -1590,34 +1572,6 @@ EFI_STATUS
 EjectVolume (
   IN REFIT_VOLUME *Volume
   );
-
-EFI_STATUS
-bootElTorito (
-  IN REFIT_VOLUME *volume
-  );
-
-EFI_STATUS
-bootMBR (
-  IN REFIT_VOLUME *volume
-  );
-
-EFI_STATUS
-bootPBR (
-  IN REFIT_VOLUME *volume, BOOLEAN SataReset
-  );
-
-EFI_STATUS
-bootPBRtest (
-  IN REFIT_VOLUME *volume
-  );
-
-EFI_STATUS
-bootLegacyBiosDefault (
-  IN  UINT16 LegacyBiosDefaultEntry
-  );
-
-VOID
-DumpBiosMemoryMap ();
 
 CHAR8*
 XMLDecode (
@@ -1673,11 +1627,6 @@ BOOLEAN
 IsPropertyTrue (
   TagPtr Prop
   );
-
-BOOLEAN
-IsPropertyFalse (
-  TagPtr Prop
-);
 
 INTN
 GetPropertyInteger (

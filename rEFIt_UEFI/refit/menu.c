@@ -34,7 +34,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-//#include "Platform.h"
 #include "libegint.h"   //this includes platform.h
 
 #ifndef DEBUG_ALL
@@ -90,49 +89,41 @@ typedef VOID (*MENU_STYLE_FUNC)(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *S
 static CHAR16 ArrowUp[2]   = { ARROW_UP, 0 };
 static CHAR16 ArrowDown[2] = { ARROW_DOWN, 0 };
 
-static EG_IMAGE *TextBuffer = NULL;
+STATIC EG_IMAGE     *TextBuffer = NULL,
+                    *MainImage;
 
-STATIC INTN         row0Count, row0PosX, row0PosXRunning;
-STATIC INTN         row1Count, row1PosX, row1PosXRunning;
-STATIC INTN         *itemPosX = NULL;
-//static INTN       *itemPosY = NULL;
-STATIC INTN         row0PosY, row1PosY, textPosY, FunctextPosY;
-STATIC EG_IMAGE     *MainImage;
-STATIC INTN         OldX = 0, OldY = 0;
-STATIC INTN         OldTextWidth = 0;
 STATIC UINTN        OldRow = 0;
-STATIC INTN         OldTimeoutTextWidth = 0;
-STATIC INTN         MenuWidth, TimeoutPosY;
-STATIC INTN         EntriesPosX, EntriesPosY;
-STATIC INTN         EntriesWidth, EntriesHeight, EntriesGap;
+STATIC INTN         row0Count, row0PosX, row0PosXRunning,
+                    row1Count, row1PosX, row1PosXRunning,
+                    *itemPosX = NULL,
+                    //*itemPosY = NULL,
+                    row0PosY, row1PosY, textPosY, FunctextPosY,
+                    OldX = 0, OldY = 0,
+                    OldTextWidth = 0,
+                    OldTimeoutTextWidth = 0,
+                    MenuWidth, TimeoutPosY,
+                    EntriesPosX, EntriesPosY,
+                    EntriesWidth, EntriesHeight, EntriesGap;
 
-BOOLEAN             MainAnime = FALSE;
-BOOLEAN             mGuiReady = FALSE;
+BOOLEAN             MainAnime = FALSE, mGuiReady = FALSE;
 
-INTN                OldChosenTheme;
-INTN                OldChosenConfig;
+INTN                OldChosenTheme, OldChosenConfig;
 
-REFIT_MENU_ENTRY MenuEntryOptions  = { L"Options", TAG_OPTIONS, 1, 0, 'O', NULL, NULL, NULL, NULL,
-  {0, 0, 0, 0}, NULL };
-REFIT_MENU_ENTRY MenuEntryAbout    = { L"About Clover", TAG_ABOUT, 1, 0, 'A', NULL, NULL, NULL, NULL,
-  {0, 0, 0, 0},  NULL };
-REFIT_MENU_ENTRY MenuEntryReset    = { L"Restart Computer", TAG_RESET, 1, 0, 'R', NULL, NULL, NULL, NULL,
-  {0, 0, 0, 0},  NULL };
-REFIT_MENU_ENTRY MenuEntryExit = { L"Exit Clover", TAG_EXIT, 1, 0, 'U', NULL, NULL, NULL, NULL,
-  {0, 0, 0, 0},  NULL };
-REFIT_MENU_ENTRY MenuEntryReturn   = { L"Return", TAG_RETURN, 0, 0, 0, NULL, NULL, NULL, NULL,
-  {0, 0, 0, 0},  NULL };
-REFIT_MENU_ENTRY MenuEntryHelp    = { L"Help", TAG_HELP, 1, 0, 'H', NULL, NULL, NULL, NULL,
-  {0, 0, 0, 0},  NULL };
+REFIT_MENU_ENTRY    MenuEntryOptions  = { L"Options", TAG_OPTIONS, 1, 0, 'O', NULL, NULL, NULL, NULL, {0, 0, 0, 0}, NULL },
+                    MenuEntryAbout    = { L"About Clover", TAG_ABOUT, 1, 0, 'I', NULL, NULL, NULL, NULL, {0, 0, 0, 0},  NULL },
+                    MenuEntryReset    = { L"Restart Computer", TAG_RESET, 1, 0, 'R', NULL, NULL, NULL, NULL, {0, 0, 0, 0},  NULL },
+                    MenuEntryExit     = { L"Exit Clover", TAG_EXIT, 1, 0, 'X', NULL, NULL, NULL, NULL, {0, 0, 0, 0},  NULL },
+                    MenuEntryReturn   = { L"Return", TAG_RETURN, 0, 0, 0, NULL, NULL, NULL, NULL, {0, 0, 0, 0},  NULL },
+                    MenuEntryHelp     = { L"Help", TAG_HELP, 1, 0, 'H', NULL, NULL, NULL, NULL, {0, 0, 0, 0},  NULL };
 
-REFIT_MENU_SCREEN MainMenu    = {SCREEN_MAIN,     L"Main Menu", NULL, 0, NULL, 0, NULL, 0, L"Automatic boot",
-  NULL, FALSE, FALSE, 0, 0, 0, 0, {0, 0, 0, 0}, NULL};
-REFIT_MENU_SCREEN AboutMenu   = {SCREEN_ABOUT,    L"About",     NULL, 0, NULL, 0, NULL, 0, NULL,
-  NULL, FALSE, FALSE, 0, 0, 0, 0, {0, 0, 0, 0}, NULL};
-REFIT_MENU_SCREEN HelpMenu    = {SCREEN_HELP,     L"Help",      NULL, 0, NULL, 0, NULL, 0, NULL,
-  NULL, FALSE, FALSE, 0, 0, 0, 0, {0, 0, 0, 0}, NULL};
-REFIT_MENU_SCREEN OptionMenu  = {SCREEN_OPTIONS,  L"Options",   NULL, 0, NULL, 0, NULL, 0, NULL,
-  NULL, FALSE, FALSE, 0, 0, 0, 0, {0, 0, 0, 0}, NULL};
+REFIT_MENU_SCREEN   MainMenu          = { SCREEN_MAIN, L"Main Menu", NULL, 0, NULL, 0, NULL, 0, L"Automatic boot",
+                                          NULL, FALSE, FALSE, 0, 0, 0, 0, {0, 0, 0, 0}, NULL },
+                    AboutMenu         = { SCREEN_ABOUT, L"About", NULL, 0, NULL, 0, NULL, 0, NULL,
+                                          NULL, FALSE, FALSE, 0, 0, 0, 0, {0, 0, 0, 0}, NULL },
+                    HelpMenu          = { SCREEN_HELP,     L"Help", NULL, 0, NULL, 0, NULL, 0, NULL,
+                                          NULL, FALSE, FALSE, 0, 0, 0, 0, {0, 0, 0, 0}, NULL },
+                    OptionMenu        = { SCREEN_OPTIONS,  L"Options", NULL, 0, NULL, 0, NULL, 0, NULL,
+                                          NULL, FALSE, FALSE, 0, 0, 0, 0, {0, 0, 0, 0}, NULL };
 
 #define SUBMENU_COUNT  5 // MainMenu with SUB total
 
@@ -811,7 +802,7 @@ VOID HelpRefit() {
       case english:
       default:
         AddMenuInfo(&HelpMenu, L"ESC - Escape from submenu, Refresh main menu");
-        AddMenuInfo(&HelpMenu, L"F1  - This help");
+        AddMenuInfo(&HelpMenu, L"F1 / H - This help");
         AddMenuInfo(&HelpMenu, PoolPrint(L"F2  - Save '%s' into '%s'", Basename(PREBOOT_LOG), DIR_MISC));
         AddMenuInfo(&HelpMenu, L"F3  - Show hidden entries");
         AddMenuInfo(&HelpMenu, PoolPrint(L"F4  - Save oem DSDT into '%s'", PathOrigin));
@@ -821,10 +812,15 @@ VOID HelpRefit() {
         AddMenuInfo(&HelpMenu, L"F12 - Eject selected volume (DVD)");
         AddMenuInfo(&HelpMenu, L"Space - Details about selected menu entry");
         AddMenuInfo(&HelpMenu, L"Digits [1-9] - Shortcut to menu entry");
-        AddMenuInfo(&HelpMenu, L"A - Menu About");
-        AddMenuInfo(&HelpMenu, L"O - Menu Options");
+        AddMenuInfo(&HelpMenu, L"I - About");
+        AddMenuInfo(&HelpMenu, L"O - Options");
         AddMenuInfo(&HelpMenu, L"R - Soft Reset");
-        AddMenuInfo(&HelpMenu, L"U - Exit");
+        AddMenuInfo(&HelpMenu, L"X - Exit");
+        AddMenuInfo(&HelpMenu, L"C - Configs");
+        AddMenuInfo(&HelpMenu, L"T - Themes");
+        AddMenuInfo(&HelpMenu, L"A - ACPI");
+        AddMenuInfo(&HelpMenu, L"P - Patches");
+        AddMenuInfo(&HelpMenu, L"D - Devices");
         break;
     }
 
@@ -877,7 +873,6 @@ InitScroll (
   if (Selected == 0xFFFF) {
     State->FirstVisible = 0;
     State->LastSelection = State->CurrentSelection = 1;
-    //Selected = 1;
   } else {
     State->FirstVisible = MIN(Selected, State->MaxFirstVisible);
   }
@@ -2426,10 +2421,6 @@ GraphicsMenuStyle (
                 ButtonsImg[((REFIT_INPUT_DIALOG*)(Entry))->Item->BValue ? kCheckboxCheckedImage : kCheckboxImage].Image
               );
             } else { //text input
-              //CHAR16 *keat = AllocateZeroPool(SVALUE_MAX_SIZE);
-              //StrCat(ResultString, L": ");
-              //StrCat(ResultString, ((REFIT_INPUT_DIALOG*)(Entry))->Item->SValue);
-              //StrCat(ResultString, L" ");
               StrCat(ResultString, PoolPrint(L": %s ", ((REFIT_INPUT_DIALOG*)(Entry))->Item->SValue));
               Entry->Place.Width = StrLen(ResultString) * GlobalConfig.CharWidth;
               // Slice - suppose to use Row as Cursor in text
@@ -2499,14 +2490,12 @@ GraphicsMenuStyle (
     {
       REFIT_MENU_ENTRY    *EntryL = Screen->Entries[State->LastSelection],
                           *EntryC = Screen->Entries[State->CurrentSelection];
-      //ResultString = AllocateZeroPool(256);
 
       NeedMarginLeft = (
         (EntryL->Tag == TAG_SWITCH) || (EntryL->Tag == TAG_CHECKBIT) ||
         ((EntryL->Tag == TAG_INPUT) && (((REFIT_INPUT_DIALOG*)EntryL)->Item->ItemType == BoolValue))
       );
 
-      //ResultString = NeedMarginLeft ? PoolPrint(L"   %s", EntryL->Title) : EfiStrDuplicate(EntryL->Title);
       ResultString = PoolPrint(L"%a%s", NeedMarginLeft ? "   " : "", EntryL->Title);
 
       TitleLen = StrLen(ResultString);
@@ -2564,7 +2553,6 @@ GraphicsMenuStyle (
           break;
 
         case TAG_CHECKBIT:
-          //DrawMenuText(L" ", 0, EntriesPosX, EntryL->Place.YPos, 0xFFFF);
           DrawMenuText(
             ResultString,
             0,
@@ -2596,8 +2584,6 @@ GraphicsMenuStyle (
         ((EntryC->Tag == TAG_INPUT) && (((REFIT_INPUT_DIALOG*)EntryC)->Item->ItemType == BoolValue))
       );
 
-      //ResultString = AllocateZeroPool(256);
-      //ResultString = NeedMarginLeft ? PoolPrint(L"   %s", EntryC->Title) : EfiStrDuplicate(EntryC->Title);
       ResultString = PoolPrint(L"%a%s", NeedMarginLeft ? "   " : "", EntryC->Title);
 
       TitleLen = StrLen(ResultString);
@@ -2651,7 +2637,6 @@ GraphicsMenuStyle (
           break;
 
         case TAG_CHECKBIT:
-          //DrawMenuText(L" ", 0, EntriesPosX, EntryC->Place.YPos, 0xFFFF);
           DrawMenuText(
             ResultString,
             MenuWidth,
@@ -2681,7 +2666,6 @@ GraphicsMenuStyle (
       ScrollEnd.YPos = Scrollbar.YPos + Scrollbar.Height; // ScrollEnd.Height is already subtracted
       ScrollingBar(State);
 
-      //MouseBirth();
       break;
     }
 
@@ -2700,13 +2684,7 @@ DrawMainMenuEntry (
   INTN                XPos,
   INTN                YPos
 ) {
-  INTN Scale = GlobalConfig.MainEntriesSize >> 3;
-
-  /*
-  if (GlobalConfig.BootCampStyle && (Entry->Row == 1)) {
-    return;
-  }
-  */
+  INTN  Scale = GlobalConfig.MainEntriesSize >> 3;
 
   if (
     (Entry->Tag == TAG_LOADER) &&
@@ -2719,9 +2697,7 @@ DrawMainMenuEntry (
   }
 
   if (!MainImage) {
-    //if (!IsEmbeddedTheme()) {
-      MainImage = egLoadIcon(ThemeDir, GetIconsExt(L"icons\\os_mac", L"icns"), Scale << 3);
-    //}
+    MainImage = egLoadIcon(ThemeDir, GetIconsExt(L"icons\\os_mac", L"icns"), Scale << 3);
 
     if (!MainImage) {
       MainImage = DummyImage(Scale << 3);
@@ -3102,11 +3078,9 @@ MainMenuStyle (
 
       DrawTextCorner(TEXT_CORNER_HELP, X_IS_LEFT);
       DrawTextCorner(TEXT_CORNER_REVISION, X_IS_RIGHT);
-      //MouseBirth();
       break;
 
     case MENU_FUNCTION_PAINT_SELECTION:
-      //HidePointer();
       if (Screen->Entries[State->LastSelection]->Row == 0) {
         DrawMainMenuEntry(
           Screen->Entries[State->LastSelection], FALSE,
@@ -3177,7 +3151,8 @@ CreateHeaderEntries (
   REFIT_MENU_ENTRY    **Entry,
   REFIT_MENU_SCREEN   **SubScreen,
   CHAR16              *Title,
-  UINTN               ID
+  UINTN               ID,
+  CHAR16              ShortcutLetter
 ) {
   REFIT_MENU_ENTRY    *TmpEntry = AllocateZeroPool(sizeof(REFIT_MENU_ENTRY));
   REFIT_MENU_SCREEN   *TmpSubScreen = AllocateZeroPool(sizeof(REFIT_MENU_SCREEN));
@@ -3185,6 +3160,10 @@ CreateHeaderEntries (
   TmpEntry->Title = PoolPrint(Title);
   TmpEntry->Image =  OptionMenu.TitleImage;
   TmpEntry->Tag = TAG_OPTIONS;
+
+  if (ShortcutLetter) {
+    TmpEntry->ShortcutLetter = ShortcutLetter;
+  }
 
   // create the submenu
   TmpSubScreen->Title = PoolPrint(TmpEntry->Title);
@@ -3197,12 +3176,12 @@ CreateHeaderEntries (
 }
 
 REFIT_MENU_ENTRY
-*SubMenuGraphics () {
+*SubMenuDevices () {
   REFIT_MENU_ENTRY      *Entry = NULL;
   REFIT_MENU_SCREEN     *SubScreen = NULL;
   INTN                  i = 0;
 
-  CreateHeaderEntries(&Entry, &SubScreen, L"Devices", SCREEN_DEVICES);
+  CreateHeaderEntries(&Entry, &SubScreen, L"Devices", SCREEN_DEVICES, 'D');
 
   AddMenuInfoLine(SubScreen, PoolPrint(L"Number of VideoCards=%d", NGFX));
 
@@ -3218,12 +3197,12 @@ REFIT_MENU_ENTRY
 }
 
 REFIT_MENU_ENTRY
-*SubMenuBinaries () {
+*SubMenuPatches () {
   REFIT_MENU_ENTRY      *Entry = NULL;
   REFIT_MENU_SCREEN     *SubScreen = NULL;
   INTN                  i = 0;
 
-  CreateHeaderEntries(&Entry, &SubScreen, L"Patches", SCREEN_PATCHES);
+  CreateHeaderEntries(&Entry, &SubScreen, L"Patches", SCREEN_PATCHES, 'P');
 
   AddMenuInfoLine(SubScreen, PoolPrint(L"%a", gCPUStructure.BrandString));
   AddMenuInfoLine(SubScreen, PoolPrint(L"Real CPUID: 0x%06x", gCPUStructure.Signature));
@@ -3240,7 +3219,7 @@ REFIT_MENU_ENTRY
 }
 
 REFIT_MENU_ENTRY
-*SubMenuDropTables () {
+*SubMenuAcpi () {
   REFIT_MENU_ENTRY    *Entry = NULL;
   REFIT_MENU_SCREEN   *SubScreen = NULL;
   CHAR8               sign[5], OTID[9];
@@ -3249,9 +3228,7 @@ REFIT_MENU_ENTRY
   sign[4] = 0;
   OTID[8] = 0;
 
-  CreateHeaderEntries(&Entry, &SubScreen, L"Tables", SCREEN_TABLES);
-
-  AddSeparator(SubScreen, "Hehe");
+  CreateHeaderEntries(&Entry, &SubScreen, L"ACPI", SCREEN_TABLES, 'A');
 
   while (i < OptMenuDSDTFixesNum) {
     UINTN   ID = OPT_MENU_DSDT[i].ID;
@@ -3319,13 +3296,9 @@ REFIT_MENU_ENTRY
   REFIT_MENU_SCREEN     *SubScreen = NULL;
   S_FILES               *aTmp = aThemes;
 
-  CreateHeaderEntries(&Entry, &SubScreen, L"Themes", SCREEN_THEMES);
+  CreateHeaderEntries(&Entry, &SubScreen, L"Themes", SCREEN_THEMES, 'T');
 
   AddMenuInfoLine(SubScreen, L"Available themes:");
-
-  //for (i = 0; i < ThemesNum; i++) {
-  //  AddMenuRadio(SubScreen, PoolPrint(L"%s", ThemesList[i]), NULL, mThemes, i);
-  //}
 
   while (aTmp) {
     AddMenuRadio (
@@ -3352,7 +3325,7 @@ REFIT_MENU_ENTRY
   REFIT_MENU_SCREEN     *SubScreen = NULL;
   S_FILES               *aTmp = aConfigs;
 
-  CreateHeaderEntries(&Entry, &SubScreen, L"Configs", SCREEN_CONFIGS);
+  CreateHeaderEntries(&Entry, &SubScreen, L"Configs", SCREEN_CONFIGS, 'C');
 
   AddMenuInfoLine(SubScreen, L"Available configs:");
 
@@ -3418,9 +3391,9 @@ OptionsMenu (
       AddMenuEntry(&OptionMenu, SubMenuThemes());
     }
 
-    AddMenuEntry(&OptionMenu, SubMenuBinaries());
-    AddMenuEntry(&OptionMenu, SubMenuDropTables());
-    AddMenuEntry(&OptionMenu, SubMenuGraphics());
+    AddMenuEntry(&OptionMenu, SubMenuPatches());
+    AddMenuEntry(&OptionMenu, SubMenuAcpi());
+    AddMenuEntry(&OptionMenu, SubMenuDevices());
 
     AddMenuEntry(&OptionMenu, &MenuEntryReturn);
     //DBG("option menu created entries=%d\n", OptionMenu.EntryCount);
@@ -3450,10 +3423,6 @@ OptionsMenu (
 
           if ((SubMenuExit == MENU_EXIT_ESCAPE) || (TmpChosenEntry->Tag == TAG_RETURN)) {
             ApplyInputs();
-            //if ((*ChosenEntry)->SubScreen->ID == SCREEN_DSDT) {
-            //  UnicodeSPrint((*ChosenEntry)->Title, 255, L"DSDT fix mask [0x%08x]", gSettings.FixDsdt);
-            //    //MsgLog("@ESC: %s\n", (*ChosenEntry)->Title);
-            //}
             break;
           }
 
@@ -3461,14 +3430,7 @@ OptionsMenu (
             //enter input dialog
             SubMenuExit = 0;
             if ((*ChosenEntry)->SubScreen->ID == SCREEN_DSDT) {
-              //CHAR16 *TmpTitle;
               ApplyInputs();
-              //TmpTitle = PoolPrint(L"DSDT fix mask [0x%08x]->", gSettings.FixDsdt);
-              //MsgLog("@ENTER: tmp=%s\n", TmpTitle);
-              //while (*TmpTitle) {
-              //  *((*ChosenEntry)->Title)++ = *TmpTitle++;
-              //}
-              //MsgLog("@ENTER: chosen=%s\n", (*ChosenEntry)->Title);
             }
             //if (TmpChosenEntry->ShortcutDigit == 0xF1) {
             //  MenuExit = MENU_EXIT_ENTER;

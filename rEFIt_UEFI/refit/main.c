@@ -865,18 +865,12 @@ ScanDriverDir (
   EFI_STATUS                      Status;
   REFIT_DIR_ITER                  DirIter;
   EFI_FILE_INFO                   *DirEntry;
-  CHAR16                          FileName[256];
-  EFI_HANDLE                      DriverHandle;
+  EFI_HANDLE                      DriverHandle, *DriversArr = NULL;
   EFI_DRIVER_BINDING_PROTOCOL     *DriverBinding;
-  UINTN                           DriversArrSize;
-  UINTN                           DriversArrNum;
-  EFI_HANDLE                      *DriversArr;
+  CHAR16                          FileName[256];
+  UINTN                           DriversArrSize = 0, DriversArrNum = 0;
   INTN                            i;
   BOOLEAN                         Skip;
-
-  DriversArrSize = 0;
-  DriversArrNum = 0;
-  DriversArr = NULL;
 
   // look through contents of the directory
   DirIterOpen(SelfRootDir, Path, &DirIter);
@@ -884,7 +878,7 @@ ScanDriverDir (
   while (DirIterNext(&DirIter, 2, L"*.EFI", &DirEntry)) {
     Skip = (DirEntry->FileName[0] == L'.');
 
-    for (i=0; i<gSettings.BlackListCount; i++) {
+    for (i = 0; i < gSettings.BlackListCount; i++) {
       if (StrStr(DirEntry->FileName, gSettings.BlackList[i]) != NULL) {
         Skip = TRUE;   // skip this
         break;
@@ -952,7 +946,7 @@ ScanDriverDir (
   Status = DirIterClose(&DirIter);
 
   if (Status != EFI_NOT_FOUND) {
-    UnicodeSPrint(FileName, 512, L"while scanning the %s directory", Path);
+    UnicodeSPrint(FileName, SVALUE_MAX_SIZE, L"while scanning the %s directory", Path);
     CheckError(Status, FileName);
   }
 
@@ -973,13 +967,10 @@ ScanDriverDir (
 VOID
 DisconnectSomeDevices () {
   EFI_STATUS                        Status;
-  UINTN                             HandleCount;
-  UINTN                             Index, Index2;
-  EFI_HANDLE                        *Handles ;
-  EFI_HANDLE                        *ControllerHandles;
-  UINTN                             ControllerHandleCount;
-  CHAR16                            *DriverName;
+  EFI_HANDLE                        *Handles, *ControllerHandles;
   EFI_COMPONENT_NAME_PROTOCOL       *CompName;
+  CHAR16                            *DriverName;
+  UINTN                             HandleCount, Index, Index2, ControllerHandleCount;
 
   if (gDriversFlags.HFSLoaded) {
     DBG("HFS+ driver loaded\n");

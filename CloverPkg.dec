@@ -1,0 +1,47 @@
+###### @file
+###
+### This Package provides all definitions(including functions, MACROs, structures and library classes)
+### and libraries instances, which are only used by Duet platform.
+###
+### Copyright (c) 2007 - 2011, Intel Corporation. All rights reserved.<BR>
+###
+### This program and the accompanying materials are licensed and made available under
+### the terms and conditions of the BSD License which accompanies this distribution.
+### The full text of the license may be found at
+### http://opensource.org/licenses/bsd-license.php
+###
+### THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+### WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+###
+######
+
+[Defines]
+  DEC_SPECIFICATION                 = 0x00010005
+  PACKAGE_NAME                      = CloverPkg
+  PACKAGE_GUID                      = C10BE46B-35C3-4B0B-9B9C-3F02051D782F
+  PACKAGE_VERSION                   = 0.4
+
+[Includes]
+  Include
+
+[LibraryClasses]
+  ######  @libraryclass  Provides MsgLog service
+  ######
+  MemLogLib|Include/Library/MemLogLib.h
+
+[Guids]
+
+#  ### Apple's guids
+  gEfiAppleBootGuid                 = {0x7C436110, 0xAB2A, 0x4BBB, {0xA8, 0x80, 0xFE, 0x41, 0x99, 0x5C, 0x9F, 0x82}}
+  gEfiAppleNvramGuid                = {0x4D1EDE05, 0x38C7, 0x4A6A, {0x9C, 0xC6, 0x4B, 0xCC, 0xA8, 0xB3, 0x8C, 0x14}}
+  gAppleScreenInfoProtocolGuid      = {0xE316E100, 0x0751, 0x4C49, {0x90, 0x56, 0x48, 0x6C, 0x7E, 0x47, 0x29, 0x03}}
+  gEfiAppleVendorGuid               = {0xAC39C713, 0x7E50, 0x423D, {0x88, 0x9D, 0x27, 0x8F, 0xCC, 0x34, 0x22, 0xB6}}
+
+[Protocols]
+  gFSInjectProtocolGuid             = {0x3F048284, 0x6D4C, 0x11E1, {0xA4, 0xD7, 0x37, 0xE3, 0x48, 0x24, 0x01, 0x9B }}
+#
+  gMsgLogProtocolGuid               = {0x511CE018, 0x0018, 0x4002, {0x20, 0x12, 0x17, 0x38, 0x05, 0x01, 0x02, 0x03 }}
+#
+#  ###Apple's protocols
+  gEfiConsoleControlProtocolGuid    = {0xF42F7782, 0x012E, 0x4C12, {0x99, 0x56, 0x49, 0xF9, 0x43, 0x04, 0xF7, 0x21}}
+  AppleDevicePropertyProtocolGuid   = {0x91BD12FE, 0xF6C3, 0x44FB, {0xA5, 0xB7, 0x51, 0x22, 0xAB, 0x30, 0x3A, 0xE0}}

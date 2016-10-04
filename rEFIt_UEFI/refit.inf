@@ -19,8 +19,8 @@
   BASE_NAME                     = CLOVER$(ARCH)
   FILE_GUID                     = 8F7D7B1E-0E1C-4C98-B12E-4EC99C4081AC
   MODULE_TYPE                   = UEFI_APPLICATION
-  EDK_RELEASE_VERSION     = 0x00020000
-  EFI_SPECIFICATION_VERSION   = 0x00010000
+  EDK_RELEASE_VERSION           = 0x00020000
+  EFI_SPECIFICATION_VERSION     = 0x00010000
   VERSION_STRING                = 1.0
   ENTRY_POINT                   = RefitMain
 
@@ -31,98 +31,51 @@
 #
 
 [Sources]
-#  EfiLib/GenericBdsLib.h
-#  EfiLib/BmLib.c
-#  Platform/DevicePath.c #included into GenericBdsLib
-  Platform/BdsConnect.c #included into GenericBdsLib
-  refit/main.c
-  refit/menu.c
-  refit/icns.c
-  refit/lib.c
-  refit/screen.c
-  refit/IO.c
   entry_scan/common.c
-#  entry_scan/legacy.c
   entry_scan/loader.c
   entry_scan/tool.c
-#  entry_scan/secureboot.c
-#  entry_scan/securehash.c
-#  entry_scan/securemenu.c
-#  entry_scan/securevars.c
-#  entry_scan/bootscreen.c
-#  entry_scan/lockedgraphics.c
   libeg/BmLib.c
   libeg/image.c
+  libeg/libscreen.c
   libeg/load_bmp.c
   libeg/load_icns.c
-  libeg/libscreen.c
   libeg/lodepng.c
   libeg/text.c
   Platform/AcpiPatcher.c
-#  Platform/ati_reg.h
   Platform/AmlGenerator.c
   Platform/ati.c
-# Platform/BiosVideo.h
-# Platform/Bmp.h
-# Platform/boot.h
+  Platform/BdsConnect.c #included into GenericBdsLib
   Platform/BootLog.c
-  #Platform/BootOptions.c
-#  Platform/Console.c
+  Platform/card_vlist.c
   Platform/cpu.c
   Platform/DataHubCpu.c
-# Platform/DataHubRecords.h
   Platform/device_inject.c
-# Platform/device_inject.h
   Platform/device_tree.c
-# Platform/device_tree.h
   Platform/Edid.c
   Platform/Events.c
+  Platform/FixBiosDsdt.c
   Platform/gma.c
-# Platform/gma.h
   Platform/guid.c
-# Platform/Injectors.c
-#  Platform/LegacyBiosThunk.c
-# Platform/LegacyBiosThunk.h
-#  Platform/LegacyBoot.c
-# Platform/memvendors.h
+  Platform/Hibernate.c
+  Platform/kernel_patcher.c
+  Platform/kext_inject.c
+  Platform/kext_patcher.c
+  Platform/Net.c
   Platform/nvidia.c
-# Platform/nvidia.h
-# Platform/pci.c
-# Platform/picopng.c
-# Platform/picopng.h
-#  Platform/Platform.h
+  Platform/Nvram.c
   Platform/platformdata.c
+  Platform/PlatformDriverOverride.c
   Platform/plist.c
-  #Platform/Pointer.c
   Platform/Settings.c
   Platform/smbios.c
-# Platform/SmBios.h
   Platform/spd.c
-# Platform/spd.h
-#  Platform/string.c
-# Platform/string.h
   Platform/StateGenerator.c
-# Platform/StateGenerator.h
-# Platform/stringTable.c
-#  Platform/usbfix.c
-# Platform/UsbMass.h
-# Platform/UsbMassBoot.h
-# Platform/UsbMassImpl.h
-# Platform/VesaBiosExtensions.h
-#  Platform/b64cdecode.h
-# Platform/b64cdecode.c
-  Platform/FixBiosDsdt.c
-#  Platform/loader.h
-#  Platform/LoaderUefi.h
-#  Platform/kernel_patcher.h
-  Platform/kernel_patcher.c
-  Platform/kext_patcher.c
-  Platform/kext_inject.c
-  Platform/Nvram.c
-  Platform/card_vlist.c
-  Platform/PlatformDriverOverride.c
-  Platform/Hibernate.c
-  Platform/Net.c
+  refit/icns.c
+  refit/IO.c
+  refit/lib.c
+  refit/main.c
+  refit/menu.c
+  refit/screen.c
 
 [Packages]
   Clover/CloverPkg.dec
@@ -138,20 +91,11 @@
   MemoryAllocationLib
   BaseMemoryLib
   BaseLib
-#  DevicePathLib
-#  DebugLib
   DxeServicesLib
   DxeServicesTableLib
   HobLib
-#  IoLib
-
-#  HiiLib
-#  EfiFileLib
   PeCoffLib
-#  GenericBdsLib
   MemLogLib
-  #VideoBiosPatchLib
-#  OpensslLib
   NetLib
 
 [Guids]
@@ -161,30 +105,10 @@
   gEfiAppleBootGuid
   gEfiAppleNvramGuid
   gAppleScreenInfoProtocolGuid
-#  gEfiAppleVendorGuid
-#  gEfiDxeServicesTableGuid
-#  gEfiEventReadyToBootGuid
-#  gEfiEventVirtualAddressChangeGuid
-#  gEfiEventExitBootServicesGuid
-#  gEfiFileInfoGuid                              ## CONSUMES ## GUID
-  gEfiFileSystemInfoGuid                        ## CONSUMES ## GUID
+  gEfiFileSystemInfoGuid                                  # CONSUMES # GUID
   gEfiFileSystemVolumeLabelInfoIdGuid
-#  gEfiGlobalVariableGuid
-#  gEfiPartTypeLegacyMbrGuid
   gEfiPartTypeSystemPartGuid
-#  gEfiSmbiosTableGuid
-##  gEfiSasDevicePathGuid
-##  gEfiImageSecurityDatabaseGuid
-##  gEfiCertX509Guid
-##  gEfiCertSha1Guid
-##  gEfiCertSha256Guid
-##  gEfiCertPkcs7Guid
-##  gEfiCertRsa2048Guid
-##  gEfiCertRsa2048Sha256Guid
-##  gEfiCertTypeRsa2048Sha256Guid
-  
 
-[Ppis]
 
 [Protocols]
   gEfiComponentName2ProtocolGuid                          # ALWAYS_CONSUMED
@@ -193,52 +117,24 @@
   gEfiSimpleTextInProtocolGuid                            # ALWAYS_CONSUMED
   gEfiSimpleTextInputExProtocolGuid                       # ALWAYS_CONSUMED
   gEfiSimpleTextOutProtocolGuid                           # ALWAYS_CONSUMED
-  gEfiUnicodeCollationProtocolGuid                       # ALWAYS_CONSUMED  
-  gEfiUnicodeCollation2ProtocolGuid                       # ALWAYS_CONSUMED  
-  
-#  gEfiAcpiS3SaveProtocolGuid                    # PROTOCOL CONSUMES
-  gEfiBlockIoProtocolGuid                       # PROTOCOL CONSUMES
-#  gEfiCpuArchProtocolGuid                       # PROTOCOL CONSUMES
-#  gEfiDebugPortProtocolGuid                     # PROTOCOL CONSUMES
-#  gEfiDevicePathProtocolGuid                    # PROTOCOL CONSUMES
-  gEfiDiskIoProtocolGuid                        # PROTOCOL CONSUMES
-#  gEfiExtScsiPassThruProtocolGuid               ## PROTOCOL SOMETIMES_CONSUMES
-#  gEfiFirmwareVolume2ProtocolGuid               # PROTOCOL CONSUMES
-#  gEfiGraphicsOutputProtocolGuid                # PROTOCOL SOMETIMES_CONSUMES
-#  gEfiHiiFontProtocolGuid                       # PROTOCOL CONSUMES
-#  gEfiLegacy8259ProtocolGuid          ## PROTOCOL SOMETIMES_CONSUMES
-#  gEfiLoadedImageProtocolGuid                   # PROTOCOL CONSUMES
-#  gEfiOEMBadgingProtocolGuid                    # PROTOCOL CONSUMES
-  gEfiPciIoProtocolGuid                         # PROTOCOL CONSUMES 
-  gEfiScsiIoProtocolGuid                        ## PROTOCOL SOMETIMES_CONSUMES
-#  gEfiScsiPassThruProtocolGuid                  ## PROTOCOL SOMETIMES_CONSUMES
-#  gEfiSimpleNetworkProtocolGuid                 # PROTOCOL CONSUMES
-  gEfiStatusCodeRuntimeProtocolGuid       # PROTOCOL CONSUMES
-#  gEfiUgaDrawProtocolGuid |PcdUgaConsumeSupport # PROTOCOL SOMETIMES_CONSUMES
-#  gEfiManagedNetworkServiceBindingProtocolGuid
-  
-#  gEfiAbsolutePointerProtocolGuid
-#  gEfiAcpiTableProtocolGuid
-#  gEfiEdidActiveProtocolGuid
+  gEfiUnicodeCollationProtocolGuid                        # ALWAYS_CONSUMED
+  gEfiUnicodeCollation2ProtocolGuid                       # ALWAYS_CONSUMED
+
+  gEfiBlockIoProtocolGuid                                 # PROTOCOL CONSUMES
+  gEfiDiskIoProtocolGuid                                  # PROTOCOL CONSUMES
+  gEfiPciIoProtocolGuid                                   # PROTOCOL CONSUMES
+  gEfiScsiIoProtocolGuid                                  # PROTOCOL SOMETIMES_CONSUMES
+  gEfiStatusCodeRuntimeProtocolGuid                       # PROTOCOL CONSUMES
+
   gEfiEdidDiscoveredProtocolGuid
   gEfiEdidOverrideProtocolGuid
-#  gEfiHiiDatabaseProtocolGuid
-#  gEfiHiiImageProtocolGuid
-#  gEfiHiiProtocolGuid
   gEfiSimplePointerProtocolGuid
-#  gEfiSmbiosProtocolGuid
-#  gEfiSecurityArchProtocolGuid
-#  gEfiSecurity2ArchProtocolGuid
 
-#  AppleDevicePropertyProtocolGuid
   gEfiConsoleControlProtocolGuid
-#  gEfiLegacyBiosProtocolGuid
-#  gEfiTimerArchProtocolGuid
-  
+
   gFSInjectProtocolGuid
   gMsgLogProtocolGuid
   gEfiPlatformDriverOverrideProtocolGuid
-#  gEmuVariableControlProtocolGuid
 
 [FeaturePcd]
   gEfiMdePkgTokenSpaceGuid.PcdUgaConsumeSupport

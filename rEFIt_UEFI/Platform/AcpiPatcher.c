@@ -188,6 +188,63 @@ UINT64
   return NULL;
 }
 
+EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE
+*GetFadt () {
+  EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_POINTER    *RsdPtr;
+  EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE       *FadtPointer = NULL;
+
+  RsdPtr = FindAcpiRsdPtr();
+  if (RsdPtr == NULL) {
+    /*Status = */EfiGetSystemConfigurationTable (&gEfiAcpi20TableGuid, (VOID **)&RsdPtr);
+    if (RsdPtr == NULL) {
+      /*Status = */EfiGetSystemConfigurationTable (&gEfiAcpi10TableGuid, (VOID **)&RsdPtr);
+      if (RsdPtr == NULL) {
+        return NULL;
+      }
+    }
+  }
+
+  Rsdt = (RSDT_TABLE*)(UINTN)(RsdPtr->RsdtAddress);
+  if (RsdPtr->Revision > 0) {
+    if ((Rsdt == NULL) || (Rsdt->Header.Signature != EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_TABLE_SIGNATURE)) {
+      Xsdt = (XSDT_TABLE *)(UINTN)(RsdPtr->XsdtAddress);
+    }
+  }
+
+  if ((Rsdt == NULL) && (Xsdt == NULL)) {
+    //
+    // Search Acpi 2.0 or newer in UEFI Sys.Tables
+    //
+    RsdPtr = NULL;
+    /*Status = */EfiGetSystemConfigurationTable (&gEfiAcpi20TableGuid, (VOID**)&RsdPtr);
+    if (RsdPtr != NULL) {
+      DBG("Found UEFI Acpi 2.0 RSDP at %p\n", RsdPtr);
+      Rsdt = (RSDT_TABLE*)(UINTN)(RsdPtr->RsdtAddress);
+      if (RsdPtr->Revision > 0) {
+        if ((Rsdt == NULL) || (Rsdt->Header.Signature != EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_TABLE_SIGNATURE)) {
+          Xsdt = (XSDT_TABLE *)(UINTN)(RsdPtr->XsdtAddress);
+        }
+      }
+    }
+
+    if (Rsdt == NULL && Xsdt == NULL) {
+      DBG("No RSDT or XSDT found!\n");
+      return NULL;
+    }
+  }
+
+  if (Rsdt) {
+    FadtPointer = (EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE*)(UINTN)(Rsdt->Entry);
+  }
+
+  if (Xsdt) {
+    //overwrite previous find as xsdt priority
+    FadtPointer = (EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE*)(UINTN)(Xsdt->Entry);
+  }
+
+  return FadtPointer;
+}
+
 VOID
 GetAcpiTablesList() {
   EFI_ACPI_DESCRIPTION_HEADER   *TableEntry;
@@ -1030,65 +1087,6 @@ DumpFadtTables (
   }
 
   return Status;
-}
-
-EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE
-*GetFadt () {
-  EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_POINTER    *RsdPtr;
-  EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE       *FadtPointer = NULL;
-
-//  EFI_STATUS      Status;
-
-  RsdPtr = FindAcpiRsdPtr();
-  if (RsdPtr == NULL) {
-    /*Status = */EfiGetSystemConfigurationTable (&gEfiAcpi20TableGuid, (VOID **)&RsdPtr);
-    if (RsdPtr == NULL) {
-      /*Status = */EfiGetSystemConfigurationTable (&gEfiAcpi10TableGuid, (VOID **)&RsdPtr);
-      if (RsdPtr == NULL) {
-        return NULL;
-      }
-    }
-  }
-
-  Rsdt = (RSDT_TABLE*)(UINTN)(RsdPtr->RsdtAddress);
-  if (RsdPtr->Revision > 0) {
-    if ((Rsdt == NULL) || (Rsdt->Header.Signature != EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_TABLE_SIGNATURE)) {
-      Xsdt = (XSDT_TABLE *)(UINTN)(RsdPtr->XsdtAddress);
-    }
-  }
-
-  if ((Rsdt == NULL) && (Xsdt == NULL)) {
-    //
-    // Search Acpi 2.0 or newer in UEFI Sys.Tables
-    //
-    RsdPtr = NULL;
-    /*Status = */EfiGetSystemConfigurationTable (&gEfiAcpi20TableGuid, (VOID**)&RsdPtr);
-    if (RsdPtr != NULL) {
-      DBG("Found UEFI Acpi 2.0 RSDP at %p\n", RsdPtr);
-      Rsdt = (RSDT_TABLE*)(UINTN)(RsdPtr->RsdtAddress);
-      if (RsdPtr->Revision > 0) {
-        if ((Rsdt == NULL) || (Rsdt->Header.Signature != EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_TABLE_SIGNATURE)) {
-          Xsdt = (XSDT_TABLE *)(UINTN)(RsdPtr->XsdtAddress);
-        }
-      }
-    }
-
-    if (Rsdt == NULL && Xsdt == NULL) {
-      DBG("No RSDT or XSDT found!\n");
-      return NULL;
-    }
-  }
-
-  if (Rsdt) {
-    FadtPointer = (EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE*)(UINTN)(Rsdt->Entry);
-  }
-
-  if (Xsdt) {
-    //overwrite previous find as xsdt priority
-    FadtPointer = (EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE*)(UINTN)(Xsdt->Entry);
-  }
-
-  return FadtPointer;
 }
 
 /** Saves to disk (DirName != NULL)
