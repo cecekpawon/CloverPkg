@@ -1065,7 +1065,7 @@ devprop_add_list (
         }
       } else {
         if (devprop_list[i].default_val.type != kNul) {
-          devprop_add_value(
+          devprop_add_value (
             card->device, devprop_list[i].name,
             devprop_list[i].default_val.type == kCst
               ? (UINT8 *)&(devprop_list[i].default_val.data)
@@ -1078,7 +1078,7 @@ devprop_add_list (
           for (pnum = 1; pnum < card->ports; pnum++) {
             if (devprop_list[i].default_val.type != kNul) {
               devprop_list[i].name[1] = (CHAR8)(0x30 + pnum); // convert to ascii
-              devprop_add_value(
+              devprop_add_value (
                 card->device, devprop_list[i].name,
                 devprop_list[i].default_val.type == kCst
                   ? (UINT8 *)&(devprop_list[i].default_val.data)
@@ -1614,7 +1614,7 @@ setup_ati_devprop (
         continue;
       }
 
-      devprop_add_value(
+      devprop_add_value (
         card->device,
         gSettings.AddProperties[i].Key,
         (UINT8*)gSettings.AddProperties[i].Value,

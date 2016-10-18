@@ -1148,7 +1148,7 @@ AddProperties (
     Injected = TRUE;
 
     aml_add_string(pack, gSettings.AddProperties[i].Key);
-    aml_add_byte_buffer(
+    aml_add_byte_buffer (
       pack, gSettings.AddProperties[i].Value,
       (UINT32)gSettings.AddProperties[i].ValueLen
     );
@@ -2609,7 +2609,7 @@ FixBiosDsdt (
 
       DBG(" - [%02d]:", i);
 
-      DsdtLen = FixAny(
+      DsdtLen = FixAny (
                   temp, DsdtLen,
                   gSettings.PatchDsdtFind[i], gSettings.LenToFind[i],
                   gSettings.PatchDsdtReplace[i], gSettings.LenToReplace[i]

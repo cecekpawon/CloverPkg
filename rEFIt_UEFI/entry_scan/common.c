@@ -333,7 +333,7 @@ CHAR16
       // Copy following substring, but include one space also
       OptionLength--;
 
-      CopyMem(
+      CopyMem (
         NewLoadOptions + Offset,
         LoadOptions + Offset + OptionLength,
         (Length - OptionLength - Offset) * sizeof(CHAR16)

@@ -126,6 +126,7 @@
   gEfiScsiIoProtocolGuid                                  # PROTOCOL SOMETIMES_CONSUMES
   gEfiStatusCodeRuntimeProtocolGuid                       # PROTOCOL CONSUMES
 
+  gEfiEdidActiveProtocolGuid
   gEfiEdidDiscoveredProtocolGuid
   gEfiEdidOverrideProtocolGuid
   gEfiSimplePointerProtocolGuid

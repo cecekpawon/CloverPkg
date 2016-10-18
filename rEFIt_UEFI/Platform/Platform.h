@@ -16,12 +16,12 @@ Headers collection for procedures
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 #include <Library/DevicePathLib.h>
+#include <IndustryStandard/PiBootMode.h>
 #include <Library/GenericBdsLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/PcdLib.h>
 #include <Library/UefiLib.h>
 #include <Library/UsbMass.h>
-//#include <Library/VideoBiosPatchLib.h>
 #include <Library/MemLogLib.h>
 
 #include <IndustryStandard/Atapi.h>
@@ -599,7 +599,7 @@ typedef struct {
 
 typedef struct DEV_PROPERTY DEV_PROPERTY;
 struct DEV_PROPERTY {
-  UINT32 Device;
+  UINTN  Device;
   CHAR8  *Key;
   CHAR8  *Value;
   UINTN  ValueLen;
@@ -1492,7 +1492,7 @@ setup_ati_devprop (
 );
 
 VOID
-get_ati_model(
+get_ati_model (
   OUT GFX_PROPERTIES  *gfx,
   IN UINT32           device_id
 );
@@ -1638,7 +1638,7 @@ EFI_STATUS
 SaveSettings ();
 
 UINTN
-iStrLen(
+iStrLen (
   CHAR8* String,
   UINTN  MaxLen
 );
@@ -1662,7 +1662,7 @@ UINT8
 );
 
 UINT64
-TimeDiff(
+TimeDiff (
   UINT64  t0,
   UINT64  t1
 );

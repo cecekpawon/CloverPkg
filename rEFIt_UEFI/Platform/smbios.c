@@ -2198,7 +2198,7 @@ FinalizeSmbios () { //continue
   SmbiosEpsNew->NumberOfSmbiosStructures = NumberOfRecords;
   SmbiosEpsNew->MaxStructureSize = MaxStructureSize;
   SmbiosEpsNew->IntermediateChecksum = 0;
-  SmbiosEpsNew->IntermediateChecksum = (UINT8)(256 - Checksum8(
+  SmbiosEpsNew->IntermediateChecksum = (UINT8)(256 - Checksum8 (
                                                         (UINT8*)SmbiosEpsNew + 0x10,
                                                         SmbiosEpsNew->EntryPointLength - 0x10)
                                                       );

@@ -238,7 +238,7 @@ ATIConnectorsPatchInit (
   //
 
   // Lion, SnowLeo 10.6.7 2011 MBP
-  AsciiSPrint(
+  AsciiSPrint (
     ATIKextBoundleId[0],
     sizeof(ATIKextBoundleId[0]),
     "com.apple.kext.ATI%sController",
@@ -246,7 +246,7 @@ ATIConnectorsPatchInit (
   );
 
   // ML
-  AsciiSPrint(
+  AsciiSPrint (
     ATIKextBoundleId[1],
     sizeof(ATIKextBoundleId[1]),
     "com.apple.kext.AMD%sController",
@@ -270,13 +270,13 @@ ATIConnectorsPatchRegisterKexts (
   LOADER_ENTRY          *Entry
 ) {
   // for future?
-  FSInject->AddStringToList(
+  FSInject->AddStringToList (
               ForceLoadKexts,
               PoolPrint(L"\\AMD%sController.kext\\Contents\\Info.plist", Entry->KernelAndKextPatches->KPATIConnectorsController)
             );
 
   // Lion, ML, SnowLeo 10.6.7 2011 MBP
-  FSInject->AddStringToList(
+  FSInject->AddStringToList (
               ForceLoadKexts,
               PoolPrint(L"\\ATI%sController.kext\\Contents\\Info.plist", Entry->KernelAndKextPatches->KPATIConnectorsController)
             );
@@ -316,7 +316,7 @@ ATIConnectorsPatch (
   DBG_RT(Entry, "Kext: %a\n", gKextBoundleIdentifier);
 
   // number of occurences od Data should be 1
-  Num = SearchAndCount(
+  Num = SearchAndCount (
           Driver,
           DriverSize,
           Entry->KernelAndKextPatches->KPATIConnectorsData,
@@ -331,7 +331,7 @@ ATIConnectorsPatch (
   }
 
   // patch
-  Num = SearchAndReplace(
+  Num = SearchAndReplace (
           Driver,
           DriverSize,
           Entry->KernelAndKextPatches->KPATIConnectorsData,
@@ -483,7 +483,7 @@ AnyKextPatch (
   if (!Entry->KernelAndKextPatches->KextPatches[N].IsPlistPatch) {
     // kext binary patch
     DBG_RT(Entry, "Binary patch\n");
-    Num = SearchAndReplace(
+    Num = SearchAndReplace (
             Driver,
             DriverSize,
             Entry->KernelAndKextPatches->KextPatches[N].Data,
@@ -508,7 +508,7 @@ AnyKextPatch (
 
     DBG_RT(Entry, "' \n");
 
-    Num = SearchAndReplaceTxt(
+    Num = SearchAndReplaceTxt (
             (UINT8*)InfoPlist,
             InfoPlistSize,
             Entry->KernelAndKextPatches->KextPatches[N].Data,
@@ -546,7 +546,7 @@ KextPatcherRegisterKexts (
   }
 
   for (i = 0; i < Entry->KernelAndKextPatches->NrKexts; i++) {
-    FSInject->AddStringToList(
+    FSInject->AddStringToList (
                 ForceLoadKexts,
                 PoolPrint(L"\\%a.kext\\Contents\\Info.plist", Entry->KernelAndKextPatches->KextPatches[i].Name)
               );
@@ -837,7 +837,7 @@ PatchPrelinkedKexts (
          */
 
         // patch it
-        PatchKext(
+        PatchKext (
           (UINT8*)(UINTN)KextAddr,
           KextSize,
           InfoPlistStart,
@@ -898,7 +898,7 @@ PatchLoadedKexts (
           SavedValue = InfoPlist[KextFileInfo->infoDictLength];
           InfoPlist[KextFileInfo->infoDictLength] = '\0';
 
-          PatchKext(
+          PatchKext (
             (UINT8*)(UINTN)KextFileInfo->executablePhysAddr,
             KextFileInfo->executableLength,
             InfoPlist,

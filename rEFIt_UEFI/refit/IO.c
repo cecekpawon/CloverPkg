@@ -885,7 +885,7 @@ _PPrint (
           Item.Item.u.pw = Item.Scratch;
           //SPrint(Buffer, 64, L"EFI Error №%r", (UINTN)Status);
           //ValueToHex (
-          UnicodeSPrint(
+          UnicodeSPrint (
             Item.Item.u.pw, 64, L"%x",
             Item.Long ? VA_ARG (ps->args, UINT64) : VA_ARG (ps->args, UINTN)
           );
@@ -904,7 +904,7 @@ _PPrint (
         case 'd':
           Item.Item.u.pw = Item.Scratch;
           //ValueToString (
-          UnicodeSPrint(
+          UnicodeSPrint (
             Item.Item.u.pw, 64, L"%d",
             //   Item.Comma,
             Item.Long ? VA_ARG (ps->args, UINT64) : VA_ARG (ps->args, INTN)

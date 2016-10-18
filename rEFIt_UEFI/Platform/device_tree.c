@@ -86,7 +86,7 @@ GetFirstChild (
 }
 
 RealDTEntry
-GetNextChild(
+GetNextChild (
   RealDTEntry   sibling
 ) {
   return skipTree(sibling);

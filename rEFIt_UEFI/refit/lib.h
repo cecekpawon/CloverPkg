@@ -247,7 +247,6 @@ extern EG_RECT    DownButton;
 extern EG_RECT    ScrollbarBackground;
 extern EG_RECT    Scrollbar;
 
-
 typedef struct UI_IMG
 {
   EG_IMAGE    *Image;
@@ -383,8 +382,6 @@ typedef struct {
   UINTN       HideBadges;
   UINTN       HideUIFlags;
   BOOLEAN     Quiet;
-  //BOOLEAN     LegacyFirst;
-  //BOOLEAN     NoLegacy;
   BOOLEAN     DebugLog;
   BOOLEAN     FastBoot;
   BOOLEAN     NeverHibernate;
@@ -416,10 +413,10 @@ typedef struct {
   INTN        BadgeOffsetX;
   INTN        BadgeOffsetY;
   INTN        BadgeScale;
-  UINT32      ThemeDesignWidth;
-  UINT32      ThemeDesignHeight;
-  UINT32      BannerPosX;
-  UINT32      BannerPosY;
+  INTN        ThemeDesignWidth;
+  INTN        ThemeDesignHeight;
+  INTN        BannerPosX;
+  INTN        BannerPosY;
   INTN        BannerEdgeHorizontal;
   INTN        BannerEdgeVertical;
   INTN        BannerNudgeX;
@@ -598,8 +595,8 @@ CHAR16        *egFindExtension(IN CHAR16 *FileName);
 
 INTN          FindMem(IN VOID *Buffer, IN UINTN BufferLength, IN VOID *SearchString, IN UINTN SearchStringLength);
 
-//CHAR16      *FileDevicePathToStr(IN EFI_DEVICE_PATH_PROTOCOL *DevPath);
-//CHAR16      *FileDevicePathFileToStr(IN EFI_DEVICE_PATH_PROTOCOL *DevPath);
+CHAR16        *FileDevicePathToStr(IN EFI_DEVICE_PATH_PROTOCOL *DevPath);
+CHAR16        *FileDevicePathFileToStr(IN EFI_DEVICE_PATH_PROTOCOL *DevPath);
 
 EFI_STATUS    InitializeUnicodeCollationProtocol ();
 //
@@ -641,7 +638,6 @@ extern EG_PIXEL   SelectionBackgroundPixel;
 
 extern EG_RECT    BannerPlace;
 extern EG_IMAGE   *BackgroundImage;
-
 
 VOID  InitScreen(IN BOOLEAN SetMaxResolution);
 VOID  SetupScreen();
@@ -689,7 +685,7 @@ VOID    FreeAnime(GUI_ANIME *Anime);
 //
 // icns loader module
 //
-EG_IMAGE *LoadOSIcon(
+EG_IMAGE *LoadOSIcon (
   IN  CHAR16    *OSIconName OPTIONAL,
   OUT CHAR16    **OSIconNameHover,
   IN  CHAR16    *FallbackIconName,
@@ -825,10 +821,10 @@ INTN StriCmp (
   IN CONST CHAR16   *SecondString
 );
 
-INTN EFIAPI AsciiStriCmp (
-  IN CONST CHAR8    *FirstString,
-  IN CONST CHAR8    *SecondString
-);
+//INTN EFIAPI AsciiStriCmp (
+//  IN CONST CHAR8    *FirstString,
+//  IN CONST CHAR8    *SecondString
+//);
 
 BOOLEAN AsciiStriNCmp (
   IN CONST CHAR8    *FirstString,

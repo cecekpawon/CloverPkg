@@ -28,7 +28,7 @@ aml_add_to_parent (
 
       case AML_CHUNK_NAME:
         if (parent->First) {
-          MsgLog(
+          MsgLog (
               "aml_add_to_parent: name node supports only one child node!\n");
           return FALSE;
         }

@@ -519,7 +519,7 @@ InjectKexts (
             (Entry->KernelAndKextPatches->KextPatches[i].DataLen > 0) &&
             (AsciiStrStr(InfoPlist, Entry->KernelAndKextPatches->KextPatches[i].Name) != NULL)
           ) {
-            AnyKextPatch(
+            AnyKextPatch (
               (UINT8*)(UINTN)drvinfo->executablePhysAddr,
               drvinfo->executableLength,
               InfoPlist,

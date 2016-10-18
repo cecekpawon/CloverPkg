@@ -108,7 +108,7 @@ EFI_FILE_PROTOCOL
 
   // If the log file is not found try to create it
   if (Status == EFI_NOT_FOUND) {
-    Status = RootDir->Open(
+    Status = RootDir->Open (
                         RootDir, &LogFile, DEBUG_LOG,
                         EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE, 0
                       );
@@ -126,7 +126,7 @@ EFI_FILE_PROTOCOL
 
       // If the log file is not found try to create it
       if (Status == EFI_NOT_FOUND) {
-        Status = RootDir->Open(
+        Status = RootDir->Open (
                             RootDir, &LogFile, DEBUG_LOG,
                             EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE, 0
                           );

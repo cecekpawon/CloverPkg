@@ -95,7 +95,7 @@ LoadEFIImageList (
   ReturnStatus = Status = EFI_NOT_FOUND;  // in case the list is empty
 
   for (DevicePathIndex = 0; (DevicePaths[DevicePathIndex] != NULL); DevicePathIndex++) {
-    ReturnStatus = Status = gBS->LoadImage(
+    ReturnStatus = Status = gBS->LoadImage (
                                     FALSE,
                                     SelfImageHandle,
                                     DevicePaths[DevicePathIndex],
@@ -169,7 +169,7 @@ StartEFILoadedImage (
 
   // set load options
   if (LoadOptions != NULL) {
-    ReturnStatus = Status = gBS->HandleProtocol(
+    ReturnStatus = Status = gBS->HandleProtocol (
                                     ChildImageHandle,
                                     &gEfiLoadedImageProtocolGuid,
                                     (VOID **) &ChildLoadedImage
@@ -278,7 +278,7 @@ StartEFIImage (
   Status = LoadEFIImage(DevicePath, ImageTitle, ErrorInStep, &ChildImageHandle);
 
   if (!EFI_ERROR(Status)) {
-    Status = StartEFILoadedImage(
+    Status = StartEFILoadedImage (
                 ChildImageHandle,
                 LoadOptions,
                 LoadOptionsPrefix,
@@ -391,7 +391,7 @@ FilterKextPatches (
         (Entry->BuildVersion != NULL) &&
         (Entry->KernelAndKextPatches->KextPatches[i].MatchBuild != NULL)
       ) {
-        Entry->KernelAndKextPatches->KextPatches[i].Disabled = !IsPatchEnabled(
+        Entry->KernelAndKextPatches->KextPatches[i].Disabled = !IsPatchEnabled (
           Entry->KernelAndKextPatches->KextPatches[i].MatchBuild, Entry->BuildVersion);
 
         DBG(" ==> %a\n", Entry->KernelAndKextPatches->KextPatches[i].Disabled ? "not allowed" : "allowed");
@@ -401,7 +401,7 @@ FilterKextPatches (
         //}
       }
 
-      Entry->KernelAndKextPatches->KextPatches[i].Disabled = !IsPatchEnabled(
+      Entry->KernelAndKextPatches->KextPatches[i].Disabled = !IsPatchEnabled (
         Entry->KernelAndKextPatches->KextPatches[i].MatchOS, Entry->OSVersion);
 
       DBG(" ==> %a\n", Entry->KernelAndKextPatches->KextPatches[i].Disabled ? "not allowed" : "allowed");
@@ -439,7 +439,7 @@ FilterKernelPatches (
         (Entry->BuildVersion != NULL) &&
         (Entry->KernelAndKextPatches->KernelPatches[i].MatchBuild != NULL)
       ) {
-        Entry->KernelAndKextPatches->KernelPatches[i].Disabled = !IsPatchEnabled(
+        Entry->KernelAndKextPatches->KernelPatches[i].Disabled = !IsPatchEnabled (
           Entry->KernelAndKextPatches->KernelPatches[i].MatchBuild, Entry->BuildVersion);
 
         DBG(" ==> %a\n", Entry->KernelAndKextPatches->KernelPatches[i].Disabled ? "not allowed" : "allowed");
@@ -449,7 +449,7 @@ FilterKernelPatches (
         //}
       }
 
-      Entry->KernelAndKextPatches->KernelPatches[i].Disabled = !IsPatchEnabled(
+      Entry->KernelAndKextPatches->KernelPatches[i].Disabled = !IsPatchEnabled (
         Entry->KernelAndKextPatches->KernelPatches[i].MatchOS, Entry->OSVersion);
 
       DBG(" ==> %a\n", Entry->KernelAndKextPatches->KernelPatches[i].Disabled ? "not allowed" : "allowed");
@@ -548,7 +548,7 @@ StartLoader (
   //DumpKernelAndKextPatches(Entry->KernelAndKextPatches);
 
   // Load image into memory (will be started later)
-  Status = LoadEFIImage(
+  Status = LoadEFIImage (
               Entry->DevicePath,
               Basename(Entry->LoaderPath),
               NULL,
@@ -569,7 +569,7 @@ StartLoader (
     // This should happen only for 10.7-10.9 OSTYPE_OSX_INSTALLER
     // For these cases, take OSVersion from loaded boot.efi image in memory
     if (OSTYPE_IS_OSX_INSTALLER(Entry->LoaderType) || !Entry->OSVersion) {
-      Status = gBS->HandleProtocol(
+      Status = gBS->HandleProtocol (
                       ImageHandle,
                       &gEfiLoadedImageProtocolGuid,
                       (VOID **) &LoadedImage
@@ -761,10 +761,6 @@ StartLoader (
     RemoveStartupDiskVolume();
   }
 
-  //if (OSFLAG_ISUNSET(Entry->Flags, OSFLAG_USEGRAPHICS)) {
-  //  Entry->Flags = OSFLAG_SET(Entry->Flags, OSFLAG_USEGRAPHICS);
-  //}
-
   //DBG("BeginExternalScreen\n");
   BeginExternalScreen(OSFLAG_ISSET(Entry->Flags, OSFLAG_USEGRAPHICS), L"Booting OS");
 
@@ -788,7 +784,7 @@ StartLoader (
       SavePreBootLog = FALSE;
     } else {
       // delete boot-switch-vars if exists
-      Status = gRT->SetVariable(
+      Status = gRT->SetVariable (
                   L"boot-switch-vars", &gEfiAppleBootGuid,
                   EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS,
                   0, NULL
@@ -808,7 +804,7 @@ StartLoader (
   }
 
   //DBG("StartEFILoadedImage\n");
-  StartEFILoadedImage(
+  StartEFILoadedImage (
     ImageHandle, Entry->LoadOptions,
     Basename(Entry->LoaderPath),
     Basename(Entry->LoaderPath),
@@ -838,7 +834,7 @@ StartTool (
   // assumes "Start <title>" as assigned below
   BeginExternalScreen(OSFLAG_ISSET(Entry->Flags, OSFLAG_USEGRAPHICS), Entry->me.Title + 6);
 
-  StartEFIImage(
+  StartEFIImage (
     Entry->DevicePath,
     Entry->ToolOptions,
     Basename(Entry->LoaderPath),
@@ -895,7 +891,7 @@ ScanDriverDir (
     }
 
     UnicodeSPrint(FileName, 512, L"%s\\%s", Path, DirEntry->FileName);
-    Status = StartEFIImage(
+    Status = StartEFIImage (
                 FileDevicePath(SelfLoadedImage->DeviceHandle, FileName),
                 L"",
                 DirEntry->FileName,
@@ -979,7 +975,7 @@ DisconnectSomeDevices () {
     ControllerHandleCount = 0;
     ControllerHandles = NULL;
 
-    Status = gBS->LocateHandleBuffer(
+    Status = gBS->LocateHandleBuffer (
                     ByProtocol,
                     &gEfiSimpleFileSystemProtocolGuid,
                     NULL,
@@ -990,7 +986,7 @@ DisconnectSomeDevices () {
     HandleCount = 0;
     Handles = NULL;
 
-    Status = gBS->LocateHandleBuffer(
+    Status = gBS->LocateHandleBuffer (
                     ByProtocol,
                     &gEfiComponentNameProtocolGuid,
                     NULL,
@@ -1000,7 +996,7 @@ DisconnectSomeDevices () {
 
     if (!EFI_ERROR (Status)) {
       for (Index = 0; Index < HandleCount; Index++) {
-        Status = gBS->OpenProtocol(
+        Status = gBS->OpenProtocol (
                          Handles[Index],
                          &gEfiComponentNameProtocolGuid,
                          (VOID**)&CompName,
@@ -1021,7 +1017,7 @@ DisconnectSomeDevices () {
 
         if (StriStr(DriverName, L"HFS")) {
           for (Index2 = 0; Index2 < ControllerHandleCount; Index2++) {
-            Status = gBS->DisconnectController(
+            Status = gBS->DisconnectController (
                             ControllerHandles[Index2],
                             Handles[Index],
                             NULL
@@ -1133,7 +1129,7 @@ FindDefaultEntry () {
 }
 
 VOID
-SetVariablesFromNvram() {
+SetVariablesFromNvram () {
   CHAR8   *tmpString, *arg = NULL, *lBootArgs;
   UINTN   iNVRAM = 0, iBootArgs = 0, index = 0, index2, len, i;
 
@@ -1303,7 +1299,7 @@ RefitMain (
 
   if (Now.TimeZone < 0 || Now.TimeZone > 24) {
     MsgLog("Now is %d.%d.%d,  %d:%d:%d (GMT)\n",
-           Now.Day, Now.Month, Now.Year, Now.Hour, Now.Minute, Now.Second);
+      Now.Day, Now.Month, Now.Year, Now.Hour, Now.Minute, Now.Second);
   } else {
     MsgLog("Now is %d.%d.%d,  %d:%d:%d (GMT+%d)\n",
       Now.Day, Now.Month, Now.Year, Now.Hour, Now.Minute, Now.Second, Now.TimeZone);
@@ -1422,7 +1418,7 @@ RefitMain (
   }
 
   gCPUStructure.CPUFrequency  = gCPUStructure.TSCFrequency;
-  gCPUStructure.FSBFrequency  = DivU64x32(
+  gCPUStructure.FSBFrequency  = DivU64x32 (
                                   MultU64x32(gCPUStructure.CPUFrequency, 10),
                                   (gCPUStructure.MaxRatio == 0) ? 1 : gCPUStructure.MaxRatio
                                 );
@@ -1445,7 +1441,7 @@ RefitMain (
     DBG("Set MaxRatio for QEMU: %d\n", gCPUStructure.MaxRatio);
     gCPUStructure.MaxRatio     *= 10;
     gCPUStructure.MinRatio      = 60;
-    gCPUStructure.FSBFrequency  = DivU64x32(
+    gCPUStructure.FSBFrequency  = DivU64x32 (
                                     MultU64x32(gCPUStructure.CPUFrequency, 10),
                                     (gCPUStructure.MaxRatio == 0) ? 1 : gCPUStructure.MaxRatio
                                   );

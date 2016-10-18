@@ -53,11 +53,11 @@ STATIC CHAR16 *ShellPath[] = {
   L"Shell.efi"
 };
 
-STATIC CONST UINTN ShellPathCount = ARRAY_SIZE(ShellPath);
+STATIC CONST INTN ShellPathCount = ARRAY_SIZE(ShellPath);
 
 STATIC
 BOOLEAN
-AddToolEntry(
+AddToolEntry (
   IN CHAR16         *LoaderPath,
   IN CHAR16         *FullTitle,
   IN CHAR16         *LoaderTitle,
@@ -123,7 +123,7 @@ ScanTool () {
   // look for the EFI shell
   if (!(GlobalConfig.DisableFlags & HIDEUI_FLAG_SHELL)) {
     for (i = 0; i < ShellPathCount; ++i) {
-      if (AddToolEntry(
+      if (AddToolEntry (
             //ShellPath[i],
             PoolPrint(L"%s\\%s", DIR_TOOLS, ShellPath[i]),
             NULL,
@@ -255,7 +255,7 @@ AddCustomTool () {
       }
 
       // Create a legacy entry for this volume
-      AddToolEntry(
+      AddToolEntry (
         Custom->Path,
         Custom->FullTitle,
         Custom->Title,

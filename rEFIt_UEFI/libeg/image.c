@@ -512,7 +512,7 @@ egMkDir (
     }
   }
 
-  Status = BaseDir->Open(
+  Status = BaseDir->Open (
                       BaseDir, &FileHandle, DirName,
                       EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE, EFI_FILE_DIRECTORY
                     );
@@ -520,7 +520,7 @@ egMkDir (
   if (EFI_ERROR(Status)) {
     // Write new dir
     //DBG("%r, attempt to create one:", Status);
-    Status = BaseDir->Open(
+    Status = BaseDir->Open (
                         BaseDir, &FileHandle, DirName,
                         EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE, EFI_FILE_DIRECTORY
                       );
@@ -1024,20 +1024,20 @@ egComposeImage (
 
     if (TopImage->HasAlpha) {
       if (CompImage->HasAlpha) {
-        egRawCompose(
+        egRawCompose (
           CompImage->PixelData + PosY * CompImage->Width + PosX,
           TopImage->PixelData,
           CompWidth, CompHeight, CompImage->Width, TopImage->Width
         );
       } else {
-        egRawComposeOnFlat(
+        egRawComposeOnFlat (
           CompImage->PixelData + PosY * CompImage->Width + PosX,
           TopImage->PixelData,
           CompWidth, CompHeight, CompImage->Width, TopImage->Width
         );
       }
     } else {
-      egRawCopy(
+      egRawCopy (
         CompImage->PixelData + PosY * CompImage->Width + PosX,
         TopImage->PixelData,
         CompWidth, CompHeight, CompImage->Width, TopImage->Width

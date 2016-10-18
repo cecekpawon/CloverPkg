@@ -808,7 +808,7 @@ AddLoaderEntry (
     }
   }
 
-  Entry = CreateLoaderEntry(
+  Entry = CreateLoaderEntry (
             LoaderPath,
             LoaderOptions,
             NULL,
@@ -973,7 +973,7 @@ ScanLoader() {
                     Options = LinuxKernelOptions(Iter.DirHandle, Basename(Path) + StrLen(LINUX_LOADER_PATH), StrToLower(PartUUID), NULL);
 
                     // Add the entry
-                    AddLoaderEntry(
+                    AddLoaderEntry (
                       Path,
                       (Options == NULL) ? LINUX_DEFAULT_OPTIONS : Options,
                       NULL, Volume, NULL, OSTYPE_LINEFI, OSFLAG_NODEFAULTARGS
@@ -1370,7 +1370,7 @@ AddCustomEntry (
       DBG("match!\n");
 
       // Create an entry for this volume
-      Entry = CreateLoaderEntry(
+      Entry = CreateLoaderEntry (
         CustomPath,
         CustomOptions,
         Custom->FullTitle,
@@ -1434,7 +1434,7 @@ AddCustomEntry (
                 CustomSubEntry->Settings = Custom->Settings;
               }
 
-              AddCustomEntry(
+              AddCustomEntry (
                 CustomSubIndex++,
                 (CustomSubEntry->Path != NULL) ? CustomSubEntry->Path : CustomPath,
                 CustomSubEntry,

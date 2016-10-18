@@ -207,7 +207,7 @@ egSetScreenResolution (
 );
 
 EFI_STATUS
-egSetMode(
+egSetMode (
   INT32     Next
 );
 
@@ -296,14 +296,14 @@ EG_IMAGE
   IN EG_PIXEL   *Color
 );
 
-EFI_STATUS egLoadFile(
+EFI_STATUS egLoadFile (
   IN EFI_FILE_HANDLE  BaseDir,
   IN CHAR16           *FileName,
   OUT UINT8           **FileData,
   OUT UINTN           *FileDataLength
 );
 
-EFI_STATUS egSaveFile(
+EFI_STATUS egSaveFile (
   IN EFI_FILE_HANDLE  BaseDir OPTIONAL,
   IN CHAR16           *FileName,
   IN UINT8            *FileData,
@@ -355,7 +355,7 @@ egMeasureText (
 );
 
 INTN
-egRenderText(
+egRenderText (
   IN CHAR16         *Text,
   IN OUT EG_IMAGE   *CompImage,
   IN INTN           PosX,
@@ -371,7 +371,7 @@ egClearScreen (
 
 //VOID egDrawImage(IN EG_IMAGE *Image, IN INTN ScreenPosX, IN INTN ScreenPosY);
 
-VOID egDrawImageArea(
+VOID egDrawImageArea (
   IN EG_IMAGE   *Image,
   IN INTN       AreaPosX,
   IN INTN       AreaPosY,
@@ -381,7 +381,7 @@ VOID egDrawImageArea(
   IN INTN       ScreenPosY
 );
 
-VOID egTakeImage(
+VOID egTakeImage (
   IN  EG_IMAGE    *Image,
       INTN        ScreenPosX,
       INTN        ScreenPosY,

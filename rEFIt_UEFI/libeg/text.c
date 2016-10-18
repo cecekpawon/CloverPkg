@@ -295,7 +295,7 @@ INTN egRenderText (
       break;
     }
 
-    egRawCompose(
+    egRawCompose (
       BufferPtr - LeftSpace + 2, FontPixelData + c * FontWidth + RightSpace,
       RealWidth, FontHeight,
       BufferLineOffset, FontLineOffset
@@ -308,7 +308,7 @@ INTN egRenderText (
         c -= 0x20; // Skip 0 - 31
       }
 
-      egRawCompose(
+      egRawCompose (
         BufferPtr - LeftSpace + 2, FontPixelData + c * FontWidth + RightSpace,
         RealWidth, FontHeight,
         BufferLineOffset, FontLineOffset

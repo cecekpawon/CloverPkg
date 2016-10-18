@@ -549,7 +549,7 @@ PatchAllSSDT () {
           }
 
           DBG(" - [%02d]:", i);
-          SsdtLen = FixAny(
+          SsdtLen = FixAny (
                       (UINT8*)(UINTN)ssdt, SsdtLen,
                       gSettings.PatchDsdtFind[i], gSettings.LenToFind[i],
                       gSettings.PatchDsdtReplace[i], gSettings.LenToReplace[i]
@@ -701,7 +701,7 @@ MarkTableAsSaved (
   if ((mSavedTablesNum + 1) >= mSavedTablesEntries) {
     // not enough space
     //DBG(" - extending mSavedTables from %d", mSavedTablesEntries);
-    mSavedTables = ReallocatePool(
+    mSavedTables = ReallocatePool (
                       sizeof(*mSavedTables) * mSavedTablesEntries,
                       sizeof(*mSavedTables) * (mSavedTablesEntries + SAVED_TABLES_ALLOC_ENTRIES),
                       mSavedTables
@@ -747,7 +747,7 @@ DumpChildSsdt (
   INTN          j, k, pacLen, pacCount;
   CHAR16        *FileName;
   CHAR8         Signature[5], OemTableId[9];
-  UINTN         adr, len;
+  UINTN         adr, len = 0;
   UINT8         *Entry, *End, *pacBody;
 
   Entry = (UINT8*)TableEntry;

@@ -99,9 +99,9 @@ MetaiMatch (
 
  **/
 
+CHAR16 *
 EFIAPI
-CHAR16
-*DevicePathToStr (
+DevicePathToStr (
   IN EFI_DEVICE_PATH_PROTOCOL  *DevPath
 ) {
   return ConvertDevicePathToText (DevPath, TRUE, TRUE);
@@ -118,7 +118,7 @@ InitRefitLib (
 
   SelfImageHandle = ImageHandle;
 
-  Status = gBS->HandleProtocol(
+  Status = gBS->HandleProtocol (
                   SelfImageHandle,
                   &gEfiLoadedImageProtocolGuid,
                   (VOID **) &SelfLoadedImage
@@ -383,7 +383,7 @@ ScanVolumeBootcode (
   ZeroMem((CHAR8*)&SectorBuffer[0], 2048);
 
   // look at the boot sector (this is used for both hard disks and El Torito images!)
-  Status = Volume->BlockIO->ReadBlocks(
+  Status = Volume->BlockIO->ReadBlocks (
                               Volume->BlockIO, Volume->BlockIO->Media->MediaId,
                               Volume->BlockIOOffset /*start lba*/,
                               2048,
@@ -678,7 +678,7 @@ ScanVolume (
   Volume->DiskKind = DISK_KIND_INTERNAL;  // default
 
   // get block i/o
-  Status = gBS->HandleProtocol(
+  Status = gBS->HandleProtocol (
                   Volume->DeviceHandle,
                   &gEfiBlockIoProtocolGuid,
                   (VOID **) &(Volume->BlockIO)
@@ -832,7 +832,7 @@ ScanVolume (
       Volume->WholeDiskDevicePath = DuplicateDevicePath(RemainingDevicePath);
 
       // look at the BlockIO protocol
-      Status = gBS->HandleProtocol(
+      Status = gBS->HandleProtocol (
         WholeDiskHandle,
         &gEfiBlockIoProtocolGuid,
         (VOID **) &Volume->WholeDiskBlockIO
@@ -936,7 +936,7 @@ ScanVolume (
       ((Volume->VolName[0] == L'/') && (Volume->VolName[1] == 0))
   ) {
     VOID *Instance;
-    if (!EFI_ERROR (gBS->HandleProtocol(
+    if (!EFI_ERROR (gBS->HandleProtocol (
                           Volume->DeviceHandle,
                           &gEfiPartTypeSystemPartGuid,
                           &Instance)
@@ -988,7 +988,7 @@ ScanExtendedPartition (
 
   for (ExtCurrent = ExtBase; ExtCurrent; ExtCurrent = NextExtCurrent) {
     // read current EMBR
-    Status = WholeDiskVolume->BlockIO->ReadBlocks(
+    Status = WholeDiskVolume->BlockIO->ReadBlocks (
                                           WholeDiskVolume->BlockIO,
                                           WholeDiskVolume->BlockIO->Media->MediaId,
                                           ExtCurrent, 512, SectorBuffer
@@ -1064,7 +1064,7 @@ VOID ScanVolumes() {
   DbgHeader("ScanVolumes");
 
   // get all BlockIo handles
-  Status = gBS->LocateHandleBuffer(
+  Status = gBS->LocateHandleBuffer (
                   ByProtocol,
                   &gEfiBlockIoProtocolGuid,
                   NULL,
@@ -1182,7 +1182,7 @@ VOID ScanVolumes() {
         }
 
         // compare boot sector read through offset vs. directly
-        Status = Volume->BlockIO->ReadBlocks(
+        Status = Volume->BlockIO->ReadBlocks (
                                     Volume->BlockIO,
                                     Volume->BlockIO->Media->MediaId,
                                     Volume->BlockIOOffset,
@@ -1194,7 +1194,7 @@ VOID ScanVolumes() {
           break;
         }
 
-        Status = Volume->WholeDiskBlockIO->ReadBlocks(
+        Status = Volume->WholeDiskBlockIO->ReadBlocks (
                                               Volume->WholeDiskBlockIO,
                                               Volume->WholeDiskBlockIO->Media->MediaId,
                                               MbrTable[PartitionIndex].StartLBA,
@@ -1312,7 +1312,7 @@ ReinitVolumes() {
         Volume->WholeDiskBlockIO = WholeDiskHandle;
 
         // get the BlockIO protocol
-        Status = gBS->HandleProtocol(
+        Status = gBS->HandleProtocol (
                         WholeDiskHandle,
                         &gEfiBlockIoProtocolGuid,
                         (VOID **) &Volume->WholeDiskBlockIO

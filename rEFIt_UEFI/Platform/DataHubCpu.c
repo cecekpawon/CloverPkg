@@ -123,7 +123,7 @@ LogDataHub (
   }
 
   RecordSize = CopyRecord(PlatformData, Name, Data, DataSize);
-  Status     = gDataHub->LogData(
+  Status     = gDataHub->LogData (
                           gDataHub,
                           TypeGuid,                   // DataRecordGuid
                           &gDataHubPlatformGuid,      // ProducerName (always)
@@ -155,7 +155,7 @@ SetVariablesForOSX () {
   //
 
   // As found on a real Mac, the system-id variable solely has the BS flag
-  SetNvramVariable(
+  SetNvramVariable (
     L"system-id",
     &gEfiAppleNvramGuid,
     EFI_VARIABLE_BOOTSERVICE_ACCESS,
@@ -170,7 +170,7 @@ SetVariablesForOSX () {
       DBG("** Warning: Your MLB is not suitable for iMessage(must be 17 chars long) !\n");
     }
 
-    SetNvramVariable(
+    SetNvramVariable (
       L"MLB",
       &gEfiAppleNvramGuid,
       Attributes,
@@ -180,7 +180,7 @@ SetVariablesForOSX () {
   }
 
   if (gSettings.RtROM != NULL) {
-    SetNvramVariable(
+    SetNvramVariable (
       L"ROM",
       &gEfiAppleNvramGuid,
       Attributes,
@@ -189,7 +189,7 @@ SetVariablesForOSX () {
     );
   }
 
-  SetNvramVariable(
+  SetNvramVariable (
     L"FirmwareFeatures",
     &gEfiAppleNvramGuid,
     Attributes,
@@ -199,7 +199,7 @@ SetVariablesForOSX () {
 
   // Download-Fritz: Should be added to SMBIOS or at least to some other config section
   FwFeaturesMask = 0xC003ffff;
-  AddNvramVariable(
+  AddNvramVariable (
     L"FirmwareFeaturesMask",
     &gEfiAppleNvramGuid,
     Attributes,
@@ -218,7 +218,7 @@ SetVariablesForOSX () {
 
   if (!gSettings.InjectSystemID) {
     if (gSettings.SmUUIDConfig) {
-      SetNvramVariable(
+      SetNvramVariable (
         L"platform-uuid",
         &gEfiAppleBootGuid,
         Attributes,
@@ -226,7 +226,7 @@ SetVariablesForOSX () {
         &gUuid
       );
     } else {
-      AddNvramVariable(
+      AddNvramVariable (
         L"platform-uuid",
         &gEfiAppleBootGuid,
         Attributes,
@@ -239,7 +239,7 @@ SetVariablesForOSX () {
   // Download-Fritz: Do not mess with BacklightLevel; it's OS X's business
   if (gMobile) {
     if (gSettings.BacklightLevelConfig) {
-      SetNvramVariable(
+      SetNvramVariable (
         L"backlight-level",
         &gEfiAppleBootGuid,
         Attributes,
@@ -247,7 +247,7 @@ SetVariablesForOSX () {
         &gSettings.BacklightLevel
       );
     } else {
-      AddNvramVariable(
+      AddNvramVariable (
         L"backlight-level",
         &gEfiAppleBootGuid,
         Attributes,
@@ -259,7 +259,7 @@ SetVariablesForOSX () {
 
   //Hack for recovery by Asgorath
   if (gSettings.CsrActiveConfig != 0xFFFF) {
-    SetNvramVariable(
+    SetNvramVariable (
       L"csr-active-config",
       &gEfiAppleBootGuid,
       Attributes,
@@ -269,7 +269,7 @@ SetVariablesForOSX () {
   }
 
   if (gSettings.BooterConfig != 0xFFFF) {
-    SetNvramVariable(
+    SetNvramVariable (
       L"bootercfg",
       &gEfiAppleBootGuid,
       Attributes,

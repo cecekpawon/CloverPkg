@@ -1,0 +1,372 @@
+#
+#  Copyright (c) 2006 - 2016, Intel Corporation. All rights reserved.<BR>
+#  Portions copyright (c) 2008 - 2009, Apple Inc. All rights reserved.<BR>
+#  Portions copyright (c) 2011 - 2014, ARM Ltd. All rights reserved.<BR>
+#  Copyright (c) 2015, Hewlett-Packard Development Company, L.P.<BR>
+#  (C) Copyright 2016 Hewlett Packard Enterprise Development LP<BR>
+#
+#  This program and the accompanying materials
+#  are licensed and made available under the terms and conditions of the BSD License
+#  which accompanies this distribution.  The full text of the license may be found at
+#  http://opensource.org/licenses/bsd-license.php
+#
+#  THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+#
+
+IDENTIFIER = Default TOOL_CHAIN_CONF
+
+DEFINE VS2015x86_BIN                    = C:\Program Files (x86)\Microsoft Visual Studio 14.0\Vc\bin
+DEFINE VS2015x86_DLL                    = C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\IDE;DEF(VS2015x86_BIN)
+DEFINE VS2015x86_BINX64                 = DEF(VS2015x86_BIN)\x86_amd64
+DEFINE WINSDK81_BIN                     = c:\Program Files\Windows Kits\8.1\bin\x86\
+DEFINE WINSDK81x86_BIN                  = c:\Program Files (x86)\Windows Kits\8.1\bin\x64
+
+################DEFINE WINSDK_VERSION   = v6.0A
+################DEFINE WINSDK_BIN       = c:\Program Files\Microsoft SDKs\Windows\DEF(WINSDK_VERSION)\bin
+################DEFINE WINSDKx86_BIN    = c:\Program Files (x86)\Microsoft SDKs\Windows\DEF(WINSDK_VERSION)\bin
+################
+################# Microsoft Visual Studio 2010
+################DEFINE WINSDK7_BIN       = c:\Program Files\Microsoft SDKs\Windows\v7.0A\Bin
+################DEFINE WINSDK7x86_BIN    = c:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\Bin
+################
+################# Microsoft Visual Studio 2012 Update 1 (required for rc.exe that was not included in the initial release)
+################DEFINE WINSDK71_BIN       = c:\Program Files\Microsoft SDKs\Windows\v7.1A\Bin
+################DEFINE WINSDK71x86_BIN    = c:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin
+################
+################# Microsoft Visual Studio 2013 Professional Edition
+################DEFINE WINSDK8_BIN       = c:\Program Files\Windows Kits\8.0\bin\x86\
+################DEFINE WINSDK8x86_BIN    = c:\Program Files (x86)\Windows Kits\8.0\bin\x64
+
+DEFINE GCC49_X64_PREFIX                 = ENV(GCC49_BIN)
+DEFINE GCC5_X64_PREFIX                  = ENV(GCC5_BIN)
+
+DEFINE UNIX_IASL_BIN                    = ENV(IASL_PREFIX)iasl
+
+DEFINE IASL_FLAGS                       =
+DEFINE IASL_OUTFLAGS                    = -p
+DEFINE MS_ASL_OUTFLAGS                  = /Fo=
+DEFINE MS_ASL_FLAGS                     =
+
+DEFINE LLVM_X64_PREFIX                  = ENV(LLVM_BIN)
+DEFINE CLANG_X64_PREFIX                 = ENV(CLANG_BIN)
+
+####################################################################################
+#   VS2015x86       - Microsoft Visual Studio 2015 (x86) professional with Intel ASL
+#   ASL  - Intel ACPI Source Language Compiler (iasl.exe)
+####################################################################################
+
+*_VS2015x86_*_*_FAMILY                  = MSFT
+
+*_VS2015x86_*_MAKE_PATH                 = DEF(VS2015x86_BIN)\nmake.exe
+*_VS2015x86_*_MAKE_FLAG                 = /nologo
+*_VS2015x86_*_RC_PATH                   = DEF(WINSDK81x86_BIN)\rc.exe
+
+*_VS2015x86_*_MAKE_FLAGS                = /nologo
+*_VS2015x86_*_SLINK_FLAGS               = /NOLOGO /LTCG
+*_VS2015x86_*_APP_FLAGS                 = /nologo /E /TC
+*_VS2015x86_*_PP_FLAGS                  = /nologo /E /TC /FIAutoGen.h
+*_VS2015x86_*_VFRPP_FLAGS               = /nologo /E /TC /DVFRCOMPILE /FI$(MODULE_NAME)StrDefs.h
+
+*_VS2015x86_*_ASM16_PATH                = DEF(VS2015x86_BIN)\ml.exe
+
+##################
+# X64 definitions
+##################
+
+*_VS2015x86_X64_*_DLL                   = DEF(VS2015x86_DLL)
+
+*_VS2015x86_X64_CC_PATH                 = DEF(VS2015x86_BINX64)\cl.exe
+*_VS2015x86_X64_PP_PATH                 = DEF(VS2015x86_BINX64)\cl.exe
+*_VS2015x86_X64_APP_PATH                = DEF(VS2015x86_BINX64)\cl.exe
+*_VS2015x86_X64_VFRPP_PATH              = DEF(VS2015x86_BINX64)\cl.exe
+*_VS2015x86_X64_ASLCC_PATH              = DEF(VS2015x86_BINX64)\cl.exe
+*_VS2015x86_X64_ASLPP_PATH              = DEF(VS2015x86_BINX64)\cl.exe
+*_VS2015x86_X64_ASM_PATH                = DEF(VS2015x86_BINX64)\ml64.exe
+*_VS2015x86_X64_SLINK_PATH              = DEF(VS2015x86_BINX64)\lib.exe
+*_VS2015x86_X64_DLINK_PATH              = DEF(VS2015x86_BINX64)\link.exe
+*_VS2015x86_X64_ASLDLINK_PATH           = DEF(VS2015x86_BINX64)\link.exe
+
+RELEASE_VS2015x86_X64_CC_FLAGS          = /nologo /c /WX /GS- /W4 /Gs32768 /D UNICODE /O1b2s /Gy /FIAutoGen.h /EHs-c- /GR- /GF /GL- /Wv:18
+
+RELEASE_VS2015x86_X64_ASM_FLAGS         = /nologo /c /WX /W3 /Cx /Zd
+
+RELEASE_VS2015x86_X64_NASM_FLAGS        = -Ox -f win64
+
+RELEASE_VS2015x86_X64_DLINK_FLAGS  = /NOLOGO /NODEFAULTLIB /IGNORE:4001 /IGNORE:4254 /OPT:REF /OPT:ICF=10 /MAP /ALIGN:32 /SECTION:.xdata,D /SECTION:.pdata,D /Machine:X64 /DLL /ENTRY:$(IMAGE_ENTRY_POINT) /SUBSYSTEM:EFI_BOOT_SERVICE_DRIVER /SAFESEH:NO /BASE:0 /DRIVER /MERGE:.rdata=.data
+
+####################################################################################
+# GCC Common
+####################################################################################
+
+*_*_*_OBJCOPY_PATH                      = echo
+*_*_*_OBJCOPY_FLAGS                     = objcopy not needed for
+*_*_*_SYMRENAME_PATH                    = echo
+*_*_*_SYMRENAME_FLAGS                   = Symbol renaming not needed for
+RELEASE_*_*_OBJCOPY_ADDDEBUGFLAG        =
+
+DEFINE GCC_CC_FLAGS                     = -g -fshort-wchar -fno-strict-aliasing -Wall -Werror -Wno-array-bounds -ffunction-sections -fdata-sections -include AutoGen.h -DSTRING_ARRAY_NAME=$(BASE_NAME)Strings -fno-asynchronous-unwind-tables -m64 -fno-stack-protector "-DEFIAPI=__attribute__((ms_abi))" -DNO_BUILTIN_VA_FUNCS -mno-red-zone -Wno-address -mcmodel=large -Wno-unused-but-set-variable -mabi=ms
+DEFINE GCC_ASM_FLAGS                    = -c -x assembler -imacros $(DEST_DIR_DEBUG)/AutoGen.h
+DEFINE GCC_PP_FLAGS                     = -E -x assembler-with-cpp -include $(DEST_DIR_DEBUG)/AutoGen.h
+DEFINE GCC_VFRPP_FLAGS                  = -x c -E -P -DVFRCOMPILE --include $(DEST_DIR_DEBUG)/$(MODULE_NAME)StrDefs.h
+DEFINE GCC_ASLPP_FLAGS                  = -x c -E -P
+DEFINE GCC_ASLCC_FLAGS                  = -x c -fno-lto -m64
+DEFINE GCC_X64_RC_FLAGS                 = -I binary -O elf64-x86-64 -B i386 --rename-section .data=.hii
+
+DEFINE GCC49_X64_CC_FLAGS               = DEF(GCC_CC_FLAGS) -Os -flto
+DEFINE GCC49_IA32_X64_DLINK_COMMON      = -nostdlib -Wl,-n,-q,--gc-sections -z common-page-size=0x40
+DEFINE GCC49_IA32_X64_ASLDLINK_FLAGS    = DEF(GCC49_IA32_X64_DLINK_COMMON) -Wl,--entry,ReferenceAcpiTable -u ReferenceAcpiTable
+DEFINE GCC49_IA32_X64_DLINK_FLAGS       = DEF(GCC49_IA32_X64_DLINK_COMMON) -Wl,--entry,$(IMAGE_ENTRY_POINT) -u $(IMAGE_ENTRY_POINT) -Wl,-Map,$(DEST_DIR_DEBUG)/$(BASE_NAME).map
+DEFINE GCC49_X64_DLINK_FLAGS            = DEF(GCC49_IA32_X64_DLINK_FLAGS),-melf_x86_64,--oformat=elf64-x86-64
+DEFINE GCC49_ASM_FLAGS                  = DEF(GCC_ASM_FLAGS) -m64
+
+DEFINE GCC5_X64_CC_FLAGS                = DEF(GCC49_X64_CC_FLAGS) -fno-builtin -DUSING_LTO
+DEFINE GCC5_X64_DLINK_FLAGS             = DEF(GCC49_X64_DLINK_FLAGS) -flto
+DEFINE GCC5_ASM_FLAGS                   = DEF(GCC49_ASM_FLAGS)
+
+####################################################################################
+#
+# GCC 4.9 - This configuration is used to compile under Linux/MacOSX to produce
+#           PE/COFF binaries using GCC 4.9.
+#
+####################################################################################
+
+*_GCC49_*_*_FAMILY                      = GCC
+*_GCC49_*_*_BUILDRULEORDER              = nasm S s
+
+*_GCC49_*_MAKE_PATH                     = make
+#*_GCC49_*_MAKE_PATH                    = DEF(GCC49_X64_PREFIX)make
+*_GCC49_*_*_DLL                         = ENV(GCC49_DLL)
+*_GCC49_X64_GCCLINK_PREFIX              = -Wl,
+*_GCC49_*_ASL_PATH                      = DEF(UNIX_IASL_BIN)
+*_GCC49_*_PP_FLAGS                      = DEF(GCC_PP_FLAGS)
+*_GCC49_*_VFRPP_FLAGS                   = DEF(GCC_VFRPP_FLAGS)
+
+##################
+# X64 definitions
+##################
+
+*_GCC49_X64_OBJCOPY_PATH                = DEF(GCC49_X64_PREFIX)objcopy
+*_GCC49_X64_CC_PATH                     = DEF(GCC49_X64_PREFIX)gcc
+*_GCC49_X64_SLINK_PATH                  = DEF(GCC49_X64_PREFIX)gcc-ar
+*_GCC49_X64_DLINK_PATH                  = DEF(GCC49_X64_PREFIX)gcc
+*_GCC49_X64_ASLDLINK_PATH               = DEF(GCC49_X64_PREFIX)gcc
+*_GCC49_X64_ASM_PATH                    = DEF(GCC49_X64_PREFIX)gcc
+*_GCC49_X64_PP_PATH                     = DEF(GCC49_X64_PREFIX)gcc
+*_GCC49_X64_VFRPP_PATH                  = DEF(GCC49_X64_PREFIX)gcc
+*_GCC49_X64_ASLCC_PATH                  = DEF(GCC49_X64_PREFIX)gcc
+*_GCC49_X64_ASLPP_PATH                  = DEF(GCC49_X64_PREFIX)gcc
+*_GCC49_X64_RC_PATH                     = DEF(GCC49_X64_PREFIX)objcopy
+
+*_GCC49_X64_ASM_FLAGS                   = DEF(GCC_ASM_FLAGS)
+*_GCC49_X64_CC_FLAGS                    = DEF(GCC49_X64_CC_FLAGS) ENV(GCC49_X64_EXTRA_CC_FLAGS) -c
+*_GCC49_X64_DLINK_FLAGS                 = DEF(GCC49_X64_DLINK_FLAGS) DEF(GCC49_X64_CC_FLAGS) ENV(GCC49_X64_EXTRA_CC_FLAGS)
+*_GCC49_X64_RC_FLAGS                    = DEF(GCC_X64_RC_FLAGS)
+*_GCC49_X64_OBJCOPY_FLAGS               =
+*_GCC49_X64_NASM_FLAGS                  = -f elf64
+
+####################################################################################
+#
+# GCC 5 - This configuration is used to compile under Linux to produce
+#         PE/COFF binaries using GCC 5
+#
+####################################################################################
+
+*_GCC5_*_*_FAMILY                       = GCC
+
+*_GCC5_X64_GCCLINK_PREFIX               = -Wl,
+
+*_GCC5_*_MAKE_PATH                      = make
+#*_GCC5_*_MAKE_PATH                     = DEF(GCC5_IA32_PREFIX)make
+*_GCC5_*_ASL_PATH                       = DEF(UNIX_IASL_BIN)
+*_GCC5_*_*_DLL                          = ENV(GCC5_DLL)
+
+*_GCC5_*_PP_FLAGS                       = DEF(GCC_PP_FLAGS)
+*_GCC5_*_VFRPP_FLAGS                    = DEF(GCC_VFRPP_FLAGS)
+*_GCC5_*_ASLPP_FLAGS                    = DEF(GCC_ASLPP_FLAGS)
+*_GCC5_*_ASLCC_FLAGS                    = DEF(GCC_ASLCC_FLAGS)
+
+##################
+# X64 definitions
+##################
+
+*_GCC5_X64_OBJCOPY_PATH                 = DEF(GCC5_X64_PREFIX)objcopy
+*_GCC5_X64_CC_PATH                      = DEF(GCC5_X64_PREFIX)gcc
+*_GCC5_X64_SLINK_PATH                   = DEF(GCC5_X64_PREFIX)gcc-ar
+*_GCC5_X64_DLINK_PATH                   = DEF(GCC5_X64_PREFIX)gcc
+*_GCC5_X64_ASLDLINK_PATH                = DEF(GCC5_X64_PREFIX)gcc
+*_GCC5_X64_ASM_PATH                     = DEF(GCC5_X64_PREFIX)gcc
+*_GCC5_X64_PP_PATH                      = DEF(GCC5_X64_PREFIX)gcc
+*_GCC5_X64_VFRPP_PATH                   = DEF(GCC5_X64_PREFIX)gcc
+*_GCC5_X64_ASLCC_PATH                   = DEF(GCC5_X64_PREFIX)gcc
+*_GCC5_X64_ASLPP_PATH                   = DEF(GCC5_X64_PREFIX)gcc
+*_GCC5_X64_RC_PATH                      = DEF(GCC5_X64_PREFIX)objcopy
+
+*_GCC5_X64_ASLDLINK_FLAGS               = DEF(GCC49_IA32_X64_ASLDLINK_FLAGS) -Wl,-m,elf_x86_64
+*_GCC5_X64_ASM_FLAGS                    = DEF(GCC_ASM_FLAGS)
+*_GCC5_X64_DLINK_FLAGS                  = DEF(GCC5_X64_DLINK_FLAGS) -Os
+*_GCC5_X64_RC_FLAGS                     = DEF(GCC_X64_RC_FLAGS)
+*_GCC5_X64_OBJCOPY_FLAGS                =
+*_GCC5_X64_NASM_FLAGS                   = -f elf64
+
+RELEASE_GCC5_X64_CC_FLAGS               = DEF(GCC5_X64_CC_FLAGS) -c -Wno-unused-but-set-variable
+
+####################################################################################
+#
+# Clang Support for building on Mac OS X
+#
+####################################################################################
+#   CLANG         - clang that produce Mach-O with EFI x86_64 ABI
+
+*_XCLANG_*_*_FAMILY                    = GCC
+*_XCLANG_*_*_BUILDRULEFAMILY           = XCODE
+*_XCLANG_*_*_BUILDRULEORDER            = S s nasm
+*_XCLANG_*_ASL_PATH                    = /usr/local/bin/iasl
+*_XCLANG_*_MAKE_PATH                   = make
+*_XCLANG_*_DSYMUTIL_PATH               = /usr/bin/dsymutil
+
+  DEBUG_XCLANG_*_MTOC_FLAGS            = -align 0x20 -d $(DEBUG_DIR)/$(MODULE_NAME).dll
+RELEASE_XCLANG_*_MTOC_FLAGS            = -align 0x20
+
+*_XCLANG_*_CC_PATH                     = DEF(CLANG_X64_PREFIX)clang
+*_XCLANG_*_SLINK_PATH                  = libtool
+*_XCLANG_*_DLINK_PATH                  = ld
+*_XCLANG_*_ASM_PATH                    = as
+*_XCLANG_*_PP_PATH                     = DEF(CLANG_X64_PREFIX)clang
+
+##################
+# X64 definitions
+##################
+
+RELEASE_XCLANG_X64_DLINK_FLAGS         = -arch x86_64 -u _$(IMAGE_ENTRY_POINT) -e _$(IMAGE_ENTRY_POINT) -preload -segalign 0x20  -pie -all_load -dead_strip -seg1addr 0x240 -map $(DEST_DIR_DEBUG)/$(BASE_NAME).map
+
+*_XCLANG_X64_SLINK_FLAGS               = -static -o
+  DEBUG_XCLANG_X64_ASM_FLAGS           = -arch x86_64 -g
+RELEASE_XCLANG_X64_ASM_FLAGS           = -arch x86_64
+*_XCLANG_X64_NASM_FLAGS                = -f macho64
+*_XCLANG_*_PP_FLAGS                    = -E -x assembler-with-cpp -include $(DEST_DIR_DEBUG)/AutoGen.h
+
+RELEASE_XCLANG_X64_CC_FLAGS            = -target x86_64-pc-win32-macho -c -Wall -Werror -include AutoGen.h -fno-ms-extensions -fno-stack-protector -fno-builtin -fshort-wchar -mno-sse -mno-mmx -Wno-empty-body -Wno-pointer-sign -Wno-unused-function -Wno-unused-value -Wno-tautological-compare -Wreturn-type -Wno-unused-variable  -Wno-deprecated-declarations -Wno-shift-negative-value
+
+####################################################################################
+#
+# XCODE5 support
+#
+####################################################################################
+
+*_XCODE5_*_*_FAMILY                   = GCC
+*_XCODE5_*_*_BUILDRULEFAMILY          = XCODE
+*_XCODE5_*_*_BUILDRULEORDER           = S s nasm
+
+*_XCODE5_*_ASL_PATH                   = /usr/local/bin/iasl
+
+*_XCODE5_*_MAKE_PATH                  = make
+*_XCODE5_*_DSYMUTIL_PATH              = /usr/bin/dsymutil
+RELEASE_XCODE5_*_MTOC_FLAGS           = -align 0x20
+
+#
+# use xcode-select to change Xcode version of command line tools
+#
+*_XCODE5_*_CC_PATH                    = clang
+*_XCODE5_*_SLINK_PATH                 = libtool
+RELEASE_XCODE5_*_DLINK_PATH           = clang
+*_XCODE5_*_ASM_PATH                   = as
+*_XCODE5_*_PP_PATH                    = clang
+*_XCODE5_*_VFRPP_PATH                 = clang
+*_XCODE5_*_ASL_PATH                   = iasl
+*_XCODE5_*_ASLCC_PATH                 = clang
+*_XCODE5_*_ASLPP_PATH                 = clang
+*_XCODE5_*_ASLDLINK_PATH              = ld
+
+##################
+# X64 definitions
+##################
+
+RELEASE_XCODE5_X64_DLINK_FLAGS      = -arch x86_64 -nostdlib -Os -flto -Wl,-u,_$(IMAGE_ENTRY_POINT),-e,_$(IMAGE_ENTRY_POINT),-preload,-segalign,0x20,-pie,-all_load,-dead_strip,-seg1addr,0x240,-map,$(DEST_DIR_DEBUG)/$(BASE_NAME).map
+
+*_XCODE5_X64_SLINK_FLAGS              = -static -o
+RELEASE_XCODE5_X64_ASM_FLAGS          = -arch x86_64
+      *_XCODE5_X64_NASM_FLAGS         = -f macho64
+*_XCODE5_*_PP_FLAGS                   = -E -x assembler-with-cpp -include $(DEST_DIR_DEBUG)/AutoGen.h
+*_XCODE5_*_VFRPP_FLAGS                = -x c -E -P -DVFRCOMPILE -include $(DEST_DIR_DEBUG)/$(MODULE_NAME)StrDefs.h
+
+RELEASE_XCODE5_X64_CC_FLAGS           = -target x86_64-pc-win32-macho -c -Os -flto -Wall -Werror -Wextra -include AutoGen.h -funsigned-char -fno-ms-extensions -fno-stack-protector -fno-builtin -fshort-wchar -mms-bitfields -Wno-unused-parameter -Wno-missing-braces -Wno-missing-field-initializers -Wno-tautological-compare -Wno-sign-compare $(PLATFORM_FLAGS) -Wno-shift-negative-value -Wno-empty-body
+
+*_XCODE5_*_ASLCC_FLAGS                = -x c -save-temps -g -O0 -fshort-wchar -fno-strict-aliasing -Wall -Werror -Wno-missing-braces -c -include AutoGen.h
+*_XCODE5_*_ASLDLINK_FLAGS             = -e _ReferenceAcpiTable -preload -segalign 0x20  -pie -seg1addr 0x240 -read_only_relocs suppress -map $(DEST_DIR_DEBUG)/$(BASE_NAME).map
+*_XCODE5_*_ASLPP_FLAGS                = -x c -E -P
+*_XCODE5_*_ASL_FLAGS                  = -ta
+*_XCODE5_*_ASL_OUTFLAGS               = DEF(IASL_OUTFLAGS)
+
+##################
+# VfrCompiler definitions
+##################
+*_*_*_VFR_PATH                        = VfrCompile
+*_*_*_VFR_FLAGS                       = -l -n
+
+##################
+# OptionRom tool definitions
+##################
+*_*_*_OPTROM_PATH                     = EfiRom
+*_*_*_OPTROM_FLAGS                    = -e
+
+##################
+# GenFw tool definitions
+##################
+*_*_*_GENFW_PATH                      = GenFw
+*_*_*_GENFW_FLAGS                     =
+
+##################
+# Asl Compiler definitions
+##################
+*_*_*_ASLCC_FLAGS                     = /nologo /c /FIAutoGen.h /TC /Dmain=ReferenceAcpiTable
+*_*_*_ASLDLINK_FLAGS                  = /NODEFAULTLIB /ENTRY:ReferenceAcpiTable /SUBSYSTEM:CONSOLE
+*_*_*_ASLPP_FLAGS                     = /nologo /EP /C
+*_*_*_ASL_FLAGS                       =
+
+##################
+# GenCrc32 tool definitions
+##################
+*_*_*_CRC32_PATH                      = GenCrc32
+*_*_*_CRC32_GUID                      = FC1BCDB0-7D31-49AA-936A-A4600D9DD083
+
+##################
+# LzmaCompress tool definitions
+##################
+*_*_*_LZMA_PATH                       = LzmaCompress
+*_*_*_LZMA_GUID                       = EE4E5898-3914-4259-9D6E-DC7BD79403CF
+
+##################
+# LzmaF86Compress tool definitions with converter for x86 code.
+# It can improve the compression ratio if the input file is IA32 or X64 PE image.
+# Notes: If X64 PE image is built based on GCC44, it may not get the better compression.
+##################
+*_*_*_LZMAF86_PATH                    = LzmaF86Compress
+*_*_*_LZMAF86_GUID                    = D42AE6BD-1352-4bfb-909A-CA72A6EAE889
+
+##################
+# TianoCompress tool definitions
+##################
+*_*_*_TIANO_PATH                      = TianoCompress
+*_*_*_TIANO_GUID                      = A31280AD-481E-41B6-95E8-127F4C984779
+
+##################
+# BPDG tool definitions
+##################
+*_*_*_VPDTOOL_PATH                    = BPDG
+*_*_*_VPDTOOL_GUID                    = 8C3D856A-9BE6-468E-850A-24F7A8D38E08
+
+##################
+# NASM tool definitions
+##################
+*_*_*_NASM_PATH                       = ENV(NASM_PREFIX)nasm
+# NASMB uses NASM produce a .bin from a .nasmb NASM source file
+*_*_*_NASMB_FLAGS                     = -f bin
+
+*_*_*_MTOC_PATH                       = ENV(MTOC_BIN)mtoc.NEW
+*_*_*_STRIP_PATH                      = strip
+
+#################
+# Build rule order
+#################
+*_*_*_*_BUILDRULEORDER                = nasm asm Asm ASM S s

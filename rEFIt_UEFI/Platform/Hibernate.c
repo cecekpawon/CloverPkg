@@ -654,7 +654,7 @@ PrepareHibernation (
   //VarData[25] = 0xFF;
   //DBG("boot-image corrected: %s\n", FileDevicePathToStr(BootImageDevPath));
 
-  Status = gRT->SetVariable(
+  Status = gRT->SetVariable (
                   L"boot-image", &gEfiAppleBootGuid,
                   EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS,
                   Size , BootImageDevPath
@@ -685,7 +685,7 @@ PrepareHibernation (
   if (!EFI_ERROR(Status)) {
     DBG(" IOHibernateRTCVariables found - will be used as boot-switch-vars\n");
     // delete IOHibernateRTCVariables
-    Status = gRT->SetVariable(
+    Status = gRT->SetVariable (
                     L"IOHibernateRTCVariables", &gEfiAppleBootGuid,
                     EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS,
                     0, NULL
@@ -703,7 +703,7 @@ PrepareHibernation (
     RtcVars.revision     = 1;
   }
 
-  Status = gRT->SetVariable(
+  Status = gRT->SetVariable (
                   L"boot-switch-vars", &gEfiAppleBootGuid,
                   EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS,
                   Size, Value

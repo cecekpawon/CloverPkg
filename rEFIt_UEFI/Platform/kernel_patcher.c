@@ -491,7 +491,7 @@ KernelUserPatch (
     }
 
     /*
-        Num = SearchAndCount(
+        Num = SearchAndCount (
           UKernelData,
           KERNEL_MAX_SIZE,
           Entry->KernelAndKextPatches->KernelPatches[i].Data,
@@ -504,7 +504,7 @@ KernelUserPatch (
         }
     */
 
-    Num = SearchAndReplace(
+    Num = SearchAndReplace (
       UKernelData,
       KERNEL_MAX_SIZE,
       Entry->KernelAndKextPatches->KernelPatches[i].Data,

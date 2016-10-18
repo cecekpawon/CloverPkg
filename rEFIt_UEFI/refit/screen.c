@@ -60,12 +60,10 @@ BOOLEAN   AllowGraphicsMode;
 
 EG_RECT   BannerPlace = {0, 0, 0, 0};
 
-EG_PIXEL  StdBackgroundPixel           = { 0xbf, 0xbf, 0xbf, 0xff},
-          MenuBackgroundPixel          = { 0x00, 0x00, 0x00, 0x00},
-          BlueBackgroundPixel          = { 0x7f, 0x0f, 0x0f, 0xff},
-          DarkBackgroundPixel          = { 0x0, 0x0, 0x0, 0xFF },
-          //InputBackgroundPixel         = { 0xcf, 0xcf, 0xcf, 0x80},
-          //EmbeddedBackgroundPixel      = { 0xaa, 0xaa, 0xaa, 0x80},
+EG_PIXEL  StdBackgroundPixel           = { 0xbf, 0xbf, 0xbf, 0xff },
+          MenuBackgroundPixel          = { 0x00, 0x00, 0x00, 0x00 },
+          BlueBackgroundPixel          = { 0x7f, 0x0f, 0x0f, 0xff },
+          DarkBackgroundPixel          = { 0x00, 0x00, 0x00, 0xFF },
           SelectionBackgroundPixel     = { 0xef, 0xef, 0xef, 0xff }; //non-trasparent
 
 EG_IMAGE  *BackgroundImage = NULL, *Banner = NULL, *BigBack = NULL;
@@ -627,7 +625,7 @@ BltClearScreen (
           y = UGAHeight;
         }
 
-        egRawCopy(
+        egRawCopy (
           BackgroundImage->PixelData + y1 * UGAWidth + x1,
           BigBack->PixelData + y2 * BigBack->Width + x2,
           x, y, UGAWidth, BigBack->Width
@@ -724,7 +722,7 @@ BltImageAlpha (
     return;
   }
 
-  egRawCopy(
+  egRawCopy (
     NewImage->PixelData,
     BackgroundImage->PixelData + YPos * BackgroundImage->Width + XPos,
     Width, Height,
@@ -993,7 +991,7 @@ UpdateAnime (
   if (Screen->LastDraw == 0) {
     //first start, we should save background into last frame
     egFillImageArea(AnimeImage, 0, 0, AnimeImage->Width, AnimeImage->Height, &MenuBackgroundPixel);
-    egTakeImage(
+    egTakeImage (
       Screen->Film[Screen->Frames],
       x, y,
       Screen->Film[Screen->Frames]->Width,
@@ -1006,7 +1004,7 @@ UpdateAnime (
   }
 
   if (Screen->Film[Screen->CurrentFrame]) {
-    egRawCopy(
+    egRawCopy (
       AnimeImage->PixelData, Screen->Film[Screen->Frames]->PixelData,
       Screen->Film[Screen->Frames]->Width,
       Screen->Film[Screen->Frames]->Height,
@@ -1117,7 +1115,7 @@ InitAnime (
     // Check if screen size being used is different from theme origination size.
     // If yes, then recalculate the animation placement % value.
     // This is necessary because screen can be a different size, but anim is not scaled.
-    Screen->FilmPlace.XPos = HybridRepositioning(
+    Screen->FilmPlace.XPos = HybridRepositioning (
                                 Anime->ScreenEdgeHorizontal,
                                 Anime->FilmX,
                                 Screen->Film[0]->Width,
@@ -1125,7 +1123,7 @@ InitAnime (
                                 GlobalConfig.ThemeDesignWidth
                               );
 
-    Screen->FilmPlace.YPos = HybridRepositioning(
+    Screen->FilmPlace.YPos = HybridRepositioning (
                                 Anime->ScreenEdgeVertical,
                                 Anime->FilmY,
                                 Screen->Film[0]->Height,

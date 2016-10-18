@@ -191,7 +191,7 @@ UINT8 smb_read_byte (
 
     while (IoRead8(base + SMBHSTSTS) & 0x01) {   // wait until host is not busy
       t2 = AsmReadTsc(); //rdtsc(l2, h2);
-      t = DivU64x64Remainder(
+      t = DivU64x64Remainder (
             (t2 - t1),
             DivU64x32(gCPUStructure.TSCFrequency, 1000),
             0
@@ -284,7 +284,7 @@ UINT8 smb_read_byte (
     t1 = AsmReadTsc(); //rdtsc(l1, h1);
     while ( IoRead8(base + SMBHSTSTS_NV) & 0x01) {    // wait until read
       t2 = AsmReadTsc(); //rdtsc(l2, h2);
-      t = DivU64x64Remainder(
+      t = DivU64x64Remainder (
             (t2 - t1),
             DivU64x32(gCPUStructure.TSCFrequency, 1000),
             0
@@ -303,7 +303,7 @@ UINT8 smb_read_byte (
 
     while (!( IoRead8(base + SMBHSTSTS_NV) & 0x9F)) {   // wait till command finished
       t2 = AsmReadTsc();
-      t = DivU64x64Remainder(
+      t = DivU64x64Remainder (
             (t2 - t1),
             DivU64x32(gCPUStructure.TSCFrequency, 1000),
             0
@@ -527,7 +527,7 @@ CHAR8* getDDRSerial(UINT8* spd) {
 
   switch (spd[SPD_MEMORY_TYPE]) {
     case SPD_MEMORY_TYPE_SDRAM_DDR4:
-      AsciiSPrint(
+      AsciiSPrint (
         asciiSerial, 17, "%2X%2X%2X%2X%2X%2X%2X%2X",
         SMST(325) /*& 0x7*/,
         SLST(325),
@@ -541,7 +541,7 @@ CHAR8* getDDRSerial(UINT8* spd) {
       break;
 
     case SPD_MEMORY_TYPE_SDRAM_DDR3:
-      AsciiSPrint(
+      AsciiSPrint (
         asciiSerial, 17, "%2X%2X%2X%2X%2X%2X%2X%2X",
         SMST(122) /*& 0x7*/,
         SLST(122),
@@ -556,7 +556,7 @@ CHAR8* getDDRSerial(UINT8* spd) {
 
     case SPD_MEMORY_TYPE_SDRAM_DDR2:
     case SPD_MEMORY_TYPE_SDRAM_DDR:
-      AsciiSPrint(
+      AsciiSPrint (
         asciiSerial, 17, "%2X%2X%2X%2X%2X%2X%2X%2X",
         SMST(95) /*& 0x7*/,
         SLST(95),
@@ -878,7 +878,7 @@ read_smb (
       DBG("RAM speed %dMHz\n", freq);
     }
 
-    MsgLog(
+    MsgLog (
       "Slot: %d Type %d %dMB %dMHz Vendor=%a PartNo=%a SerialNo=%a\n",
       i,
       (INT32)gRAM.SPD[i].Type,

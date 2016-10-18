@@ -45,7 +45,7 @@ typedef EG_IMAGE * (*EG_DECODE_FUNC)(IN UINT8 *FileData, IN UINTN FileDataLength
 
 /* functions */
 
-VOID egRestrictImageArea(
+VOID egRestrictImageArea (
   IN EG_IMAGE   *Image,
   IN INTN       AreaPosX,
   IN INTN       AreaPosY,
@@ -53,7 +53,7 @@ VOID egRestrictImageArea(
   IN OUT INTN   *AreaHeight
 );
 
-VOID egRawCopy(
+VOID egRawCopy (
   IN OUT EG_PIXEL *CompBasePtr,
   IN EG_PIXEL *TopBasePtr,
   IN INTN Width,
@@ -62,7 +62,7 @@ VOID egRawCopy(
   IN INTN TopLineOffset
 );
 
-VOID egRawCompose(
+VOID egRawCompose (
   IN OUT EG_PIXEL *CompBasePtr,
   IN EG_PIXEL *TopBasePtr,
   IN INTN Width,
@@ -71,7 +71,7 @@ VOID egRawCompose(
   IN INTN TopLineOffset
 );
 
-VOID egRawComposeOnFlat(
+VOID egRawComposeOnFlat (
   IN OUT EG_PIXEL *CompBasePtr,
   IN EG_PIXEL *TopBasePtr,
   IN INTN Width,

@@ -119,7 +119,7 @@ read_nVidia_PRAMIN (
 
   DBG("read_nVidia_ROM\n");
 
-  Status = gBS->OpenProtocol(
+  Status = gBS->OpenProtocol (
                   nvda_dev->DeviceHandle,
                   &gEfiPciIoProtocolGuid,
                   (VOID**)&PciIo,
@@ -132,7 +132,7 @@ read_nVidia_PRAMIN (
     return EFI_NOT_FOUND;
   }
 
-  Status = PciIo->Pci.Read(
+  Status = PciIo->Pci.Read (
                         PciIo,
                         EfiPciIoWidthUint32,
                         0,
@@ -146,7 +146,7 @@ read_nVidia_PRAMIN (
 
   if (arch >= 0x50) {
     DBG("Using PRAMIN fixups\n");
-    /*Status = */PciIo->Mem.Read(
+    /*Status = */PciIo->Mem.Read (
                               PciIo,
                               EfiPciIoWidthUint32,
                               0,
@@ -157,7 +157,7 @@ read_nVidia_PRAMIN (
 
     vbios_vram = (vbios_vram & ~0xff) << 8;
 
-    /*Status = */PciIo->Mem.Read(
+    /*Status = */PciIo->Mem.Read (
                               PciIo,
                               EfiPciIoWidthUint32,
                               0,
@@ -171,7 +171,7 @@ read_nVidia_PRAMIN (
 
     vbios_vram >>= 16;
 
-    /*Status = */PciIo->Mem.Write(
+    /*Status = */PciIo->Mem.Write (
                                 PciIo,
                                 EfiPciIoWidthUint32,
                                 0,
@@ -181,7 +181,7 @@ read_nVidia_PRAMIN (
                              );
   }
 
-  Status = PciIo->Mem.Read(
+  Status = PciIo->Mem.Read (
                         PciIo,
                         EfiPciIoWidthUint8,
                         0,
@@ -191,7 +191,7 @@ read_nVidia_PRAMIN (
                       );
 
   if (arch >= 0x50) {
-    /*Status = */PciIo->Mem.Write(
+    /*Status = */PciIo->Mem.Write (
                               PciIo,
                               EfiPciIoWidthUint32,
                               0,
@@ -221,7 +221,7 @@ read_nVidia_PROM (
   UINT32                  value;
 
   DBG("PROM\n");
-  Status = gBS->OpenProtocol(
+  Status = gBS->OpenProtocol (
                   nvda_dev->DeviceHandle,
                   &gEfiPciIoProtocolGuid,
                   (VOID**)&PciIo,
@@ -246,7 +246,7 @@ read_nVidia_PROM (
   }
 
   value = NV_PBUS_PCI_NV_20_ROM_SHADOW_DISABLED;
-  /*Status = */PciIo->Mem.Write(
+  /*Status = */PciIo->Mem.Write (
                             PciIo,
                             EfiPciIoWidthUint32,
                             0,
@@ -255,7 +255,7 @@ read_nVidia_PROM (
                             &value
                           );
 
-  Status = PciIo->Mem.Read(
+  Status = PciIo->Mem.Read (
                         PciIo,
                         EfiPciIoWidthUint8,
                         0,
@@ -265,7 +265,7 @@ read_nVidia_PROM (
                       );
 
   value = NV_PBUS_PCI_NV_20_ROM_SHADOW_ENABLED;
-  /*Status = */PciIo->Mem.Write(
+  /*Status = */PciIo->Mem.Write (
                             PciIo,
                             EfiPciIoWidthUint32,
                             0,
@@ -599,7 +599,7 @@ setup_nvidia_devprop (
   }
 
   if (load_vbios) {
-    UnicodeSPrint(
+    UnicodeSPrint (
       FileName, 128, L"%s\\10de_%04x_%04x_%04x.rom",
       RomPath, nvda_dev->device_id, nvda_dev->subsys_id.subsys.vendor_id, nvda_dev->subsys_id.subsys.device_id
     );
@@ -797,7 +797,7 @@ setup_nvidia_devprop (
 
       Injected = TRUE;
 
-      devprop_add_value(
+      devprop_add_value (
         device,
         gSettings.AddProperties[i].Key,
         (UINT8*)gSettings.AddProperties[i].Value,
@@ -848,7 +848,7 @@ setup_nvidia_devprop (
 
   if (gSettings.NVCAP[0] != 0) {
     devprop_add_value(device, "NVCAP", &gSettings.NVCAP[0], NVCAP_LEN);
-    DBG(
+    DBG (
       " - set NVCAP: %02x%02x%02x%02x-%02x%02x%02x%02x-%02x%02x%02x%02x-%02x%02x%02x%02x-%02x%02x%02x%02x\n",
       gSettings.NVCAP[0], gSettings.NVCAP[1], gSettings.NVCAP[2], gSettings.NVCAP[3],
       gSettings.NVCAP[4], gSettings.NVCAP[5], gSettings.NVCAP[6], gSettings.NVCAP[7],

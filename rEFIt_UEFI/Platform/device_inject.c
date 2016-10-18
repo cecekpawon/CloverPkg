@@ -73,7 +73,7 @@ struct _APPLE_GETVAR_PROTOCOL {
 STATIC
 EFI_STATUS
 EFIAPI
-GetDeviceProps(
+GetDeviceProps (
   IN     APPLE_GETVAR_PROTOCOL   *This,
   IN     CHAR8                   *Buffer,
   IN OUT UINT32                  *BufferSize
@@ -106,7 +106,7 @@ typedef struct {
 
 EFI_STATUS
 EFIAPI
-GetDeviceProps(
+GetDeviceProps (
   IN     APPLE_GETVAR_PROTOCOL   *This,
   IN     CHAR8                   *Buffer,
   IN OUT UINT32                  *BufferSize
@@ -137,7 +137,7 @@ GetDeviceProps(
 
 EFI_STATUS
 EFIAPI
-GetScreenInfo(
+GetScreenInfo (
   VOID    *This,
   UINT64  *baseAddress,
   UINT64  *frameBufferSize,
@@ -245,7 +245,7 @@ pci_config_read32 (
   PCI_TYPE00            Pci;
   UINT32                res;
 
-  Status = gBS->OpenProtocol(
+  Status = gBS->OpenProtocol (
                   PciDt->DeviceHandle,
                   &gEfiPciIoProtocolGuid,
                   (VOID**)&PciIo,
@@ -259,7 +259,7 @@ pci_config_read32 (
     return 0;
   }
 
-  Status = PciIo->Pci.Read(
+  Status = PciIo->Pci.Read (
                         PciIo,
                         EfiPciIoWidthUint32,
                         0,
@@ -470,7 +470,7 @@ CHAR8
     return NULL;
   }
 
-  AsciiSPrint(
+  AsciiSPrint (
     buffer, len, "%08x%08x%04x%04x", SwapBytes32(StringBuf->length), StringBuf->WHAT2,
     SwapBytes16(StringBuf->numentries), StringBuf->WHAT3
   );
@@ -480,14 +480,14 @@ CHAR8
   while(i < StringBuf->numentries) {
     UINT8   *dataptr = StringBuf->entries[i]->data;
 
-    AsciiSPrint(
+    AsciiSPrint (
       buffer, len, "%08x%04x%04x", SwapBytes32(StringBuf->entries[i]->length),
       SwapBytes16(StringBuf->entries[i]->numentries), StringBuf->entries[i]->WHAT2
     ); //FIXME: wrong buffer sizes!
 
     buffer += 16;
 
-    AsciiSPrint(
+    AsciiSPrint (
       buffer, len, "%02x%02x%04x%08x%08x", StringBuf->entries[i]->acpi_dev_path.type,
       StringBuf->entries[i]->acpi_dev_path.subtype,
       SwapBytes16(StringBuf->entries[i]->acpi_dev_path.length),
@@ -507,7 +507,7 @@ CHAR8
       buffer += 12;
     }
 
-    AsciiSPrint(
+    AsciiSPrint (
       buffer, len, "%02x%02x%04x", StringBuf->entries[i]->path_end.type,
       StringBuf->entries[i]->path_end.subtype,
       SwapBytes16(StringBuf->entries[i]->path_end.length)
@@ -588,7 +588,7 @@ set_eth_props (
 
       Injected = TRUE;
 
-      devprop_add_value(
+      devprop_add_value (
         device,
         gSettings.AddProperties[i].Key,
         (UINT8*)gSettings.AddProperties[i].Value,
@@ -630,7 +630,7 @@ IsHDMIAudio (
   UINTN                 Segment, Bus, Device, Function, Index;
 
   // get device PciIo protocol
-  Status = gBS->OpenProtocol(
+  Status = gBS->OpenProtocol (
                   PciDevHandle,
                   &gEfiPciIoProtocolGuid,
                   (VOID **)&PciIo,
@@ -708,7 +708,7 @@ set_hda_props (
 
         Injected = TRUE;
 
-        devprop_add_value(
+        devprop_add_value (
           device,
           gSettings.AddProperties[i].Key,
           (UINT8*)gSettings.AddProperties[i].Value,
@@ -737,7 +737,7 @@ set_hda_props (
 
         Injected = TRUE;
 
-        devprop_add_value(
+        devprop_add_value (
           device,
           gSettings.AddProperties[i].Key,
           (UINT8*)gSettings.AddProperties[i].Value,

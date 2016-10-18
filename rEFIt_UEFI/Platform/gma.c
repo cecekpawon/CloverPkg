@@ -93,13 +93,13 @@ setup_gma_devprop (
   DevPropDevice   *device;
   UINT32          DualLink = 0; //local variable must be inited
   UINT8           BuiltIn =   0x00;
-  UINTN           j, i;
+  INTN            j, i;
   BOOLEAN         Injected = FALSE, SetSnb = FALSE;
 
   devicepath = get_pci_dev_path(gma_dev);
 
   model = get_gma_model(gma_dev->device_id);
-  for (j = 0; j < NGFX; j++) {
+  for (j = 0; j < (INTN)NGFX; j++) {
     if (
       (gGraphics[j].Vendor == Intel) &&
       (gGraphics[j].DeviceID == gma_dev->device_id)
@@ -135,7 +135,7 @@ setup_gma_devprop (
 
       Injected = TRUE;
 
-      devprop_add_value(
+      devprop_add_value (
         device,
         gSettings.AddProperties[i].Key,
         (UINT8*)gSettings.AddProperties[i].Value,

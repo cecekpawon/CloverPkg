@@ -268,7 +268,7 @@ CHAR16
 
 VOID
 InitUISelection () {
-  INTN  i, iSize;
+  INTN  i, iSize = 0;
 
   if (SelectionImg[0].Image != NULL) {
     return;
@@ -318,7 +318,7 @@ InitUISelection () {
           CopyMem(&BlueBackgroundPixel, &StdBackgroundPixel, sizeof(EG_PIXEL));
         }
 
-        SelectionImg[i].Image = egEnsureImageSize(
+        SelectionImg[i].Image = egEnsureImageSize (
                                   SelectionImg[i].Image,
                                   iSize, iSize, &MenuBackgroundPixel
                                 );
@@ -327,7 +327,7 @@ InitUISelection () {
           return;
         }
 
-        SelectionImg[i+1].Image = egCreateFilledImage(
+        SelectionImg[i+1].Image = egCreateFilledImage (
                                     iSize, iSize,
                                     TRUE, &MenuBackgroundPixel
                                   );
@@ -552,7 +552,7 @@ ScrollingBar (
   if (ScrollEnabled) {
     Total = egCreateFilledImage(ScrollTotal.Width, ScrollTotal.Height, TRUE, &MenuBackgroundPixel);
     for (i = 0; i < ScrollbarBackground.Height; i++) {
-      egComposeImage(
+      egComposeImage (
         Total,
         ScrollbarImg[kScrollbarBackgroundImage].Image,
         ScrollbarBackground.XPos - ScrollTotal.XPos,
@@ -560,14 +560,14 @@ ScrollingBar (
       );
     }
 
-    egComposeImage(
+    egComposeImage (
       Total,
       ScrollbarImg[kBarStartImage].Image,
       BarStart.XPos - ScrollTotal.XPos,
       BarStart.YPos - ScrollTotal.YPos
     );
 
-    egComposeImage(
+    egComposeImage (
       Total,
       ScrollbarImg[kBarEndImage].Image,
       BarEnd.XPos - ScrollTotal.XPos,
@@ -575,7 +575,7 @@ ScrollingBar (
     );
 
     for (i = 0; i < Scrollbar.Height; i++) {
-      egComposeImage(
+      egComposeImage (
         Total,
         ScrollbarImg[kScrollbarImage].Image,
         Scrollbar.XPos - ScrollTotal.XPos,
@@ -583,28 +583,28 @@ ScrollingBar (
       );
     }
 
-    egComposeImage(
+    egComposeImage (
       Total,
       ScrollbarImg[kUpButtonImage].Image,
       UpButton.XPos - ScrollTotal.XPos,
       UpButton.YPos - ScrollTotal.YPos
     );
 
-    egComposeImage(
+    egComposeImage (
       Total,
       ScrollbarImg[kDownButtonImage].Image,
       DownButton.XPos - ScrollTotal.XPos,
       DownButton.YPos - ScrollTotal.YPos
     );
 
-    egComposeImage(
+    egComposeImage (
       Total,
       ScrollbarImg[kScrollStartImage].Image,
       ScrollStart.XPos - ScrollTotal.XPos,
       ScrollStart.YPos - ScrollTotal.YPos
     );
 
-    egComposeImage(
+    egComposeImage (
       Total,
       ScrollbarImg[kScrollEndImage].Image,
       ScrollEnd.XPos - ScrollTotal.XPos,
@@ -646,7 +646,7 @@ EG_IMAGE
 *BuiltinIcon (
   IN UINTN    Id
 ) {
-  INTN      Size;
+  INTN      Size = 0;
   EG_IMAGE  *TextBuffer = NULL;
   CHAR16    *p, *Text;
 
@@ -832,7 +832,7 @@ EG_IMAGE
 //
 
 EG_IMAGE
-*LoadOSIcon(
+*LoadOSIcon (
   IN  CHAR16    *OSIconName OPTIONAL,
   OUT CHAR16    **OSIconNameHover,
   IN  CHAR16    *FallbackIconName,

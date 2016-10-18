@@ -157,7 +157,7 @@ egSetMaxResolution() {
 }
 
 EFI_STATUS
-egSetMode(
+egSetMode (
   INT32     Next
 ) {
   EFI_GRAPHICS_OUTPUT_MODE_INFORMATION    *Info;
@@ -449,12 +449,12 @@ egClearScreen (
     // EFI_GRAPHICS_OUTPUT_BLT_PIXEL and EFI_UGA_PIXEL have the same
     // layout, and the header from TianoCore actually defines them
     // to be the same type.
-    GraphicsOutput->Blt(
+    GraphicsOutput->Blt (
       GraphicsOutput, (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *)&FillColor, EfiBltVideoFill,
       0, 0, 0, 0, egScreenWidth, egScreenHeight, 0
     );
   } else if (UgaDraw != NULL) {
-    UgaDraw->Blt(
+    UgaDraw->Blt (
       UgaDraw, &FillColor, EfiUgaVideoFill,
       0, 0, 0, 0, egScreenWidth, egScreenHeight, 0
     );
@@ -510,14 +510,14 @@ egDrawImageArea (
   }
 
   if (GraphicsOutput != NULL) {
-    GraphicsOutput->Blt(
+    GraphicsOutput->Blt (
       GraphicsOutput, (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *)Image->PixelData,
       EfiBltBufferToVideo,
       (UINTN)AreaPosX, (UINTN)AreaPosY, (UINTN)ScreenPosX, (UINTN)ScreenPosY,
       (UINTN)AreaWidth, (UINTN)AreaHeight, (UINTN)Image->Width * 4
     );
   } else if (UgaDraw != NULL) {
-    UgaDraw->Blt(
+    UgaDraw->Blt (
       UgaDraw, (EFI_UGA_PIXEL *)Image->PixelData, EfiUgaBltBufferToVideo,
       (UINTN)AreaPosX, (UINTN)AreaPosY, (UINTN)ScreenPosX, (UINTN)ScreenPosY,
       (UINTN)AreaWidth, (UINTN)AreaHeight, (UINTN)Image->Width * 4
@@ -543,7 +543,7 @@ egTakeImage (
   }
 
   if (GraphicsOutput != NULL) {
-    GraphicsOutput->Blt(
+    GraphicsOutput->Blt (
       GraphicsOutput,
       (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *)Image->PixelData,
       EfiBltVideoToBltBuffer,
@@ -552,7 +552,7 @@ egTakeImage (
       0, 0, AreaWidth, AreaHeight, (UINTN)Image->Width * 4
     );
   } else if (UgaDraw != NULL) {
-    UgaDraw->Blt(
+    UgaDraw->Blt (
       UgaDraw,
       (EFI_UGA_PIXEL *)Image->PixelData,
       EfiUgaVideoToBltBuffer,
@@ -589,13 +589,13 @@ EFI_STATUS egScreenShot() {
 
   // get full screen image
   if (GraphicsOutput != NULL) {
-    GraphicsOutput->Blt(
+    GraphicsOutput->Blt (
       GraphicsOutput, (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *)Image->PixelData,
       EfiBltVideoToBltBuffer,
       0, 0, 0, 0, (UINTN)Image->Width, (UINTN)Image->Height, 0
     );
   } else if (UgaDraw != NULL) {
-    UgaDraw->Blt(
+    UgaDraw->Blt (
       UgaDraw, (EFI_UGA_PIXEL *)Image->PixelData, EfiUgaVideoToBltBuffer,
       0, 0, 0, 0, (UINTN)Image->Width, (UINTN)Image->Height, 0
     );
@@ -613,7 +613,7 @@ EFI_STATUS egScreenShot() {
   }
 
   // Encode raw RGB image to PNG format
-  lodepng_encode32(
+  lodepng_encode32 (
     &FileData,
     &FileDataLength,
     (CONST UINT8*)ImagePNG,

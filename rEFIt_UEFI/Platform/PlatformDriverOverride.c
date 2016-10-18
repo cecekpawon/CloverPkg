@@ -119,7 +119,7 @@ OurPlatformDriverLoaded (
     return EFI_UNSUPPORTED;
   }
 
-  Status = gBS->OpenProtocol(
+  Status = gBS->OpenProtocol (
                    DriverImageHandle,
                    &gEfiComponentNameProtocolGuid,
                    (VOID**)&CompName,
@@ -165,7 +165,7 @@ EFI_PLATFORM_DRIVER_OVERRIDE_PROTOCOL mOurPlatformDriverOverrideProtocol = {
 
 EFI_STATUS
 EFIAPI
-OvrPlatformGetDriver(
+OvrPlatformGetDriver (
   IN EFI_PLATFORM_DRIVER_OVERRIDE_PROTOCOL      *This,
   IN     EFI_HANDLE                             ControllerHandle,
   IN OUT EFI_HANDLE                             *DriverImageHandle

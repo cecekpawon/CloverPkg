@@ -273,7 +273,7 @@ MemLogVA (
     // Write timing only at the beginnign of a new line
     //
     if ((mMemLog->Buffer[0] == '\0') || (mMemLog->Cursor[-1] == '\n')) {
-      DataWritten = AsciiSPrint(
+      DataWritten = AsciiSPrint (
                                 mMemLog->Cursor,
                                 mMemLog->BufferSize - (mMemLog->Cursor - mMemLog->Buffer),
                                 "%a  ",
@@ -282,7 +282,7 @@ MemLogVA (
     }
     
   }
-  DataWritten = AsciiVSPrint(
+  DataWritten = AsciiVSPrint (
                              mMemLog->Cursor,
                              mMemLog->BufferSize - (mMemLog->Cursor - mMemLog->Buffer),
                              Format,

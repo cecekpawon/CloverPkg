@@ -391,7 +391,7 @@ deallocMatchOSes (
 }
 
 BOOLEAN
-IsOSValid(
+IsOSValid (
   CHAR8   *MatchOS,
   CHAR8   *CurrOS
 ) {
@@ -2757,21 +2757,20 @@ GetEarlyUserSettings (
 
       gSettings.LinuxScan = TRUE;
       gSettings.AndroidScan = TRUE;
+      gSettings.DisableEntryScan = FALSE;
+      gSettings.DisableToolScan  = FALSE;
 
       // Disable loader scan
       Prop = GetProperty (DictPointer, "Scan");
       if (Prop != NULL) {
-        if (!IsPropertyTrue (Prop)) {
+        if (Prop->type == kTagTypeDict) {
+          gSettings.DisableEntryScan = !IsPropertyTrue (GetProperty (Prop, "Entries"));
+          gSettings.DisableToolScan = !IsPropertyTrue (GetProperty (Prop, "Tool"));
+          gSettings.LinuxScan = IsPropertyTrue (GetProperty (Prop, "Linux"));
+          gSettings.AndroidScan = IsPropertyTrue (GetProperty (Prop, "Android"));
+        } else if (!IsPropertyTrue (Prop)) {
           gSettings.DisableEntryScan = TRUE;
           gSettings.DisableToolScan  = TRUE;
-        } else if (Prop->type == kTagTypeDict) {
-          gSettings.DisableEntryScan = !IsPropertyTrue (GetProperty (Prop, "Entries"));
-
-          gSettings.DisableToolScan = !IsPropertyTrue (GetProperty (Prop, "Tool"));
-
-          gSettings.LinuxScan = IsPropertyTrue (GetProperty (Prop, "Linux"));
-
-          gSettings.AndroidScan = IsPropertyTrue (GetProperty (Prop, "Android"));
         }
       }
 
@@ -2991,7 +2990,8 @@ ParseSMBIOSSettings (
   Prop = GetProperty (DictPointer, "BoardType");
   gSettings.BoardType = (UINT8)GetPropertyInteger (Prop, gSettings.BoardType);
 
-  if (!(gSettings.Mobile = IsPropertyTrue(GetProperty (DictPointer, "Mobile"))) && !Default) {
+  gSettings.Mobile = IsPropertyTrue(GetProperty (DictPointer, "Mobile"));
+  if (!gSettings.Mobile && !Default) {
     gSettings.Mobile = (AsciiStrStr(gSettings.ProductName, "MacBook") != NULL);
   }
 
@@ -3577,9 +3577,7 @@ GetUserSettings (
         Prop   = GetProperty (Dict2, "DropOEM_DSM");
 
         if (Prop != NULL) {
-          if (!IsPropertyTrue (Prop)) {
-            gSettings.DropOEM_DSM = 0;
-          } else if (Prop->type == kTagTypeInteger) {
+          if (Prop->type == kTagTypeInteger) {
             gSettings.DropOEM_DSM = (UINT16)(UINTN)Prop->string;
           } else if (Prop->type == kTagTypeDict) {
             INTN    i;
@@ -3591,6 +3589,8 @@ GetUserSettings (
                 gSettings.DropOEM_DSM |= ADEVICES[i].Bit;
               }
             }
+          } else if (!IsPropertyTrue (Prop)) {
+            gSettings.DropOEM_DSM = 0;
           }
         }
       }
@@ -3602,12 +3602,12 @@ GetUserSettings (
           if (IsPropertyTrue (Prop2)) {
             gSettings.GeneratePStates = TRUE;
             gSettings.GenerateCStates = TRUE;
-          } else if (!IsPropertyTrue (Prop2)) {
-            gSettings.GeneratePStates = FALSE;
-            gSettings.GenerateCStates = FALSE;
           } else if (Prop2->type == kTagTypeDict) {
             gSettings.GeneratePStates = IsPropertyTrue (GetProperty (Prop2, "PStates"));
             gSettings.GenerateCStates = IsPropertyTrue (GetProperty (Prop2, "CStates"));
+          } else if (!IsPropertyTrue (Prop2)) {
+            gSettings.GeneratePStates = FALSE;
+            gSettings.GenerateCStates = FALSE;
           }
         }
 
@@ -4712,7 +4712,7 @@ SetDevices (
               }
 
               if (gSettings.IntelBacklight) {
-                /*Status = */PciIo->Mem.Write(
+                /*Status = */PciIo->Mem.Write (
                       PciIo,
                       EfiPciIoWidthUint32,
                       0,
@@ -4911,7 +4911,7 @@ SetFSInjection (
   //BOOLEAN                 InjectionNeeded = FALSE;
   //BOOLEAN                 BlockCaches = FALSE;
   FSI_STRING_LIST         *Blacklist = 0, *ForceLoadKexts = NULL;
-  INTN                    Index = 0;
+  UINTN                   Index = 0;
 
   DbgHeader ("Beginning FSInjection");
 
