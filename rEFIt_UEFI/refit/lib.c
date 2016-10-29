@@ -76,7 +76,7 @@ UINTN               VolumesCount = 0;
 //
 // Unicode collation protocol interface
 //
-EFI_UNICODE_COLLATION_PROTOCOL *mUnicodeCollation = NULL;
+EFI_UNICODE_COLLATION_PROTOCOL    *mUnicodeCollation = NULL;
 
 // functions
 
@@ -363,7 +363,7 @@ ScanVolumeBootcode (
   Volume->HasBootCode = FALSE;
   Volume->LegacyOS->IconName = NULL;
   Volume->LegacyOS->Name = NULL;
-  //  Volume->BootType = BOOTING_BY_MBR; //default value
+  //Volume->BootType = BOOTING_BY_MBR; //default value
   Volume->BootType = BOOTING_BY_EFI;
 
   *Bootable = FALSE;
@@ -396,35 +396,8 @@ ScanVolumeBootcode (
     *Bootable = TRUE;
     Volume->HasBootCode = TRUE; //we assume that all CD are bootable
 
-    /*
-      DBG("check SectorBuffer\n");
-      for (i=0; i<32; i++) {
-        DBG("%2x ", SectorBuffer[i]);
-      }
-      DBG("\n");
-    */
-
     VCrc32 = GetCrc32(SectorBuffer, 512 * 2);
     Volume->DriveCRC32 = VCrc32;
-
-    //gBS->CalculateCrc32 (SectorBuffer, 2 * 512, &Volume->DriveCRC32);
-
-    /*
-    switch (Volume->DiskKind ) {
-    case DISK_KIND_OPTICAL:
-      kind = L"DVD";
-      break;
-    case DISK_KIND_INTERNAL:
-      kind = L"HDD";
-      break;
-    case DISK_KIND_EXTERNAL:
-      kind = L"USB";
-      break;
-    default:
-      break;
-    }
-    DBG("Volume kind=%s CRC=0x%x\n", kind, VCrc32);
-    */
 
     if (Volume->DiskKind == DISK_KIND_OPTICAL) { //CDROM
       CHAR8   *p = (CHAR8*)&SectorBuffer[8];
@@ -487,20 +460,6 @@ ScanVolumeBootcode (
         }
       }
     } else { //HDD
-      /*
-      // apianti - does this detect every partition as legacy?
-      if (*((UINT16 *)(SectorBuffer + 510)) == 0xaa55 && SectorBuffer[0] != 0) {
-        *Bootable = TRUE;
-        Volume->HasBootCode = TRUE;
-        //DBG("The volume has bootcode\n");
-        Volume->LegacyOS->IconName = L"legacy";
-        Volume->LegacyOS->Name = L"Legacy";
-        Volume->LegacyOS->Type = OSTYPE_VAR;
-        Volume->BootType = BOOTING_BY_PBR;
-      }
-      //
-      */
-
       // detect specific boot codes
       if (
         (CompareMem(SectorBuffer + 2, "LILO", 4) == 0) ||
@@ -583,38 +542,6 @@ ScanVolumeBootcode (
         Volume->LegacyOS->Name = L"FreeDOS";
         Volume->LegacyOS->Type = OSTYPE_VAR;
         Volume->BootType = BOOTING_BY_PBR;
-      /*
-      } else if (
-        (FindMem(SectorBuffer, 512, "OS2LDR", 6) >= 0) ||
-        (FindMem(SectorBuffer, 512, "OS2BOOT", 7) >= 0)
-      ) {
-        Volume->HasBootCode = TRUE;
-        Volume->LegacyOS->IconName = L"ecomstation";
-        Volume->LegacyOS->Name = L"eComStation";
-        Volume->LegacyOS->Type = OSTYPE_VAR;
-        Volume->BootType = BOOTING_BY_PBR;
-      } else if (FindMem(SectorBuffer, 512, "Be Boot Loader", 14) >= 0) {
-        Volume->HasBootCode = TRUE;
-        Volume->LegacyOS->IconName = L"beos";
-        Volume->LegacyOS->Name = L"BeOS";
-        Volume->LegacyOS->Type = OSTYPE_VAR;
-        Volume->BootType = BOOTING_BY_PBR;
-      } else if (FindMem(SectorBuffer, 512, "yT Boot Loader", 14) >= 0) {
-        Volume->HasBootCode = TRUE;
-        Volume->LegacyOS->IconName = L"zeta";
-        Volume->LegacyOS->Name = L"ZETA";
-        Volume->LegacyOS->Type = OSTYPE_VAR;
-        Volume->BootType = BOOTING_BY_PBR;
-      } else if (
-          (FindMem(SectorBuffer, 512, "\x04" "beos\x06" "system\x05" "zbeos", 18) >= 0) ||
-          (FindMem(SectorBuffer, 512, "haiku_loader", 12) >= 0)
-        ) {
-        Volume->HasBootCode = TRUE;
-        Volume->LegacyOS->IconName = L"haiku";
-        Volume->LegacyOS->Name = L"Haiku";
-        Volume->LegacyOS->Type = OSTYPE_VAR;
-        Volume->BootType = BOOTING_BY_PBR;
-      */
       }
     }
 

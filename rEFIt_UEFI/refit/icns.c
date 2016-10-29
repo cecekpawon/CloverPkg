@@ -167,7 +167,7 @@ EG_IMAGE
   IN CHAR16             *FileName,
   IN UINTN              PixelSize
 ) {
-  if (GlobalConfig.TextOnly) {  // skip loading if it's not used anyway
+  if (GlobalConfig.TextOnly) {
     return NULL;
   }
 
@@ -179,7 +179,6 @@ EG_IMAGE
 }
 
 static EG_PIXEL BlackPixel  = { 0x00, 0x00, 0x00, 0 };
-//static EG_PIXEL YellowPixel = { 0x00, 0xff, 0xff, 0 };
 
 EG_IMAGE
 *DummyImage (
@@ -221,19 +220,11 @@ EG_IMAGE
   IN CHAR16           *FileName,
   IN UINTN            PixelSize
 ) {
-  EG_IMAGE *Image;
-
-  if (GlobalConfig.TextOnly) { // skip loading if it's not used anyway
+  if (GlobalConfig.TextOnly) {
     return NULL;
   }
 
-  Image = egLoadIcon(BaseDir, FileName, PixelSize);
-
-  //if (Image == NULL) {
-  //  Image = DummyImage(PixelSize);
-  //}
-
-  return Image;
+  return egLoadIcon(BaseDir, FileName, PixelSize);
 }
 
 CHAR16
@@ -241,7 +232,6 @@ CHAR16
   IN CHAR16   *Icon,
   IN CHAR16   *Def
 ) {
-  //return PoolPrint(L"%s.%s", Icon, ((GlobalConfig.IconFormat != ICON_FORMAT_DEF) && (IconFormat != NULL)) ? IconFormat : Def);
   return PoolPrint(L"%s.%s",
             Icon,
             (GlobalConfig.IconFormat != ICON_FORMAT_DEF)
@@ -253,18 +243,6 @@ CHAR16
 //
 // Graphics helper functions
 //
-
-/*
-  SelectionImages:
-    [0] SelectionBig
-    [2] SelectionSmall
-    [4] SelectionIndicator
-  Buttons:
-    [0] radio_button
-    [1] radio_button_selected
-    [2] checkbox
-    [3] checkbox_checked
-*/
 
 VOID
 InitUISelection () {
@@ -286,18 +264,15 @@ InitUISelection () {
       case kIndicatorImage:
         if (i == kBigImage) {
           iSize = GlobalConfig.row0TileSize;
-          //SelectionImg[i].Path = PoolPrint(GlobalConfig.SelectionBigFileName);
           SelectionImg[i].Path = AllocateCopyPool(StrSize(GlobalConfig.SelectionBigFileName), GlobalConfig.SelectionBigFileName);
         } else if (i == kSmallImage) {
           iSize = GlobalConfig.row1TileSize;
-          //SelectionImg[i].Path = PoolPrint(GlobalConfig.SelectionSmallFileName);
           SelectionImg[i].Path = AllocateCopyPool(StrSize(GlobalConfig.SelectionSmallFileName), GlobalConfig.SelectionSmallFileName);
         } else if (i == kIndicatorImage) {
           if (!GlobalConfig.BootCampStyle) {
             break;
           }
 
-          //SelectionImg[i].Path = PoolPrint(GlobalConfig.SelectionIndicatorName);
           SelectionImg[i].Path = AllocateCopyPool(StrSize(GlobalConfig.SelectionIndicatorName), GlobalConfig.SelectionIndicatorName);
           iSize = INDICATOR_SIZE;
         }
@@ -331,10 +306,6 @@ InitUISelection () {
                                     iSize, iSize,
                                     TRUE, &MenuBackgroundPixel
                                   );
-
-        //if (GlobalConfig.SelectionOnTop) {
-        //  SelectionImg[i].Image->HasAlpha = TRUE;
-        //}
 
         break;
 
@@ -411,7 +382,6 @@ FreeBuiltinIcons () {
 VOID
 FreeBanner () {
   if (Banner != NULL) {
-    //if (Banner != BuiltinIcon(BUILTIN_ICON_BANNER)) {
     if (Banner != BuiltinIconTable[BUILTIN_ICON_BANNER].Image) {
       egFreeImage (Banner);
       //Banner  = NULL;
@@ -483,13 +453,13 @@ VOID
 InitBar() {
   InitUIBar();
 
-  UpButton.Width      = GlobalConfig.ScrollWidth; // 16
-  UpButton.Height     = GlobalConfig.ScrollButtonsHeight; // 20
+  UpButton.Width      = GlobalConfig.ScrollWidth;
+  UpButton.Height     = GlobalConfig.ScrollButtonsHeight;
   DownButton.Width    = UpButton.Width;
   DownButton.Height   = GlobalConfig.ScrollButtonsHeight;
-  BarStart.Height     = GlobalConfig.ScrollBarDecorationsHeight; // 5
+  BarStart.Height     = GlobalConfig.ScrollBarDecorationsHeight;
   BarEnd.Height       = GlobalConfig.ScrollBarDecorationsHeight;
-  ScrollStart.Height  = GlobalConfig.ScrollScrollDecorationsHeight; // 7
+  ScrollStart.Height  = GlobalConfig.ScrollScrollDecorationsHeight;
   ScrollEnd.Height    = GlobalConfig.ScrollScrollDecorationsHeight;
 }
 
@@ -499,7 +469,7 @@ VOID SetBar (
       INTN          DownPosY,
   IN  SCROLL_STATE  *State
 ) {
-  //  DBG("SetBar <= %d %d %d %d %d\n", UpPosY, DownPosY, State->MaxVisible, State->MaxIndex, State->FirstVisible);
+  //DBG("SetBar <= %d %d %d %d %d\n", UpPosY, DownPosY, State->MaxVisible, State->MaxIndex, State->FirstVisible);
   UpButton.XPos = PosX;
   UpButton.YPos = UpPosY;
 
@@ -538,7 +508,7 @@ VOID SetBar (
   ScrollTotal.YPos = UpButton.YPos;
   ScrollTotal.Width = UpButton.Width;
   ScrollTotal.Height = DownButton.YPos + DownButton.Height - UpButton.YPos;
-  //  DBG("ScrollTotal.Height = %d\n", ScrollTotal.Height);
+  //DBG("ScrollTotal.Height = %d\n", ScrollTotal.Height);
 }
 
 VOID
@@ -636,8 +606,8 @@ EG_IMAGE
     return NULL;
   } else {
     CHAR16    *Path = AllocateZeroPool(AVALUE_MAX_SIZE);
-    Path = GetIconsExt(PoolPrint(L"%s_hover", BuiltinIconTable[Id].Path), BuiltinIconTable[Id].Format);
 
+    Path = GetIconsExt(PoolPrint(L"%s_hover", BuiltinIconTable[Id].Path), BuiltinIconTable[Id].Format);
     return egLoadIcon(ThemeDir, Path, BuiltinIconTable[Id].PixelSize);
   }
 }
@@ -776,8 +746,8 @@ EG_IMAGE
 *ScanVolumeDefaultIcon (
      REFIT_VOLUME  *Volume,
   IN UINT8          OSType
-) { //IN UINT8 DiskKind)
-  UINTN IconNum;
+) {
+  UINTN   IconNum;
 
   // default volume icon based on disk kind
   switch (Volume->DiskKind) {
@@ -841,17 +811,16 @@ EG_IMAGE
   IN  BOOLEAN   WantDummy
 ) {
   EG_IMAGE    *Image;
-  CHAR16      CutoutName[16], /*FirstName[16],*/ TmpName[64], FileName[256];
+  CHAR16      CutoutName[16], TmpName[64], FileName[256];
   UINTN       StartIndex, Index, NextIndex;
 
   *OSIconNameHover = NULL;
 
-  if (GlobalConfig.TextOnly || IsEmbeddedTheme()) { // skip loading if it's not used anyway
+  if (GlobalConfig.TextOnly || IsEmbeddedTheme()) {
     return NULL;
   }
 
   Image = NULL;
-  //*FirstName = 0;
 
   // try the names from OSIconName
   for (StartIndex = 0; OSIconName != NULL && OSIconName[StartIndex]; StartIndex = NextIndex) {
@@ -885,13 +854,6 @@ EG_IMAGE
       UnicodeSPrint(*OSIconNameHover, 64, L"%s_hover", TmpName);
       return Image;
     }
-
-    //if (*FirstName == '\0') {
-    //  CopyMem(FirstName, CutoutName, StrSize(CutoutName));
-    //  if ('a' <= FirstName[0] && FirstName[0] <= 'z') {
-    //    FirstName[0] = (CHAR16) (FirstName[0] - 0x20);
-    //  }
-    //}
   }
 
   // try the fallback name
@@ -915,21 +877,7 @@ EG_IMAGE
     }
   }
 
-  if (!WantDummy) {
-    return NULL;
-  }
-
-  /*
-  if (IsEmbeddedTheme()) { // embedded theme - return rendered icon name
-    EG_IMAGE  *TextBuffer = egCreateImage(PixelSize, PixelSize, TRUE);
-    egFillImage(TextBuffer, &MenuBackgroundPixel);
-    //egRenderText(FirstName, TextBuffer, PixelSize/4, PixelSize/3, 0xFFFF);
-    //DebugLog(1, "Text <%s> rendered\n", FirstName);
-    return TextBuffer;
-  }
-  */
-
-  return DummyImage(PixelSize);
+  return WantDummy ? DummyImage(PixelSize) : NULL;
 }
 
 EG_IMAGE
@@ -937,13 +885,9 @@ EG_IMAGE
   IN CHAR16   *OSIconName,
   IN UINTN    PixelSize
 ) {
-  EG_IMAGE    *Image = NULL;
-
-  if (GlobalConfig.TextOnly || IsEmbeddedTheme()) { // skip loading if it's not used anyway
+  if (GlobalConfig.TextOnly || IsEmbeddedTheme()) {
     return NULL;
   }
 
-  Image = egLoadIcon(ThemeDir, OSIconName, PixelSize);
-
-  return Image;
+  return egLoadIcon(ThemeDir, OSIconName, PixelSize);
 }

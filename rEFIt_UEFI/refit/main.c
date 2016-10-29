@@ -35,7 +35,6 @@
  */
 
 #include "Platform.h"
-//#include "Version.h"
 
 #ifndef DEBUG_ALL
 #define DEBUG_MAIN 1

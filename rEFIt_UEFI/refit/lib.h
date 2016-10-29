@@ -140,9 +140,10 @@ typedef struct {
 #define OSTYPE_IS_LINUX_GLOB(type) ((type == OSTYPE_LIN) || (type == OSTYPE_LINEFI))
 #define OSTYPE_IS_OTHER(type) ((type == OSTYPE_OTHER) || (type == OSTYPE_EFI) || (type == OSTYPE_VAR))
 #define OSTYPE_COMPARE_IMP(comparator, type1, type2) (comparator(type1) && comparator(type2))
-#define OSTYPE_COMPARE(type1, type2) (OSTYPE_COMPARE_IMP(OSTYPE_IS_OSX, type1, type2) || OSTYPE_COMPARE_IMP(OSTYPE_IS_OSX_RECOVERY, type1, type2) || \
-OSTYPE_COMPARE_IMP(OSTYPE_IS_OSX_INSTALLER, type1, type2) || OSTYPE_COMPARE_IMP(OSTYPE_IS_WINDOWS, type1, type2) || \
-OSTYPE_COMPARE_IMP(OSTYPE_IS_LINUX, type1, type2) || OSTYPE_COMPARE_IMP(OSTYPE_IS_OTHER, type1, type2))
+#define OSTYPE_COMPARE(type1, type2) \
+          (OSTYPE_COMPARE_IMP(OSTYPE_IS_OSX, type1, type2) || OSTYPE_COMPARE_IMP(OSTYPE_IS_OSX_RECOVERY, type1, type2) || \
+          OSTYPE_COMPARE_IMP(OSTYPE_IS_OSX_INSTALLER, type1, type2) || OSTYPE_COMPARE_IMP(OSTYPE_IS_WINDOWS, type1, type2) || \
+          OSTYPE_COMPARE_IMP(OSTYPE_IS_LINUX, type1, type2) || OSTYPE_COMPARE_IMP(OSTYPE_IS_OTHER, type1, type2))
 
 #define OSFLAG_ISSET(flags, flag) ((flags & flag) == flag)
 #define OSFLAG_ISUNSET(flags, flag) ((flags & flag) != flag)
@@ -575,8 +576,6 @@ VOID          GetListOfThemes();
 VOID          GetListOfACPI();
 VOID          GetListOfConfigs();
 
-//EFI_STATUS    ExtractLegacyLoaderPaths(EFI_DEVICE_PATH **PathList, UINTN MaxPaths, EFI_DEVICE_PATH **HardcodedPathList);
-
 VOID          ScanVolumes();
 REFIT_VOLUME  *FindVolumeByName(IN CHAR16 *VolName);
 
@@ -599,6 +598,7 @@ CHAR16        *FileDevicePathToStr(IN EFI_DEVICE_PATH_PROTOCOL *DevPath);
 CHAR16        *FileDevicePathFileToStr(IN EFI_DEVICE_PATH_PROTOCOL *DevPath);
 
 EFI_STATUS    InitializeUnicodeCollationProtocol ();
+
 //
 // screen module
 //
@@ -646,7 +646,12 @@ VOID  FinishTextScreen(IN BOOLEAN WaitAlways);
 VOID  BeginExternalScreen(IN BOOLEAN UseGraphicsMode, IN CHAR16 *Title);
 VOID  FinishExternalScreen();
 VOID  TerminateScreen();
-VOID  SetNextScreenMode(INT32);
+VOID  SetNextScreenMode(INT32 Next);
+
+CHAR16
+*GetRevisionString (
+  BOOLEAN   CloverRev
+);
 
 EG_PIXEL ToPixel(UINTN rgba);
 
@@ -756,7 +761,7 @@ VOID      SetBar(INTN PosX, INTN UpPosY, INTN DownPosY, IN SCROLL_STATE *State);
 //#define ICON_FORMAT_BMP                 (3)
 
 VOID      AddMenuInfoLine(IN REFIT_MENU_SCREEN *Screen, IN CHAR16 *InfoLine);
-//VOID      AddMenuInfo(IN REFIT_MENU_SCREEN  *SubScreen, IN CHAR16 *Line);
+//VOID    AddMenuInfo(IN REFIT_MENU_SCREEN  *SubScreen, IN CHAR16 *Line);
 VOID      AddMenuEntry(IN REFIT_MENU_SCREEN *Screen, IN REFIT_MENU_ENTRY *Entry);
 //VOID    AddMenuCheck(REFIT_MENU_SCREEN *SubScreen, CONST CHAR8 *Text, UINTN Bit, INTN ItemNum);
 VOID      FreeMenu(IN REFIT_MENU_SCREEN *Screen);
@@ -885,6 +890,7 @@ UINT32 EncodeOptions(CHAR16 *Options);
 LOADER_ENTRY *DuplicateLoaderEntry(IN LOADER_ENTRY *Entry);
 
 #endif
-/*
 
- EOF */
+/*
+ EOF
+*/

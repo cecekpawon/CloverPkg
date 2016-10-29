@@ -114,7 +114,7 @@ STATIC ANDX86_PATH_DATA AndroidEntryData[] = {
   //{ L"\\EFI\\boot\\bootx64.efi", L"Grub", L"grub,linux" },
   { L"\\EFI\\remixos\\grubx64.efi", L"Remix",   L"remix,grub,linux",    { L"\\isolinux\\isolinux.bin", L"\\initrd.img", L"\\kernel" } },
   { L"\\EFI\\boot\\grubx64.efi",    L"Phoenix", L"phoenix,grub,linux",  { L"\\phoenix\\kernel", L"\\phoenix\\initrd.img", L"\\phoenix\\ramdisk.img" } },
-  { L"\\EFI\\boot\\bootx64.efi",    L"Chrome",  L"chrome,grub,linux",   { L"\\syslinux\\vmlinuz.A", L"\\syslinux\\vmlinuz.B", L"\\syslinux\\ldlinux.sys"} },
+  { L"\\EFI\\boot\\bootx64.efi",    L"Chrome",  L"chrome,grub,linux",   { L"\\syslinux\\vmlinuz.A", L"\\syslinux\\vmlinuz.B", L"\\syslinux\\ldlinux.sys" } },
 };
 
 STATIC CONST UINTN AndroidEntryDataCount = ARRAY_SIZE(AndroidEntryData);
@@ -180,6 +180,7 @@ GetOSTypeFromPath (
       if (StriCmp(Path, AndroidEntryData[Index].Path) == 0) {
         return OSTYPE_LIN;
       }
+
       ++Index;
     }
 
@@ -188,6 +189,7 @@ GetOSTypeFromPath (
       if (StriCmp(Path, LinuxEntryData[Index].Path) == 0) {
         return OSTYPE_LIN;
       }
+
       ++Index;
     }
   }
@@ -211,6 +213,7 @@ CHAR16
     if (StriCmp(Path, AndroidEntryData[Index].Path) == 0) {
       return AndroidEntryData[Index].Icon;
     }
+
     ++Index;
   }
 
@@ -219,6 +222,7 @@ CHAR16
     if (StriCmp(Path, LinuxEntryData[Index].Path) == 0) {
       return LinuxEntryData[Index].Icon;
     }
+
     ++Index;
   }
 
@@ -239,6 +243,7 @@ CHAR16
           }
         }
       }
+
       FreePool(Issue);
     }
   }
@@ -659,8 +664,6 @@ FINISH:
 }
 
 BOOLEAN IsKernelIs64BitOnly(IN LOADER_ENTRY *Entry) {
-  //return (Entry->OSVersion == NULL || AsciiOSVersionToUint64(Entry->OSVersion) >= AsciiOSVersionToUint64("10.8"));
-  //return (Entry->OSVersion && (AsciiOSVersionToUint64(Entry->OSVersion) >= AsciiOSVersionToUint64("10.8")));
   return OSX_GE(Entry->OSVersion, "10.8");
 }
 
@@ -720,7 +723,6 @@ AddDefaultMenu (
   UINT64              VolumeSize;
   EFI_GUID            *Guid = NULL;
   BOOLEAN             KernelIs64BitOnly;
-  //CHAR16              DiagsFileName[256];
   CHAR16              *FileName; //, *TempOptions
 
   if (Entry == NULL) {
@@ -884,7 +886,7 @@ ScanLoader() {
     // Use standard location for boot.efi, unless the file /.IAPhysicalMedia is present
     // That file indentifies a 2nd-stage Install Media, so when present, skip standard path to avoid entry duplication
     if (!FileExists(Volume->RootDir, L"\\.IAPhysicalMedia")) {
-      if(EFI_ERROR(GetRootUUID(Volume)) || isFirstRootUUID(Volume)) {
+      if (EFI_ERROR(GetRootUUID(Volume)) || isFirstRootUUID(Volume)) {
         AddLoaderEntry(MACOSX_LOADER_PATH, NULL, L"Mac OS X", Volume, NULL, OSTYPE_OSX, 0);
       }
     }
@@ -907,10 +909,9 @@ ScanLoader() {
     if (gSettings.AndroidScan) {
       // check for Android loaders
       for (Index = 0; Index < AndroidEntryDataCount; ++Index) {
-        UINTN   aIndex, aFound;
+        UINTN   aIndex, aFound = 0;
 
         if (FileExists(Volume->RootDir, AndroidEntryData[Index].Path)) {
-          aFound = 0;
           for (aIndex = 0; aIndex < ANDX86_FINDLEN; ++aIndex) {
             if (
               (AndroidEntryData[Index].Find[aIndex] == NULL) ||
@@ -1171,6 +1172,7 @@ AddCustomEntry (
       ReplaceExtension(ImageHoverPath, L"");
       ImageHoverPath = PoolPrint(L"%s_hover.%s", ImageHoverPath, egFindExtension(Custom->ImagePath));
       Image = egLoadImage(Volume->RootDir, Custom->ImagePath, TRUE);
+
       if (Image == NULL) {
         Image = egLoadImage(ThemeDir, Custom->ImagePath, TRUE);
         if (Image == NULL) {
@@ -1420,7 +1422,8 @@ AddCustomEntry (
             SplitInfoLine(SubScreen, PoolPrint(L"Path: %s", FileDevicePathToStr(Entry->DevicePath)));
 
             if (Guid) {
-              CHAR8 *GuidStr = AllocateZeroPool(50);
+              CHAR8   *GuidStr = AllocateZeroPool(50);
+
               AsciiSPrint(GuidStr, 50, "%g", Guid);
               AddMenuInfoLine(SubScreen, PoolPrint(L"UUID: %a", GuidStr));
               FreePool(GuidStr);

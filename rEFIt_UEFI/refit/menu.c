@@ -2762,6 +2762,23 @@ CountItems (
   }
 }
 
+CHAR16
+*GetRevisionString (
+  BOOLEAN   CloverRev
+) {
+  BOOLEAN   CloverRevDef = FALSE;
+
+#ifdef FIRMWARE_REVISION
+  CloverRevDef = TRUE;
+#endif
+
+  if (CloverRev && CloverRevDef) {
+    return PoolPrint(FIRMWARE_REVISION);
+  } else {
+    return PoolPrint(L"%d.%d", gST->FirmwareRevision >> 16, gST->FirmwareRevision & ((1 << 16) - 1));
+  }
+}
+
 VOID
 DrawTextCorner (
   UINTN   TextC,
@@ -2780,12 +2797,7 @@ DrawTextCorner (
 
   switch (TextC) {
     case TEXT_CORNER_REVISION:
-#ifdef FIRMWARE_REVISION
-      Text = PoolPrint(FIRMWARE_REVISION);
-#else
-      //Text = EfiStrDuplicate(gST->FirmwareRevision);
-      Text = PoolPrint(L"%d.%d", gST->FirmwareRevision >> 16, gST->FirmwareRevision & ((1 << 16) - 1));
-#endif
+      Text = GetRevisionString(TRUE);
       break;
 
     case TEXT_CORNER_HELP:
@@ -3373,7 +3385,7 @@ AboutRefit () {
   }
 
   if (AboutMenu.EntryCount == 0) {
-    AddMenuInfo(&AboutMenu, PoolPrint(L"Clover Version 2.3k rev %s", FIRMWARE_REVISION));
+    AddMenuInfo(&AboutMenu, PoolPrint(L"Clover Version 2.3k rev %s", GetRevisionString(TRUE)));
 #ifdef FIRMWARE_BUILDDATE
     AddMenuInfo(&AboutMenu, PoolPrint(L" Build: %a", FIRMWARE_BUILDDATE));
 #else
@@ -3399,11 +3411,12 @@ AboutRefit () {
                               gST->Hdr.Revision >> 16, gST->Hdr.Revision & ((1 << 16) - 1))
                             );
     AddMenuInfo(&AboutMenu, L" Platform: x86_64 (64 bit)");
-    AddMenuInfo(&AboutMenu, PoolPrint(L" Firmware: %s rev %d.%d",
-                              gST->FirmwareVendor,
-                              gST->FirmwareRevision >> 16,
-                              gST->FirmwareRevision & ((1 << 16) - 1)
-                            ));
+    //AddMenuInfo(&AboutMenu, PoolPrint(L" Firmware: %s rev %d.%d",
+    //                          gST->FirmwareVendor,
+    //                          gST->FirmwareRevision >> 16,
+    //                          gST->FirmwareRevision & ((1 << 16) - 1)
+    //                        ));
+    AddMenuInfo(&AboutMenu, PoolPrint(L" Firmware: %s rev %s", gST->FirmwareVendor, GetRevisionString(FALSE)));
     AddMenuInfo(&AboutMenu, PoolPrint(L" Screen Output: %s", egScreenDescription()));
     AboutMenu.AnimeRun = GetAnime(&AboutMenu);
     //AddMenuEntry(&AboutMenu, &MenuEntryReturn);
