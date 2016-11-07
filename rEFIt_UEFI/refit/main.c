@@ -158,6 +158,7 @@ StartEFILoadedImage (
   }
 
   ReturnStatus = Status = EFI_NOT_FOUND;  // in case no image handle was specified
+
   if (ChildImageHandle == NULL) {
     if (ErrorInStep != NULL) {
       *ErrorInStep = 1;
@@ -491,8 +492,8 @@ ReadSIPCfg () {
 EFI_STATUS
 EFIAPI
 NullConOutOutputString (
-  IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *This,
-  IN CHAR16 *String
+  IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL  *This,
+  IN CHAR16                           *String
 ) {
   return EFI_SUCCESS;
 }

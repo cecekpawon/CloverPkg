@@ -120,9 +120,9 @@ REFIT_MENU_SCREEN   MainMenu          = { SCREEN_MAIN, L"Main Menu", NULL, 0, NU
                                           NULL, FALSE, FALSE, 0, 0, 0, 0, {0, 0, 0, 0}, NULL },
                     AboutMenu         = { SCREEN_ABOUT, L"About", NULL, 0, NULL, 0, NULL, 0, NULL,
                                           NULL, FALSE, FALSE, 0, 0, 0, 0, {0, 0, 0, 0}, NULL },
-                    HelpMenu          = { SCREEN_HELP,     L"Help", NULL, 0, NULL, 0, NULL, 0, NULL,
+                    HelpMenu          = { SCREEN_HELP, L"Help", NULL, 0, NULL, 0, NULL, 0, NULL,
                                           NULL, FALSE, FALSE, 0, 0, 0, 0, {0, 0, 0, 0}, NULL },
-                    OptionMenu        = { SCREEN_OPTIONS,  L"Options", NULL, 0, NULL, 0, NULL, 0, NULL,
+                    OptionMenu        = { SCREEN_OPTIONS, L"Options", NULL, 0, NULL, 0, NULL, 0, NULL,
                                           NULL, FALSE, FALSE, 0, 0, 0, 0, {0, 0, 0, 0}, NULL };
 
 #define SUBMENU_COUNT  5 // MainMenu with SUB total
@@ -1900,7 +1900,7 @@ TextMenuStyle (
           break;
 
         case TAG_CHECKBIT:
-          StrCat(ResultString, (((REFIT_INPUT_DIALOG*)EntryL)->Item->IValue & EntryL->Row) ? L":[+]":L":[ ]");
+          ResultString = PoolPrint(L"%s %s", (((REFIT_INPUT_DIALOG*)EntryL)->Item->IValue & EntryL->Row) ? L"[+]" : L"[ ]", EntryL->Title);
           break;
 
         default:
@@ -1942,7 +1942,7 @@ TextMenuStyle (
           break;
 
         case TAG_CHECKBIT:
-          StrCat(ResultString, (((REFIT_INPUT_DIALOG*)EntryC)->Item->IValue & EntryC->Row) ? L":[+]":L":[ ]");
+          ResultString = PoolPrint(L"%s %s", (((REFIT_INPUT_DIALOG*)EntryC)->Item->IValue & EntryC->Row) ? L"[+]" : L"[ ]", EntryC->Title);
           break;
 
         default:
@@ -2251,8 +2251,8 @@ GraphicsMenuStyle (
       }
 
       if (Screen->TitleImage) {
-        INTN    FilmXPos = (INTN)(EntriesPosX - (Screen->TitleImage->Width + TITLEICON_SPACING));
-        INTN    FilmYPos = (INTN)EntriesPosY;
+        INTN    FilmXPos = (INTN)(EntriesPosX - (Screen->TitleImage->Width + TITLEICON_SPACING)),
+                FilmYPos = (INTN)EntriesPosY;
 
         BltImageAlpha(Screen->TitleImage, FilmXPos, FilmYPos, &MenuBackgroundPixel, 16);
 
@@ -2689,7 +2689,7 @@ DrawMainMenuLabel (
   IN REFIT_MENU_SCREEN    *Screen,
   IN SCROLL_STATE         *State
 ) {
-  INTN TextWidth;
+  INTN    TextWidth;
 
   egMeasureText(Text, &TextWidth, NULL);
 
@@ -3489,7 +3489,8 @@ RunMenu (
   return RunGenericMenu(Screen, Style, &index, ChosenEntry);
 }
 
-UINTN RunMainMenu (
+UINTN
+RunMainMenu (
   IN  REFIT_MENU_SCREEN   *Screen,
   IN  INTN                DefaultSelection,
   OUT REFIT_MENU_ENTRY    **ChosenEntry
