@@ -374,23 +374,26 @@ FilterKextPatches (
 
     DBG("Filtering KextPatches:\n");
     for (; i < Entry->KernelAndKextPatches->NrKexts; ++i) {
-      DBG(" - [%02d]: %a | %a | [OS: %a | MatchOS: %a | MatchBuild: %a]",
+      BOOLEAN   NeedBuildVersion = (
+                  (Entry->BuildVersion != NULL) &&
+                  (Entry->KernelAndKextPatches->KextPatches[i].MatchBuild != NULL)
+                );
+
+      DBG(" - [%02d]: %a | %a | [OS: %a %s| MatchOS: %a | MatchBuild: %a]",
         i,
         Entry->KernelAndKextPatches->KextPatches[i].Label,
         Entry->KernelAndKextPatches->KextPatches[i].IsPlistPatch ? "PlistPatch" : "BinPatch",
         Entry->OSVersion,
+        NeedBuildVersion ? PoolPrint(L"(%a) ", Entry->BuildVersion) : L"",
         Entry->KernelAndKextPatches->KextPatches[i].MatchOS
           ? Entry->KernelAndKextPatches->KextPatches[i].MatchOS
           : "All",
-        (Entry->KernelAndKextPatches->KextPatches[i].MatchBuild != NULL)
+        NeedBuildVersion
           ? Entry->KernelAndKextPatches->KextPatches[i].MatchBuild
           : "All"
       );
 
-      if (
-        (Entry->BuildVersion != NULL) &&
-        (Entry->KernelAndKextPatches->KextPatches[i].MatchBuild != NULL)
-      ) {
+      if (NeedBuildVersion) {
         Entry->KernelAndKextPatches->KextPatches[i].Disabled = !IsPatchEnabled (
           Entry->KernelAndKextPatches->KextPatches[i].MatchBuild, Entry->BuildVersion);
 
@@ -423,22 +426,25 @@ FilterKernelPatches (
     DBG("Filtering KernelPatches:\n");
 
     for (; i < Entry->KernelAndKextPatches->NrKernels; ++i) {
-      DBG(" - [%02d]: %a | [OS: %a | MatchOS: %a | MatchBuild: %a]",
+      BOOLEAN   NeedBuildVersion = (
+                  (Entry->BuildVersion != NULL) &&
+                  (Entry->KernelAndKextPatches->KernelPatches[i].MatchBuild != NULL)
+                );
+
+      DBG(" - [%02d]: %a | [OS: %a %s| MatchOS: %a | MatchBuild: %a]",
         i,
         Entry->KernelAndKextPatches->KernelPatches[i].Label,
         Entry->OSVersion,
+        NeedBuildVersion ? PoolPrint(L"(%a) ", Entry->BuildVersion) : L"",
         Entry->KernelAndKextPatches->KernelPatches[i].MatchOS
           ? Entry->KernelAndKextPatches->KernelPatches[i].MatchOS
           : "All",
-        (Entry->KernelAndKextPatches->KernelPatches[i].MatchBuild != NULL)
+        NeedBuildVersion
           ? Entry->KernelAndKextPatches->KernelPatches[i].MatchBuild
           : "All"
       );
 
-      if (
-        (Entry->BuildVersion != NULL) &&
-        (Entry->KernelAndKextPatches->KernelPatches[i].MatchBuild != NULL)
-      ) {
+      if (NeedBuildVersion) {
         Entry->KernelAndKextPatches->KernelPatches[i].Disabled = !IsPatchEnabled (
           Entry->KernelAndKextPatches->KernelPatches[i].MatchBuild, Entry->BuildVersion);
 

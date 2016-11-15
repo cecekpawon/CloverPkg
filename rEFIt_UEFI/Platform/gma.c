@@ -71,7 +71,7 @@ UINT8 OsInfo[] = {
 };
 
 static struct gma_gpu_t KnownGPUS[] = {
-  { 0x0000, "INTEL Graphics"}
+  { 0x0000, "INTEL Graphics" }
 };
 
 CHAR8 *get_gma_model(UINT16 id) {
@@ -97,8 +97,8 @@ setup_gma_devprop (
   BOOLEAN         Injected = FALSE, SetSnb = FALSE;
 
   devicepath = get_pci_dev_path(gma_dev);
-
   model = get_gma_model(gma_dev->device_id);
+
   for (j = 0; j < (INTN)NGFX; j++) {
     if (
       (gGraphics[j].Vendor == Intel) &&

@@ -387,7 +387,7 @@ AddMenuLabel (
   REFIT_MENU_SCREEN   *SubScreen,
   CHAR16              *Label
 ) {
-  REFIT_INPUT_DIALOG *InputBootArgs = AllocateZeroPool(sizeof(REFIT_INPUT_DIALOG));
+  REFIT_INPUT_DIALOG    *InputBootArgs = AllocateZeroPool(sizeof(REFIT_INPUT_DIALOG));
 
   InputBootArgs->Entry.Title = PoolPrint(L"%s", Label);
   InputBootArgs->Entry.Tag = TAG_LABEL;
@@ -857,8 +857,8 @@ AddOptionEntries (
     AddMenuCheck(SubScreen, OPT_MENU_FLAGBIT[i].Title, OPT_MENU_FLAGBIT[i].Bit, mFlagsBits);
 
     gSettings.FlagsBits = (UINT32)(OSFLAG_ISSET(SubEntry->Flags, OPT_MENU_FLAGBIT[i].Bit)
-          ? OSFLAG_SET(gSettings.FlagsBits, OPT_MENU_FLAGBIT[i].Bit)
-          : OSFLAG_UNSET(gSettings.FlagsBits, OPT_MENU_FLAGBIT[i].Bit));
+      ? OSFLAG_SET(gSettings.FlagsBits, OPT_MENU_FLAGBIT[i].Bit)
+      : OSFLAG_UNSET(gSettings.FlagsBits, OPT_MENU_FLAGBIT[i].Bit));
 
     FlagsExists = TRUE;
   }

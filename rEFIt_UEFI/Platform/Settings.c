@@ -442,7 +442,6 @@ IsOSValid (
         ret = TRUE;
       }
     }
-
   }
 
   deallocMatchOSes(osToc);
