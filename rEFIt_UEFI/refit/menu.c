@@ -2190,15 +2190,12 @@ GraphicsMenuStyle (
 
       EntriesPosY = ((UGAHeight - LAYOUT_TOTAL_HEIGHT) >> 1) + GlobalConfig.LayoutBannerOffset + (TextHeight << 1);
 
-      //VisibleHeight = (UGAHeight - EntriesPosY) / TextHeight - Screen->InfoLineCount - 1;
-      //VisibleHeight = ((UGAHeight - EntriesPosY) / TextHeight) - Screen->InfoLineCount - 2 - GlobalConfig.PruneScrollRows;
       VisibleHeight = ((UGAHeight - EntriesPosY) / TextHeight) - Screen->InfoLineCount;
 
       if (VisibleHeight > 2) {
         VisibleHeight -= 2;
       }
 
-      //if ((Screen->InfoLineCount > 2) && (VisibleHeight - GlobalConfig.PruneScrollRows)) {
       if ((VisibleHeight - GlobalConfig.PruneScrollRows) > 2) {
         VisibleHeight -= GlobalConfig.PruneScrollRows;
       }
@@ -2294,7 +2291,6 @@ GraphicsMenuStyle (
       // blackosx swapped this around so drawing of selection comes before drawing scrollbar.
 
       for (i = State->FirstVisible, j = 0; i <= State->LastVisible; i++, j++) {
-        //ResultString = AllocateZeroPool(256);
         REFIT_MENU_ENTRY *Entry = Screen->Entries[i];
 
         NeedMarginLeft = (
@@ -2304,7 +2300,7 @@ GraphicsMenuStyle (
 
         ResultString = PoolPrint(L"%a%s", NeedMarginLeft ? "   " : "", Entry->Title);
 
-        TitleLen = StrLen(ResultString);
+        TitleLen = StrLen(ResultString) + (NeedMarginLeft ? 0 : 2);
 
         Entry->Place.XPos = EntriesPosX;
         Entry->Place.YPos = EntriesPosY + j * TextHeight;
@@ -2401,7 +2397,7 @@ GraphicsMenuStyle (
 
       ResultString = PoolPrint(L"%a%s", NeedMarginLeft ? "   " : "", EntryL->Title);
 
-      TitleLen = StrLen(ResultString);
+      TitleLen = StrLen(ResultString) + (NeedMarginLeft ? 0 : 2);
 
       // blackosx swapped this around so drawing of selection comes before drawing scrollbar.
 
@@ -2489,7 +2485,7 @@ GraphicsMenuStyle (
 
       ResultString = PoolPrint(L"%a%s", NeedMarginLeft ? "   " : "", EntryC->Title);
 
-      TitleLen = StrLen(ResultString);
+      TitleLen = StrLen(ResultString) + (NeedMarginLeft ? 0 : 2);
 
       switch(EntryC->Tag) {
         case TAG_INPUT:
