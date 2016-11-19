@@ -1502,10 +1502,10 @@ setup_gma_devprop (
   pci_dt_t *gma_dev
 );
 
-CHAR8
-*get_gma_model (
-  IN UINT16 DeviceID
-);
+//CHAR8
+//*get_gma_model (
+//  IN UINT16 DeviceID
+//);
 
 BOOLEAN
 setup_nvidia_devprop (

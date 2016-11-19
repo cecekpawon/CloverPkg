@@ -638,7 +638,6 @@ EncodeOptions (
 
   for (i = 0; i < OptMenuOptBitNum; i++) {
     if (BootArgsExists(Options, OPT_MENU_OPTBIT[i].Args)) {
-      //OptionsBits |= OPT_MENU_OPTBIT[i].Bit;
       OptionsBits = (UINT32)OSFLAG_SET(OptionsBits, OPT_MENU_OPTBIT[i].Bit);
     }
   }

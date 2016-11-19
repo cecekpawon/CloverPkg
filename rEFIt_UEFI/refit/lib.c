@@ -1794,7 +1794,7 @@ BootArgsExists (
       i++;
     }
 
-    if (StriStr(TmpOption, LoadOption) != NULL) {
+    if (StriCmp(TmpOption, LoadOption) == 0) {
       Found = TRUE;
       break;
     }

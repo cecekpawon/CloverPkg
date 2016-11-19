@@ -671,15 +671,17 @@ StartLoader (
       OSFLAG_ISSET(gSettings.OptionsBits, OPT_SAFE) ||
       ((Entry->KernelAndKextPatches != NULL) && Entry->KernelAndKextPatches->KPDebug)
     ) {
-      CHAR16    *TempOptions = AddLoadOption(Entry->LoadOptions, L"-v");
-
-      FreePool(Entry->LoadOptions);
-      Entry->LoadOptions = TempOptions;
       gSettings.OptionsBits = OSFLAG_SET(gSettings.OptionsBits, OPT_VERBOSE);
     }
 
     if (OSFLAG_ISSET(gSettings.OptionsBits, OPT_VERBOSE)) {
+      CHAR16    *TempOptions = AddLoadOption(Entry->LoadOptions, L"-v");
+
+      FreePool(Entry->LoadOptions);
+      Entry->LoadOptions = TempOptions;
       Entry->Flags = OSFLAG_UNSET(Entry->Flags, OSFLAG_USEGRAPHICS);
+    } else {
+      Entry->Flags = OSFLAG_SET(Entry->Flags, OSFLAG_USEGRAPHICS);
     }
 
     DbgHeader("RestSetupOSX");
@@ -1266,7 +1268,6 @@ RefitMain (
   IN EFI_HANDLE           ImageHandle,
   IN EFI_SYSTEM_TABLE     *SystemTable
 ) {
-  //LOADER_ENTRY  *LoaderEntry;
   EFI_TIME            Now;
   EFI_STATUS          Status;
   INTN                DefaultIndex;

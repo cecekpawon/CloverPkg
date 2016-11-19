@@ -542,6 +542,48 @@ mem_detect (
   return vram_size;
 }
 
+VOID
+devprop_add_nvidia_template (
+  DevPropDevice   *device,
+  INTN            n_ports
+) {
+  INTN    pnum;
+  CHAR8   nkey[24], nval[24];
+
+  //DBG("devprop_add_nvidia_template\n");
+
+  if (!device) {
+    return;
+  }
+
+  for (pnum = 0; pnum < n_ports; pnum++) {
+    AsciiSPrint(nkey, 24, "@%d,name", pnum);
+    AsciiSPrint(nval, 24, "NVDA,Display-%c", (65+pnum));
+    devprop_add_value(device, nkey, (UINT8*)nval, 14);
+
+    AsciiSPrint(nkey, 24, "@%d,compatible", pnum);
+    devprop_add_value(device, nkey, (UINT8*)"NVDA,NVMac", 10);
+
+    AsciiSPrint(nkey, 24, "@%d,device_type", pnum);
+    devprop_add_value(device, nkey, (UINT8*)"display", 7);
+
+    //if (!gSettings.NoDefaultProperties) {
+    //  AsciiSPrint(nkey, 24, "@%d,display-cfg", pnum);
+    //  if (pnum == 0) {
+    //    devprop_add_value(device, nkey, (gSettings.Dcfg[0] != 0) ? &gSettings.Dcfg[0] : default_dcfg_0, DCFG0_LEN);
+    //  } else {
+    //    devprop_add_value(device, nkey, (gSettings.Dcfg[1] != 0) ? &gSettings.Dcfg[4] : default_dcfg_1, DCFG1_LEN);
+    //  }
+    //}
+  }
+
+  if (devices_number == 1) {
+    devprop_add_value(device, "device_type", (UINT8*)"NVDA,Parent", 11);
+  } else {
+    devprop_add_value(device, "device_type", (UINT8*)"NVDA,Child", 10);
+  }
+}
+
 BOOLEAN
 setup_nvidia_devprop (
   pci_dt_t    *nvda_dev
@@ -551,7 +593,7 @@ setup_nvidia_devprop (
   EFI_STATUS                Status = EFI_NOT_FOUND;
   DevPropDevice             *device = NULL;
   BOOLEAN                   load_vbios = gSettings.LoadVBios, Injected = FALSE/*, RomAssigned = FALSE*/;
-  UINT8                     *rom = NULL, *buffer = NULL/*, connector_type_1[]= {0x00, 0x08, 0x00, 0x00}*/;
+  UINT8                     *rom = NULL, *buffer = NULL, connector_type_1[]= {0x00, 0x08, 0x00, 0x00};
   UINT16                    nvCardType = 0;
   UINT32                    bar[7], device_id, subsys_id,  boot_display = 1;
   UINT64                    videoRam = 0;
@@ -592,7 +634,7 @@ setup_nvidia_devprop (
   } else {
     // Amount of VRAM in kilobytes (?) no, it is already in bytes!!!
     if (gSettings.VRAM != 0) {
-      videoRam = gSettings.VRAM;
+      videoRam = gSettings.VRAM/* << 20*/;
     } else {
       videoRam = mem_detect(nvCardType, nvda_dev);
     }
@@ -672,7 +714,7 @@ setup_nvidia_devprop (
       while (i < bufferLen) {
         //DBG("%x%x\n", buffer[i], buffer[i+1]);
         if ((buffer[i] == 0x55) && (buffer[i+1] == 0xaa)) {
-          DBG(" header found at: %d\n", i);
+          DBG(" - header found at: %d\n", i);
           bufferLen -= i;
           rom = AllocateZeroPool(bufferLen);
 
@@ -741,7 +783,6 @@ setup_nvidia_devprop (
               }
 
               *s1 = 0;
-              DBG("version %a\n", version_str);
               break;
             }
           }
@@ -756,8 +797,9 @@ setup_nvidia_devprop (
     AsciiSPrint(version_str, sizeof(version_str), "1.0");
   }
 
+  DBG(" - Version: %a\n", version_str);
+
   if (!model) {
-    //model = S_NVIDIAMODEL;
     model = (CHAR8*)AllocateCopyPool(AsciiStrSize(S_NVIDIAMODEL), S_NVIDIAMODEL);
   }
 
@@ -784,7 +826,7 @@ setup_nvidia_devprop (
   }
 
   //There are custom properties, injected if set by user
-  if (gSettings.NvidiaSingle && (devices_number >=1)) {
+  if (gSettings.NvidiaSingle && (devices_number >= 1)) {
     DBG(" - NvidiaSingle: skip injecting other then first card\n");
     goto done;
   }
@@ -814,7 +856,7 @@ setup_nvidia_devprop (
   if (gSettings.FakeNVidia) {
     UINT32    FakeID = gSettings.FakeNVidia >> 16;
 
-    DBG("NVidia: FakeID %x:%x\n",gSettings.FakeNVidia & 0xFFFF, FakeID);
+    DBG(" - FakeID: %x:%x\n",gSettings.FakeNVidia & 0xFFFF, FakeID);
     devprop_add_value(device, "device-id", (UINT8*)&FakeID, 4);
     FakeID = gSettings.FakeNVidia & 0xFFFF;
     devprop_add_value(device, "vendor-id", (UINT8*)&FakeID, 4);
@@ -838,18 +880,10 @@ setup_nvidia_devprop (
   devprop_add_value(device, "model", (UINT8*)model, (UINT32)AsciiStrLen(model));
   devprop_add_value(device, "rom-revision", (UINT8*)version_str, (UINT32)AsciiStrLen(version_str));
 
-  //there are default or calculated properties, can be skipped
-  if (gSettings.NoDefaultProperties) {
-    DBG(" - no default properties injected\n");
-    goto done;
-  }
-
-  #if 0
-
   if (gSettings.NVCAP[0] != 0) {
     devprop_add_value(device, "NVCAP", &gSettings.NVCAP[0], NVCAP_LEN);
     DBG (
-      " - set NVCAP: %02x%02x%02x%02x-%02x%02x%02x%02x-%02x%02x%02x%02x-%02x%02x%02x%02x-%02x%02x%02x%02x\n",
+      " - NVCAP: %02x%02x%02x%02x-%02x%02x%02x%02x-%02x%02x%02x%02x-%02x%02x%02x%02x-%02x%02x%02x%02x\n",
       gSettings.NVCAP[0], gSettings.NVCAP[1], gSettings.NVCAP[2], gSettings.NVCAP[3],
       gSettings.NVCAP[4], gSettings.NVCAP[5], gSettings.NVCAP[6], gSettings.NVCAP[7],
       gSettings.NVCAP[8], gSettings.NVCAP[9], gSettings.NVCAP[10], gSettings.NVCAP[11],
@@ -858,35 +892,32 @@ setup_nvidia_devprop (
     );
   }
 
-  if (gSettings.BootDisplay < 0) {
-    // if not set this is default property
-    devprop_add_value(device, "@0,AAPL,boot-display", (UINT8*)&boot_display, 4);
-  }/* else {
-    DBG("Nvidia: BootDisplay: %x\n", gSettings.BootDisplay);
-    }*/
-
   if (gSettings.UseIntelHDMI) {
     devprop_add_value(device, "hda-gfx", (UINT8*)"onboard-2", 10);
-  } else {
-    devprop_add_value(device, "hda-gfx", (UINT8*)"onboard-1", 10);
   }
 
-  /*  if (gSettings.VRAM != 0) {
-   devprop_add_value(device, "VRAM,totalsize", (UINT8*)&gSettings.VRAM, 8);
-   } else */
   if (videoRam != 0) {
     devprop_add_value(device, "VRAM,totalsize", (UINT8*)&videoRam, 8);
   } else {
-    DBG("Warning! VideoRAM is not detected and not set\n");
+    DBG("- [!] Warning: VideoRAM is not detected and not set\n");
   }
 
   devprop_add_nvidia_template(device, n_ports);
 
-  //add HDMI Audio back to nvidia
-  //http://forge.voodooprojects.org/p/chameleon/issues/67/
-  //AsciiSPrint(nkey, 24, "@%d,connector-type", pnum);
-  //devprop_add_value(device, nkey, connector_type_1, 4);
-  //end Nvidia HDMI Audio
+  //there are default or calculated properties, can be skipped
+  if (gSettings.NoDefaultProperties) {
+    DBG(" - no default properties\n");
+    goto done;
+  }
+
+  if (!gSettings.UseIntelHDMI) {
+    devprop_add_value(device, "hda-gfx", (UINT8*)"onboard-1", 10);
+  }
+
+  if (gSettings.BootDisplay < 0) {
+    // if not set this is default property
+    devprop_add_value(device, "@0,AAPL,boot-display", (UINT8*)&boot_display, 4);
+  }
 
   if (nvPatch == PATCH_ROM_SUCCESS_HAS_LVDS) {
     UINT8 built_in = 0x01;
@@ -897,18 +928,17 @@ setup_nvidia_devprop (
     devprop_add_value(device, "@0,connector-type", connector_type_1, 4);
   }
 
-  devprop_add_value(device, "NVPM", default_NVPM, NVPM_LEN);
+  //devprop_add_value(device, "NVPM", default_NVPM, NVPM_LEN);
 
   if (gSettings.NVCAP[0] == 0) {
     devprop_add_value(device, "NVCAP", default_NVCAP, NVCAP_LEN);
-    DBG("default NVCAP: %02x%02x%02x%02x-%02x%02x%02x%02x-%02x%02x%02x%02x-%02x%02x%02x%02x-%02x%02x%02x%02x\n",
+    DBG(" - NVCAP: %02x%02x%02x%02x-%02x%02x%02x%02x-%02x%02x%02x%02x-%02x%02x%02x%02x-%02x%02x%02x%02x\n",
         default_NVCAP[0], default_NVCAP[1], default_NVCAP[2], default_NVCAP[3],
         default_NVCAP[4], default_NVCAP[5], default_NVCAP[6], default_NVCAP[7],
         default_NVCAP[8], default_NVCAP[9], default_NVCAP[10], default_NVCAP[11],
         default_NVCAP[12], default_NVCAP[13], default_NVCAP[14], default_NVCAP[15],
         default_NVCAP[16], default_NVCAP[17], default_NVCAP[18], default_NVCAP[19]);
   }
-  #endif
 
 done:
 

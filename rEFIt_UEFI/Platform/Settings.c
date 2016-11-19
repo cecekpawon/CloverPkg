@@ -996,13 +996,11 @@ FillinKextPatches (
         // check if this is Info.plist patch or kext binary patch
         Patches->KextPatches[Patches->NrKexts].IsPlistPatch = IsPropertyTrue (GetProperty (Prop2, "InfoPlistPatch"));
 
-        if (Patches->KextPatches[Patches->NrKexts].IsPlistPatch) {
-          DBG (" | PlistPatch");
-        } else {
-          DBG (" | BinPatch");
-        }
+        DBG (" | %a | len: %d\n",
+          Patches->KextPatches[Patches->NrKexts].IsPlistPatch ? "PlistPatch" : "BinPatch",
+          Patches->KextPatches[Patches->NrKexts].DataLen
+        );
 
-        DBG (" | data len: %d\n", Patches->KextPatches[Patches->NrKexts].DataLen);
         Patches->NrKexts++; //must be out of DBG because it may be empty compiled
       }
     }
@@ -1016,11 +1014,13 @@ FillinKextPatches (
   Prop = GetProperty (DictPointer, "KernelToPatch");
   if (Prop != NULL) {
     INTN    i, Count = GetTagCount (Prop);
+
     //delete old and create new
     if (Patches->KernelPatches) {
       Patches->NrKernels = 0;
       FreePool (Patches->KernelPatches);
     }
+
     if (Count > 0) {
       TagPtr          Prop2 = NULL, Dict = NULL;
       KERNEL_PATCH    *newPatches = AllocateZeroPool (Count * sizeof(KERNEL_PATCH));
@@ -1094,7 +1094,7 @@ FillinKextPatches (
           DBG(" | MatchBuild: %a", Patches->KernelPatches[Patches->NrKernels].MatchBuild);
         }
 
-        DBG (" | data len: %d\n", Patches->KernelPatches[Patches->NrKernels].DataLen);
+        DBG (" | len: %d\n", Patches->KernelPatches[Patches->NrKernels].DataLen);
         Patches->NrKernels++;
       }
     }
@@ -3040,7 +3040,6 @@ GetUserSettings (
     //
     DictPointer = GetProperty (Dict, "Boot");
     if (DictPointer != NULL) {
-
       Prop = GetProperty (DictPointer, "Arguments");
       //if (Prop != NULL && (Prop->type == kTagTypeString) && Prop->string != NULL) {
       if (
@@ -4447,7 +4446,8 @@ GetDevices () {
               //AsciiSPrint (gfx->Config, 64, "%a", card_configs[info->cfg_name].name);
               //gfx->Ports                  = card_configs[info->cfg_name].ports;
               get_ati_model(&gfx[0], Pci.Hdr.DeviceId);
-              DBG (" (ATI/AMD) %a\n", gfx->Model);
+              //DBG (" (ATI/AMD) %a\n", gfx->Model);
+              DBG (" (ATI/AMD)\n");
 
               SlotDevice                  = &SlotDevices[0];
               SlotDevice->SegmentGroupNum = (UINT16)Segment;
@@ -4461,19 +4461,20 @@ GetDevices () {
 
             case 0x8086:
               gfx->Vendor                 = Intel;
-              AsciiSPrint (gfx->Model, 64, "%a", get_gma_model (Pci.Hdr.DeviceId));
-              DBG (" (Intel) %a\n", gfx->Model);
-              gfx->Ports = 1;
+              gfx->Ports                  = 1;
+              //AsciiSPrint (gfx->Model, 64, "%a", get_gma_model (Pci.Hdr.DeviceId));
+              //DBG (" (Intel) %a\n", gfx->Model);
+              DBG (" (Intel)\n");
               /*
-               SlotDevice                  = &SlotDevices[2];
-               SlotDevice->SegmentGroupNum = (UINT16)Segment;
-               SlotDevice->BusNum          = (UINT8)Bus;
-               SlotDevice->DevFuncNum      = (UINT8)((Device << 4) | (Function & 0x0F));
-               SlotDevice->Valid           = TRUE;
-               AsciiSPrint (SlotDevice->SlotName, 31, "PCI Slot 0");
-               SlotDevice->SlotID          = 0;
-               SlotDevice->SlotType        = SlotTypePciExpressX16;
-               */
+                SlotDevice                  = &SlotDevices[2];
+                SlotDevice->SegmentGroupNum = (UINT16)Segment;
+                SlotDevice->BusNum          = (UINT8)Bus;
+                SlotDevice->DevFuncNum      = (UINT8)((Device << 4) | (Function & 0x0F));
+                SlotDevice->Valid           = TRUE;
+                AsciiSPrint (SlotDevice->SlotName, 31, "PCI Slot 0");
+                SlotDevice->SlotID          = 0;
+                SlotDevice->SlotType        = SlotTypePciExpressX16;
+              */
               break;
 
             case 0x10de:
@@ -4495,7 +4496,8 @@ GetDevices () {
               //  )
               //);
 
-              DBG (" (Nvidia) %a\n", gfx->Model);
+              //DBG (" (Nvidia) %a\n", gfx->Model);
+              DBG (" (Nvidia)\n");
               gfx->Ports                  = 0;
 
               SlotDevice                  = &SlotDevices[1];
