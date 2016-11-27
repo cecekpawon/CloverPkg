@@ -19,12 +19,7 @@
 #define DBG(...) DebugLog(DEBUG_GMA, __VA_ARGS__)
 #endif
 
-//extern CHAR8*   gDeviceProperties;
-
-struct gma_gpu_t {
-  UINT32 device;
-  CHAR8 *name;
-};
+#define S_INTELMODEL "INTEL Graphics"
 
 //Slice - corrected all values, still not sure
 UINT8 INTELDEF_vals[28][4] = {
@@ -70,21 +65,6 @@ UINT8 OsInfo[] = {
   0xFF, 0xFF
 };
 
-static struct gma_gpu_t KnownGPUS[] = {
-  { 0x0000, "INTEL Graphics" }
-};
-
-CHAR8 *get_gma_model(UINT16 id) {
-  INTN   i, aKnownGPUS = ARRAY_SIZE(KnownGPUS);
-
-  for (i = 0; i < aKnownGPUS; i++) {
-    if (KnownGPUS[i].device == id)
-      return KnownGPUS[i].name;
-  }
-
-  return KnownGPUS[0].name;
-}
-
 BOOLEAN
 setup_gma_devprop (
   pci_dt_t    *gma_dev
@@ -93,23 +73,12 @@ setup_gma_devprop (
   DevPropDevice   *device;
   UINT32          DualLink = 0; //local variable must be inited
   UINT8           BuiltIn =   0x00;
-  INTN            j, i;
-  BOOLEAN         Injected = FALSE, SetSnb = FALSE;
+  INTN            i;
+  BOOLEAN         Injected = FALSE, SetIgPlatform = FALSE;
 
   devicepath = get_pci_dev_path(gma_dev);
-  model = get_gma_model(gma_dev->device_id);
 
-  for (j = 0; j < (INTN)NGFX; j++) {
-    if (
-      (gGraphics[j].Vendor == Intel) &&
-      (gGraphics[j].DeviceID == gma_dev->device_id)
-    ) {
-      model = gGraphics[j].Model;
-      break;
-    }
-  }
-
-  //DBG("Finally model=%a\n", model);
+  model = (CHAR8*)AllocateCopyPool(AsciiStrSize(S_INTELMODEL), S_INTELMODEL);
 
   DBG(" - %a [%04x:%04x] | %a\n",
       model, gma_dev->vendor_id, gma_dev->device_id, devicepath);
@@ -118,12 +87,10 @@ setup_gma_devprop (
     string = devprop_create_string();
   }
 
-  //device = devprop_add_device(string, devicepath); //AllocatePool inside
   device = devprop_add_device_pci(string, gma_dev);
 
   if (!device) {
     DBG(" - Failed initializing dev-prop string dev-entry.\n");
-    //pause();
     return FALSE;
   }
 
@@ -145,7 +112,7 @@ setup_gma_devprop (
   }
 
   if (Injected) {
-    DBG(" - custom IntelGFX properties injected, continue\n");
+    DBG(" - custom IntelGFX properties injected\n");
   }
 
   if (gSettings.FakeIntel) {
@@ -165,13 +132,16 @@ setup_gma_devprop (
   }
 
   if (gSettings.IgPlatform != 0) {
-    if (gma_dev->device_id < 0x130) {
-      devprop_add_value(device, "AAPL,snb-platform-id", (UINT8*)&gSettings.IgPlatform, 4);
-    } else {
-      devprop_add_value(device, "AAPL,ig-platform-id", (UINT8*)&gSettings.IgPlatform, 4);
-    }
+    devprop_add_value (
+      device,
+      (gma_dev->device_id < 0x130) ? "AAPL,snb-platform-id" : "AAPL,ig-platform-id",
+      (UINT8*)&gSettings.IgPlatform,
+      4
+    );
 
-    SetSnb = TRUE;
+    DBG(" - %a-platform-id: 0x%08lx\n", (gma_dev->device_id < 0x130) ? "snb" : "ig", gSettings.IgPlatform);
+
+    SetIgPlatform = TRUE;
   }
 
   if (gSettings.DualLink != 0) {
@@ -274,18 +244,20 @@ setup_gma_devprop (
     case 0x193A:
     case 0x193B://#
     case 0x193D://#
-      if (!SetSnb) {
+      if (!SetIgPlatform) {
+        i = 0;
+
         switch (gma_dev->device_id) {
           case 0x162:
           case 0x16A:
-            devprop_add_value(device, "AAPL,ig-platform-id", INTELDEF_vals[23], 4);
+            i = 23;
             break;
           case 0x152:
-            devprop_add_value(device, "AAPL,ig-platform-id", INTELDEF_vals[24], 4);
+            i = 24;
             break;
           case 0x166:
           case 0x156:
-            devprop_add_value(device, "AAPL,ig-platform-id", INTELDEF_vals[25], 4);
+            i = 25;
             break;
           case 0x0102:
           case 0x0106:
@@ -295,8 +267,13 @@ setup_gma_devprop (
           case 0x0126:
             break;
           default:
-            devprop_add_value(device, "AAPL,ig-platform-id", INTELDEF_vals[26], 4);
+            i = 26;
             break;
+        }
+
+        if (i) {
+          devprop_add_value(device, "AAPL,ig-platform-id", INTELDEF_vals[i], 4);
+          DBG(" - ig-platform-id: 0x%02x%02x%02x%02x\n", INTELDEF_vals[i][3], INTELDEF_vals[i][2], INTELDEF_vals[i][1], INTELDEF_vals[i][0]);
         }
       }
     case 0xA011:

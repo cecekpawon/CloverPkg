@@ -588,11 +588,9 @@ BOOLEAN
 setup_nvidia_devprop (
   pci_dt_t    *nvda_dev
 ) {
-  //UINT32                  boot_display = 0;
-  //UINT32                  subsystem;
   EFI_STATUS                Status = EFI_NOT_FOUND;
   DevPropDevice             *device = NULL;
-  BOOLEAN                   load_vbios = gSettings.LoadVBios, Injected = FALSE/*, RomAssigned = FALSE*/;
+  BOOLEAN                   load_vbios = gSettings.LoadVBios, Injected = FALSE;
   UINT8                     *rom = NULL, *buffer = NULL, connector_type_1[]= {0x00, 0x08, 0x00, 0x00};
   UINT16                    nvCardType = 0;
   UINT32                    bar[7], device_id, subsys_id,  boot_display = 1;
@@ -609,8 +607,6 @@ setup_nvidia_devprop (
   devicepath = get_pci_dev_path(nvda_dev);
   bar[0] = pci_config_read32(nvda_dev, PCI_BASE_ADDRESS_0);
   nvda_dev->regs = (UINT8 *)(UINTN)(bar[0] & ~0x0f);
-  //subsystem = (nvda_dev->subsys_id.subsys.vendor_id << 16) +
-  //nvda_dev->subsys_id.subsys.device_id;
   device_id = ((nvda_dev->vendor_id << 16) | nvda_dev->device_id);
   subsys_id = ((nvda_dev->subsys_id.subsys.vendor_id << 16) | nvda_dev->subsys_id.subsys.device_id);
 
@@ -625,11 +621,9 @@ setup_nvidia_devprop (
       //VideoRam * 1024 * 1024 == VideoRam << 20
       //videoRam = LShiftU64(nvcard->VideoRam, 20);
       videoRam = nvcard->VideoRam;
-      //model = nvcard->Model;
       model = (CHAR8*)AllocateCopyPool(AsciiStrSize(nvcard->Model), nvcard->Model);
       n_ports = nvcard->VideoPorts;
       load_vbios = nvcard->LoadVBios;
-      //DBG("mem assigned %ld\n", vram_size);
     }
   } else {
     // Amount of VRAM in kilobytes (?) no, it is already in bytes!!!
@@ -708,7 +702,6 @@ setup_nvidia_devprop (
     }
   } else if (buffer) {
     if ((buffer[0] != 0x55) && (buffer[1] != 0xaa)) {
-      //DBG("buffer->size: %d\n", bufferLen);
       i = 0;
 
       while (i < bufferLen) {
@@ -733,7 +726,6 @@ setup_nvidia_devprop (
       rom = buffer;
     }
 
-    //RomAssigned = TRUE;
     DBG(" - using loaded ROM image\n");
   }
 
@@ -791,8 +783,6 @@ setup_nvidia_devprop (
         }
       }
     }
-
-    //FreePool(rom);
   } else {
     AsciiSPrint(version_str, sizeof(version_str), "1.0");
   }
@@ -803,8 +793,8 @@ setup_nvidia_devprop (
     model = (CHAR8*)AllocateCopyPool(AsciiStrSize(S_NVIDIAMODEL), S_NVIDIAMODEL);
   }
 
-  DBG(" - %a ", model);
-  DBG(" %dMB NV%02x [%04x:%04x] | %a => device #%d\n", (UINT32)(RShiftU64(videoRam, 20)),
+  DBG(" - %a | %dMB NV%02x [%04x:%04x] | %a => device #%d\n",
+      model, (UINT32)(RShiftU64(videoRam, 20)),
       nvCardType, nvda_dev->vendor_id, nvda_dev->device_id,
       devicepath, devices_number);
 
@@ -815,6 +805,7 @@ setup_nvidia_devprop (
   device = devprop_add_device_pci(string, nvda_dev);
 
   DBG(" - VideoPorts:");
+
   if (n_ports > 0) {
     DBG(" user defined (GUI-menu): %d\n", n_ports);
   } else if (gSettings.VideoPorts > 0) {
@@ -849,7 +840,6 @@ setup_nvidia_devprop (
 
     if (Injected) {
       DBG(" - custom properties injected\n");
-      //    return TRUE;
     }
   }
 

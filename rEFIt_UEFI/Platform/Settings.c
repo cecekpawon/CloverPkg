@@ -939,9 +939,6 @@ FillinKextPatches (
 
         Dict = GetProperty (Prop2, "Comment");
         if (Dict != NULL) {
-          //this is impossible because UnicodeStrToAsciiStr not extend output size
-          //UnicodeStrToAsciiStr(PoolPrint(L"%a (%a)", KextPatchesLabel, Dict->string), KextPatchesLabel);
-
           AsciiStrCatS(KextPatchesLabel, 255, " (");
           AsciiStrCatS(KextPatchesLabel, 255, Dict->string);
           AsciiStrCatS(KextPatchesLabel, 255, ")");
@@ -1004,11 +1001,6 @@ FillinKextPatches (
         Patches->NrKexts++; //must be out of DBG because it may be empty compiled
       }
     }
-
-    //gSettings.NrKexts = (INT32)i;
-    //there is one moment. This data is allocated in BS memory but will be used
-    // after OnExitBootServices. This is wrong and these arrays should be reallocated
-    // but I am not sure
   }
 
   Prop = GetProperty (DictPointer, "KernelToPatch");
@@ -1095,6 +1087,7 @@ FillinKextPatches (
         }
 
         DBG (" | len: %d\n", Patches->KernelPatches[Patches->NrKernels].DataLen);
+
         Patches->NrKernels++;
       }
     }
@@ -2404,7 +2397,6 @@ InitTheme (
         }
 
         if (StriCmp (TestTheme, CONFIG_THEME_RANDOM) == 0) {
-          //ThemeDict = LoadTheme (ThemesList[Rnd]);
           ThemeDict = LoadTheme (RndTheme);
           goto finish;
         }
@@ -3017,7 +3009,7 @@ ParseSMBIOSSettings (
 
   //gFwFeatures = 0xC0001403 - by default
   Prop = GetProperty (DictPointer, "FirmwareFeatures");
-  gFwFeatures       = (UINT32)GetPropertyInteger (Prop, gFwFeatures);
+  gFwFeatures = (UINT32)GetPropertyInteger (Prop, gFwFeatures);
 }
 
 EFI_STATUS
@@ -3090,7 +3082,7 @@ GetUserSettings (
       }
 
       Prop = GetProperty (DictPointer, "VideoPorts");
-      gSettings.VideoPorts   = (UINT16)GetPropertyInteger (Prop, gSettings.VideoPorts);
+      gSettings.VideoPorts = (UINT16)GetPropertyInteger (Prop, gSettings.VideoPorts);
 
       Prop = GetProperty (DictPointer, "BootDisplay");
       gSettings.BootDisplay = (INT8)GetPropertyInteger (Prop, -1);
@@ -3148,8 +3140,9 @@ GetUserSettings (
 
       Prop = GetProperty (DictPointer, "Properties");
       if (Prop != NULL) {
-        EFI_PHYSICAL_ADDRESS  BufferPtr = EFI_SYSTEM_TABLE_MAX_ADDRESS; //0xFE000000;
-        UINTN strlength   = AsciiStrLen (Prop->string);
+        EFI_PHYSICAL_ADDRESS    BufferPtr = EFI_SYSTEM_TABLE_MAX_ADDRESS; //0xFE000000;
+        UINTN                   strlength   = AsciiStrLen (Prop->string);
+
         cDeviceProperties = AllocateZeroPool (strlength + 1);
         AsciiStrCpy (cDeviceProperties, Prop->string);
         //-------
@@ -3536,7 +3529,7 @@ GetUserSettings (
             DBG ("PatchesDSDT: %d requested\n", Count);
 
             for (i = 0; i < Count; i++) {
-              UINTN         Size = 0;
+              UINTN   Size = 0;
 
               DBG(" - [%02d]:", i);
 
@@ -4274,15 +4267,6 @@ CHAR16
   } else if (AsciiStrStr (OSVersion, "10.7") != NULL) {
     // Lion
     OSIconName = L"lion,mac";
-  } else if (AsciiStrStr (OSVersion, "10.6") != NULL) {
-    // Snow Leopard
-    OSIconName = L"snow,mac";
-  } else if (AsciiStrStr (OSVersion, "10.5") != NULL) {
-    // Leopard
-    OSIconName = L"leo,mac";
-  } else if (AsciiStrStr (OSVersion, "10.4") != NULL) {
-    // Tiger
-    OSIconName = L"tiger,mac";
   } else {
     OSIconName = L"mac";
   }
@@ -4420,13 +4404,14 @@ GetDevices () {
           ) &&
           (NGFX < 4)
         ) {
-          GFX_PROPERTIES *gfx = &gGraphics[NGFX];
-          gfx->DeviceID       = Pci.Hdr.DeviceId;
-          gfx->Segment        = Segment;
-          gfx->Bus            = Bus;
-          gfx->Device         = Device;
-          gfx->Function       = Function;
-          gfx->Handle         = HandleArray[Index];
+          GFX_PROPERTIES      *gfx = &gGraphics[NGFX];
+
+          gfx->DeviceID            = Pci.Hdr.DeviceId;
+          gfx->Segment             = Segment;
+          gfx->Bus                 = Bus;
+          gfx->Device              = Device;
+          gfx->Function            = Function;
+          gfx->Handle              = HandleArray[Index];
 
           DBG(" - GFX");
 
@@ -4909,12 +4894,10 @@ SetFSInjection (
   REFIT_VOLUME            *Volume;
   FSINJECTION_PROTOCOL    *FSInject;
   CHAR16                  *SrcDir = NULL;
-  //BOOLEAN                 InjectionNeeded = FALSE;
-  //BOOLEAN                 BlockCaches = FALSE;
   FSI_STRING_LIST         *Blacklist = 0, *ForceLoadKexts = NULL;
   UINTN                   Index = 0;
 
-  DbgHeader ("Beginning FSInjection");
+  DbgHeader ("FSInjection");
 
   Volume = Entry->Volume;
 
@@ -4929,7 +4912,6 @@ SetFSInjection (
   // check if blocking of caches is needed
   if (OSFLAG_ISSET(Entry->Flags, OSFLAG_NOCACHES)) {
     MsgLog (" - Blocking kext caches\n");
-    //  BlockCaches = TRUE;
     // add caches to blacklist
     Blacklist = FSInject->CreateStringList ();
     if (Blacklist == NULL) {
@@ -4955,7 +4937,6 @@ SetFSInjection (
                           Volume->DeviceHandle,
                           OSX_PATH_SLE,
                           SelfVolume->DeviceHandle,
-                          //GetOtherKextsDir (),
                           SrcDir,
                           Blacklist,
                           ForceLoadKexts
@@ -4969,7 +4950,6 @@ SetFSInjection (
                           Volume->DeviceHandle,
                           OSX_PATH_SLE,
                           SelfVolume->DeviceHandle,
-                          //GetOSVersionKextsDir (Entry->OSVersion),
                           SrcDir,
                           Blacklist,
                           ForceLoadKexts

@@ -56,7 +56,7 @@ typedef struct pci_dt_t {
 
   UINT8   revision;
   UINT8   subclass;
-  UINT16        class_id;
+  UINT16  class_id;
 
   struct pci_dt_t     *parent;
   struct pci_dt_t     *children;

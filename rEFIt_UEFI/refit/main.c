@@ -698,7 +698,6 @@ StartLoader (
     //DBG("SetVariablesForOSX\n");
     SetVariablesForOSX();
 
-    //DBG("SetVariablesForOSX\n");
     EventsInitialize(Entry);
 
     //DBG("FinalizeSmbios\n");
@@ -1200,7 +1199,6 @@ SetVariablesFromNvram () {
     //  continue;
     //}
 
-    //if (AsciiStrStr(gSettings.BootArgs, arg) == NULL) {
     if (AsciiStrStr(lBootArgs, AsciiStrToLower(arg)) == NULL) {
       len = AsciiStrLen(gSettings.BootArgs);
       CONSTRAIN_MAX(len, AVALUE_MAX_SIZE - 1);
@@ -1301,7 +1299,6 @@ RefitMain (
 
   ZeroMem((VOID*)&gGraphics[0], sizeof(GFX_PROPERTIES) * 4);
 
-  //DBG("\n");
   DbgHeader("RefitMain");
 
   if (Now.TimeZone < 0 || Now.TimeZone > 24) {
@@ -1312,11 +1309,8 @@ RefitMain (
       Now.Day, Now.Month, Now.Year, Now.Hour, Now.Minute, Now.Second, Now.TimeZone);
   }
 
-  MsgLog("Starting %a on %s EFI\n", REVISION_STR, gST->FirmwareVendor);
-
-  #ifdef BUILDINFOS_STR
-    DBG("Build with: [%a]\n", BUILDINFOS_STR);
-  #endif // BUILDINFOS_STR
+  MsgLog("Starting %a on %s EFI (rev %a)\n", CLOVER_REVISION_STR, gST->FirmwareVendor, EDK2_REVISION);
+  MsgLog(" - Build with: [%a]\n", CLOVER_BUILDINFOS_STR);
 
   Status = InitRefitLib(gImageHandle);
 
@@ -1399,7 +1393,7 @@ RefitMain (
     return Status;
   }
 
-  FlashMessage(PoolPrint(L"   Welcome to Clover %s   ", FIRMWARE_REVISION), (UGAWidth >> 1), (UGAHeight >> 1), X_IS_CENTER);
+  FlashMessage(PoolPrint(L"   Welcome to %a   ", CLOVER_REVISION_STR), (UGAWidth >> 1), (UGAHeight >> 1), X_IS_CENTER);
   FlashMessage(L"... testing hardware ...", (UGAWidth >> 1), (UGAHeight >> 1) + 20, X_IS_CENTER);
 
   //DumpBiosMemoryMap();

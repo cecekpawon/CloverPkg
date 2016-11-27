@@ -135,6 +135,24 @@ typedef enum {
 #define MsgLog(...)  DebugLog(DEBUG_ALL, __VA_ARGS__)
 #endif
 
+#ifndef CLOVER_VERSION
+  #define CLOVER_VERSION "2.3k"
+#endif
+
+#ifndef CLOVER_REVISION
+  #define CLOVER_REVISION "0000"
+#endif
+
+#define CLOVER_REVISION_STR "Clover revision: " CLOVER_REVISION
+
+#ifndef EDK2_REVISION
+  #define EDK2_REVISION "0000"
+#endif
+
+#ifndef CLOVER_BUILDINFOS_STR
+  #define CLOVER_BUILDINFOS_STR "Unknown"
+#endif
+
 //#define CPU_MODEL_PENTIUM_M     0x09
 //#define CPU_MODEL_DOTHAN        0x0D
 //#define CPU_MODEL_YONAH         0x0E

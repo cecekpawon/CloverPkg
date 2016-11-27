@@ -289,13 +289,13 @@ SetupDataForOSX () {
   UINT32      DevPathSupportedVal;
   UINT64      FrontSideBus, CpuSpeed, TscFrequency, ARTFrequency;
   CHAR16      *ProductName, *SerialNumber;
-  UINTN       Revision;
+  //UINTN       Revision;
 
-#ifdef FIRMWARE_REVISION
-  Revision = StrDecimalToUintn(FIRMWARE_REVISION);
-#else
-  Revision = gST->FirmwareRevision;
-#endif
+// #ifdef CLOVER_REVISION
+//   Revision = StrDecimalToUintn(PoolPrint(L"%s", CLOVER_REVISION));
+// #else
+//   Revision = gST->FirmwareRevision;
+// #endif
 
   // fool proof
   FrontSideBus = gCPUStructure.FSBFrequency;
@@ -319,10 +319,10 @@ SetupDataForOSX () {
   }
 
   // Save values into gSettings for the genconfig aim
-  gSettings.BusSpeed   = (UINT32)DivU64x32(FrontSideBus, kilo);
+  gSettings.BusSpeed = (UINT32)DivU64x32(FrontSideBus, kilo);
 
   CpuSpeed = gCPUStructure.CPUFrequency;
-  gSettings.CpuFreqMHz = (UINT32)DivU64x32(CpuSpeed,     Mega);
+  gSettings.CpuFreqMHz = (UINT32)DivU64x32(CpuSpeed, Mega);
 
   // Locate DataHub Protocol
   Status = gBS->LocateProtocol(&gEfiDataHubProtocolGuid, NULL, (VOID**)&gDataHub);
@@ -331,7 +331,7 @@ SetupDataForOSX () {
     AsciiStrToUnicodeStr(gSettings.ProductName, ProductName);
 
     SerialNumber = AllocateZeroPool(64);
-    AsciiStrToUnicodeStr(gSettings.SerialNr,    SerialNumber);
+    AsciiStrToUnicodeStr(gSettings.SerialNr, SerialNumber);
 
     LogDataHub(&gEfiProcessorSubClassGuid,    L"FSBFrequency",          &FrontSideBus,          sizeof(UINT64));
 
@@ -340,7 +340,7 @@ SetupDataForOSX () {
       LogDataHub(&gEfiProcessorSubClassGuid,  L"ARTFrequency",          &ARTFrequency,          sizeof(UINT64));
     }
 
-    TscFrequency        = gCPUStructure.TSCFrequency;
+    TscFrequency = gCPUStructure.TSCFrequency;
     LogDataHub(&gEfiProcessorSubClassGuid,    L"InitialTSC",            &TscFrequency,          sizeof(UINT64));
     LogDataHub(&gEfiProcessorSubClassGuid,    L"CPUFrequency",          &CpuSpeed,              sizeof(UINT64));
 
@@ -350,10 +350,10 @@ SetupDataForOSX () {
     LogDataHub(&gEfiMiscSubClassGuid,         L"SystemSerialNumber",    SerialNumber,           (UINT32)StrSize(SerialNumber));
 
     if (gSettings.InjectSystemID) {
-      LogDataHub(&gEfiMiscSubClassGuid, L"system-id", &gUuid, sizeof(EFI_GUID));
+      LogDataHub(&gEfiMiscSubClassGuid,       L"system-id",             &gUuid,                 sizeof(EFI_GUID));
     }
 
-    LogDataHub(&gEfiProcessorSubClassGuid, L"clovergui-revision", &Revision, sizeof(UINT32));
+    //LogDataHub(&gEfiProcessorSubClassGuid,    L"clovergui-revision",    &Revision,              sizeof(UINT32));
 
     // collect info about real hardware
     LogDataHub(&gEfiMiscSubClassGuid,         L"OEMVendor",             &gSettings.OEMVendor,  (UINT32)iStrLen(gSettings.OEMVendor,  64) + 1);
@@ -368,7 +368,7 @@ SetupDataForOSX () {
     LogDataHub(&gEfiMiscSubClassGuid,         L"BEMB",                  &gSettings.Mobile,      1);
 
     // all current settings
-    LogDataHub(&gEfiMiscSubClassGuid, L"Settings", &gSettings, sizeof(gSettings));
+    //LogDataHub(&gEfiMiscSubClassGuid,         L"Settings",              &gSettings,             sizeof(gSettings));
   } else {
     // this is the error message that we want user to see on the screen!
     //Print(L"DataHubProtocol is not found! Load the module DataHubDxe manually!\n");

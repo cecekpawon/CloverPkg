@@ -1753,12 +1753,18 @@ DbgHeader (
   CHAR8   *str
 ) {
   INTN    len = 60 - AsciiStrSize(str);
-  CHAR8   *fill = AllocateZeroPool(len);
 
-  SetMem(fill, len, '=');
-  fill[len] = '\0';
-  DebugLog (1, "=== [ %a ] %a\n", str, fill);
-  FreePool(fill);
+  if (len <= 3) {
+    DebugLog (1, "=== [ %a ] ===\n", str);
+    return;
+  } else {
+    CHAR8   *fill = AllocateZeroPool(len);
+
+    SetMem(fill, len, '=');
+    fill[len] = '\0';
+    DebugLog (1, "=== [ %a ] %a\n", str, fill);
+    FreePool(fill);
+  }
 }
 
 BOOLEAN

@@ -108,7 +108,7 @@ SearchAndReplaceTxt (
       FirstMatch = Source;
       Skip = 0;
 
-      while (*Source != '\0' && Pos != SearchEnd) {
+      while ((*Source != '\0') && (Pos != SearchEnd)) {
         if (*Source <= 0x20) { //skip invisibles in sources
           Source++;
           Skip++;

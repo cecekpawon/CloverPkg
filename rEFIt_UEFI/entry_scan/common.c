@@ -654,7 +654,7 @@ CHAR8
   UINTN   len
 ) {
   UINTN   i, j, b = 0;
-  CHAR8   *result = (CHAR8*)AllocateZeroPool((len*2)+1);
+  CHAR8   *result = AllocateZeroPool((len*2)+1);
 
   for (i = j = 0; i < len; i++) {
     b = data[i] >> 4;

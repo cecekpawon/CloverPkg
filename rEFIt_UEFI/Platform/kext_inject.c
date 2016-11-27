@@ -13,12 +13,10 @@
   if ((entry != NULL) && (entry->KernelAndKextPatches != NULL) && entry->KernelAndKextPatches->KPDebug) \
     { AsciiPrint(__VA_ARGS__); }
 
-
 ////////////////////
 // globals
 ////////////////////
 LIST_ENTRY gKextList = INITIALIZE_LIST_HEAD_VARIABLE (gKextList);
-
 
 ////////////////////
 // before booting
@@ -274,14 +272,11 @@ LoadKexts (
   IN LOADER_ENTRY   *Entry
 ) {
   //EFI_STATUS      Status;
-  //REFIT_VOLUME    *Volume;
   CHAR16            *SrcDir = NULL, FileName[256], PlugIns[256];
-  //CHAR16          *Arch = NULL;
-  //CHAR16          *Ptr = NULL;
   REFIT_DIR_ITER    KextIter, PlugInIter;
   EFI_FILE_INFO     *KextFile, *PlugInFile;
   cpu_type_t        archCpuType=CPU_TYPE_X86_64;
-  UINTN             mm_extra_size, extra_size;
+  UINTN             mm_extra_size, extra_size, i = 0;
   VOID              *mm_extra, *extra;
 
   if ((Entry == 0) || OSFLAG_ISUNSET(Entry->Flags, OSFLAG_WITHKEXTS)) {
@@ -294,8 +289,6 @@ LoadKexts (
     (Entry->KernelAndKextPatches->NrForceKexts > 0) &&
     (Entry->KernelAndKextPatches->ForceKexts != NULL)
   ) {
-    INT32   i = 0;
-
     for (; i < Entry->KernelAndKextPatches->NrForceKexts; ++i) {
       MsgLog("  Force kext: %s\n", Entry->KernelAndKextPatches->ForceKexts[i]);
       if (Entry->Volume && Entry->Volume->RootDir) {
@@ -327,41 +320,55 @@ LoadKexts (
   //  Volume = Entry->Volume;
   SrcDir = GetOtherKextsDir();
   if (SrcDir != NULL) {
-    //MsgLog("Preparing kexts injection for arch=%s from %s\n", (archCpuType==CPU_TYPE_X86_64)?L"x86_64":(archCpuType==CPU_TYPE_I386)?L"i386":L"", SrcDir);
     // look through contents of the directory
+    i = 0;
     DirIterOpen(SelfVolume->RootDir, SrcDir, &KextIter);
     while (DirIterNext(&KextIter, 1, L"*.kext", &KextFile)) {
       if ((KextFile->FileName[0] == '.') || (StriStr(KextFile->FileName, L".kext") == NULL)) {
         continue;   // skip this
       }
 
+      if (!i) {
+        MsgLog("Inject kexts (%s):\n", SrcDir);
+      }
+
+      i++;
+
       UnicodeSPrint(FileName, 512, L"%s\\%s", SrcDir, KextFile->FileName);
-      MsgLog("  Extra kext: %s\n", FileName);
+      MsgLog(" - [%02d]: %s\n", i, KextFile->FileName);
       AddKext(Entry, SelfVolume->RootDir, FileName, archCpuType);
 
       UnicodeSPrint(PlugIns, 512, L"%s\\%s", FileName, L"Contents\\PlugIns");
       LoadPlugInKexts(Entry, SelfVolume->RootDir, PlugIns, archCpuType, FALSE);
     }
+
     DirIterClose(&KextIter);
   }
 
   SrcDir = GetOSVersionKextsDir(Entry->OSVersion);
   if (SrcDir != NULL) {
-    //MsgLog("Preparing kexts injection for arch=%s from %s\n", (archCpuType==CPU_TYPE_X86_64)?L"x86_64":(archCpuType==CPU_TYPE_I386)?L"i386":L"", SrcDir);
     // look through contents of the directory
+    i = 0;
     DirIterOpen(SelfVolume->RootDir, SrcDir, &KextIter);
     while (DirIterNext(&KextIter, 1, L"*.kext", &KextFile)) {
       if ((KextFile->FileName[0] == '.') || (StriStr(KextFile->FileName, L".kext") == NULL)) {
         continue;   // skip this
       }
 
+      if (!i) {
+        MsgLog("Inject kexts (%s):\n", SrcDir);
+      }
+
+      i++;
+
       UnicodeSPrint(FileName, 512, L"%s\\%s", SrcDir, KextFile->FileName);
-      MsgLog("  Extra kext: %s\n", FileName);
+      MsgLog(" - [%02d]: %s\n", i, KextFile->FileName);
       AddKext(Entry, SelfVolume->RootDir, FileName, archCpuType);
 
       UnicodeSPrint(PlugIns, 512, L"%s\\%s", FileName, L"Contents\\PlugIns");
       LoadPlugInKexts(Entry, SelfVolume->RootDir, PlugIns, archCpuType, FALSE);
     }
+
     DirIterClose(&KextIter);
   }
 
@@ -420,9 +427,9 @@ InjectKexts (
   DBG_RT(Entry, "%d kexts ...\n", KextCount);
 
   DTInit(dtEntry);
-  if (DTLookupEntry(NULL,"/chosen/memory-map",&memmapEntry)==kSuccess) {
-    if (DTCreatePropertyIteratorNoAlloc(memmapEntry,iter)==kSuccess) {
-      while(DTIterateProperties(iter,&ptr)==kSuccess) {
+  if (DTLookupEntry(NULL,"/chosen/memory-map",&memmapEntry) == kSuccess) {
+    if (DTCreatePropertyIteratorNoAlloc(memmapEntry,iter) == kSuccess) {
+      while (DTIterateProperties(iter,&ptr) == kSuccess) {
         prop = iter->currentProperty;
         drvPtr = (UINT8*) prop;
 
@@ -436,11 +443,11 @@ InjectKexts (
     }
   }
 
-  if (DTLookupEntry(NULL,"/efi/platform",&platformEntry)==kSuccess) {
-    if (DTCreatePropertyIteratorNoAlloc(platformEntry,iter)==kSuccess) {
-      while(DTIterateProperties(iter,&ptr)==kSuccess) {
+  if (DTLookupEntry(NULL,"/efi/platform",&platformEntry) == kSuccess) {
+    if (DTCreatePropertyIteratorNoAlloc(platformEntry,iter) == kSuccess) {
+      while (DTIterateProperties(iter,&ptr) == kSuccess) {
         prop = iter->currentProperty;
-        if (AsciiStrCmp(prop->name,"mm_extra")==0) {
+        if (AsciiStrCmp(prop->name,"mm_extra") == 0) {
           infoPtr = (UINT8*) prop;
         }
 
@@ -529,8 +536,10 @@ InjectKexts (
             );
           }
         }
+
         InfoPlist[drvinfo->infoDictLength] = SavedValue;
       }
+
       Index++;
     }
   }
@@ -549,42 +558,28 @@ InjectKexts (
 // KernelBooterExtensionsPatch to load extra kexts besides kernelcache
 //
 //
-//UINT8   KBESnowSearch_i386[]   = { 0xE8, 0xED, 0xF9, 0xFF, 0xFF, 0xEB, 0x08, 0x89, 0x1C, 0x24 };
-//UINT8   KBESnowReplace_i386[]  = { 0xE8, 0xED, 0xF9, 0xFF, 0xFF, 0x90, 0x90, 0x89, 0x1C, 0x24 };
-////E8 5A FB FF FF EB 08 48 89 DF
-//UINT8   KBESnowSearch_X64[]    = { 0xE8, 0x5A, 0xFB, 0xFF, 0xFF, 0xEB, 0x08, 0x48, 0x89, 0xDF };
-//UINT8   KBESnowReplace_X64[]   = { 0xE8, 0x5A, 0xFB, 0xFF, 0xFF, 0x90, 0x90, 0x48, 0x89, 0xDF };
+UINT8 KBELionSearch_X64[]     = { 0xE8, 0x0C, 0xFD, 0xFF, 0xFF, 0xEB, 0x08, 0x48, 0x89, 0xDF };
+UINT8 KBELionReplace_X64[]    = { 0xE8, 0x0C, 0xFD, 0xFF, 0xFF, 0x90, 0x90, 0x48, 0x89, 0xDF };
 
-
-//UINT8   KBELionSearch_i386[]   = { 0xE8, 0xAA, 0xFB, 0xFF, 0xFF, 0xEB, 0x08, 0x89, 0x34, 0x24 };
-//UINT8   KBELionReplace_i386[]  = { 0xE8, 0xAA, 0xFB, 0xFF, 0xFF, 0x90, 0x90, 0x89, 0x34, 0x24 };
-
-UINT8   KBELionSearch_X64[]    = { 0xE8, 0x0C, 0xFD, 0xFF, 0xFF, 0xEB, 0x08, 0x48, 0x89, 0xDF };
-UINT8   KBELionReplace_X64[]   = { 0xE8, 0x0C, 0xFD, 0xFF, 0xFF, 0x90, 0x90, 0x48, 0x89, 0xDF };
-
-UINT8   KBEMLSearch[]  = { 0xC6, 0xE8, 0x30, 0x00, 0x00, 0x00, 0xEB, 0x08, 0x48, 0x89, 0xDF };
-UINT8   KBEMLReplace[] = { 0xC6, 0xE8, 0x30, 0x00, 0x00, 0x00, 0x90, 0x90, 0x48, 0x89, 0xDF };
-
-//0xE8, 0x27, 0x00, 0x00, 0x00, 0xEB, 0x08, 0x48, 0x89, 0xDF }; @1ecfa4
-//UINT8   KBEYosSearch[]  = {0xE8, 0x27, 0x00, 0x00, 0x00, 0xEB, 0x08, 0x48, 0x89, 0xDF };
-//UINT8   KBEYosReplace[]  = {0xE8, 0x27, 0x00, 0x00, 0x00, 0x90, 0x90, 0x48, 0x89, 0xDF };
+UINT8 KBEMLSearch[]           = { 0xC6, 0xE8, 0x30, 0x00, 0x00, 0x00, 0xEB, 0x08, 0x48, 0x89, 0xDF };
+UINT8 KBEMLReplace[]          = { 0xC6, 0xE8, 0x30, 0x00, 0x00, 0x00, 0x90, 0x90, 0x48, 0x89, 0xDF };
 
 // -- startupExt -->
-UINT8 KBEYosSearch[]  = { 0xE8, 0x25, 0x00, 0x00, 0x00, 0xEB, 0x05, 0xE8, 0xCE, 0x02, 0x00, 0x00 };
-UINT8 KBEYosReplace[] = { 0xE8, 0x25, 0x00, 0x00, 0x00, 0x90, 0x90, 0xE8, 0xCE, 0x02, 0x00, 0x00 };
+UINT8 KBEYosSearch[]          = { 0xE8, 0x25, 0x00, 0x00, 0x00, 0xEB, 0x05, 0xE8, 0xCE, 0x02, 0x00, 0x00 };
+UINT8 KBEYosReplace[]         = { 0xE8, 0x25, 0x00, 0x00, 0x00, 0x90, 0x90, 0xE8, 0xCE, 0x02, 0x00, 0x00 };
 
 // 10.12 dp2
-UINT8 KBEYosSearch2[]  =  { 0xE8, 0x25, 0x00, 0x00, 0x00, 0xEB, 0x05, 0xE8, 0x7E, 0x05, 0x00, 0x00 };
-UINT8 KBEYosReplace2[]  = { 0xE8, 0x25, 0x00, 0x00, 0x00, 0x90, 0x90, 0xE8, 0x7E, 0x05, 0x00, 0x00 };
+UINT8 KBEYosSearch2[]         = { 0xE8, 0x25, 0x00, 0x00, 0x00, 0xEB, 0x05, 0xE8, 0x7E, 0x05, 0x00, 0x00 };
+UINT8 KBEYosReplace2[]        = { 0xE8, 0x25, 0x00, 0x00, 0x00, 0x90, 0x90, 0xE8, 0x7E, 0x05, 0x00, 0x00 };
 // -- startupExt <--
 
 // as of El Capitan DP6
-UINT8 KBEECSearch[]  = { 0xC3, 0x48, 0x85, 0xDB, 0x74, 0x70, 0x48, 0x8B, 0x03, 0x48, 0x89, 0xDF, 0xFF, 0x50, 0x28, 0x48 };
-UINT8 KBEECReplace[] = { 0xC3, 0x48, 0x85, 0xDB, 0xEB, 0x12, 0x48, 0x8B, 0x03, 0x48, 0x89, 0xDF, 0xFF, 0x50, 0x28, 0x48 };
+UINT8 KBEECSearch[]           = { 0xC3, 0x48, 0x85, 0xDB, 0x74, 0x70, 0x48, 0x8B, 0x03, 0x48, 0x89, 0xDF, 0xFF, 0x50, 0x28, 0x48 };
+UINT8 KBEECReplace[]          = { 0xC3, 0x48, 0x85, 0xDB, 0xEB, 0x12, 0x48, 0x8B, 0x03, 0x48, 0x89, 0xDF, 0xFF, 0x50, 0x28, 0x48 };
 
 //sherlocks: Sierra DP1
-UINT8 KBESieSearch[]  = { 0xC3, 0x48, 0x85, 0xDB, 0x74, 0x71, 0x48, 0x8B, 0x03, 0x48, 0x89, 0xDF, 0xFF, 0x50, 0x28, 0x48 };
-UINT8 KBESieReplace[] = { 0xC3, 0x48, 0x85, 0xDB, 0xEB, 0x12, 0x48, 0x8B, 0x03, 0x48, 0x89, 0xDF, 0xFF, 0x50, 0x28, 0x48 };
+UINT8 KBESieSearch[]          = { 0xC3, 0x48, 0x85, 0xDB, 0x74, 0x71, 0x48, 0x8B, 0x03, 0x48, 0x89, 0xDF, 0xFF, 0x50, 0x28, 0x48 };
+UINT8 KBESieReplace[]         = { 0xC3, 0x48, 0x85, 0xDB, 0xEB, 0x12, 0x48, 0x8B, 0x03, 0x48, 0x89, 0xDF, 0xFF, 0x50, 0x28, 0x48 };
 
 //
 // We can not rely on OSVersion global variable for OS version detection,
@@ -594,7 +589,6 @@ UINT8 KBESieReplace[] = { 0xC3, 0x48, 0x85, 0xDB, 0xEB, 0x12, 0x48, 0x8B, 0x03, 
 // we are planning to patch.
 //
 
-//#define KERNEL_MAX_SIZE 40000000
 VOID
 EFIAPI
 KernelBooterExtensionsPatch (
@@ -603,7 +597,11 @@ KernelBooterExtensionsPatch (
 ) {
   UINTN   Num = 0;
 
-  DBG_RT(Entry, "\n\nPatching (%dbit) kernel for injected kexts:\n", is64BitKernel ? 64 : 32);
+  if (!is64BitKernel) {
+    return;
+  }
+
+  DBG_RT(Entry, "\n\nPatching kernel for injected kexts:\n");
 
   //startupExt
   Num = FSearchReplace(Kernel, KBEYosSearch2, KBEYosReplace2) +
@@ -612,16 +610,15 @@ KernelBooterExtensionsPatch (
   if (Num) {
     Num +=  FSearchReplace(Kernel, KBESieSearch, KBESieReplace) +
             FSearchReplace(Kernel, KBEECSearch, KBEECReplace);
-    DBG_RT(Entry, "==> kernel 10.12/10.11/10.10:\n");
+    DBG_RT(Entry, "==> kernel 10.12/10.11/10.10");
   } else {
     //Wheres Mavericks?
     Num = FSearchReplace(Kernel, KBEMLSearch, KBEMLReplace) +
-          FSearchReplace(Kernel, KBELionSearch_X64, KBELionReplace_X64)/* +
-          FSearchReplace(Kernel, KBESnowSearch_X64, KBESnowReplace_X64)*/;
-    DBG_RT(Entry, "==> kernel 10.8/10.7:\n");
+          FSearchReplace(Kernel, KBELionSearch_X64, KBELionReplace_X64);
+    DBG_RT(Entry, "==> kernel 10.8/10.7");
   }
 
-  DBG_RT(Entry, "==> %a : %d replaces done\n", Num ? "Success" : "Error", Num);
+  DBG_RT(Entry, ": %d replaces done\n", Num);
 
   if (Entry->KernelAndKextPatches->KPDebug) {
     DBG_RT(Entry, "Pausing 5 secs ...\n");

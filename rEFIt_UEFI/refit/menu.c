@@ -2763,12 +2763,12 @@ CHAR16
 ) {
   BOOLEAN   CloverRevDef = FALSE;
 
-#ifdef FIRMWARE_REVISION
+#ifdef CLOVER_REVISION
   CloverRevDef = TRUE;
 #endif
 
   if (CloverRev && CloverRevDef) {
-    return PoolPrint(FIRMWARE_REVISION);
+    return PoolPrint(L"%a", CLOVER_REVISION);
   } else {
     return PoolPrint(L"%d.%d", gST->FirmwareRevision >> 16, gST->FirmwareRevision & ((1 << 16) - 1));
   }
@@ -3380,9 +3380,10 @@ AboutRefit () {
   }
 
   if (AboutMenu.EntryCount == 0) {
-    AddMenuInfo(&AboutMenu, PoolPrint(L"Clover Version 2.3k rev %s", GetRevisionString(TRUE)));
-#ifdef FIRMWARE_BUILDDATE
-    AddMenuInfo(&AboutMenu, PoolPrint(L" Build: %a", FIRMWARE_BUILDDATE));
+    AddMenuInfo(&AboutMenu, PoolPrint(L"%a, with EDK2 (rev %a)", CLOVER_REVISION_STR, EDK2_REVISION));
+    //AddMenuInfo(&AboutMenu, PoolPrint(L" - Build with: [%a]", CLOVER_BUILDINFOS_STR));
+#ifdef CLOVER_BUILDDATE
+    AddMenuInfo(&AboutMenu, PoolPrint(L" Build: %a", CLOVER_BUILDDATE));
 #else
     AddMenuInfo(&AboutMenu, L" Build: unknown");
 #endif
