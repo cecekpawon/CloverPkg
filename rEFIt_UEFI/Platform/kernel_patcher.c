@@ -17,12 +17,10 @@
 #endif
 
 // runtime debug
-#define DBG_RT(entry, ...)  \
-  if ( \
-    (entry != NULL) && \
-    (entry->KernelAndKextPatches != NULL) && \
-    entry->KernelAndKextPatches->KPDebug \
-  ) { AsciiPrint(__VA_ARGS__); }
+#define DBG_ON(entry) \
+  ((entry != NULL) && (entry->KernelAndKextPatches != NULL) && entry->KernelAndKextPatches->KPDebug)
+#define DBG_RT(entry, ...) \
+  if (DBG_ON(entry)) AsciiPrint(__VA_ARGS__)
 
 
 EFI_PHYSICAL_ADDRESS      KernelRelocBase = 0;
@@ -465,7 +463,9 @@ FindBootArgs (
       DBG_RT(Entry, "bootArgs2->flags = 0x%x\n", bootArgs2->flags);
       DBG_RT(Entry, "bootArgs2->kslide = 0x%x\n", bootArgs2->kslide);
       DBG_RT(Entry, "bootArgs2->bootMemStart = 0x%x\n", bootArgs2->bootMemStart);
-      gBS->Stall(2000000);
+      if (DBG_ON(Entry)) {
+        gBS->Stall(2000000);
+      }
 
       // disable other pointer
       //bootArgs1 = NULL;
@@ -641,7 +641,7 @@ KernelAndKextsPatcherStart (
     DBG_RT(Entry, "Disabled\n");
   }
 
-  if (Entry->KernelAndKextPatches->KPDebug) {
+  if (DBG_ON(Entry)) {
     gBS->Stall(2000000);
   }
 
@@ -659,14 +659,14 @@ KernelAndKextsPatcherStart (
       goto NoKernelData;
     }
 
-    DBG_RT(Entry, "\nKext patching STARTED\n");
+    DBG_RT(Entry, "\nKext patching STARTED\n\n");
     KextPatcherStart(Entry);
     DBG_RT(Entry, "\nKext patching ENDED\n");
   } else {
     DBG_RT(Entry, "Disabled\n");
   }
 
-  if (Entry->KernelAndKextPatches->KPDebug) {
+  if (DBG_ON(Entry)) {
     DBG_RT(Entry, "Pausing 10 secs ...\n\n");
     gBS->Stall(10000000);
   }
@@ -686,7 +686,7 @@ KernelAndKextsPatcherStart (
 
     if (Status == EFI_BUFFER_TOO_SMALL) {
       // var exists - just exit
-      if (Entry->KernelAndKextPatches->KPDebug) {
+      if (DBG_ON(Entry)) {
         DBG_RT(Entry, "\nInjectKexts: skipping, FSInject already injected them\n");
         gBS->Stall(500000);
       }
@@ -712,7 +712,7 @@ KernelAndKextsPatcherStart (
   return;
 
 NoKernelData:
-  if (/*(KernelData == NULL) && */Entry->KernelAndKextPatches->KPDebug) {
+  if (DBG_ON(Entry)) {
     DBG_RT(Entry, "==> ERROR: Kernel not found\n");
     gBS->Stall(5000000);
   }

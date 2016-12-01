@@ -1674,7 +1674,7 @@ RefitMain (
 
         case TAG_TOOL:     // Start a EFI tool
           StartTool((LOADER_ENTRY *)ChosenEntry);
-          TerminateScreen(); //does not happen
+          //TerminateScreen(); //does not happen
           MainLoopRunning = FALSE;
           AfterTool = TRUE;
           break;

@@ -636,18 +636,20 @@ CopyKernelAndKextPatches (
   Dst->KPKernelPm    = Src->KPKernelPm;
   Dst->FakeCPUID     = Src->FakeCPUID;
 
-  if (Src->KPATIConnectorsController != NULL) {
-    Dst->KPATIConnectorsController = EfiStrDuplicate (Src->KPATIConnectorsController);
-  }
+  if (gSettings.HasGraphics->Ati) {
+    if (Src->KPATIConnectorsController != NULL) {
+      Dst->KPATIConnectorsController = EfiStrDuplicate (Src->KPATIConnectorsController);
+    }
 
-  if (
-    (Src->KPATIConnectorsDataLen > 0) &&
-    (Src->KPATIConnectorsData != NULL) &&
-    (Src->KPATIConnectorsPatch != NULL)
-  ) {
-    Dst->KPATIConnectorsDataLen = Src->KPATIConnectorsDataLen;
-    Dst->KPATIConnectorsData    = AllocateCopyPool (Src->KPATIConnectorsDataLen, Src->KPATIConnectorsData);
-    Dst->KPATIConnectorsPatch   = AllocateCopyPool (Src->KPATIConnectorsDataLen, Src->KPATIConnectorsPatch);
+    if (
+      (Src->KPATIConnectorsDataLen > 0) &&
+      (Src->KPATIConnectorsData != NULL) &&
+      (Src->KPATIConnectorsPatch != NULL)
+    ) {
+      Dst->KPATIConnectorsDataLen = Src->KPATIConnectorsDataLen;
+      Dst->KPATIConnectorsData    = AllocateCopyPool (Src->KPATIConnectorsDataLen, Src->KPATIConnectorsData);
+      Dst->KPATIConnectorsPatch   = AllocateCopyPool (Src->KPATIConnectorsDataLen, Src->KPATIConnectorsPatch);
+    }
   }
 
   if ((Src->NrForceKexts > 0) && (Src->ForceKexts != NULL)) {
@@ -813,46 +815,54 @@ FillinKextPatches (
   //Patches->KPLapicPanic = IsPropertyTrue (GetProperty (DictPointer, "KernelLapic"));
 
   //Patches->KPHaswellE = IsPropertyTrue (GetProperty (DictPointer, "KernelHaswellE"));
+  if (gSettings.HasGraphics->Ati) {
+    Prop = GetProperty (DictPointer, "ATIConnectorsController");
+    if (Prop != NULL) {
+      UINTN   len = 0, i=0;
 
-  Prop = GetProperty (DictPointer, "ATIConnectorsController");
-  if (Prop != NULL) {
-    UINTN   len = 0, i=0;
+      // ATIConnectors patch
+      Patches->KPATIConnectorsController = AllocateZeroPool (AsciiStrnLenS(Prop->string, 255) * sizeof(CHAR16) + 2);
+      AsciiStrToUnicodeStr (Prop->string, Patches->KPATIConnectorsController);
 
-    // ATIConnectors patch
-    Patches->KPATIConnectorsController = AllocateZeroPool (AsciiStrnLenS(Prop->string, 255) * sizeof(CHAR16) + 2);
-    AsciiStrToUnicodeStr (Prop->string, Patches->KPATIConnectorsController);
+      Patches->KPATIConnectorsData = GetDataSetting (DictPointer, "ATIConnectorsData", &len);
+      Patches->KPATIConnectorsDataLen = len;
+      Patches->KPATIConnectorsPatch = GetDataSetting (DictPointer, "ATIConnectorsPatch", &i);
 
-    Patches->KPATIConnectorsData = GetDataSetting (DictPointer, "ATIConnectorsData", &len);
-    Patches->KPATIConnectorsDataLen = len;
-    Patches->KPATIConnectorsPatch = GetDataSetting (DictPointer, "ATIConnectorsPatch", &i);
-
-    if (
-      (Patches->KPATIConnectorsData == NULL) ||
-      (Patches->KPATIConnectorsPatch == NULL) ||
-      (Patches->KPATIConnectorsDataLen == 0) ||
-      (Patches->KPATIConnectorsDataLen != i)
-    ) {
-      // invalid params - no patching
-      DBG ("ATIConnectors patch: invalid parameters!\n");
-
-      if (Patches->KPATIConnectorsController != NULL) {
-        FreePool (Patches->KPATIConnectorsController);
+      if (
+        (Patches->KPATIConnectorsData == NULL) ||
+        (Patches->KPATIConnectorsPatch == NULL) ||
+        (Patches->KPATIConnectorsDataLen == 0) ||
+        (Patches->KPATIConnectorsDataLen != i)
+      ) {
+        // invalid params - no patching
+        DBG ("ATIConnectors patch: invalid parameters!\n");
+        goto FreeAtiPatches;
+      } else {
+        goto PatchesNext;
       }
-
-      if (Patches->KPATIConnectorsData != NULL) {
-        FreePool (Patches->KPATIConnectorsData);
-      }
-
-      if (Patches->KPATIConnectorsPatch != NULL) {
-        FreePool (Patches->KPATIConnectorsPatch);
-      }
-
-      Patches->KPATIConnectorsController = NULL;
-      Patches->KPATIConnectorsData       = NULL;
-      Patches->KPATIConnectorsPatch      = NULL;
-      Patches->KPATIConnectorsDataLen    = 0;
     }
   }
+
+  FreeAtiPatches:
+
+  if (Patches->KPATIConnectorsController != NULL) {
+    FreePool (Patches->KPATIConnectorsController);
+  }
+
+  if (Patches->KPATIConnectorsData != NULL) {
+    FreePool (Patches->KPATIConnectorsData);
+  }
+
+  if (Patches->KPATIConnectorsPatch != NULL) {
+    FreePool (Patches->KPATIConnectorsPatch);
+  }
+
+  Patches->KPATIConnectorsController = NULL;
+  Patches->KPATIConnectorsData       = NULL;
+  Patches->KPATIConnectorsPatch      = NULL;
+  Patches->KPATIConnectorsDataLen    = 0;
+
+  PatchesNext:
 
   Prop = GetProperty (DictPointer, "ForceKextsToLoad");
   if (Prop != NULL) {
@@ -4359,6 +4369,10 @@ GetDevices () {
 
   DbgHeader("GetDevices");
 
+  gSettings.HasGraphics->Intel = FALSE;
+  gSettings.HasGraphics->Nvidia = FALSE;
+  gSettings.HasGraphics->Ati = FALSE;
+
   // Scan PCI handles
   Status = gBS->LocateHandleBuffer (
                   ByProtocol,
@@ -4434,14 +4448,16 @@ GetDevices () {
               //DBG (" (ATI/AMD) %a\n", gfx->Model);
               DBG (" (ATI/AMD)\n");
 
-              SlotDevice                  = &SlotDevices[0];
-              SlotDevice->SegmentGroupNum = (UINT16)Segment;
-              SlotDevice->BusNum          = (UINT8)Bus;
-              SlotDevice->DevFuncNum      = (UINT8)((Device << 3) | (Function & 0x07));
-              SlotDevice->Valid           = TRUE;
+              SlotDevice                    = &SlotDevices[0];
+              SlotDevice->SegmentGroupNum   = (UINT16)Segment;
+              SlotDevice->BusNum            = (UINT8)Bus;
+              SlotDevice->DevFuncNum        = (UINT8)((Device << 3) | (Function & 0x07));
+              SlotDevice->Valid             = TRUE;
               AsciiSPrint (SlotDevice->SlotName, 31, "PCI Slot 0");
-              SlotDevice->SlotID          = 1;
-              SlotDevice->SlotType        = SlotTypePciExpressX16;
+              SlotDevice->SlotID            = 1;
+              SlotDevice->SlotType          = SlotTypePciExpressX16;
+
+              gSettings.HasGraphics->Ati    = TRUE;
               break;
 
             case 0x8086:
@@ -4460,6 +4476,8 @@ GetDevices () {
                 SlotDevice->SlotID          = 0;
                 SlotDevice->SlotType        = SlotTypePciExpressX16;
               */
+
+              gSettings.HasGraphics->Intel  = TRUE;
               break;
 
             case 0x10de:
@@ -4483,16 +4501,18 @@ GetDevices () {
 
               //DBG (" (Nvidia) %a\n", gfx->Model);
               DBG (" (Nvidia)\n");
-              gfx->Ports                  = 0;
+              gfx->Ports                    = 0;
 
-              SlotDevice                  = &SlotDevices[1];
-              SlotDevice->SegmentGroupNum = (UINT16)Segment;
-              SlotDevice->BusNum          = (UINT8)Bus;
-              SlotDevice->DevFuncNum      = (UINT8)((Device << 3) | (Function & 0x07));
-              SlotDevice->Valid           = TRUE;
+              SlotDevice                    = &SlotDevices[1];
+              SlotDevice->SegmentGroupNum   = (UINT16)Segment;
+              SlotDevice->BusNum            = (UINT8)Bus;
+              SlotDevice->DevFuncNum        = (UINT8)((Device << 3) | (Function & 0x07));
+              SlotDevice->Valid             = TRUE;
               AsciiSPrint (SlotDevice->SlotName, 31, "PCI Slot 0");
-              SlotDevice->SlotID          = 1;
-              SlotDevice->SlotType        = SlotTypePciExpressX16;
+              SlotDevice->SlotID            = 1;
+              SlotDevice->SlotType          = SlotTypePciExpressX16;
+
+              gSettings.HasGraphics->Nvidia = TRUE;
               break;
 
             default:

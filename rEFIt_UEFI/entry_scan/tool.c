@@ -100,7 +100,6 @@ AddToolEntry (
   Entry->LoaderPath         = EfiStrDuplicate(LoaderPath);
   Entry->DevicePath         = FileDevicePath(Volume->DeviceHandle, Entry->LoaderPath);
   Entry->DevicePathString   = FileDevicePathToStr(Entry->DevicePath);
-  //Entry->LoadOptions        = Options ? Options : NULL;
   Entry->LoadOptions        = NULL;
   Entry->ToolOptions        = Options ? Options : NULL;
 
@@ -114,17 +113,12 @@ VOID
 ScanTool () {
   INTN    i;
 
-  //if (GlobalConfig.DisableFlags & HIDEUI_FLAG_TOOLS) {
-  //  return;
-  //}
-
   //Print(L"Scanning for tools...\n");
 
   // look for the EFI shell
   if (!(GlobalConfig.DisableFlags & HIDEUI_FLAG_SHELL)) {
     for (i = 0; i < ShellPathCount; ++i) {
       if (AddToolEntry (
-            //ShellPath[i],
             PoolPrint(L"%s\\%s", DIR_TOOLS, ShellPath[i]),
             NULL,
             L"UEFI Shell 64",
@@ -149,10 +143,6 @@ AddCustomTool () {
   CUSTOM_TOOL_ENTRY   *Custom;
   EG_IMAGE            *Image, *ImageHover = NULL;
   CHAR16              *ImageHoverPath;
-
-  //if (GlobalConfig.DisableFlags & HIDEUI_FLAG_TOOLS) {
-  //  return;
-  //}
 
   //DBG("Custom tool start\n");
   DbgHeader("AddCustomTool");

@@ -9,9 +9,10 @@
 #endif
 
 // runtime debug
+#define DBG_ON(entry) \
+  ((entry != NULL) && (entry->KernelAndKextPatches != NULL) && entry->KernelAndKextPatches->KPDebug)
 #define DBG_RT(entry, ...) \
-  if ((entry != NULL) && (entry->KernelAndKextPatches != NULL) && entry->KernelAndKextPatches->KPDebug) \
-    { AsciiPrint(__VA_ARGS__); }
+  if (DBG_ON(entry)) AsciiPrint(__VA_ARGS__)
 
 ////////////////////
 // globals
@@ -417,7 +418,7 @@ InjectKexts (
   KextCount = GetKextCount();
   if (KextCount == 0) {
     DBG_RT(Entry, "no kexts to inject.\nPausing 5 secs ...\n");
-    if (Entry->KernelAndKextPatches->KPDebug) {
+    if (DBG_ON(Entry)) {
       gBS->Stall(5000000);
     }
 
@@ -466,7 +467,7 @@ InjectKexts (
     (drvPtr > extraPtr) ||
     (infoPtr > extraPtr)
   ) {
-    if (Entry->KernelAndKextPatches->KPDebug) {
+    if (DBG_ON(Entry)) {
       Print(L"\nInvalid device tree for kext injection\n");
       gBS->Stall(5000000);
     }
@@ -515,17 +516,18 @@ InjectKexts (
         Entry->KernelAndKextPatches->NrKexts &&
         KernelAndKextPatcherInit(Entry)
       ) {
-        INT32     i;
-        CHAR8     SavedValue, *InfoPlist = (CHAR8*)(UINTN)drvinfo->infoDictPhysAddr;
+        INT32   i;
+        CHAR8   SavedValue, *InfoPlist = (CHAR8*)(UINTN)drvinfo->infoDictPhysAddr,
+                *gKextBundleIdentifier = ExtractKextBundleIdentifier(InfoPlist);
 
         SavedValue = InfoPlist[drvinfo->infoDictLength];
         InfoPlist[drvinfo->infoDictLength] = '\0';
         //KernelAndKextPatcherInit(Entry);
         for (i = 0; i < Entry->KernelAndKextPatches->NrKexts; i++) {
           if (
-            (Entry->KernelAndKextPatches->KextPatches[i].DataLen > 0) &&
-            (AsciiStrStr(InfoPlist, Entry->KernelAndKextPatches->KextPatches[i].Name) != NULL)
+            isPatchNameMatch(gKextBundleIdentifier, Entry->KernelAndKextPatches->KextPatches[i].Name)
           ) {
+            DBG_RT(Entry, "Kext: %a\n", gKextBundleIdentifier);
             AnyKextPatch (
               (UINT8*)(UINTN)drvinfo->executablePhysAddr,
               drvinfo->executableLength,
@@ -544,7 +546,7 @@ InjectKexts (
     }
   }
 
-   if (Entry->KernelAndKextPatches->KPDebug) {
+  if (DBG_ON(Entry)) {
     DBG_RT(Entry, "Done.\n");
     gBS->Stall(5000000);
   }
@@ -620,7 +622,7 @@ KernelBooterExtensionsPatch (
 
   DBG_RT(Entry, ": %d replaces done\n", Num);
 
-  if (Entry->KernelAndKextPatches->KPDebug) {
+  if (DBG_ON(Entry)) {
     DBG_RT(Entry, "Pausing 5 secs ...\n");
     gBS->Stall(5000000);
   }

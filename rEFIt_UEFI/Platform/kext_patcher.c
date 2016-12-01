@@ -14,9 +14,10 @@
 #endif
 
 // runtime debug
+#define DBG_ON(entry) \
+  ((entry != NULL) && (entry->KernelAndKextPatches != NULL) && entry->KernelAndKextPatches->KPDebug)
 #define DBG_RT(entry, ...) \
-  if ((entry != NULL) && (entry->KernelAndKextPatches != NULL) && entry->KernelAndKextPatches->KPDebug) \
-      { AsciiPrint(__VA_ARGS__); }
+  if (DBG_ON(entry)) AsciiPrint(__VA_ARGS__)
 
 //
 // Searches Source for Search pattern of size SearchSize
@@ -154,31 +155,28 @@ SearchAndReplaceTxt (
   return NumReplaces;
 }
 
-/** Global for storing KextBoundleIdentifier */
-CHAR8 gKextBoundleIdentifier[256];
-
-/** Extracts kext BoundleIdentifier from given Plist into gKextBoundleIdentifier */
-VOID
-ExtractKextBoundleIdentifier (
+/** Extracts kext BundleIdentifier from given Plist into gKextBundleIdentifier */
+CHAR8
+*ExtractKextBundleIdentifier (
   CHAR8     *Plist
 ) {
   CHAR8     *Tag, *BIStart, *BIEnd;
   INTN      DictLevel = 0;
+  CHAR8     gKextBundleIdentifier[256];
 
-
-  gKextBoundleIdentifier[0] = '\0';
+  gKextBundleIdentifier[0] = '\0';
 
   // start with first <dict>
   Tag = AsciiStrStr(Plist, "<dict>");
   if (Tag == NULL) {
-    return;
+    //return gKextBundleIdentifier;
+    goto Finish;
   }
 
   Tag += 6;
   DictLevel++;
 
   while (*Tag != '\0') {
-
     if (AsciiStrnCmp(Tag, "<dict>", 6) == 0) {
       // opening dict
       DictLevel++;
@@ -187,16 +185,17 @@ ExtractKextBoundleIdentifier (
       // closing dict
       DictLevel--;
       Tag += 7;
-    } else if (DictLevel == 1 && AsciiStrnCmp(Tag, "<key>CFBundleIdentifier</key>", 29) == 0) {
+    } else if ((DictLevel == 1) && (AsciiStrnCmp(Tag, "<key>CFBundleIdentifier</key>", 29) == 0)) {
       // BundleIdentifier is next <string>...</string>
       BIStart = AsciiStrStr(Tag + 29, "<string>");
       if (BIStart != NULL) {
         BIStart += 8; // skip "<string>"
         BIEnd = AsciiStrStr(BIStart, "</string>");
-        if (BIEnd != NULL && (BIEnd - BIStart + 1) < sizeof(gKextBoundleIdentifier)) {
-          CopyMem(gKextBoundleIdentifier, BIStart, BIEnd - BIStart);
-          gKextBoundleIdentifier[BIEnd - BIStart] = '\0';
-          return;
+        if ((BIEnd != NULL) && ((BIEnd - BIStart + 1) < sizeof(gKextBundleIdentifier))) {
+          CopyMem(gKextBundleIdentifier, BIStart, BIEnd - BIStart);
+          gKextBundleIdentifier[BIEnd - BIStart] = '\0';
+          //return;
+          goto Finish;
         }
       }
       Tag++;
@@ -209,6 +208,22 @@ ExtractKextBoundleIdentifier (
       Tag++;
     }
   }
+
+  Finish:
+
+  return AllocateCopyPool(sizeof(gKextBundleIdentifier), gKextBundleIdentifier);
+}
+
+BOOLEAN
+isPatchNameMatch (
+  CHAR8   *BundleIdentifier,
+  CHAR8   *Name
+) {
+  BOOLEAN   isBundle = (AsciiStrStr(Name, ".") != NULL);
+  return
+    isBundle
+      ? (AsciiStrCmp(BundleIdentifier, Name) == 0)
+      : (AsciiStrStr(BundleIdentifier, Name) == 0);
 }
 
 ////////////////////////////////////
@@ -221,42 +236,56 @@ ExtractKextBoundleIdentifier (
 // inited or not?
 BOOLEAN ATIConnectorsPatchInited = FALSE;
 
-// ATIConnectorsController's boundle IDs for
+// ATIConnectorsController's bundle IDs for
 // 0: ATI version - Lion, SnowLeo 10.6.7 2011 MBP
 // 1: AMD version - ML
-CHAR8 ATIKextBoundleId[2][64];
+CHAR8 ATIKextBundleId[4][64];
 
 //
-// Inits patcher: prepares ATIKextBoundleIds.
+// Inits patcher: prepares ATIKextBundleIds.
 //
 VOID
 ATIConnectorsPatchInit (
   LOADER_ENTRY    *Entry
 ) {
   //
-  // prepar boundle ids
+  // prepar bundle ids
   //
 
   // Lion, SnowLeo 10.6.7 2011 MBP
   AsciiSPrint (
-    ATIKextBoundleId[0],
-    sizeof(ATIKextBoundleId[0]),
+    ATIKextBundleId[0],
+    sizeof(ATIKextBundleId[0]),
     "com.apple.kext.ATI%sController",
     Entry->KernelAndKextPatches->KPATIConnectorsController
   );
 
   // ML
   AsciiSPrint (
-    ATIKextBoundleId[1],
-    sizeof(ATIKextBoundleId[1]),
+    ATIKextBundleId[1],
+    sizeof(ATIKextBundleId[1]),
     "com.apple.kext.AMD%sController",
     Entry->KernelAndKextPatches->KPATIConnectorsController
   );
 
+  AsciiSPrint (
+    ATIKextBundleId[2],
+    sizeof(ATIKextBundleId[2]),
+    "com.apple.kext.ATIFramebuffer"
+  );
+
+  AsciiSPrint (
+    ATIKextBundleId[3],
+    sizeof(ATIKextBundleId[3]),
+    "com.apple.kext.AMDFramebuffer"
+  );
+
   ATIConnectorsPatchInited = TRUE;
 
-  //DBG(L"Boundle1: %a\n", ATIKextBoundleId[0]);
-  //DBG(L"Boundle2: %a\n", ATIKextBoundleId[1]);
+  //DBG(L"Bundle1: %a\n", ATIKextBundleId[0]);
+  //DBG(L"Bundle2: %a\n", ATIKextBundleId[1]);
+  //DBG(L"Bundle3: %a\n", ATIKextBundleId[2]);
+  //DBG(L"Bundle4: %a\n", ATIKextBundleId[3]);
   //gBS->Stall(10000000);
 }
 
@@ -305,15 +334,10 @@ ATIConnectorsPatch (
   UINT32        InfoPlistSize,
   LOADER_ENTRY  *Entry
 ) {
-
   UINTN   Num = 0;
 
   DBG_RT(Entry, "\nATIConnectorsPatch: driverAddr = %x, driverSize = %x\nController = %s\n",
          Driver, DriverSize, Entry->KernelAndKextPatches->KPATIConnectorsController);
-
-  ExtractKextBoundleIdentifier(InfoPlist);
-
-  DBG_RT(Entry, "Kext: %a\n", gKextBoundleIdentifier);
 
   // number of occurences od Data should be 1
   Num = SearchAndCount (
@@ -325,7 +349,7 @@ ATIConnectorsPatch (
 
   if (Num > 1) {
     // error message - shoud always be printed
-    Print(L"==> KPATIConnectorsData found %d times in %a - skip patching!\n", Num, gKextBoundleIdentifier);
+    Print(L"==> KPATIConnectorsData found %d times - skip patching!\n", Num);
     //gBS->Stall(5*1000000);
     return;
   }
@@ -340,7 +364,7 @@ ATIConnectorsPatch (
           1
         );
 
-  if (Entry->KernelAndKextPatches->KPDebug) {
+  if (DBG_ON(Entry)) {
     if (Num > 0) {
       DBG_RT(Entry, "==> patched %d times!\n", Num);
     } else {
@@ -378,12 +402,6 @@ AsusAICPUPMPatch (
   UINTN   Index1, Index2, Count = 0;
 
   DBG_RT(Entry, "\nAsusAICPUPMPatch: driverAddr = %x, driverSize = %x\n", Driver, DriverSize);
-
-  if (Entry->KernelAndKextPatches->KPDebug) {
-    ExtractKextBoundleIdentifier(InfoPlist);
-  }
-
-  DBG_RT(Entry, "Kext: %a\n", gKextBoundleIdentifier);
 
   //TODO: we should scan only __text __TEXT
   for (Index1 = 0; Index1 < DriverSize; Index1++) {
@@ -435,7 +453,7 @@ AsusAICPUPMPatch (
 
   DBG_RT(Entry, "= %d patches\n", Count);
 
-  if (Entry->KernelAndKextPatches->KPDebug) {
+  if (DBG_ON(Entry)) {
     gBS->Stall(5000000);
   }
 }
@@ -464,7 +482,7 @@ AnyKextPatch (
   LOADER_ENTRY  *Entry
 ) {
   UINTN   Num = 0;
-  INTN    Ind;
+  //INTN    Ind;
 
   DBG_RT(Entry, "\nAnyKextPatch %d: driverAddr = %x, driverSize = %x\nAnyKext = %a\n",
          N, Driver, DriverSize, Entry->KernelAndKextPatches->KextPatches[N].Label);
@@ -474,13 +492,36 @@ AnyKextPatch (
     return;
   }
 
-  if (Entry->KernelAndKextPatches->KPDebug) {
-    ExtractKextBoundleIdentifier(InfoPlist);
-  }
+  //DBG_RT(Entry, "Kext: %a\n", gKextBundleIdentifier);
 
-  DBG_RT(Entry, "Kext: %a\n", gKextBoundleIdentifier);
+  if (Entry->KernelAndKextPatches->KextPatches[N].IsPlistPatch) {
+    // Info plist patch
+    DBG_RT(Entry, "Info.plist patch\n");
+    /*
+      DBG_RT(Entry, "Info.plist data : '");
 
-  if (!Entry->KernelAndKextPatches->KextPatches[N].IsPlistPatch) {
+      for (Ind = 0; Ind < Entry->KernelAndKextPatches->KextPatches[N].DataLen; Ind++) {
+        DBG_RT(Entry, "%c", Entry->KernelAndKextPatches->KextPatches[N].Data[Ind]);
+      }
+
+      DBG_RT(Entry, "' ->\n");
+      DBG_RT(Entry, "Info.plist patch: '");
+
+      for (Ind = 0; Ind < Entry->KernelAndKextPatches->KextPatches[N].DataLen; Ind++) {
+        DBG_RT(Entry, "%c", Entry->KernelAndKextPatches->KextPatches[N].Patch[Ind]);
+      }
+
+      DBG_RT(Entry, "' \n");
+    */
+    Num = SearchAndReplaceTxt (
+            (UINT8*)InfoPlist,
+            InfoPlistSize,
+            Entry->KernelAndKextPatches->KextPatches[N].Data,
+            Entry->KernelAndKextPatches->KextPatches[N].DataLen,
+            Entry->KernelAndKextPatches->KextPatches[N].Patch,
+            -1
+          );
+  } else {
     // kext binary patch
     DBG_RT(Entry, "Binary patch\n");
     Num = SearchAndReplace (
@@ -491,34 +532,9 @@ AnyKextPatch (
             Entry->KernelAndKextPatches->KextPatches[N].Patch,
             -1
           );
-  } else {
-    // Info plist patch
-    DBG_RT(Entry, "Info.plist data : '");
-
-    for (Ind = 0; Ind < Entry->KernelAndKextPatches->KextPatches[N].DataLen; Ind++) {
-      DBG_RT(Entry, "%c", Entry->KernelAndKextPatches->KextPatches[N].Data[Ind]);
-    }
-
-    DBG_RT(Entry, "' ->\n");
-    DBG_RT(Entry, "Info.plist patch: '");
-
-    for (Ind = 0; Ind < Entry->KernelAndKextPatches->KextPatches[N].DataLen; Ind++) {
-      DBG_RT(Entry, "%c", Entry->KernelAndKextPatches->KextPatches[N].Patch[Ind]);
-    }
-
-    DBG_RT(Entry, "' \n");
-
-    Num = SearchAndReplaceTxt (
-            (UINT8*)InfoPlist,
-            InfoPlistSize,
-            Entry->KernelAndKextPatches->KextPatches[N].Data,
-            Entry->KernelAndKextPatches->KextPatches[N].DataLen,
-            Entry->KernelAndKextPatches->KextPatches[N].Patch,
-            -1
-          );
   }
 
-  if (Entry->KernelAndKextPatches->KPDebug) {
+  if (DBG_ON(Entry)) {
     if (Num > 0) {
       DBG_RT(Entry, "==> patched %d times!\n", Num);
     } else {
@@ -566,6 +582,7 @@ PatchKext (
   LOADER_ENTRY  *Entry
 ) {
   INT32   i;
+  CHAR8   *gKextBundleIdentifier = ExtractKextBundleIdentifier(InfoPlist);
 
   if (Entry->KernelAndKextPatches->KPATIConnectorsController != NULL) {
     //
@@ -574,12 +591,14 @@ PatchKext (
     if (!ATIConnectorsPatchInited) {
       ATIConnectorsPatchInit(Entry);
     }
+
     if (
-      (AsciiStrStr(InfoPlist, ATIKextBoundleId[0]) != NULL) ||  // ATI boundle id
-      (AsciiStrStr(InfoPlist, ATIKextBoundleId[1]) != NULL) ||  // AMD boundle id
-      (AsciiStrStr(InfoPlist, "com.apple.kext.ATIFramebuffer") != NULL) || // SnowLeo
-      (AsciiStrStr(InfoPlist, "com.apple.kext.AMDFramebuffer") != NULL) //Maverics
+      isPatchNameMatch(gKextBundleIdentifier, ATIKextBundleId[0]) ||
+      isPatchNameMatch(gKextBundleIdentifier, ATIKextBundleId[1]) ||
+      isPatchNameMatch(gKextBundleIdentifier, ATIKextBundleId[2]) ||
+      isPatchNameMatch(gKextBundleIdentifier, ATIKextBundleId[3])
     ) {
+      DBG_RT(Entry, "Kext: %a\n", gKextBundleIdentifier);
       ATIConnectorsPatch(Driver, DriverSize, InfoPlist, InfoPlistSize, Entry);
       return;
     }
@@ -587,22 +606,22 @@ PatchKext (
 
   if (
     Entry->KernelAndKextPatches->KPAsusAICPUPM &&
-    (AsciiStrStr(InfoPlist, "<string>com.apple.driver.AppleIntelCPUPowerManagement</string>") != NULL)
+    isPatchNameMatch(gKextBundleIdentifier, "com.apple.driver.AppleIntelCPUPowerManagement")
   ) {
     //
     // AsusAICPUPM
     //
+    DBG_RT(Entry, "Kext: %a\n", gKextBundleIdentifier);
     AsusAICPUPMPatch(Driver, DriverSize, InfoPlist, InfoPlistSize, Entry);
   } else {
     //
-    //others
+    // others
     //
     for (i = 0; i < Entry->KernelAndKextPatches->NrKexts; i++) {
       if (
-        (Entry->KernelAndKextPatches->KextPatches[i].DataLen > 0) &&
-        (AsciiStrStr(InfoPlist, Entry->KernelAndKextPatches->KextPatches[i].Name) != NULL)
+        isPatchNameMatch(gKextBundleIdentifier, Entry->KernelAndKextPatches->KextPatches[i].Name)
       ) {
-        DBG_RT(Entry, "\n\nPatch kext: %a\n", Entry->KernelAndKextPatches->KextPatches[i].Name);
+        DBG_RT(Entry, "Kext: %a\n", gKextBundleIdentifier);
         AnyKextPatch(Driver, DriverSize, InfoPlist, InfoPlistSize, i, Entry);
       }
     }
@@ -934,14 +953,14 @@ KextPatcherStart (
 ) {
   if (isKernelcache) {
     DBG_RT(Entry, "Patching kernelcache ...\n");
-    if (Entry->KernelAndKextPatches->KPDebug) {
+    if (DBG_ON(Entry)) {
       gBS->Stall(2000000);
     }
 
     PatchPrelinkedKexts(Entry);
   } else {
     DBG_RT(Entry, "Patching loaded kexts ...\n");
-    if (Entry->KernelAndKextPatches->KPDebug) {
+    if (DBG_ON(Entry)) {
       gBS->Stall(2000000);
     }
 

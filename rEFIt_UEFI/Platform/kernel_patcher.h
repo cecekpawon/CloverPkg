@@ -140,5 +140,15 @@ UINTN SearchAndCount(UINT8 *Source, UINT32 SourceSize, UINT8 *Search, UINTN Sear
 //
 UINTN SearchAndReplace(UINT8 *Source, UINT32 SourceSize, UINT8 *Search, UINTN SearchSize, UINT8 *Replace, INTN MaxReplaces);
 
+CHAR8
+*ExtractKextBundleIdentifier (
+  CHAR8     *Plist
+);
+
+BOOLEAN
+isPatchNameMatch (
+  CHAR8   *BundleIdentifier,
+  CHAR8   *Name
+);
 
 #endif /* !__LIBSAIO_KERNEL_PATCHER_H */

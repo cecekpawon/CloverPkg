@@ -720,6 +720,14 @@ struct ACPI_PATCHED_AML
   INPUT_ITEM          MenuItem;
 };
 
+typedef struct S_HAS_GRAPHICS S_HAS_GRAPHICS;
+struct S_HAS_GRAPHICS
+{
+  BOOLEAN     Intel;
+  BOOLEAN     Nvidia;
+  BOOLEAN     Ati;
+};
+
 // CONFIGS
 typedef struct S_FILES S_FILES;
 struct S_FILES
@@ -855,6 +863,7 @@ typedef struct {
   INT8                    BootDisplay;
   UINT32                  DualLink;
   UINT32                  IgPlatform;
+  S_HAS_GRAPHICS          *HasGraphics;
 
   // HDA
   INT32                   HDALayoutId;
