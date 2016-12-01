@@ -219,9 +219,8 @@ isPatchNameMatch (
   CHAR8   *BundleIdentifier,
   CHAR8   *Name
 ) {
-  BOOLEAN   isBundle = (AsciiStrStr(Name, ".") != NULL);
   return
-    isBundle
+    (AsciiStrStr(Name, ".") != NULL)
       ? (AsciiStrCmp(BundleIdentifier, Name) == 0)
       : (AsciiStrStr(BundleIdentifier, Name) == 0);
 }
@@ -584,7 +583,15 @@ PatchKext (
   INT32   i;
   CHAR8   *gKextBundleIdentifier = ExtractKextBundleIdentifier(InfoPlist);
 
-  if (Entry->KernelAndKextPatches->KPATIConnectorsController != NULL) {
+  if (
+    (Entry->KernelAndKextPatches->KPATIConnectorsController != NULL) &&
+    (
+      isPatchNameMatch(gKextBundleIdentifier, ATIKextBundleId[0]) ||
+      isPatchNameMatch(gKextBundleIdentifier, ATIKextBundleId[1]) ||
+      isPatchNameMatch(gKextBundleIdentifier, ATIKextBundleId[2]) ||
+      isPatchNameMatch(gKextBundleIdentifier, ATIKextBundleId[3])
+    )
+  ) {
     //
     // ATIConnectors
     //
@@ -592,19 +599,9 @@ PatchKext (
       ATIConnectorsPatchInit(Entry);
     }
 
-    if (
-      isPatchNameMatch(gKextBundleIdentifier, ATIKextBundleId[0]) ||
-      isPatchNameMatch(gKextBundleIdentifier, ATIKextBundleId[1]) ||
-      isPatchNameMatch(gKextBundleIdentifier, ATIKextBundleId[2]) ||
-      isPatchNameMatch(gKextBundleIdentifier, ATIKextBundleId[3])
-    ) {
-      DBG_RT(Entry, "Kext: %a\n", gKextBundleIdentifier);
-      ATIConnectorsPatch(Driver, DriverSize, InfoPlist, InfoPlistSize, Entry);
-      return;
-    }
-  }
-
-  if (
+    DBG_RT(Entry, "Kext: %a\n", gKextBundleIdentifier);
+    ATIConnectorsPatch(Driver, DriverSize, InfoPlist, InfoPlistSize, Entry);
+  } else if (
     Entry->KernelAndKextPatches->KPAsusAICPUPM &&
     isPatchNameMatch(gKextBundleIdentifier, "com.apple.driver.AppleIntelCPUPowerManagement")
   ) {
@@ -626,6 +623,8 @@ PatchKext (
       }
     }
   }
+
+  FreePool(gKextBundleIdentifier);
 }
 
 //

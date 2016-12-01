@@ -540,6 +540,7 @@ InjectKexts (
         }
 
         InfoPlist[drvinfo->infoDictLength] = SavedValue;
+        FreePool(gKextBundleIdentifier);
       }
 
       Index++;
