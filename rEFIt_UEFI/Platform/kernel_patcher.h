@@ -78,9 +78,9 @@ extern BOOLEAN      is64BitKernel;
 // - 64bit segCmd64->vmaddr is 0xffffff80xxxxxxxx and we are taking
 //   only lower 32bit part into PrelinkTextAddr
 // - PrelinkTextAddr is segCmd64->vmaddr + KernelRelocBase
-extern UINT32       PrelinkTextLoadCmdAddr;
-extern UINT32       PrelinkTextAddr;
-extern UINT32       PrelinkTextSize;
+//extern UINT32       PrelinkTextLoadCmdAddr;
+//extern UINT32       PrelinkTextAddr;
+//extern UINT32       PrelinkTextSize;
 
 // notes:
 // - 64bit sect->addr is 0xffffff80xxxxxxxx and we are taking
@@ -88,7 +88,7 @@ extern UINT32       PrelinkTextSize;
 // - PrelinkInfoAddr is sect->addr + KernelRelocBase
 //extern UINT32       PrelinkInfoLoadCmdAddr;
 extern UINT32       PrelinkInfoAddr;
-//extern UINT32       PrelinkInfoSize;
+extern UINT32       PrelinkInfoSize;
 //
 //extern UINT32 DisplayVendor[];
 //VOID findCPUfamily();

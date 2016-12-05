@@ -36,7 +36,8 @@ struct mach_header_64 {
 /* Constant for the magic field of the mach_header_64 (64-bit architectures) */
 #define MH_MAGIC_64     0xfeedfacf  /* the 64-bit mach magic number */
 #define MH_CIGAM_64     0xcffaedfe  /* NXSwapInt(MH_MAGIC_64) */
-#define LC_SEGMENT      0x1         /* segment of this file to be mapped */
+//#define LC_SEGMENT      0x1         /* segment of this file to be mapped */
+#define LC_SYMTAB       0x2 /* link-edit stab symbol table info */
 #define LC_SEGMENT_64   0x19        /* 64-bit segment of this file to be mapped */
 
 struct segment_command_64 {         /* for 64-bit architectures */
@@ -71,6 +72,34 @@ struct section_64 {                 /* for 64-bit architectures */
 struct load_command {
   UINT32 cmd;                       /* type of load command */
   UINT32 cmdsize;                   /* total size of command in bytes */
+};
+
+/*
+ * This is the symbol table entry structure for 64-bit architectures.
+ */
+struct nlist_64 {
+    union {
+      uint32_t  n_strx;   /* index into the string table */
+    } n_un;
+
+    uint8_t n_type;       /* type flag, see below */
+    uint8_t n_sect;       /* section number or NO_SECT */
+    uint16_t n_desc;      /* see <mach-o/stab.h> */
+    uint64_t n_value;     /* value of this symbol (or stab offset) */
+};
+
+/*
+ * The symtab_command contains the offsets and sizes of the link-edit 4.3BSD
+ * "stab" style symbol table information as described in the header files
+ * <nlist.h> and <stab.h>.
+ */
+struct symtab_command {
+  uint32_t  cmd;      /* LC_SYMTAB */
+  uint32_t  cmdsize;  /* sizeof(struct symtab_command) */
+  uint32_t  symoff;   /* symbol table offset */
+  uint32_t  nsyms;    /* number of symbol table entries */
+  uint32_t  stroff;   /* string table offset */
+  uint32_t  strsize;  /* string table size in bytes */
 };
 
 #endif /* _UEFI_MACHO_LOADER_H_ */

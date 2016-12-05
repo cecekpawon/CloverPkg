@@ -10,9 +10,11 @@
 
 // runtime debug
 #define DBG_ON(entry) \
-  ((entry != NULL) && (entry->KernelAndKextPatches != NULL) && entry->KernelAndKextPatches->KPDebug)
+  ((entry != NULL) && (entry->KernelAndKextPatches != NULL) /*&& entry->KernelAndKextPatches->KPDebug*/ && OSFLAG_ISSET(gSettings.FlagsBits, OSFLAG_DBGPATCHES))
 #define DBG_RT(entry, ...) \
   if (DBG_ON(entry)) AsciiPrint(__VA_ARGS__)
+#define DBG_PAUSE(entry, s) \
+  if (DBG_ON(entry)) gBS->Stall(s * 1000000)
 
 ////////////////////
 // globals
@@ -418,9 +420,7 @@ InjectKexts (
   KextCount = GetKextCount();
   if (KextCount == 0) {
     DBG_RT(Entry, "no kexts to inject.\nPausing 5 secs ...\n");
-    if (DBG_ON(Entry)) {
-      gBS->Stall(5000000);
-    }
+    DBG_PAUSE(Entry, 5);
 
     return EFI_NOT_FOUND;
   }
@@ -467,10 +467,8 @@ InjectKexts (
     (drvPtr > extraPtr) ||
     (infoPtr > extraPtr)
   ) {
-    if (DBG_ON(Entry)) {
-      Print(L"\nInvalid device tree for kext injection\n");
-      gBS->Stall(5000000);
-    }
+    DBG_RT(Entry, "\nInvalid device tree for kext injection\n");
+    DBG_PAUSE(Entry, 5);
 
     return EFI_INVALID_PARAMETER;
   }
@@ -547,84 +545,8 @@ InjectKexts (
     }
   }
 
-  if (DBG_ON(Entry)) {
-    DBG_RT(Entry, "Done.\n");
-    gBS->Stall(5000000);
-  }
+  DBG_RT(Entry, "Done.\n");
+  DBG_PAUSE(Entry, 5);
 
   return EFI_SUCCESS;
-}
-
-
-////////////////////////////////////
-//
-// KernelBooterExtensionsPatch to load extra kexts besides kernelcache
-//
-//
-UINT8 KBELionSearch_X64[]     = { 0xE8, 0x0C, 0xFD, 0xFF, 0xFF, 0xEB, 0x08, 0x48, 0x89, 0xDF };
-UINT8 KBELionReplace_X64[]    = { 0xE8, 0x0C, 0xFD, 0xFF, 0xFF, 0x90, 0x90, 0x48, 0x89, 0xDF };
-
-UINT8 KBEMLSearch[]           = { 0xC6, 0xE8, 0x30, 0x00, 0x00, 0x00, 0xEB, 0x08, 0x48, 0x89, 0xDF };
-UINT8 KBEMLReplace[]          = { 0xC6, 0xE8, 0x30, 0x00, 0x00, 0x00, 0x90, 0x90, 0x48, 0x89, 0xDF };
-
-// -- startupExt -->
-UINT8 KBEYosSearch[]          = { 0xE8, 0x25, 0x00, 0x00, 0x00, 0xEB, 0x05, 0xE8, 0xCE, 0x02, 0x00, 0x00 };
-UINT8 KBEYosReplace[]         = { 0xE8, 0x25, 0x00, 0x00, 0x00, 0x90, 0x90, 0xE8, 0xCE, 0x02, 0x00, 0x00 };
-
-// 10.12 dp2
-UINT8 KBEYosSearch2[]         = { 0xE8, 0x25, 0x00, 0x00, 0x00, 0xEB, 0x05, 0xE8, 0x7E, 0x05, 0x00, 0x00 };
-UINT8 KBEYosReplace2[]        = { 0xE8, 0x25, 0x00, 0x00, 0x00, 0x90, 0x90, 0xE8, 0x7E, 0x05, 0x00, 0x00 };
-// -- startupExt <--
-
-// as of El Capitan DP6
-UINT8 KBEECSearch[]           = { 0xC3, 0x48, 0x85, 0xDB, 0x74, 0x70, 0x48, 0x8B, 0x03, 0x48, 0x89, 0xDF, 0xFF, 0x50, 0x28, 0x48 };
-UINT8 KBEECReplace[]          = { 0xC3, 0x48, 0x85, 0xDB, 0xEB, 0x12, 0x48, 0x8B, 0x03, 0x48, 0x89, 0xDF, 0xFF, 0x50, 0x28, 0x48 };
-
-//sherlocks: Sierra DP1
-UINT8 KBESieSearch[]          = { 0xC3, 0x48, 0x85, 0xDB, 0x74, 0x71, 0x48, 0x8B, 0x03, 0x48, 0x89, 0xDF, 0xFF, 0x50, 0x28, 0x48 };
-UINT8 KBESieReplace[]         = { 0xC3, 0x48, 0x85, 0xDB, 0xEB, 0x12, 0x48, 0x8B, 0x03, 0x48, 0x89, 0xDF, 0xFF, 0x50, 0x28, 0x48 };
-
-//
-// We can not rely on OSVersion global variable for OS version detection,
-// since in some cases it is not correct (install of ML from Lion, for example).
-// So, we'll use "brute-force" method - just try to patch.
-// Actually, we'll at least check that if we can find only one instance of code that
-// we are planning to patch.
-//
-
-VOID
-EFIAPI
-KernelBooterExtensionsPatch (
-  IN UINT8        *Kernel,
-  LOADER_ENTRY    *Entry
-) {
-  UINTN   Num = 0;
-
-  if (!is64BitKernel) {
-    return;
-  }
-
-  DBG_RT(Entry, "\n\nPatching kernel for injected kexts:\n");
-
-  //startupExt
-  Num = FSearchReplace(Kernel, KBEYosSearch2, KBEYosReplace2) +
-        FSearchReplace(Kernel, KBEYosSearch, KBEYosReplace);
-
-  if (Num) {
-    Num +=  FSearchReplace(Kernel, KBESieSearch, KBESieReplace) +
-            FSearchReplace(Kernel, KBEECSearch, KBEECReplace);
-    DBG_RT(Entry, "==> kernel 10.12/10.11/10.10");
-  } else {
-    //Wheres Mavericks?
-    Num = FSearchReplace(Kernel, KBEMLSearch, KBEMLReplace) +
-          FSearchReplace(Kernel, KBELionSearch_X64, KBELionReplace_X64);
-    DBG_RT(Entry, "==> kernel 10.8/10.7");
-  }
-
-  DBG_RT(Entry, ": %d replaces done\n", Num);
-
-  if (DBG_ON(Entry)) {
-    DBG_RT(Entry, "Pausing 5 secs ...\n");
-    gBS->Stall(5000000);
-  }
 }

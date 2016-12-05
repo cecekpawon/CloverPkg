@@ -834,6 +834,10 @@ AddLoaderEntry (
         Entry->Flags = OSFLAG_SET(Entry->Flags, OSFLAG_WITHKEXTS);
       }
 
+      if (OSFLAG_ISSET(gSettings.FlagsBits, OSFLAG_DBGPATCHES)) {
+        Entry->Flags = OSFLAG_SET(Entry->Flags, OSFLAG_DBGPATCHES);
+      }
+
       if (gSettings.NoCaches) {
         Entry->Flags = OSFLAG_SET(Entry->Flags, OSFLAG_NOCACHES);
       }

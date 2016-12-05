@@ -18,6 +18,8 @@
   ((entry != NULL) && (entry->KernelAndKextPatches != NULL) && entry->KernelAndKextPatches->KPDebug)
 #define DBG_RT(entry, ...) \
   if (DBG_ON(entry)) AsciiPrint(__VA_ARGS__)
+#define DBG_PAUSE(entry, s) \
+  if (DBG_ON(entry)) gBS->Stall(s * 1000000)
 
 //
 // Searches Source for Search pattern of size SearchSize
@@ -160,9 +162,9 @@ CHAR8
 *ExtractKextBundleIdentifier (
   CHAR8     *Plist
 ) {
-  CHAR8     *Tag, *BIStart, *BIEnd;
+  CHAR8     *Tag, *BIStart, *BIEnd,
+            gKextBundleIdentifier[256];
   INTN      DictLevel = 0;
-  CHAR8     gKextBundleIdentifier[256];
 
   gKextBundleIdentifier[0] = '\0';
 
@@ -285,7 +287,7 @@ ATIConnectorsPatchInit (
   //DBG(L"Bundle2: %a\n", ATIKextBundleId[1]);
   //DBG(L"Bundle3: %a\n", ATIKextBundleId[2]);
   //DBG(L"Bundle4: %a\n", ATIKextBundleId[3]);
-  //gBS->Stall(10000000);
+  //DBG_PAUSE(Entry, 5);
 }
 
 //
@@ -348,8 +350,8 @@ ATIConnectorsPatch (
 
   if (Num > 1) {
     // error message - shoud always be printed
-    Print(L"==> KPATIConnectorsData found %d times - skip patching!\n", Num);
-    //gBS->Stall(5*1000000);
+    DBG_RT(Entry, "==> KPATIConnectorsData found %d times - skip patching!\n", Num);
+    //DBG_PAUSE(Entry, 5);
     return;
   }
 
@@ -363,15 +365,13 @@ ATIConnectorsPatch (
           1
         );
 
-  if (DBG_ON(Entry)) {
-    if (Num > 0) {
-      DBG_RT(Entry, "==> patched %d times!\n", Num);
-    } else {
-      DBG_RT(Entry, "==> NOT patched!\n");
-    }
-
-    gBS->Stall(5000000);
+  if (Num > 0) {
+    DBG_RT(Entry, "==> patched %d times!\n", Num);
+  } else {
+    DBG_RT(Entry, "==> NOT patched!\n");
   }
+
+  DBG_PAUSE(Entry, 5);
 }
 
 ////////////////////////////////////
@@ -451,10 +451,7 @@ AsusAICPUPMPatch (
   }
 
   DBG_RT(Entry, "= %d patches\n", Count);
-
-  if (DBG_ON(Entry)) {
-    gBS->Stall(5000000);
-  }
+  DBG_PAUSE(Entry, 5);
 }
 
 ////////////////////////////////////
@@ -533,15 +530,13 @@ AnyKextPatch (
           );
   }
 
-  if (DBG_ON(Entry)) {
-    if (Num > 0) {
-      DBG_RT(Entry, "==> patched %d times!\n", Num);
-    } else {
-      DBG_RT(Entry, "==> NOT patched!\n");
-    }
-
-    gBS->Stall(2000000);
+  if (Num > 0) {
+    DBG_RT(Entry, "==> patched %d times!\n", Num);
+  } else {
+    DBG_RT(Entry, "==> NOT patched!\n");
   }
+
+  DBG_PAUSE(Entry, 2);
 }
 
 //
@@ -952,16 +947,12 @@ KextPatcherStart (
 ) {
   if (isKernelcache) {
     DBG_RT(Entry, "Patching kernelcache ...\n");
-    if (DBG_ON(Entry)) {
-      gBS->Stall(2000000);
-    }
+    DBG_PAUSE(Entry, 2);
 
     PatchPrelinkedKexts(Entry);
   } else {
     DBG_RT(Entry, "Patching loaded kexts ...\n");
-    if (DBG_ON(Entry)) {
-      gBS->Stall(2000000);
-    }
+    DBG_PAUSE(Entry, 2);
 
     PatchLoadedKexts(Entry);
   }

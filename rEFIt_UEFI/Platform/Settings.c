@@ -800,6 +800,10 @@ FillinKextPatches (
 
   Patches->KPDebug = IsPropertyTrue (GetProperty (DictPointer, "Debug"));
 
+  gSettings.FlagsBits = Patches->KPDebug
+    ? OSFLAG_SET(gSettings.FlagsBits, OSFLAG_DBGPATCHES)
+    : OSFLAG_UNSET(gSettings.FlagsBits, OSFLAG_DBGPATCHES);
+
   //Patches->KPKernelCpu = IsPropertyTrue (GetProperty (DictPointer, "KernelCpu"));
 
   Prop = GetProperty (DictPointer, "FakeCPUID");
