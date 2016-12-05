@@ -227,6 +227,7 @@ OPT_MENU_OPTBIT_K OPT_MENU_FLAGBIT[] = {
   { L"Without caches",        NULL,   OSFLAG_NOCACHES,    OSTYPE_OSX },
   { L"With injected kexts",   NULL,   OSFLAG_WITHKEXTS,   OSTYPE_OSX },
   { L"No SIP",                NULL,   OSFLAG_NOSIP,       OSTYPE_OSX },
+  { L"Debug Patches",         NULL,   OSFLAG_DBGPATCHES,  OSTYPE_OSX },
 };
 
 INTN    OptMenuFlagBitNum = ARRAY_SIZE(OPT_MENU_FLAGBIT);

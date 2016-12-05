@@ -31,8 +31,8 @@ CHAR8                     *dtRoot = NULL,
                           *KernVersion = NULL;
 VOID                      *KernelData = NULL;
 UINT32                    KernelSlide = 0,
-                          KernelAddrKLD, KernelSizeKLD,
-                          KernelAddrTEXT, KernelSizeTEXT,
+                          KernelAddrKLD, KernelSizeKLD, KernelOffKLD,
+                          KernelAddrTEXT, KernelSizeTEXT, KernelOffTEXT,
                           // notes:
                           // - 64bit segCmd64->vmaddr is 0xffffff80xxxxxxxx and we are taking
                           //   only lower 32bit part into PrelinkTextAddr
@@ -102,14 +102,27 @@ GetKernelVersion (
   }
 }
 
+//##################
+#define MACH_PATCH
+//##################
+
 VOID
 InitKernel(
   IN LOADER_ENTRY   *Entry
 ) {
           UINT32              ncmds, cmdsize, binaryIndex,
-                              sectionIndex, Addr, Size;
+                              sectionIndex, Addr, Size, Off;
+#if defined(MACH_PATCH)
+          UINT32              linkeditaddr = 0, linkeditfileoff = 0,
+                              symoff = 0, nsyms = 0, stroff = 0, strsize = 0;
+#endif
           UINTN               cnt;
           UINT8               *binary = (UINT8*)KernelData;
+#if defined(MACH_PATCH)
+          UINT8               *symbin, *strbin;
+  struct  nlist_64            *systabentry;
+  struct  symtab_command      *comSymTab;
+#endif
   struct  load_command        *loadCommand;
   struct  segment_command_64  *segCmd64;
   struct  section_64          *sect;
@@ -127,6 +140,21 @@ InitKernel(
         segCmd64 = (struct segment_command_64 *)loadCommand;
         sectionIndex = sizeof(struct segment_command_64);
 
+#if defined(MACH_PATCH)
+        if (segCmd64->nsects == 0) {
+          if (AsciiStrCmp (segCmd64->segname, "__LINKEDIT") == 0) {
+            linkeditaddr = (UINT32) segCmd64->vmaddr;
+            linkeditfileoff = (UINT32) segCmd64->fileoff;
+            //DBG_RT(Entry, "%a: Segment = %a, Addr = 0x%x, Size = 0x%x, FileOff = 0x%x\n", __FUNCTION__,
+            //      segCmd64->segname,
+            //      linkeditaddr,
+            //      segCmd64->vmsize,
+            //      linkeditfileoff
+            //    );
+          }
+        }
+#endif
+
         while (sectionIndex < segCmd64->cmdsize) {
           sect = (struct section_64 *)((UINT8*)segCmd64 + sectionIndex);
           sectionIndex += sizeof(struct section_64);
@@ -134,6 +162,7 @@ InitKernel(
           if (sect->size > 0) {
             Addr = (UINT32)(sect->addr ? sect->addr + KernelRelocBase : 0);
             Size = (UINT32)sect->size;
+            Off = (UINT32)sect->offset;
 
             if (
               (AsciiStrCmp(sect->segname, kPrelinkTextSegment) == 0) &&
@@ -155,6 +184,7 @@ InitKernel(
             ) {
               KernelAddrKLD = Addr;
               KernelSizeKLD = Size;
+              KernelOffKLD = Off;
             }
             else if (AsciiStrCmp(sect->segname, "__TEXT") == 0) {
               //DBG_RT(Entry, "sectname: %a\n", sect->sectname);
@@ -175,6 +205,17 @@ InitKernel(
         }
         break;
 
+#if defined(MACH_PATCH)
+      case LC_SYMTAB:
+        comSymTab = (struct symtab_command *) loadCommand;
+        symoff = comSymTab->symoff;
+        nsyms = comSymTab->nsyms;
+        stroff = comSymTab->stroff;
+        strsize = comSymTab->strsize;
+        //DBG_RT(Entry, "%a: symoff = 0x%x, nsyms = %d, stroff = 0x%x, strsize = %d\n", __FUNCTION__, symoff, nsyms, stroff, strsize);
+        break;
+#endif
+
       default:
         break;
     }
@@ -182,7 +223,120 @@ InitKernel(
     binaryIndex += cmdsize;
   }
 
-  //DBG_PAUSE(Entry, 20);
+#if defined(MACH_PATCH)
+  if ((linkeditaddr != 0) && (symoff != 0)) {
+    UINTN     i, e = 100, CntPatch = 2;
+    CHAR8     *symbolName = NULL;
+    BOOLEAN   Found;
+    UINT8     *Data = (UINT8 *)KernelData;
+    UINT32    patchLocation;
+
+    cnt = 0;
+    symbin = (UINT8 *)(UINTN) (linkeditaddr + (symoff - linkeditfileoff) + KernelRelocBase);
+    strbin = (UINT8 *)(UINTN) (linkeditaddr + (stroff - linkeditfileoff) + KernelRelocBase);
+
+    //DBG_RT(Entry, "%a: symaddr = 0x%x, straddr = 0x%x\n", __FUNCTION__,
+    //      symbin,
+    //      strbin
+    //    );
+
+    while ((cnt < nsyms) && CntPatch) {
+      systabentry = (struct nlist_64 *) (symbin);
+
+      if (systabentry->n_value) {
+        symbolName = (CHAR8 *) (strbin + systabentry->n_un.n_strx);
+        Addr = (UINT32) systabentry->n_value;
+        patchLocation = Addr - (UINT32)(UINTN)KernelData + KernelRelocBase;
+
+        switch (systabentry->n_sect) {
+          case 1: // __TEXT,__text
+            if (AsciiStrCmp (symbolName, "__ZN6OSKext14loadExecutableEv") == 0) {
+              i = 0, e = 600;
+              Found = FALSE;
+
+              while (!Found && (i < e)) {
+                if (
+                  (Data[patchLocation] == 0xC3) &&
+                  (Data[patchLocation +1 ] == 0x48) &&
+                  //(Data[patchLocation + 2] == 0x85) &&
+                  //(Data[patchLocation + 3] == 0xDB) &&
+                  (Data[patchLocation + 4] == 0x74) &&
+                  ((Data[patchLocation + 5] == 0x70) || (Data[patchLocation + 5] == 0x71)) &&
+                  (Data[patchLocation + 6] == 0x48)
+                ) {
+                  Found = TRUE;
+                  patchLocation+=4;
+                  break;
+                }
+
+                i++;
+                patchLocation++;
+              }
+
+              //DBG_RT(Entry, "XXX FOUND =====> %a: symbol %a address 0x%x\n", __FUNCTION__, "__ZN6OSKext14loadExecutableEv", Addr);
+              //DBG_RT(Entry, "XXX YYYYY =====> %a: 0x%x - 0x%x - 0x%x - 0x%x - 0x%x - 0x%x\n", __FUNCTION__,
+              //  Data[patchLocation], Data[patchLocation+1], Data[patchLocation+2], Data[patchLocation+3],
+              //  Data[patchLocation+4], Data[patchLocation+5]);
+
+              if (Found) {
+                Data[patchLocation] = 0xEB;
+                Data[patchLocation + 1] = 0x12;
+                //DBG_RT(Entry, "XXX XXXXX =====> %a: 0x%x - 0x%x\n", __FUNCTION__,
+                //  Data[patchLocation], Data[patchLocation+1]);
+              }
+
+              CntPatch--;
+              //DBG_PAUSE(Entry, 10);
+            }
+            break;
+
+          case 25: // __KLD,__text
+            if (AsciiStrCmp (symbolName, "__ZN12KLDBootstrap21readStartupExtensionsEv") == 0) {
+              i = 0, e = 100;
+              Found = FALSE;
+
+              while (!Found && (i < e)) {
+                if (
+                  (Data[patchLocation] == 0xC6) &&
+                  (Data[patchLocation + 1] == 0xE8) &&
+                  (Data[patchLocation + 6] == 0xEB)
+                ) {
+                  Found = TRUE;
+                  patchLocation+=6;
+                  break;
+                }
+
+                i++;
+                patchLocation++;
+              }
+
+              //DBG_RT(Entry, "XXX FOUND =====> %a: function %a address 0x%x\n", __FUNCTION__, "__ZN12KLDBootstrap21readStartupExtensionsEv", Addr);
+              //DBG_RT(Entry, "XXX YYYYY =====> %a: 0x%x - 0x%x\n", __FUNCTION__,
+              //  Data[patchLocation], Data[patchLocation+1]);
+
+              if (Found) {
+                Data[patchLocation] = 0x90;
+                Data[patchLocation + 1] = 0x90;
+              }
+
+              CntPatch--;
+              //DBG_PAUSE(Entry, 10);
+            }
+            break;
+        }
+      }
+
+      cnt++;
+      symbin += sizeof (struct nlist_64);
+    }
+
+    //DBG ("%a: function %a address 0x%x\n", __FUNCTION__, "FunctionName", *Addr);
+  } /*else {
+    DBG_RT(Entry, "%a: symbol table not found\n", __FUNCTION__);
+  }*/
+#endif
+
+  //DBG_PAUSE(Entry, 10);
   //return;
 }
 
@@ -609,6 +763,7 @@ finish:
   return (is64BitKernel && (KernelData != NULL));
 }
 
+#if !defined(MACH_PATCH)
 ////////////////////////////////////
 //
 // KernelBooterExtensionsPatch to load extra kexts besides kernelcache
@@ -675,6 +830,7 @@ KernelBooterExtensionsPatch (
   DBG_RT(Entry, "Pausing 5 secs ...\n");
   DBG_PAUSE(Entry, 5);
 }
+#endif
 
 VOID
 KernelAndKextsPatcherStart (
@@ -799,9 +955,11 @@ KernelAndKextsPatcherStart (
 
       Status = InjectKexts(deviceTreeP, &deviceTreeLength, Entry);
 
+#if !defined(MACH_PATCH)
       if (!EFI_ERROR(Status)) {
         KernelBooterExtensionsPatch(/*KernelData,*/ Entry);
       }
+#endif
     }
   }
 

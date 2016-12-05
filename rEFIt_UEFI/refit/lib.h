@@ -161,6 +161,7 @@ typedef struct {
 #define OSFLAG_DISABLED         (1 << 6)
 #define OSFLAG_HIBERNATED       (1 << 7)
 #define OSFLAG_NOSIP            (1 << 8)
+#define OSFLAG_DBGPATCHES       (1 << 9)
 
 #define OPT_VERBOSE             (1 << 0)
 #define OPT_SINGLE_USER         (1 << 1)
@@ -879,7 +880,8 @@ TimeCompare (
 //VOID DumpKernelAndKextPatches(KERNEL_AND_KEXT_PATCHES *Patches);
 
 #define KERNEL_MAX_SIZE 40000000
-#define FSearchReplace(Source, Search, Replace) SearchAndReplace(Source, KERNEL_MAX_SIZE, Search, sizeof(Search), Replace, 1)
+//#define FSearchReplace(Source, Search, Replace) SearchAndReplace(Source, KERNEL_MAX_SIZE, Search, sizeof(Search), Replace, 1)
+#define FSearchReplace(Source, Size, Search, Replace) SearchAndReplace((UINT8*)(UINTN)Source, Size, Search, sizeof(Search), Replace, 1)
 
 BOOLEAN IsKernelIs64BitOnly(IN LOADER_ENTRY *Entry);
 VOID    DbgHeader(CHAR8 *str);

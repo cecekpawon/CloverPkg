@@ -669,7 +669,8 @@ StartLoader (
     if (
       OSFLAG_ISSET(gSettings.OptionsBits, OPT_SINGLE_USER) ||
       OSFLAG_ISSET(gSettings.OptionsBits, OPT_SAFE) ||
-      ((Entry->KernelAndKextPatches != NULL) && Entry->KernelAndKextPatches->KPDebug)
+      //((Entry->KernelAndKextPatches != NULL) && Entry->KernelAndKextPatches->KPDebug)
+      ((Entry->KernelAndKextPatches != NULL) && OSFLAG_ISSET(gSettings.FlagsBits, OSFLAG_DBGPATCHES))
     ) {
       gSettings.OptionsBits = OSFLAG_SET(gSettings.OptionsBits, OPT_VERBOSE);
     }
@@ -1302,10 +1303,10 @@ RefitMain (
   DbgHeader("RefitMain");
 
   if (Now.TimeZone < 0 || Now.TimeZone > 24) {
-    MsgLog("Now is %d.%d.%d,  %d:%d:%d (GMT)\n",
+    MsgLog("Now is %d.%d.%d, %d:%d:%d (GMT)\n",
       Now.Day, Now.Month, Now.Year, Now.Hour, Now.Minute, Now.Second);
   } else {
-    MsgLog("Now is %d.%d.%d,  %d:%d:%d (GMT+%d)\n",
+    MsgLog("Now is %d.%d.%d, %d:%d:%d (GMT+%d)\n",
       Now.Day, Now.Month, Now.Year, Now.Hour, Now.Minute, Now.Second, Now.TimeZone);
   }
 

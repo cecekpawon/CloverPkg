@@ -15,7 +15,7 @@
 
 // runtime debug
 #define DBG_ON(entry) \
-  ((entry != NULL) && (entry->KernelAndKextPatches != NULL) && entry->KernelAndKextPatches->KPDebug)
+  ((entry != NULL) && (entry->KernelAndKextPatches != NULL) /*&& entry->KernelAndKextPatches->KPDebug*/ && OSFLAG_ISSET(gSettings.FlagsBits, OSFLAG_DBGPATCHES))
 #define DBG_RT(entry, ...) \
   if (DBG_ON(entry)) AsciiPrint(__VA_ARGS__)
 #define DBG_PAUSE(entry, s) \
@@ -222,7 +222,7 @@ isPatchNameMatch (
   CHAR8   *Name
 ) {
   return
-    (AsciiStrStr(Name, ".") != NULL)
+    (AsciiStrStr(Name, ".") != NULL) // Full BundleIdentifier: com.apple.driver.AppleHDA
       ? (AsciiStrCmp(BundleIdentifier, Name) == 0)
       : (AsciiStrStr(BundleIdentifier, Name) == 0);
 }
