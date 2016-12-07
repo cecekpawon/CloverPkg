@@ -6,6 +6,10 @@
 #include "LoaderUefi.h"
 #include "device_tree.h"
 
+//##################
+#define MACH_PATCH
+//##################
+
 #ifndef __LIBSAIO_KERNEL_PATCHER_H
 #define __LIBSAIO_KERNEL_PATCHER_H
 
@@ -21,6 +25,8 @@
 #define MACH_GET_CPU(hdr)                   (((struct mach_header_64*)(hdr))->cputype)
 #define MACH_GET_FLAGS(hdr)                 (((struct mach_header_64*)(hdr))->flags)
 #define SC_GET_CMD(hdr)                     (((struct segment_command_64*)(hdr))->cmd)
+
+#define PTR_OFFSET(SourcePtr, Offset, ReturnType) ((ReturnType)(((UINT8*)SourcePtr) + Offset))
 
 
 #define kPrelinkTextSegment                 "__PRELINK_TEXT"
@@ -65,46 +71,54 @@ typedef struct _DeviceTreeBuffer {
   uint32_t length;
 } _DeviceTreeBuffer;
 
-extern EFI_PHYSICAL_ADDRESS KernelRelocBase;
-//extern BootArgs1    *bootArgs1;
-extern BootArgs2    *bootArgs2;
+typedef struct KERNEL_INFO {
+  UINT32                Slide;
+  UINT32                KldAddr;
+  UINT32                KldSize;
+  UINT32                KldOff;
+  UINT32                TextAddr;
+  UINT32                TextSize;
+  UINT32                TextOff;
+  //UINT32                ConstAddr;
+  //UINT32                ConstSize;
+  //UINT32                ConstOff;
+  //UINT32                CStringAddr;
+  //UINT32                CStringSize;
+  //UINT32                CStringOff;
+  UINT32                DataAddr;
+  UINT32                DataSize;
+  UINT32                DataOff;
+                        // notes:
+                        // - 64bit segCmd64->vmaddr is 0xffffff80xxxxxxxx and we are taking
+                        //   only lower 32bit part into PrelinkTextAddr
+                        // - PrelinkTextAddr is segCmd64->vmaddr + KernelRelocBase
+  UINT32                PrelinkTextAddr;
+  UINT32                PrelinkTextSize;
+                        // notes:
+                        // - 64bit sect->addr is 0xffffff80xxxxxxxx and we are taking
+                        //   only lower 32bit part into PrelinkInfoAddr
+                        // - PrelinkInfoAddr is sect->addr + KernelRelocBase
+  UINT32                PrelinkInfoAddr;
+  UINT32                PrelinkInfoSize;
+  UINT32                XCPMStart;
+  UINT32                XCPMEnd;
+  UINT32                VersionMajor;
+  UINT32                VersionMinor;
+  UINT32                Revision;
+  CHAR8                 *Version;
+  BOOLEAN               isCache;
+  BOOLEAN               is64Bit;
+  //BOOLEAN               SSSE3,
+  BOOLEAN               PatcherInited;
+  EFI_PHYSICAL_ADDRESS  RelocBase;
+  VOID                  *Bin;
+} KERNEL_INFO;
+
+//extern BootArgs2    *bootArgs2;
 extern CHAR8        *dtRoot;
-extern VOID         *KernelData;
-extern UINT32       KernelSlide;
-extern BOOLEAN      isKernelcache;
-extern BOOLEAN      is64BitKernel;
-
-// notes:
-// - 64bit segCmd64->vmaddr is 0xffffff80xxxxxxxx and we are taking
-//   only lower 32bit part into PrelinkTextAddr
-// - PrelinkTextAddr is segCmd64->vmaddr + KernelRelocBase
-//extern UINT32       PrelinkTextLoadCmdAddr;
-//extern UINT32       PrelinkTextAddr;
-//extern UINT32       PrelinkTextSize;
-
-// notes:
-// - 64bit sect->addr is 0xffffff80xxxxxxxx and we are taking
-//   only lower 32bit part into PrelinkInfoAddr
-// - PrelinkInfoAddr is sect->addr + KernelRelocBase
-//extern UINT32       PrelinkInfoLoadCmdAddr;
-extern UINT32       PrelinkInfoAddr;
-extern UINT32       PrelinkInfoSize;
-//
-//extern UINT32 DisplayVendor[];
-//VOID findCPUfamily();
-
-
-//UINT64 kernelsize;
-
-//VOID Patcher_SSE3_5(VOID* kernelData);
-//VOID Patcher_SSE3_6(VOID* kernelData);
-//VOID Patcher_SSE3_7(VOID* kernelData);
+extern KERNEL_INFO  *KernelInfo;
 
 VOID KernelAndKextsPatcherStart(IN LOADER_ENTRY *Entry);
-
-//VOID register_kernel_symbol(CONST CHAR8* name);
-//UINT64 symbol_handler(CHAR8* symbolName, UINT64 addr);
-//INTN locate_symbols(VOID* kernelData);
 
 
 /////////////////////

@@ -1,12 +1,12 @@
 #include "Platform.h"
 
-#define KEXT_INJECT_DEBUG 0
+//#define KEXT_INJECT_DEBUG 0
 
-#if KEXT_INJECT_DEBUG
-#define DBG(...)  AsciiPrint(__VA_ARGS__);
-#else
-#define DBG(...)
-#endif
+//#if KEXT_INJECT_DEBUG
+//#define DBG(...)  AsciiPrint(__VA_ARGS__);
+//#else
+//#define DBG(...)
+//#endif
 
 // runtime debug
 #define DBG_ON(entry) \
@@ -20,6 +20,7 @@
 // globals
 ////////////////////
 LIST_ENTRY gKextList = INITIALIZE_LIST_HEAD_VARIABLE (gKextList);
+UINT32     gKextCount = 0, gKextSize = 0;
 
 ////////////////////
 // before booting
@@ -375,15 +376,18 @@ LoadKexts (
     DirIterClose(&KextIter);
   }
 
+  gKextCount = GetKextCount();
+  gKextSize = GetKextsSize();
+
   // reserve space in the device tree
-  if (GetKextCount() > 0) {
-    mm_extra_size = GetKextCount() * (sizeof(DeviceTreeNodeProperty) + sizeof(_DeviceTreeBuffer));
+  if (gKextCount > 0) {
+    mm_extra_size = gKextCount * (sizeof(DeviceTreeNodeProperty) + sizeof(_DeviceTreeBuffer));
     mm_extra = AllocateZeroPool(mm_extra_size - sizeof(DeviceTreeNodeProperty));
     /*Status =  */LogDataHub(&gEfiMiscSubClassGuid, L"mm_extra", mm_extra, (UINT32)(mm_extra_size - sizeof(DeviceTreeNodeProperty)));
-    extra_size = GetKextsSize();
+    extra_size = gKextSize;
     extra = AllocateZeroPool(extra_size - sizeof(DeviceTreeNodeProperty) + EFI_PAGE_SIZE);
     /*Status =  */LogDataHub(&gEfiMiscSubClassGuid, L"extra", extra, (UINT32)(extra_size - sizeof(DeviceTreeNodeProperty) + EFI_PAGE_SIZE));
-    //MsgLog("count: %d    \n", GetKextCount());
+    //MsgLog("count: %d    \n", gKextCount);
     //MsgLog("mm_extra_size: %d    \n", mm_extra_size);
     //MsgLog("extra_size: %d    \n", extra_size);
     //MsgLog("offset: %d      \n", extra_size - sizeof(DeviceTreeNodeProperty) + EFI_PAGE_SIZE);
@@ -402,7 +406,6 @@ InjectKexts (
   IN UINT32       *deviceTreeLength,
   LOADER_ENTRY    *Entry
 ) {
-  UINT32                            KextCount;
   UINT8                             *dtEntry = (UINT8*)(UINTN) deviceTreeP, *infoPtr = 0, *extraPtr = 0, *drvPtr = 0;
   UINTN                             dtLength = (UINTN) *deviceTreeLength, offset = 0, KextBase = 0, Index;
   DTEntry                           platformEntry, memmapEntry;
@@ -417,15 +420,14 @@ InjectKexts (
 
   DBG_RT(Entry, "\nInjectKexts: ");
 
-  KextCount = GetKextCount();
-  if (KextCount == 0) {
+  if (gKextCount == 0) {
     DBG_RT(Entry, "no kexts to inject.\nPausing 5 secs ...\n");
     DBG_PAUSE(Entry, 5);
 
     return EFI_NOT_FOUND;
   }
 
-  DBG_RT(Entry, "%d kexts ...\n", KextCount);
+  DBG_RT(Entry, "%d kexts ...\n", gKextCount);
 
   DTInit(dtEntry);
   if (DTLookupEntry(NULL,"/chosen/memory-map",&memmapEntry) == kSuccess) {

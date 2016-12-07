@@ -452,6 +452,7 @@ typedef struct {
 typedef struct {
   CHAR8     *Name;
   CHAR8     *Label;
+  CHAR8     *Filename; // Private
   BOOLEAN   IsPlistPatch;
   INTN      DataLen;
 

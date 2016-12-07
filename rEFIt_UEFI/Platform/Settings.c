@@ -473,6 +473,7 @@ IsPatchEnabled (
     if (
       ((AsciiStrStr(mos->array[i], ".") != NULL) && IsOSValid(mos->array[i], CurrOS)) || // MatchOS
       (AsciiStrCmp(mos->array[i], CurrOS) == 0) // MatchBuild
+      //(AsciiStrStr(mos->array[i], CurrOS) != NULL) // MatchBuild : saverals MatchBuild by commas
     ) {
       //DBG ("\nthis patch will activated for OS %s!\n", mos->array[i]);
       ret =  TRUE;
@@ -678,6 +679,10 @@ CopyKernelAndKextPatches (
 
       if (Src->KextPatches[i].Label) {
         Dst->KextPatches[Dst->NrKexts].Label        = (CHAR8 *)AllocateCopyPool (AsciiStrSize (Src->KextPatches[i].Label), Src->KextPatches[i].Label);
+      }
+
+      if (Src->KextPatches[i].Filename) {
+        Dst->KextPatches[Dst->NrKexts].Filename     = (CHAR8 *)AllocateCopyPool (AsciiStrSize (Src->KextPatches[i].Filename), Src->KextPatches[i].Filename);
       }
 
       Dst->KextPatches[Dst->NrKexts].Disabled       = Src->KextPatches[i].Disabled;
@@ -982,6 +987,7 @@ FillinKextPatches (
         Patches->KextPatches[Patches->NrKexts].Patch      = AllocateCopyPool (FindLen, TmpPatch);
         Patches->KextPatches[Patches->NrKexts].MatchOS    = NULL;
         Patches->KextPatches[Patches->NrKexts].MatchBuild = NULL;
+        Patches->KextPatches[Patches->NrKexts].Filename   = NULL;
         Patches->KextPatches[Patches->NrKexts].Disabled   = FALSE;
         Patches->KextPatches[Patches->NrKexts].Name       = AllocateCopyPool (AsciiStrnLenS(KextPatchesName, 255) + 1, KextPatchesName);
         Patches->KextPatches[Patches->NrKexts].Label      = AllocateCopyPool (AsciiStrnLenS(KextPatchesLabel, 255) + 1, KextPatchesLabel);

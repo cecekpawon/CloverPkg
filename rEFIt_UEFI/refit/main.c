@@ -50,9 +50,9 @@
 
 // variables
 
-BOOLEAN                 gGuiIsReady = FALSE;
-BOOLEAN                 gThemeNeedInit = TRUE;
-BOOLEAN                 DoHibernateWake = FALSE;
+BOOLEAN                 gGuiIsReady = FALSE,
+                        gThemeNeedInit = TRUE,
+                        DoHibernateWake = FALSE;
 EFI_HANDLE              gImageHandle;
 EFI_SYSTEM_TABLE*       gST;
 EFI_BOOT_SERVICES*      gBS;
@@ -378,6 +378,15 @@ FilterKextPatches (
                   (Entry->BuildVersion != NULL) &&
                   (Entry->KernelAndKextPatches->KextPatches[i].MatchBuild != NULL)
                 );
+
+      // If dot exist in the patch name, store string after last dot to Filename for FSInject to load kext
+      if (AsciiStrStr(Entry->KernelAndKextPatches->KextPatches[i].Name, ".") != NULL) {
+        Entry->KernelAndKextPatches->KextPatches[i].Filename = AllocateZeroPool(AVALUE_MAX_SIZE);
+        UnicodeStrToAsciiStr (
+          egFindExtension (PoolPrint(L"%a", Entry->KernelAndKextPatches->KextPatches[i].Name)),
+          Entry->KernelAndKextPatches->KextPatches[i].Filename
+        );
+      }
 
       DBG(" - [%02d]: %a | %a | [OS: %a %s| MatchOS: %a | MatchBuild: %a]",
         i,
