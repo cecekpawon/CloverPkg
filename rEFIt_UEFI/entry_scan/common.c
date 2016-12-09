@@ -536,6 +536,15 @@ CHAR8
   return Tmp;
 }
 
+CHAR8
+*AsciiStriStr (
+  IN CHAR8    *String,
+  IN CHAR8    *SearchString
+) {
+  return AsciiStrStr(AsciiStrToLower(String), AsciiStrToLower(SearchString));
+}
+
+
 /*
   Taken from Shell
   Trim leading trailing spaces

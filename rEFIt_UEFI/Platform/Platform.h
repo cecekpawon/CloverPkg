@@ -1805,6 +1805,18 @@ CHAR8
   IN CHAR8   *Str
 );
 
+CHAR8
+*AsciiStriStr (
+  IN CHAR8  *String,
+  IN CHAR8  *SearchString
+);
+
+INTN
+countOccurrences (
+  CHAR8   *s,
+  CHAR8   c
+);
+
 EFI_STATUS AsciiTrimSpaces(IN CHAR8 **String);
 UINT64 AsciiStrVersionToUint64(const CHAR8 *Version, UINT8 MaxDigitByPart, UINT8 MaxParts);
 /* Macro to use the AsciiStrVersionToUint64 for OSX Version strings */
@@ -1813,7 +1825,6 @@ UINT64 AsciiStrVersionToUint64(const CHAR8 *Version, UINT8 MaxDigitByPart, UINT8
 #define OSX_LE(OSVersion, CurrVer) (OSVersion && (AsciiOSVersionToUint64(OSVersion) <= AsciiOSVersionToUint64(CurrVer)))
 #define OSX_GT(OSVersion, CurrVer) (OSVersion && (AsciiOSVersionToUint64(OSVersion) > AsciiOSVersionToUint64(CurrVer)))
 #define OSX_GE(OSVersion, CurrVer) (OSVersion && (AsciiOSVersionToUint64(OSVersion) >= AsciiOSVersionToUint64(CurrVer)))
-
 
 //Unicode
 #define IS_COMMA(a)             ((a) == L',')

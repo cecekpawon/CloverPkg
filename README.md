@@ -2,13 +2,15 @@ First of all, Im just PHP coder, with poor knowledge of C. Thats why I cannot ac
 
 - 64 bit UEFI with native NVRAM support only.
 - EDK2 patches free & reindent all sources.
-- Simplify all internal patches (DSDT, devices,  predifined vendor / product name, etc).
+- Simplify all internal patches (DSDT, devices, predifined vendor / product name, etc).
 - Simplify GUI & tweaks.
 
 Tested with GCC49, GCC5, XCODE5, XCLANG & VS2015x86 toolchain.
 
-Thanks to other projects for lines of code & ideas:
+[Clover official](https://sourceforge.net/p/cloverefiboot/)
 
-- [Bareboot](https://github.com/SunnyKi/bareBoot), [Revoboot](https://github.com/Piker-Alpha/RevoBoot), Meklorts [KernelPatcher](https://public.xzenue.com/diffusion/K/repository/master/), OpenCore.
+Thanks to all projects below for lines of code & ideas:
+
+-  [EDK2](https://github.com/tianocore/edk2), [rEFInd](https://sourceforge.net/projects/refind/) , [Bareboot](https://github.com/SunnyKi/bareBoot), [Revoboot](https://github.com/Piker-Alpha/RevoBoot), [KernelPatcher](https://public.xzenue.com/diffusion/K/repository/master/), [OpenCore](https://repo.hermitcrabslab.com/), [CupertinoNet](https://github.com/CupertinoNet).
 
 Enjoy, wiki to follow!

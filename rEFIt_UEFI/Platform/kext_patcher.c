@@ -217,13 +217,18 @@ CHAR8
 
 BOOLEAN
 isPatchNameMatch (
-  CHAR8         *BundleIdentifier,
-  CHAR8         *Name
+  CHAR8   *BundleIdentifier,
+  CHAR8   *InfoPlist,
+  CHAR8   *Name
 ) {
   return
-    (AsciiStrStr(Name, ".") != NULL) // Full BundleIdentifier: com.apple.driver.AppleHDA
-      ? (AsciiStrCmp(BundleIdentifier, Name) == 0)
-      : (AsciiStrStr(BundleIdentifier, Name) != NULL);
+    (
+      (InfoPlist != NULL) &&
+      //(AsciiStrStr(Name, ".") == NULL) // Full BundleIdentifier: com.apple.driver.AppleHDA
+      (countOccurrences(Name, '.') < 2)
+    )
+      ? (AsciiStrStr(InfoPlist, Name) != NULL)
+      : (AsciiStrCmp(BundleIdentifier, Name) == 0);
 }
 
 ////////////////////////////////////
@@ -670,10 +675,10 @@ PatchKext (
   if (
     (Entry->KernelAndKextPatches->KPATIConnectorsController != NULL) &&
     (
-      isPatchNameMatch(gKextBundleIdentifier, ATIKextBundleId[0]) ||
-      isPatchNameMatch(gKextBundleIdentifier, ATIKextBundleId[1]) ||
-      isPatchNameMatch(gKextBundleIdentifier, ATIKextBundleId[2]) ||
-      isPatchNameMatch(gKextBundleIdentifier, ATIKextBundleId[3])
+      isPatchNameMatch(gKextBundleIdentifier, NULL, ATIKextBundleId[0]) ||
+      isPatchNameMatch(gKextBundleIdentifier, NULL, ATIKextBundleId[1]) ||
+      isPatchNameMatch(gKextBundleIdentifier, NULL, ATIKextBundleId[2]) ||
+      isPatchNameMatch(gKextBundleIdentifier, NULL, ATIKextBundleId[3])
     )
   ) {
     //
@@ -687,7 +692,7 @@ PatchKext (
     ATIConnectorsPatch(Driver, DriverSize, InfoPlist, InfoPlistSize, Entry);
   } else if (
     Entry->KernelAndKextPatches->KPAsusAICPUPM &&
-    isPatchNameMatch(gKextBundleIdentifier, "com.apple.driver.AppleIntelCPUPowerManagement")
+    isPatchNameMatch(gKextBundleIdentifier, NULL, "com.apple.driver.AppleIntelCPUPowerManagement")
   ) {
     //
     // AsusAICPUPM
@@ -700,7 +705,7 @@ PatchKext (
     //
     for (i = 0; i < Entry->KernelAndKextPatches->NrKexts; i++) {
       if (
-        isPatchNameMatch(gKextBundleIdentifier, Entry->KernelAndKextPatches->KextPatches[i].Name)
+        isPatchNameMatch(gKextBundleIdentifier, InfoPlist, Entry->KernelAndKextPatches->KextPatches[i].Name)
       ) {
         DBG_RT(Entry, "Kext: %a\n", gKextBundleIdentifier);
         AnyKextPatch(Driver, DriverSize, InfoPlist, InfoPlistSize, i, Entry);

@@ -380,7 +380,8 @@ FilterKextPatches (
                 );
 
       // If dot exist in the patch name, store string after last dot to Filename for FSInject to load kext
-      if (AsciiStrStr(Entry->KernelAndKextPatches->KextPatches[i].Name, ".") != NULL) {
+      //if (AsciiStrStr(Entry->KernelAndKextPatches->KextPatches[i].Name, ".") != NULL) {
+      if (countOccurrences(Entry->KernelAndKextPatches->KextPatches[i].Name, '.') >= 2) {
         Entry->KernelAndKextPatches->KextPatches[i].Filename = AllocateZeroPool(AVALUE_MAX_SIZE);
         UnicodeStrToAsciiStr (
           egFindExtension (PoolPrint(L"%a", Entry->KernelAndKextPatches->KextPatches[i].Name)),

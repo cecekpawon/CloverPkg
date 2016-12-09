@@ -164,6 +164,7 @@ CHAR8
 BOOLEAN
 isPatchNameMatch (
   CHAR8   *BundleIdentifier,
+  CHAR8   *InfoPlist,
   CHAR8   *Name
 );
 

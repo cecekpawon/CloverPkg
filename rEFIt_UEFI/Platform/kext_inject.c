@@ -522,10 +522,10 @@ InjectKexts (
 
         SavedValue = InfoPlist[drvinfo->infoDictLength];
         InfoPlist[drvinfo->infoDictLength] = '\0';
-        //KernelAndKextPatcherInit(Entry);
+
         for (i = 0; i < Entry->KernelAndKextPatches->NrKexts; i++) {
           if (
-            isPatchNameMatch(gKextBundleIdentifier, Entry->KernelAndKextPatches->KextPatches[i].Name)
+            isPatchNameMatch(gKextBundleIdentifier, InfoPlist, Entry->KernelAndKextPatches->KextPatches[i].Name)
           ) {
             DBG_RT(Entry, "Kext: %a\n", gKextBundleIdentifier);
             AnyKextPatch (
