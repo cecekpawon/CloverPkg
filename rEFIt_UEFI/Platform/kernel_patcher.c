@@ -214,7 +214,7 @@ InitKernel (
 #if defined(MACH_PATCH)
   if ((linkeditaddr != 0) && (symoff != 0)) {
     UINTN     i, e,
-              CntPatches = 8; // Max get / patches values. TODO: to use bits like Revoboot
+              CntPatches = 10; // Max get / patches values. TODO: to use bits like Revoboot
     CHAR8     *symbolName = NULL;
     BOOLEAN   Found;
     UINT32    patchLocation;
@@ -270,6 +270,14 @@ InitKernel (
                 Data[patchLocation + 1] = 0x12;
               }
 
+              CntPatches--;
+            }
+            else if (AsciiStrCmp (symbolName, "_cpuid_set_info") == 0) {
+              KernelInfo->CPUInfoStart = patchLocation;
+              CntPatches--;
+            }
+            else if (AsciiStrCmp (symbolName, "_cpuid_info") == 0) {
+              KernelInfo->CPUInfoEnd = patchLocation;
               CntPatches--;
             }
             break;
@@ -392,9 +400,6 @@ STATIC UINT8 SearchExt101[]     = {0x89, 0xc1, 0xc1, 0xe9, 0x10};
 
 BOOLEAN
 PatchCPUID (
-  UINT8           *bytes,
-  UINT8           *Location,
-  INT32           LenLoc,
   UINT8           *Search4,
   UINT8           *Search10,
   UINT8           *ReplaceModel,
@@ -402,34 +407,63 @@ PatchCPUID (
   INT32           Len,
   LOADER_ENTRY    *Entry
 ) {
-  INT32     patchLocation = 0, patchLocation1 = 0, Adr = 0, Num;
-  BOOLEAN   Patched = FALSE;
-  UINT8     FakeModel = (Entry->KernelAndKextPatches->FakeCPUID >> 4) & 0x0f,
+  INT32     patchLocation = 0;
+  UINT32    Adr = 0, Size = 0x800000, End = 0, LenPatt = 0;
+  UINT8     *Ptr = (UINT8 *)KernelInfo->Bin,
+            FakeModel = (Entry->KernelAndKextPatches->FakeCPUID >> 4) & 0x0f,
             FakeExt = (Entry->KernelAndKextPatches->FakeCPUID >> 0x10) & 0x0f;
+  BOOLEAN   Patched = FALSE, Seg = FALSE;
 
-  for (Num = 0; Num < 2; Num++) {
-    Adr = FindBin(&bytes[Adr], 0x800000 - Adr, Location, LenLoc);
-    if (Adr < 0) {
-      break;
-    }
+  if (Ptr == NULL) {
+    return FALSE;
+  }
 
-    DBG_RT(Entry, "found location at %x\n", Adr);
-    patchLocation = FindBin(&bytes[Adr], 0x100, Search4, Len);
+#if defined(MACH_PATCH)
+  if (KernelInfo->CPUInfoStart && KernelInfo->CPUInfoEnd && (KernelInfo->CPUInfoEnd > KernelInfo->CPUInfoStart)) {
+    Adr = KernelInfo->CPUInfoStart;
+    Size = (KernelInfo->CPUInfoEnd - KernelInfo->CPUInfoStart);
+    End = Adr + Size;
+    //DBG_RT(Entry, "CPUInfo: Start=0x%x | End=0x%x | Size=0x%x\n", KernelInfo->CPUInfoStart, KernelInfo->CPUInfoEnd, (KernelInfo->CPUInfoEnd - KernelInfo->CPUInfoStart));
+    //DBG_PAUSE(Entry, 10);
+  }
+  else if (KernelInfo->TextSize) {
+    Adr = KernelInfo->TextOff;
+    Size = KernelInfo->TextSize;
+    End = Adr + Size;
+  }
+#endif
 
-    if ((patchLocation > 0) && (patchLocation < 70)) {
+  Seg = (Adr > 0);
+  LenPatt = sizeof(StrMsr8b);
+
+  patchLocation = FindBin(&Ptr[Adr], Size, &StrMsr8b[0], LenPatt);
+
+  if (patchLocation > 0) {
+    Adr += patchLocation;
+    DBG_RT(Entry, " - found Pattern at %x, len: %d\n", Adr, LenPatt);
+
+    patchLocation = Seg ? (End - Adr) : 0x100;
+
+    patchLocation = FindBin(&Ptr[Adr], patchLocation, Search4, Len);
+
+    if (patchLocation > 0) {
       //found
-      DBG_RT(Entry, "found Model location at %x\n", Adr + patchLocation);
-      CopyMem(&bytes[Adr + patchLocation], ReplaceModel, Len);
-      bytes[Adr + patchLocation + 1] = FakeModel;
-      patchLocation1 = FindBin(&bytes[Adr], 0x100, Search10, Len);
+      Adr += patchLocation;
+      DBG_RT(Entry, " - found Model at %x, len: %d\n", Adr, Len);
+      CopyMem(&Ptr[Adr], ReplaceModel, Len);
+      Ptr[Adr + 1] = FakeModel;
 
-      if ((patchLocation1 > 0) && (patchLocation1 < 100)) {
-        DBG_RT(Entry, "found ExtModel location at %x\n", Adr + patchLocation1);
-        CopyMem(&bytes[Adr + patchLocation1], ReplaceExt, Len);
-        bytes[Adr + patchLocation1 + 1] = FakeExt;
+      patchLocation = Seg ? (End - Adr) : 0x100;
+
+      patchLocation = FindBin(&Ptr[Adr], patchLocation, Search10, Len);
+
+      if (patchLocation > 0) {
+        Adr += patchLocation;
+        DBG_RT(Entry, " - found ExtModel at %x, len: %d\n", Adr, Len);
+        CopyMem(&Ptr[Adr], ReplaceExt, Len);
+        Ptr[Adr + 1] = FakeExt;
+        Patched = TRUE;
       }
-
-      Patched = TRUE;
     }
   }
 
@@ -440,47 +474,48 @@ VOID
 KernelCPUIDPatch (
   LOADER_ENTRY  *Entry
 ) {
-  //Lion patterns
-  DBG_RT(Entry, "CPUID: try Lion patch...\n");
+  DBG_RT(Entry, "Patching CPUID:\n");
+
+  //Yosemite
   if (
     PatchCPUID (
-      KernelInfo->Bin, &StrMsr8b[0], sizeof(StrMsr8b), &SearchModel107[0],
-      &SearchExt107[0], &ReplaceModel107[0], &ReplaceModel107[0],
-      sizeof(SearchModel107), Entry
+      /*Ptr, &StrMsr8b[0], sizeof(StrMsr8b),*/ &SearchModel101[0],
+      &SearchExt101[0], &ReplaceModel107[0], &ReplaceModel107[0],
+      sizeof(SearchModel107),/**/ Entry
     )
   ) {
-    DBG_RT(Entry, "...done!\n");
+    DBG_RT(Entry, " - Yosemite ...done!\n");
     return;
   }
 
   //Mavericks
-  DBG_RT(Entry, "CPUID: try Mavericks patch...\n");
-  if (
+  else if (
     PatchCPUID (
-      KernelInfo->Bin, &StrMsr8b[0], sizeof(StrMsr8b), &SearchModel109[0],
+      /*Ptr, &StrMsr8b[0], sizeof(StrMsr8b),*/ &SearchModel109[0],
       &SearchExt109[0], &ReplaceModel109[0], &ReplaceExt109[0],
-      sizeof(SearchModel109), Entry
+      sizeof(SearchModel109),/**/ Entry
     )
   ) {
-    DBG_RT(Entry, "...done!\n");
+    DBG_RT(Entry, " - Mavericks ...done!\n");
     return;
   }
 
-  //Yosemite
-  DBG_RT(Entry, "CPUID: try Yosemite patch...\n");
-  if (
+  //Lion patterns
+  else if (
     PatchCPUID (
-      KernelInfo->Bin, &StrMsr8b[0], sizeof(StrMsr8b), &SearchModel101[0],
-      &SearchExt101[0], &ReplaceModel107[0], &ReplaceModel107[0],
-      sizeof(SearchModel107), Entry
+      /*Ptr, &StrMsr8b[0], sizeof(StrMsr8b),*/ &SearchModel107[0],
+      &SearchExt107[0], &ReplaceModel107[0], &ReplaceModel107[0],
+      sizeof(SearchModel107),/**/ Entry
     )
   ) {
-    DBG_RT(Entry, "...done!\n");
+    DBG_RT(Entry, " - Lion ...done!\n");
     return;
   }
+
+  DBG_RT(Entry, " - none!\n");
 }
 
-
+#if !defined(MACH_PATCH)
 // Power management patch for kernel 13.0
 STATIC UINT8 KernelPatchPmSrc[] = {
   0x55, 0x48, 0x89, 0xe5, 0x41, 0x89, 0xd0, 0x85,
@@ -558,6 +593,7 @@ STATIC UINT8 KernelPatchPmRepl2[] = {
   0x48, 0x89, 0x17, 0x48, 0x83, 0xc7, 0x30, 0xff,
   0xce, 0x75, 0x95, 0x5d, 0xc3, 0x90, 0x90, 0x90
 };
+#endif
 
 #define KERNEL_PATCH_SIGNATURE        0x85d08941e5894855ULL
 //#define KERNEL_YOS_PATCH_SIGNATURE  0x56415741e5894855ULL
@@ -567,7 +603,10 @@ BOOLEAN
 KernelPatchPm (
   IN LOADER_ENTRY   *Entry
 ) {
-  UINT8   *Ptr = (UINT8 *)KernelInfo->Bin, *End = NULL;
+  UINT8     *Ptr = (UINT8 *)KernelInfo->Bin, *End = NULL;
+#if defined(MACH_PATCH)
+  BOOLEAN   Found, Ret;
+#endif
 
   if (Ptr == NULL) {
     return FALSE;
@@ -593,6 +632,33 @@ KernelPatchPm (
   // Credits to RehabMan for the kernel patch information
   DBG_RT(Entry, "Patching kernel power management...\n");
   while (Ptr < End) {
+
+#if defined(MACH_PATCH)
+    Found = Ret = FALSE;
+
+    switch (*((UINT64 *)Ptr)) {
+      case 0x00003390000000E2ULL:
+      case 0x00001390000000E2ULL:
+      case 0x00000190000000E2ULL:
+        Found = TRUE;
+        Ret = TRUE;
+        break;
+      case 0x0000004C000000E2ULL:
+      case 0x00000002000000E2ULL:
+        Found = TRUE;
+        break;
+    }
+
+    if (Found) {
+      DBG_RT(Entry, " - found: 0x%lx\n", *((UINT64 *)Ptr));
+      (*((UINT64 *)Ptr)) = KERNEL_PATCH_PM_NULL;
+    }
+
+    if (Ret) {
+      DBG_PAUSE(Entry, 10);
+      return TRUE;
+    }
+#else
     if (KERNEL_PATCH_SIGNATURE == (*((UINT64 *)Ptr))) {
       // Bytes 19,20 of KernelPm patch for kernel 13.x change between kernel versions, so we skip them in search&replace
       if (
@@ -612,36 +678,7 @@ KernelPatchPm (
         DBG_RT(Entry, "Kernel power management patch region 2 found and patched\n");
         return TRUE;
       }
-    }
-#if defined(MACH_PATCH)
-    else {
-      BOOLEAN   Found = FALSE, Ret = FALSE;
-
-      switch (*((UINT64 *)Ptr)) {
-        case 0x00003390000000E2ULL:
-        case 0x00001390000000E2ULL:
-        case 0x00000190000000E2ULL:
-          Found = TRUE;
-          Ret = TRUE;
-          break;
-        case 0x0000004C000000E2ULL:
-        case 0x00000002000000E2ULL:
-          Found = TRUE;
-          break;
-      }
-
-      if (Found) {
-        DBG_RT(Entry, " - found: 0x%lx\n", *((UINT64 *)Ptr));
-        (*((UINT64 *)Ptr)) = KERNEL_PATCH_PM_NULL;
-      }
-
-      if (Ret) {
-        DBG_PAUSE(Entry, 10);
-        return TRUE;
-      }
-    }
-#else
-    else if (0x00000002000000E2ULL == (*((UINT64 *)Ptr))) {
+    } else if (0x00000002000000E2ULL == (*((UINT64 *)Ptr))) {
       //rehabman: for 10.10 (data portion)
       (*((UINT64 *)Ptr)) = 0x0000000000000000ULL;
       DBG_RT(Entry, "Kernel power management patch 10.10(data1) found and patched\n");
@@ -708,9 +745,6 @@ FindBootArgs (
       DBG_RT(Entry, "bootArgs2->kslide = 0x%x\n", bootArgs2->kslide);
       DBG_RT(Entry, "bootArgs2->bootMemStart = 0x%x\n", bootArgs2->bootMemStart);
       DBG_PAUSE(Entry, 2);
-
-      // disable other pointer
-      //bootArgs1 = NULL;
       break;
     }
 
@@ -926,6 +960,8 @@ KernelAndKextsPatcherStart (
   KernelInfo->PrelinkInfoSize = 0;
   KernelInfo->XCPMStart = 0;
   KernelInfo->XCPMEnd = 0;
+  KernelInfo->CPUInfoStart = 0;
+  KernelInfo->CPUInfoEnd = 0;
   KernelInfo->VersionMajor = 0;
   KernelInfo->VersionMinor = 0;
   KernelInfo->Revision = 0;
@@ -964,7 +1000,7 @@ KernelAndKextsPatcherStart (
   //other method for KernelCPU patch is FakeCPUID
   DBG_RT(Entry, "\nFakeCPUID patch: ");
 
-  if (Entry->KernelAndKextPatches->FakeCPUID) {
+  //if (Entry->KernelAndKextPatches->FakeCPUID) {
     DBG_RT(Entry, "Enabled: 0x%06x\n", Entry->KernelAndKextPatches->FakeCPUID);
 
     if (!KernelAndKextPatcherInit(Entry)) {
@@ -972,9 +1008,9 @@ KernelAndKextsPatcherStart (
     }
 
     KernelCPUIDPatch(Entry);
-  } else {
-    DBG_RT(Entry, "Disabled\n");
-  }
+  //} else {
+  //  DBG_RT(Entry, "Disabled\n");
+  //}
 
   // CPU power management patch for haswell with locked msr
   DBG_RT(Entry, "\nKernelPm patch: ");

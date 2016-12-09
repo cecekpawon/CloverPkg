@@ -102,6 +102,8 @@ typedef struct KERNEL_INFO {
   UINT32                PrelinkInfoSize;
   UINT32                XCPMStart;
   UINT32                XCPMEnd;
+  UINT32                CPUInfoStart;
+  UINT32                CPUInfoEnd;
   UINT32                VersionMajor;
   UINT32                VersionMinor;
   UINT32                Revision;
