@@ -422,8 +422,8 @@ GetText (
         (AsciiStrCmp(sect64->segname, "__TEXT") == 0) &&
         (AsciiStrCmp(sect64->sectname, "__text") == 0)
       ) {
-        *Addr = sect64->addr;
-        *Size = sect64->size;
+        *Addr = (UINT32)sect64->addr;
+        *Size = (UINT32)sect64->size;
         *Off = sect64->offset;
         //DBG_RT(Entry, "__TEXT, __text address 0x%x\n", Off);
         //DBG_PAUSE(Entry, 10);

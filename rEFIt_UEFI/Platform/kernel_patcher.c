@@ -141,7 +141,7 @@ InitKernel (
           if (sect64->size > 0) {
             Addr = (UINT32)(sect64->addr ? sect64->addr + KernelInfo->RelocBase : 0);
             Size = (UINT32)sect64->size;
-            Off = (UINT32)sect64->offset;
+            Off = sect64->offset;
 
             if (
               (AsciiStrCmp(sect64->segname, kPrelinkTextSegment) == 0) &&
@@ -234,7 +234,7 @@ InitKernel (
       if (systabentry->n_value) {
         symbolName = (CHAR8 *) (strbin + systabentry->n_un.n_strx);
         Addr = (UINT32) systabentry->n_value;
-        patchLocation = Addr - (UINT32)(UINTN)KernelInfo->Bin + KernelInfo->RelocBase;
+        patchLocation = Addr - (UINT32)(UINTN)KernelInfo->Bin + (UINT32)KernelInfo->RelocBase;
 
         switch (systabentry->n_sect) {
           case 1: // __TEXT, __text
@@ -1000,7 +1000,7 @@ KernelAndKextsPatcherStart (
   //other method for KernelCPU patch is FakeCPUID
   DBG_RT(Entry, "\nFakeCPUID patch: ");
 
-  //if (Entry->KernelAndKextPatches->FakeCPUID) {
+  if (Entry->KernelAndKextPatches->FakeCPUID) {
     DBG_RT(Entry, "Enabled: 0x%06x\n", Entry->KernelAndKextPatches->FakeCPUID);
 
     if (!KernelAndKextPatcherInit(Entry)) {
@@ -1008,9 +1008,9 @@ KernelAndKextsPatcherStart (
     }
 
     KernelCPUIDPatch(Entry);
-  //} else {
-  //  DBG_RT(Entry, "Disabled\n");
-  //}
+  } else {
+    DBG_RT(Entry, "Disabled\n");
+  }
 
   // CPU power management patch for haswell with locked msr
   DBG_RT(Entry, "\nKernelPm patch: ");
