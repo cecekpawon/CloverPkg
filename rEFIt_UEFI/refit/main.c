@@ -207,7 +207,6 @@ StartEFILoadedImage (
   // Before calling the image, enable the Watchdog Timer for
   // the 5 Minute period - Slice - NO! For slow driver and slow disk we need more
   //
-  //gBS->SetWatchdogTimer (600, 0x0000, 0x00, NULL);
   gBS->SetWatchdogTimer (5 * 60, 0x0000, 0x00, NULL);
 
   ReturnStatus = Status = gBS->StartImage(ChildImageHandle, NULL, NULL);

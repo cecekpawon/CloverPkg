@@ -46,7 +46,7 @@ SetKernelRelocBase() {
   bareBoot: https://github.com/SunnyKi/bareBoot
 */
 
-#if !defined(MACH_PATCH)
+#if 0
 VOID
 GetKernelVersion (
   UINT32        addr,
@@ -78,8 +78,6 @@ GetKernelVersion (
       }
 
       *s1 = 0;
-
-      DBG_RT(Entry, "%a: KernelInfo->Version = %a\n", __FUNCTION__, KernelInfo->Version);
     }
   }
 }
@@ -90,18 +88,14 @@ InitKernel (
   IN LOADER_ENTRY   *Entry
 ) {
           UINT32              ncmds, cmdsize, binaryIndex,
-                              sectionIndex, Addr, Size, Off;
-#if defined(MACH_PATCH)
-          UINT32              linkeditaddr = 0, linkeditfileoff = 0,
+                              sectionIndex, Addr, Size, Off,
+                              linkeditaddr = 0, linkeditfileoff = 0,
                               symoff = 0, nsyms = 0, stroff = 0, strsize = 0;
-#endif
           UINTN               cnt;
-          UINT8               *Data = (UINT8*)KernelInfo->Bin;
-#if defined(MACH_PATCH)
-          UINT8               *symbin, *strbin;
+          UINT8               *Data = (UINT8*)KernelInfo->Bin,
+                              *symbin, *strbin;
   struct  nlist_64            *systabentry;
   struct  symtab_command      *comSymTab;
-#endif
   struct  load_command        *loadCommand;
   struct  segment_command_64  *segCmd64;
   struct  section_64          *sect64;
@@ -119,20 +113,15 @@ InitKernel (
         segCmd64 = (struct segment_command_64 *)loadCommand;
         sectionIndex = sizeof(struct segment_command_64);
 
-#if defined(MACH_PATCH)
         if (segCmd64->nsects == 0) {
-          if (AsciiStrCmp (segCmd64->segname, "__LINKEDIT") == 0) {
+          if (AsciiStrCmp (segCmd64->segname, kLinkeditSegment) == 0) {
             linkeditaddr = (UINT32) segCmd64->vmaddr;
             linkeditfileoff = (UINT32) segCmd64->fileoff;
             //DBG_RT(Entry, "%a: Segment = %a, Addr = 0x%x, Size = 0x%x, FileOff = 0x%x\n", __FUNCTION__,
-            //      segCmd64->segname,
-            //      linkeditaddr,
-            //      segCmd64->vmsize,
-            //      linkeditfileoff
-            //    );
+            //  segCmd64->segname, linkeditaddr, segCmd64->vmsize, linkeditfileoff
+            //);
           }
         }
-#endif
 
         while (sectionIndex < segCmd64->cmdsize) {
           sect64 = (struct section_64 *)((UINT8*)segCmd64 + sectionIndex);
@@ -158,32 +147,31 @@ InitKernel (
               KernelInfo->PrelinkInfoSize = Size;
             }
             else if (
-              (AsciiStrCmp(sect64->segname, "__KLD") == 0) &&
-              (AsciiStrCmp(sect64->sectname, "__text") == 0)
+              (AsciiStrCmp(sect64->segname, kKldSegment) == 0) &&
+              (AsciiStrCmp(sect64->sectname, kKldTextSection) == 0)
             ) {
               KernelInfo->KldAddr = Addr;
               KernelInfo->KldSize = Size;
               KernelInfo->KldOff = Off;
             }
             else if (
-              (AsciiStrCmp(sect64->segname, "__DATA") == 0) &&
-              (AsciiStrCmp(sect64->sectname, "__data") == 0)
+              (AsciiStrCmp(sect64->segname, kDataSegment) == 0) &&
+              (AsciiStrCmp(sect64->sectname, kDataDataSection) == 0)
             ) {
               KernelInfo->DataAddr = Addr;
               KernelInfo->DataSize = Size;
               KernelInfo->DataOff = Off;
             }
-            else if (AsciiStrCmp(sect64->segname, "__TEXT") == 0) {
-              //DBG_RT(Entry, "sectname: %a\n", sect64->sectname);
-              if (AsciiStrCmp(sect64->sectname, "__text") == 0) {
+            else if (AsciiStrCmp(sect64->segname, kTextSegment) == 0) {
+              if (AsciiStrCmp(sect64->sectname, kTextTextSection) == 0) {
                 KernelInfo->TextAddr = Addr;
                 KernelInfo->TextSize = Size;
                 KernelInfo->TextOff = Off;
               }
-#if !defined(MACH_PATCH)
+#if 0
               else if (
-                (AsciiStrCmp(sect64->sectname, "__const") == 0) ||
-                (AsciiStrCmp(sect64->sectname, "__cstring") == 0)
+                (AsciiStrCmp(sect64->sectname, kTextConstSection) == 0) ||
+                (AsciiStrCmp(sect64->sectname, kTextCstringSection) == 0)
               ) {
                 GetKernelVersion(Addr, Size, Entry);
               }
@@ -193,7 +181,6 @@ InitKernel (
         }
         break;
 
-#if defined(MACH_PATCH)
       case LC_SYMTAB:
         comSymTab = (struct symtab_command *) loadCommand;
         symoff = comSymTab->symoff;
@@ -202,7 +189,6 @@ InitKernel (
         strsize = comSymTab->strsize;
         //DBG_RT(Entry, "%a: symoff = 0x%x, nsyms = %d, stroff = 0x%x, strsize = %d\n", __FUNCTION__, symoff, nsyms, stroff, strsize);
         break;
-#endif
 
       default:
         break;
@@ -211,22 +197,16 @@ InitKernel (
     binaryIndex += cmdsize;
   }
 
-#if defined(MACH_PATCH)
   if ((linkeditaddr != 0) && (symoff != 0)) {
-    UINTN     i, e,
-              CntPatches = 10; // Max get / patches values. TODO: to use bits like Revoboot
+    UINTN     CntPatches = 12; // Max get / patches values. TODO: to use bits like Revoboot
     CHAR8     *symbolName = NULL;
-    BOOLEAN   Found;
     UINT32    patchLocation;
 
     cnt = 0;
     symbin = (UINT8 *)(UINTN) (linkeditaddr + (symoff - linkeditfileoff) + KernelInfo->RelocBase);
     strbin = (UINT8 *)(UINTN) (linkeditaddr + (stroff - linkeditfileoff) + KernelInfo->RelocBase);
 
-    //DBG_RT(Entry, "%a: symaddr = 0x%x, straddr = 0x%x\n", __FUNCTION__,
-    //      symbin,
-    //      strbin
-    //    );
+    //DBG_RT(Entry, "%a: symaddr = 0x%x, straddr = 0x%x\n", __FUNCTION__, symbin, strbin);
 
     while ((cnt < nsyms) && CntPatches) {
       systabentry = (struct nlist_64 *) (symbin);
@@ -239,37 +219,11 @@ InitKernel (
         switch (systabentry->n_sect) {
           case 1: // __TEXT, __text
             if (AsciiStrCmp (symbolName, "__ZN6OSKext14loadExecutableEv") == 0) {
-              i = 0, e = 600;
-              Found = FALSE;
-
-              while (!Found && (i < e)) {
-                if (
-                  (Data[patchLocation]     == 0xC3) &&
-                  (Data[patchLocation + 1] == 0x48) &&
-                  //(Data[patchLocation + 2] == 0x85) &&
-                  //(Data[patchLocation + 3] == 0xDB) &&
-                  (Data[patchLocation + 4] == 0x74) &&
-                  ((Data[patchLocation + 5] == 0x70) || (Data[patchLocation + 5] == 0x71)) &&
-                  (Data[patchLocation + 6] == 0x48)
-                ) {
-                  Found = TRUE;
-                  patchLocation += 4;
-                  break;
-                }
-
-                i++;
-                patchLocation++;
-              }
-
-              //DBG_RT(Entry, "%a: %a = 0x%x - 0x%x - 0x%x - 0x%x - 0x%x - 0x%x\n", symbolName, __FUNCTION__,
-              //  Data[patchLocation], Data[patchLocation+1], Data[patchLocation+2], Data[patchLocation+3],
-              //  Data[patchLocation+4], Data[patchLocation+5]);
-
-              if (Found) {
-                Data[patchLocation] = 0xEB;
-                Data[patchLocation + 1] = 0x12;
-              }
-
+              KernelInfo->LoadEXEStart = patchLocation;
+              CntPatches--;
+            }
+            else if (AsciiStrCmp (symbolName, "__ZN6OSKext23jettisonLinkeditSegmentEv") == 0) {
+              KernelInfo->LoadEXEEnd = patchLocation;
               CntPatches--;
             }
             else if (AsciiStrCmp (symbolName, "_cpuid_set_info") == 0) {
@@ -285,22 +239,18 @@ InitKernel (
           case 2: // __TEXT, __const
             if (AsciiStrCmp (symbolName, "_version") == 0) {
               KernelInfo->Version = PTR_OFFSET (Data, patchLocation, CHAR8 *);
-              DBG_RT(Entry, "%a: %a = %a\n", __FUNCTION__, symbolName, KernelInfo->Version);
               CntPatches--;
             }
             else if (AsciiStrCmp (symbolName, "_version_major") == 0) {
               KernelInfo->VersionMajor = *(PTR_OFFSET (Data, patchLocation, UINT32 *));
-              DBG_RT(Entry, "%a: %a = %d\n", __FUNCTION__, symbolName, KernelInfo->VersionMajor);
               CntPatches--;
             }
             else if (AsciiStrCmp (symbolName, "_version_minor") == 0) {
               KernelInfo->VersionMinor = *(PTR_OFFSET (Data, patchLocation, UINT32 *));
-              DBG_RT(Entry, "%a: %a = %d\n", __FUNCTION__, symbolName, KernelInfo->VersionMinor);
               CntPatches--;
             }
             else if (AsciiStrCmp (symbolName, "_version_revision") == 0) {
               KernelInfo->Revision = *(PTR_OFFSET (Data, patchLocation, UINT32 *));
-              DBG_RT(Entry, "%a: %a = %d\n", __FUNCTION__, symbolName, KernelInfo->Revision);
               CntPatches--;
             }
             break;
@@ -317,32 +267,11 @@ InitKernel (
 
           case 25: // __KLD, __text
             if (AsciiStrCmp (symbolName, "__ZN12KLDBootstrap21readStartupExtensionsEv") == 0) {
-              i = 0, e = 100;
-              Found = FALSE;
-
-              while (!Found && (i < e)) {
-                if (
-                  (Data[patchLocation] == 0xC6) &&
-                  (Data[patchLocation + 1] == 0xE8) &&
-                  (Data[patchLocation + 6] == 0xEB)
-                ) {
-                  Found = TRUE;
-                  patchLocation += 6;
-                  break;
-                }
-
-                i++;
-                patchLocation++;
-              }
-
-              //DBG_RT(Entry, "%a: %a = 0x%x - 0x%x\n", symbolName, __FUNCTION__,
-              //  Data[patchLocation], Data[patchLocation+1]);
-
-              if (Found) {
-                Data[patchLocation] = 0x90;
-                Data[patchLocation + 1] = 0x90;
-              }
-
+              KernelInfo->StartupExtStart = patchLocation;
+              CntPatches--;
+            }
+            else if (AsciiStrCmp (symbolName, "__ZN12KLDBootstrap23readPrelinkedExtensionsEP10section_64") == 0) {
+              KernelInfo->StartupExtEnd = patchLocation;
               CntPatches--;
             }
             break;
@@ -355,7 +284,22 @@ InitKernel (
   } /*else {
     DBG_RT(Entry, "%a: symbol table not found\n", __FUNCTION__);
   }*/
-#endif
+
+  if (KernelInfo->LoadEXEStart && KernelInfo->LoadEXEEnd && (KernelInfo->LoadEXEEnd > KernelInfo->LoadEXEStart)) {
+    KernelInfo->LoadEXESize = (KernelInfo->LoadEXEEnd - KernelInfo->LoadEXEStart);
+  }
+
+  if (KernelInfo->StartupExtStart && KernelInfo->StartupExtEnd && (KernelInfo->StartupExtEnd > KernelInfo->StartupExtStart)) {
+    KernelInfo->StartupExtSize = (KernelInfo->StartupExtEnd - KernelInfo->StartupExtStart);
+  }
+
+  if (KernelInfo->XCPMStart && KernelInfo->XCPMEnd && (KernelInfo->XCPMEnd > KernelInfo->XCPMStart)) {
+    KernelInfo->XCPMSize = (KernelInfo->XCPMEnd - KernelInfo->XCPMStart);
+  }
+
+  if (KernelInfo->CPUInfoStart && KernelInfo->CPUInfoEnd && (KernelInfo->CPUInfoEnd > KernelInfo->CPUInfoStart)) {
+    KernelInfo->CPUInfoSize = (KernelInfo->CPUInfoEnd - KernelInfo->CPUInfoStart);
+  }
 
   //DBG_PAUSE(Entry, 10);
   //return;
@@ -400,40 +344,23 @@ STATIC UINT8 SearchExt101[]     = {0x89, 0xc1, 0xc1, 0xe9, 0x10};
 
 BOOLEAN
 PatchCPUID (
+  UINT8           *Ptr,
   UINT8           *Search4,
   UINT8           *Search10,
   UINT8           *ReplaceModel,
   UINT8           *ReplaceExt,
   INT32           Len,
+  UINT32          Adr,
+  UINT32          Size,
+  UINT32          End,
   LOADER_ENTRY    *Entry
 ) {
   INT32     patchLocation = 0;
-  UINT32    Adr = 0, Size = 0x800000, End = 0, LenPatt = 0;
-  UINT8     *Ptr = (UINT8 *)KernelInfo->Bin,
-            FakeModel = (Entry->KernelAndKextPatches->FakeCPUID >> 4) & 0x0f,
+  UINT32    LenPatt = 0;
+  UINT8     FakeModel = (Entry->KernelAndKextPatches->FakeCPUID >> 4) & 0x0f,
             FakeExt = (Entry->KernelAndKextPatches->FakeCPUID >> 0x10) & 0x0f;
-  BOOLEAN   Patched = FALSE, Seg = FALSE;
+  BOOLEAN   Ret = FALSE;
 
-  if (Ptr == NULL) {
-    return FALSE;
-  }
-
-#if defined(MACH_PATCH)
-  if (KernelInfo->CPUInfoStart && KernelInfo->CPUInfoEnd && (KernelInfo->CPUInfoEnd > KernelInfo->CPUInfoStart)) {
-    Adr = KernelInfo->CPUInfoStart;
-    Size = (KernelInfo->CPUInfoEnd - KernelInfo->CPUInfoStart);
-    End = Adr + Size;
-    //DBG_RT(Entry, "CPUInfo: Start=0x%x | End=0x%x | Size=0x%x\n", KernelInfo->CPUInfoStart, KernelInfo->CPUInfoEnd, (KernelInfo->CPUInfoEnd - KernelInfo->CPUInfoStart));
-    //DBG_PAUSE(Entry, 10);
-  }
-  else if (KernelInfo->TextSize) {
-    Adr = KernelInfo->TextOff;
-    Size = KernelInfo->TextSize;
-    End = Adr + Size;
-  }
-#endif
-
-  Seg = (Adr > 0);
   LenPatt = sizeof(StrMsr8b);
 
   patchLocation = FindBin(&Ptr[Adr], Size, &StrMsr8b[0], LenPatt);
@@ -442,7 +369,7 @@ PatchCPUID (
     Adr += patchLocation;
     DBG_RT(Entry, " - found Pattern at %x, len: %d\n", Adr, LenPatt);
 
-    patchLocation = Seg ? (End - Adr) : 0x100;
+    patchLocation = (End - Adr);
 
     patchLocation = FindBin(&Ptr[Adr], patchLocation, Search4, Len);
 
@@ -453,7 +380,7 @@ PatchCPUID (
       CopyMem(&Ptr[Adr], ReplaceModel, Len);
       Ptr[Adr + 1] = FakeModel;
 
-      patchLocation = Seg ? (End - Adr) : 0x100;
+      patchLocation = (End - Adr);
 
       patchLocation = FindBin(&Ptr[Adr], patchLocation, Search10, Len);
 
@@ -462,178 +389,127 @@ PatchCPUID (
         DBG_RT(Entry, " - found ExtModel at %x, len: %d\n", Adr, Len);
         CopyMem(&Ptr[Adr], ReplaceExt, Len);
         Ptr[Adr + 1] = FakeExt;
-        Patched = TRUE;
+        Ret = TRUE;
       }
     }
   }
 
-  return Patched;
+  return Ret;
 }
 
-VOID
+BOOLEAN
 KernelCPUIDPatch (
   LOADER_ENTRY  *Entry
 ) {
-  DBG_RT(Entry, "Patching CPUID:\n");
+  UINT8     *Ptr = (UINT8 *)KernelInfo->Bin;
+  UINT32    Adr = 0, Size = 0x800000, End = 0;
+  BOOLEAN   Ret = FALSE;
+
+  DBG_RT(Entry, "\n\n%a: Start\n", __FUNCTION__);
+
+  if (Ptr == NULL) {
+    DBG_RT(Entry, " - error 0 bin\n");
+    goto Finish;
+  }
+
+  if (KernelInfo->CPUInfoSize) {
+    Adr = KernelInfo->CPUInfoStart;
+    Size = KernelInfo->CPUInfoSize;
+    End = Adr + Size;
+    //DBG_RT(Entry, "CPUInfo: Start=0x%x | End=0x%x | Size=0x%x\n", KernelInfo->CPUInfoStart, KernelInfo->CPUInfoEnd, KernelInfo->CPUInfoSize);
+  }
+  else if (KernelInfo->TextSize) {
+    Adr = KernelInfo->TextOff;
+    Size = KernelInfo->TextSize;
+    End = Adr + Size;
+  }
+
+  if (!Adr || !Size || !End) {
+    DBG_RT(Entry, " - error 0 range\n");
+    goto Finish;
+  }
 
   //Yosemite
   if (
     PatchCPUID (
-      /*Ptr, &StrMsr8b[0], sizeof(StrMsr8b),*/ &SearchModel101[0],
+      Ptr, /*&StrMsr8b[0], sizeof(StrMsr8b),*/ &SearchModel101[0],
       &SearchExt101[0], &ReplaceModel107[0], &ReplaceModel107[0],
-      sizeof(SearchModel107),/**/ Entry
+      sizeof(SearchModel107), Adr, Size, End, Entry
     )
   ) {
     DBG_RT(Entry, " - Yosemite ...done!\n");
-    return;
+    Ret = TRUE;
   }
 
   //Mavericks
   else if (
     PatchCPUID (
-      /*Ptr, &StrMsr8b[0], sizeof(StrMsr8b),*/ &SearchModel109[0],
+      Ptr, /*&StrMsr8b[0], sizeof(StrMsr8b),*/ &SearchModel109[0],
       &SearchExt109[0], &ReplaceModel109[0], &ReplaceExt109[0],
-      sizeof(SearchModel109),/**/ Entry
+      sizeof(SearchModel109), Adr, Size, End, Entry
     )
   ) {
     DBG_RT(Entry, " - Mavericks ...done!\n");
-    return;
+    Ret = TRUE;
   }
 
   //Lion patterns
   else if (
     PatchCPUID (
-      /*Ptr, &StrMsr8b[0], sizeof(StrMsr8b),*/ &SearchModel107[0],
+      Ptr, /*&StrMsr8b[0], sizeof(StrMsr8b),*/ &SearchModel107[0],
       &SearchExt107[0], &ReplaceModel107[0], &ReplaceModel107[0],
-      sizeof(SearchModel107),/**/ Entry
+      sizeof(SearchModel107), Adr, Size, End, Entry
     )
   ) {
     DBG_RT(Entry, " - Lion ...done!\n");
-    return;
+    Ret = TRUE;
   }
 
-  DBG_RT(Entry, " - none!\n");
+  if (!Ret) {
+    DBG_RT(Entry, " - error 0 matches\n");
+  }
+
+Finish:
+
+  DBG_RT(Entry, "%a: End\n", __FUNCTION__);
+  //DBG_PAUSE(Entry, 10);
+
+  return Ret;
 }
 
-#if !defined(MACH_PATCH)
-// Power management patch for kernel 13.0
-STATIC UINT8 KernelPatchPmSrc[] = {
-  0x55, 0x48, 0x89, 0xe5, 0x41, 0x89, 0xd0, 0x85,
-  0xf6, 0x74, 0x6c, 0x48, 0x83, 0xc7, 0x28, 0x90,
-  0x8b, 0x05, 0x5e, 0x30, 0x5e, 0x00, 0x85, 0x47,
-  0xdc, 0x74, 0x54, 0x8b, 0x4f, 0xd8, 0x45, 0x85,
-  0xc0, 0x74, 0x08, 0x44, 0x39, 0xc1, 0x44, 0x89,
-  0xc1, 0x75, 0x44, 0x0f, 0x32, 0x89, 0xc0, 0x48,
-  0xc1, 0xe2, 0x20, 0x48, 0x09, 0xc2, 0x48, 0x89,
-  0x57, 0xf8, 0x48, 0x8b, 0x47, 0xe8, 0x48, 0x85,
-  0xc0, 0x74, 0x06, 0x48, 0xf7, 0xd0, 0x48, 0x21,
-  0xc2, 0x48, 0x0b, 0x57, 0xf0, 0x49, 0x89, 0xd1,
-  0x49, 0xc1, 0xe9, 0x20, 0x89, 0xd0, 0x8b, 0x4f,
-  0xd8, 0x4c, 0x89, 0xca, 0x0f, 0x30, 0x8b, 0x4f,
-  0xd8, 0x0f, 0x32, 0x89, 0xc0, 0x48, 0xc1, 0xe2,
-  0x20, 0x48, 0x09, 0xc2, 0x48, 0x89, 0x17, 0x48,
-  0x83, 0xc7, 0x30, 0xff, 0xce, 0x75, 0x99, 0x5d,
-  0xc3, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90
-};
-
-STATIC UINT8 KernelPatchPmRepl[] = {
-  0x55, 0x48, 0x89, 0xe5, 0x41, 0x89, 0xd0, 0x85,
-  0xf6, 0x74, 0x73, 0x48, 0x83, 0xc7, 0x28, 0x90,
-  0x8b, 0x05, 0x5e, 0x30, 0x5e, 0x00, 0x85, 0x47,
-  0xdc, 0x74, 0x5b, 0x8b, 0x4f, 0xd8, 0x45, 0x85,
-  0xc0, 0x74, 0x08, 0x44, 0x39, 0xc1, 0x44, 0x89,
-  0xc1, 0x75, 0x4b, 0x0f, 0x32, 0x89, 0xc0, 0x48,
-  0xc1, 0xe2, 0x20, 0x48, 0x09, 0xc2, 0x48, 0x89,
-  0x57, 0xf8, 0x48, 0x8b, 0x47, 0xe8, 0x48, 0x85,
-  0xc0, 0x74, 0x06, 0x48, 0xf7, 0xd0, 0x48, 0x21,
-  0xc2, 0x48, 0x0b, 0x57, 0xf0, 0x49, 0x89, 0xd1,
-  0x49, 0xc1, 0xe9, 0x20, 0x89, 0xd0, 0x8b, 0x4f,
-  0xd8, 0x4c, 0x89, 0xca, 0x66, 0x81, 0xf9, 0xe2,
-  0x00, 0x74, 0x02, 0x0f, 0x30, 0x8b, 0x4f, 0xd8,
-  0x0f, 0x32, 0x89, 0xc0, 0x48, 0xc1, 0xe2, 0x20,
-  0x48, 0x09, 0xc2, 0x48, 0x89, 0x17, 0x48, 0x83,
-  0xc7, 0x30, 0xff, 0xce, 0x75, 0x92, 0x5d, 0xc3
-};
-
-// Power management patch for kernel 12.5
-STATIC UINT8 KernelPatchPmSrc2[] = {
-  0x55, 0x48, 0x89, 0xe5, 0x41, 0x89, 0xd0, 0x85,
-  0xf6, 0x74, 0x69, 0x48, 0x83, 0xc7, 0x28, 0x90,
-  0x8b, 0x05, 0xfe, 0xce, 0x5f, 0x00, 0x85, 0x47,
-  0xdc, 0x74, 0x51, 0x8b, 0x4f, 0xd8, 0x45, 0x85,
-  0xc0, 0x74, 0x05, 0x44, 0x39, 0xc1, 0x75, 0x44,
-  0x0f, 0x32, 0x89, 0xc0, 0x48, 0xc1, 0xe2, 0x20,
-  0x48, 0x09, 0xc2, 0x48, 0x89, 0x57, 0xf8, 0x48,
-  0x8b, 0x47, 0xe8, 0x48, 0x85, 0xc0, 0x74, 0x06,
-  0x48, 0xf7, 0xd0, 0x48, 0x21, 0xc2, 0x48, 0x0b,
-  0x57, 0xf0, 0x49, 0x89, 0xd1, 0x49, 0xc1, 0xe9,
-  0x20, 0x89, 0xd0, 0x8b, 0x4f, 0xd8, 0x4c, 0x89,
-  0xca, 0x0f, 0x30, 0x8b, 0x4f, 0xd8, 0x0f, 0x32,
-  0x89, 0xc0, 0x48, 0xc1, 0xe2, 0x20, 0x48, 0x09,
-  0xc2, 0x48, 0x89, 0x17, 0x48, 0x83, 0xc7, 0x30,
-  0xff, 0xce, 0x75, 0x9c, 0x5d, 0xc3, 0x90, 0x90,
-  0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90
-};
-
-STATIC UINT8 KernelPatchPmRepl2[] = {
-  0x55, 0x48, 0x89, 0xe5, 0x41, 0x89, 0xd0, 0x85,
-  0xf6, 0x74, 0x70, 0x48, 0x83, 0xc7, 0x28, 0x90,
-  0x8b, 0x05, 0xfe, 0xce, 0x5f, 0x00, 0x85, 0x47,
-  0xdc, 0x74, 0x58, 0x8b, 0x4f, 0xd8, 0x45, 0x85,
-  0xc0, 0x74, 0x05, 0x44, 0x39, 0xc1, 0x75, 0x4b,
-  0x0f, 0x32, 0x89, 0xc0, 0x48, 0xc1, 0xe2, 0x20,
-  0x48, 0x09, 0xc2, 0x48, 0x89, 0x57, 0xf8, 0x48,
-  0x8b, 0x47, 0xe8, 0x48, 0x85, 0xc0, 0x74, 0x06,
-  0x48, 0xf7, 0xd0, 0x48, 0x21, 0xc2, 0x48, 0x0b,
-  0x57, 0xf0, 0x49, 0x89, 0xd1, 0x49, 0xc1, 0xe9,
-  0x20, 0x89, 0xd0, 0x8b, 0x4f, 0xd8, 0x4c, 0x89,
-  0xca, 0x66, 0x81, 0xf9, 0xe2, 0x00, 0x74, 0x02,
-  0x0f, 0x30, 0x8b, 0x4f, 0xd8, 0x0f, 0x32, 0x89,
-  0xc0, 0x48, 0xc1, 0xe2, 0x20, 0x48, 0x09, 0xc2,
-  0x48, 0x89, 0x17, 0x48, 0x83, 0xc7, 0x30, 0xff,
-  0xce, 0x75, 0x95, 0x5d, 0xc3, 0x90, 0x90, 0x90
-};
-#endif
-
-#define KERNEL_PATCH_SIGNATURE        0x85d08941e5894855ULL
-//#define KERNEL_YOS_PATCH_SIGNATURE  0x56415741e5894855ULL
-#define KERNEL_PATCH_PM_NULL          0x0000000000000000ULL
+#define KERNEL_PATCH_PM_NULL    0x0000000000000000ULL
 
 BOOLEAN
 KernelPatchPm (
   IN LOADER_ENTRY   *Entry
 ) {
   UINT8     *Ptr = (UINT8 *)KernelInfo->Bin, *End = NULL;
-#if defined(MACH_PATCH)
-  BOOLEAN   Found, Ret;
-#endif
+  BOOLEAN   Found = FALSE, Ret = FALSE;
+
+  DBG_RT(Entry, "\n\n%a: Start\n", __FUNCTION__);
 
   if (Ptr == NULL) {
-    return FALSE;
+    DBG_RT(Entry, " - error 0 bin\n");
+    goto Finish;
   }
 
-#if defined(MACH_PATCH)
-  if (KernelInfo->XCPMStart && KernelInfo->XCPMEnd && (KernelInfo->XCPMEnd > KernelInfo->XCPMStart)) {
+  if (KernelInfo->XCPMSize) {
     Ptr += KernelInfo->XCPMStart;
-    End = Ptr + (KernelInfo->XCPMEnd - KernelInfo->XCPMStart);
-    //DBG_RT(Entry, "XCPM: Start=0x%x | End=0x%x | Size=0x%x\n", KernelInfo->XCPMStart, KernelInfo->XCPMEnd, (KernelInfo->XCPMEnd - KernelInfo->XCPMStart));
-    //DBG_PAUSE(Entry, 10);
+    End = Ptr + KernelInfo->XCPMSize;
+    //DBG_RT(Entry, "XCPM: Start=0x%x | End=0x%x | Size=0x%x\n", KernelInfo->XCPMStart, KernelInfo->XCPMEnd, KernelInfo->XCPMSize);
   }
   else if (KernelInfo->DataSize) {
     Ptr += KernelInfo->DataOff;
     End = Ptr + KernelInfo->DataSize;
   }
-#endif
 
   if (End == NULL) {
     End = Ptr + 0x1000000;
   }
 
   // Credits to RehabMan for the kernel patch information
-  DBG_RT(Entry, "Patching kernel power management...\n");
-  while (Ptr < End) {
 
-#if defined(MACH_PATCH)
+  while (Ptr < End) {
     Found = Ret = FALSE;
 
     switch (*((UINT64 *)Ptr)) {
@@ -652,65 +528,25 @@ KernelPatchPm (
     if (Found) {
       DBG_RT(Entry, " - found: 0x%lx\n", *((UINT64 *)Ptr));
       (*((UINT64 *)Ptr)) = KERNEL_PATCH_PM_NULL;
-    }
 
-    if (Ret) {
-      DBG_PAUSE(Entry, 10);
-      return TRUE;
-    }
-#else
-    if (KERNEL_PATCH_SIGNATURE == (*((UINT64 *)Ptr))) {
-      // Bytes 19,20 of KernelPm patch for kernel 13.x change between kernel versions, so we skip them in search&replace
-      if (
-        (CompareMem(Ptr + sizeof(UINT64),   KernelPatchPmSrc + sizeof(UINT64),   18*sizeof(UINT8) - sizeof(UINT64)) == 0) &&
-        (CompareMem(Ptr + 20*sizeof(UINT8), KernelPatchPmSrc + 20*sizeof(UINT8), sizeof(KernelPatchPmSrc) - 20*sizeof(UINT8)) == 0)
-      ) {
-        // Don't copy more than the source here!
-        CopyMem(Ptr, KernelPatchPmRepl, 18*sizeof(UINT8));
-        CopyMem(Ptr + 20*sizeof(UINT8), KernelPatchPmRepl + 20*sizeof(UINT8), sizeof(KernelPatchPmSrc) - 20*sizeof(UINT8));
-        DBG_RT(Entry, "Kernel power management patch region 1 found and patched\n");
-        return TRUE;
-      } else if (
-        CompareMem(Ptr + sizeof(UINT64), KernelPatchPmSrc2 + sizeof(UINT64), sizeof(KernelPatchPmSrc2) - sizeof(UINT64)) == 0
-      ) {
-        // Don't copy more than the source here!
-        CopyMem(Ptr, KernelPatchPmRepl2, sizeof(KernelPatchPmSrc2));
-        DBG_RT(Entry, "Kernel power management patch region 2 found and patched\n");
-        return TRUE;
+      if (Ret) {
+        goto Finish;
       }
-    } else if (0x00000002000000E2ULL == (*((UINT64 *)Ptr))) {
-      //rehabman: for 10.10 (data portion)
-      (*((UINT64 *)Ptr)) = 0x0000000000000000ULL;
-      DBG_RT(Entry, "Kernel power management patch 10.10(data1) found and patched\n");
-      //return TRUE;
-    } else if (0x0000004C000000E2ULL == (*((UINT64 *)Ptr))) {
-      (*((UINT64 *)Ptr)) = 0x0000000000000000ULL;
-      DBG_RT(Entry, "Kernel power management patch 10.10(data2) found and patched\n");
-      //return TRUE;
-    } else if (0x00000190000000E2ULL == (*((UINT64 *)Ptr))) {
-      (*((UINT64 *)Ptr)) = 0x0000000000000000ULL;
-      DBG_RT(Entry, "Kernel power management patch 10.10(data3) found and patched\n");
-      return TRUE;
-    } else if (0x00001390000000E2ULL == (*((UINT64 *)Ptr))) {
-      // rehabman: change for 10.11.1 beta 15B38b
-      (*((UINT64 *)Ptr)) = 0x0000000000000000ULL;
-      DBG_RT(Entry, "Kernel power management patch 10.11.1(beta 15B38b)(data3) found and patched\n");
-      return TRUE;
-    } else if (0x00003390000000E2ULL == (*((UINT64 *)Ptr))) {
-      // sherlocks: change for 10.12 DP1
-      (*((UINT64 *)Ptr)) = 0x0000000000000000ULL;
-      DBG_RT(Entry, "Kernel power management patch 10.12 DP1 found and patched\n");
-      return TRUE;
     }
-#endif
 
     Ptr += 16;
   }
 
-  DBG_RT(Entry, " - not found!\n");
-  DBG_PAUSE(Entry, 10);
+  if (!Ret) {
+    DBG_RT(Entry, " - error 0 matches\n");
+  }
 
-  return FALSE;
+Finish:
+
+  DBG_RT(Entry, "%a: End\n", __FUNCTION__);
+  //DBG_PAUSE(Entry, 10);
+
+  return Ret;
 }
 
 VOID
@@ -722,7 +558,7 @@ FindBootArgs (
   // start searching from 0x200000.
   ptr = (UINT8*)(UINTN)0x200000;
 
-  while(TRUE) {
+  while (TRUE) {
     // check bootargs for 10.7 and up
     bootArgs2 = (BootArgs2*)ptr;
 
@@ -736,15 +572,16 @@ FindBootArgs (
       // set vars
       dtRoot = (CHAR8*)(UINTN)bootArgs2->deviceTreeP;
       KernelInfo->Slide = bootArgs2->kslide;
-
-      DBG_RT(Entry, "Found bootArgs2 at 0x%08x, DevTree at %p\n", ptr, dtRoot);
-      //DBG_RT(Entry, "bootArgs2->kaddr = 0x%08x and bootArgs2->ksize =  0x%08x\n", bootArgs2->kaddr, bootArgs2->ksize);
-      //DBG_RT(Entry, "bootArgs2->efiMode = 0x%02x\n", bootArgs2->efiMode);
-      DBG_RT(Entry, "bootArgs2->CommandLine = %a\n", bootArgs2->CommandLine);
-      DBG_RT(Entry, "bootArgs2->flags = 0x%x\n", bootArgs2->flags);
-      DBG_RT(Entry, "bootArgs2->kslide = 0x%x\n", bootArgs2->kslide);
-      DBG_RT(Entry, "bootArgs2->bootMemStart = 0x%x\n", bootArgs2->bootMemStart);
-      DBG_PAUSE(Entry, 2);
+      /*
+        DBG_RT(Entry, "Found bootArgs2 at 0x%08x, DevTree at %p\n", ptr, dtRoot);
+        //DBG_RT(Entry, "bootArgs2->kaddr = 0x%08x and bootArgs2->ksize =  0x%08x\n", bootArgs2->kaddr, bootArgs2->ksize);
+        //DBG_RT(Entry, "bootArgs2->efiMode = 0x%02x\n", bootArgs2->efiMode);
+        DBG_RT(Entry, "bootArgs2->CommandLine = %a\n", bootArgs2->CommandLine);
+        DBG_RT(Entry, "bootArgs2->flags = 0x%x\n", bootArgs2->flags);
+        DBG_RT(Entry, "bootArgs2->kslide = 0x%x\n", bootArgs2->kslide);
+        DBG_RT(Entry, "bootArgs2->bootMemStart = 0x%x\n", bootArgs2->bootMemStart);
+        DBG_PAUSE(Entry, 2);
+      */
       break;
     }
 
@@ -758,26 +595,28 @@ KernelUserPatch (
 ) {
   INTN    Num, i = 0, y = 0;
 
+  DBG_RT(Entry, "\n\n%a: Start\n", __FUNCTION__);
+
   for (; i < Entry->KernelAndKextPatches->NrKernels; ++i) {
     DBG_RT(Entry, "Patch[%02d]: %a\n", i, Entry->KernelAndKextPatches->KernelPatches[i].Label);
 
     if (Entry->KernelAndKextPatches->KernelPatches[i].Disabled) {
-      DBG_RT(Entry, "==> is not allowed for booted OS %a\n", Entry->OSVersion);
+      DBG_RT(Entry, "==> DISABLED!\n");
       continue;
     }
 
     /*
-        Num = SearchAndCount (
-          KernelInfo->Bin,
-          KERNEL_MAX_SIZE,
-          Entry->KernelAndKextPatches->KernelPatches[i].Data,
-          Entry->KernelAndKextPatches->KernelPatches[i].DataLen
-        );
+      Num = SearchAndCount (
+        KernelInfo->Bin,
+        KERNEL_MAX_SIZE,
+        Entry->KernelAndKextPatches->KernelPatches[i].Data,
+        Entry->KernelAndKextPatches->KernelPatches[i].DataLen
+      );
 
-        if (!Num) {
-          DBG_RT(Entry, "==> pattern(s) not found.\n");
-          continue;
-        }
+      if (!Num) {
+        DBG_RT(Entry, "==> pattern(s) not found.\n");
+        continue;
+      }
     */
 
     Num = SearchAndReplace (
@@ -796,68 +635,134 @@ KernelUserPatch (
     DBG_RT(Entry, "==> %a : %d replaces done\n", Num ? "Success" : "Error", Num);
   }
 
+  DBG_RT(Entry, "%a: End\n", __FUNCTION__);
+
   return (y != 0);
 }
 
 BOOLEAN
-KernelAndKextPatcherInit (
+PatchStartupExt (
   IN LOADER_ENTRY   *Entry
 ) {
-  if (KernelInfo->PatcherInited) {
-    goto finish;
+  UINT8     *Ptr = (UINT8 *)KernelInfo->Bin;
+  UINT32    patchLocation = 0, patchEnd = 0;
+  BOOLEAN   Ret = FALSE;
+
+  DBG_RT(Entry, "\n\n%a: Start\n", __FUNCTION__);
+
+  if (Ptr == NULL) {
+    DBG_RT(Entry, " - error 0 bin\n");
+    goto Finish;
   }
 
-  DBG_RT(Entry, "\n\nPatcher init: STARTED\n\n");
-
-  KernelInfo->PatcherInited = TRUE;
-
-  // KernelInfo->RelocBase will normally be 0
-  // but if OsxAptioFixDrv is used, then it will be > 0
-  SetKernelRelocBase();
-
-  DBG_RT(Entry, "KernelInfo->RelocBase = %lx\n", KernelInfo->RelocBase);
-
-  // Find bootArgs - we need then for proper detection
-  // of kernel Mach-O header
-  FindBootArgs(Entry);
-
-  if (bootArgs2 == NULL) {
-    DBG_RT(Entry, "BootArgs not found - skipping patches!\n");
-    goto finish;
+  if (KernelInfo->StartupExtSize) {
+    patchLocation = KernelInfo->StartupExtStart;
+    patchEnd = KernelInfo->StartupExtEnd;
+    //DBG_RT(Entry, "Start=0x%x | End=0x%x | Size=0x%x\n", KernelInfo->StartupExtStart, KernelInfo->StartupExtEnd, KernelInfo->StartupExtSize);
+  }
+  else if (KernelInfo->KldSize) {
+    patchLocation = KernelInfo->KldOff;
+    patchEnd = patchLocation + KernelInfo->KldSize;
   }
 
-  // Find kernel Mach-O header:
-  // for ML: bootArgs2->kslide + 0x00200000
-  // for older versions: just 0x200000
-  // for AptioFix booting - it's always at KernelInfo->RelocBase + 0x200000
-  KernelInfo->Bin = (VOID*)(UINTN)(KernelInfo->Slide + KernelInfo->RelocBase + 0x00200000);
-
-  // check that it is Mach-O header and detect architecture
-  //if ((MACH_GET_MAGIC(KernelInfo->Bin) == MH_MAGIC_64) || (MACH_GET_MAGIC(KernelInfo->Bin) == MH_CIGAM_64)) {
-  if (MACH_GET_MAGIC(KernelInfo->Bin) == MH_MAGIC_64) {
-    DBG_RT(Entry, "Found 64 bit kernel at 0x%p\n", KernelInfo->Bin);
-    KernelInfo->is64Bit = TRUE;
-  } else {
-    // not valid Mach-O header - exiting
-    DBG_RT(Entry, "64Bit Kernel not found at 0x%p - skipping patches!", KernelInfo->Bin);
-    KernelInfo->Bin = NULL;
-    goto finish;
+  if (!patchEnd) {
+    DBG_RT(Entry, " - error 0 range\n");
+    goto Finish;
   }
 
-  InitKernel(Entry);
+  while (patchLocation < patchEnd) { // patchEnd - pattern
+    if (
+      (Ptr[patchLocation] == 0xC6) &&
+      (Ptr[patchLocation + 1] == 0xE8) &&
+      (Ptr[patchLocation + 6] == 0xEB)
+    ) {
+      DBG_RT(Entry, " - found at 0x%x\n", patchLocation);
+      patchLocation += 6;
+      Ptr[patchLocation] = 0x90;
+      Ptr[++patchLocation] = 0x90;
+      Ret = TRUE;
+      break;
+    }
 
-  KernelInfo->isCache = ((KernelInfo->PrelinkTextSize > 0) && (KernelInfo->PrelinkInfoSize > 0));
+    patchLocation++;
+  }
 
-  DBG_RT(Entry, "KernelInfo->isCache: %s\n", KernelInfo->isCache ? L"Yes" : L"No");
-  //DBG_RT(Entry, "%a: KernelInfo->Version = %a\n", __FUNCTION__, KernelInfo->Version);
-  DBG_RT(Entry, "\n\nPatcher init: ENDED\n\n");
-  //DBG_PAUSE(Entry, 5);
+  if (!Ret) {
+    DBG_RT(Entry, " - error 0 matches\n");
+  }
 
-finish:
-  return (KernelInfo->is64Bit && (KernelInfo->Bin != NULL));
+Finish:
+
+  DBG_RT(Entry, "%a: End\n", __FUNCTION__);
+  //DBG_PAUSE(Entry, 10);
+
+  return Ret;
 }
 
-#if !defined(MACH_PATCH)
+BOOLEAN
+PatchLoadEXE (
+  IN LOADER_ENTRY   *Entry
+) {
+  UINT8     *Ptr = (UINT8 *)KernelInfo->Bin;
+  UINT32    patchLocation = 0, patchEnd = 0;
+  BOOLEAN   Ret = FALSE;
+
+  DBG_RT(Entry, "\n\n%a: Start\n", __FUNCTION__);
+
+  if (Ptr == NULL) {
+    DBG_RT(Entry, " - error 0 bin\n");
+    goto Finish;
+  }
+
+  if (KernelInfo->LoadEXESize) {
+    patchLocation = KernelInfo->LoadEXEStart;
+    patchEnd = KernelInfo->LoadEXEEnd;
+    //DBG_RT(Entry, "LoadEXE: Start=0x%x | End=0x%x | Size=0x%x\n", KernelInfo->LoadEXEStart, KernelInfo->LoadEXEEnd, KernelInfo->LoadEXESize);
+  }
+  else if (KernelInfo->TextSize) {
+    patchLocation = KernelInfo->TextOff;
+    patchEnd = patchLocation + KernelInfo->TextSize;
+  }
+
+  if (!patchEnd) {
+    DBG_RT(Entry, " - error 0 range\n");
+    goto Finish;
+  }
+
+  while (patchLocation < patchEnd) { // patchEnd - pattern
+    if (
+      (Ptr[patchLocation] == 0xC3) &&
+      (Ptr[patchLocation + 1] == 0x48) &&
+      //(Ptr[patchLocation + 2] == 0x85) &&
+      //(Ptr[patchLocation + 3] == 0xDB) &&
+      (Ptr[patchLocation + 4] == 0x74) &&
+      ((Ptr[patchLocation + 5] == 0x70) || (Ptr[patchLocation + 5] == 0x71)) &&
+      (Ptr[patchLocation + 6] == 0x48)
+    ) {
+      DBG_RT(Entry, " - found at 0x%x\n", patchLocation);
+      patchLocation += 4;
+      Ptr[patchLocation] = 0xEB;
+      Ptr[++patchLocation] = 0x12;
+      Ret = TRUE;
+      break;
+    }
+
+    patchLocation++;
+  }
+
+  if (!Ret) {
+    DBG_RT(Entry, " - error 0 matches\n");
+  }
+
+Finish:
+
+  DBG_RT(Entry, "%a: End\n", __FUNCTION__);
+  //DBG_PAUSE(Entry, 10);
+
+  return Ret;
+}
+
+#if 0
 ////////////////////////////////////
 //
 // KernelBooterExtensionsPatch to load extra kexts besides kernelcache
@@ -926,10 +831,85 @@ KernelBooterExtensionsPatch (
 #endif
 
 VOID
+EFIAPI
+KernelBooterExtensionsPatch (
+  LOADER_ENTRY    *Entry
+) {
+  DBG_RT(Entry, "\n\n%a: Start\n", __FUNCTION__);
+
+  if (PatchStartupExt(Entry)) {
+    PatchLoadEXE(Entry);
+  }
+
+  DBG_RT(Entry, "%a: End\n", __FUNCTION__);
+  DBG_PAUSE(Entry, 5);
+}
+
+BOOLEAN
+KernelAndKextPatcherInit (
+  IN LOADER_ENTRY   *Entry
+) {
+  if (KernelInfo->PatcherInited) {
+    goto Finish;
+  }
+
+  DBG_RT(Entry, "\n\n%a: Start\n", __FUNCTION__);
+
+  KernelInfo->PatcherInited = TRUE;
+
+  // KernelInfo->RelocBase will normally be 0
+  // but if OsxAptioFixDrv is used, then it will be > 0
+  SetKernelRelocBase();
+
+  DBG_RT(Entry, "RelocBase = %lx\n", KernelInfo->RelocBase);
+
+  // Find bootArgs - we need then for proper detection
+  // of kernel Mach-O header
+  FindBootArgs(Entry);
+
+  if (bootArgs2 == NULL) {
+    DBG_RT(Entry, "BootArgs not found - skipping patches!\n");
+    goto Finish;
+  }
+
+  // Find kernel Mach-O header:
+  // for ML: bootArgs2->kslide + 0x00200000
+  // for older versions: just 0x200000
+  // for AptioFix booting - it's always at KernelInfo->RelocBase + 0x200000
+  KernelInfo->Bin = (VOID*)(UINTN)(KernelInfo->Slide + KernelInfo->RelocBase + 0x00200000);
+
+  // check that it is Mach-O header and detect architecture
+  if (MACH_GET_MAGIC(KernelInfo->Bin) == MH_MAGIC_64) { // (MACH_GET_MAGIC(KernelInfo->Bin) == MH_CIGAM_64)
+    DBG_RT(Entry, "Found 64 bit kernel at 0x%p\n", KernelInfo->Bin);
+    KernelInfo->is64Bit = TRUE;
+  } else {
+    // not valid Mach-O header - exiting
+    DBG_RT(Entry, "64Bit Kernel not found at 0x%p - skipping patches!", KernelInfo->Bin);
+    KernelInfo->Bin = NULL;
+    goto Finish;
+  }
+
+  InitKernel(Entry);
+
+  KernelInfo->isCache = ((KernelInfo->PrelinkTextSize > 0) && (KernelInfo->PrelinkInfoSize > 0));
+  DBG_RT(Entry, "Darwin: Version = %a | VersionMajor: %d | VersionMinor: %d | Revision: %d\n",
+    KernelInfo->Version, KernelInfo->VersionMajor, KernelInfo->VersionMinor, KernelInfo->Revision
+  );
+
+  DBG_RT(Entry, "isCache: %s\n", KernelInfo->isCache ? L"Yes" : L"No");
+  DBG_RT(Entry, "%a: End\n", __FUNCTION__);
+  //DBG_PAUSE(Entry, 10);
+
+Finish:
+
+  return (KernelInfo->is64Bit && (KernelInfo->Bin != NULL));
+}
+
+VOID
 KernelAndKextsPatcherStart (
   IN LOADER_ENTRY   *Entry
 ) {
-  BOOLEAN   KextPatchesNeeded, patchedOk;
+  BOOLEAN   KextPatchesNeeded;
 
   // we will call KernelAndKextPatcherInit() only if needed
   if ((Entry == NULL) || (Entry->KernelAndKextPatches == NULL)) {
@@ -958,10 +938,18 @@ KernelAndKextsPatcherStart (
   KernelInfo->PrelinkTextSize = 0;
   KernelInfo->PrelinkInfoAddr = 0;
   KernelInfo->PrelinkInfoSize = 0;
+  KernelInfo->LoadEXEStart = 0;
+  KernelInfo->LoadEXEEnd = 0;
+  KernelInfo->LoadEXESize = 0;
+  KernelInfo->StartupExtStart = 0;
+  KernelInfo->StartupExtEnd = 0;
+  KernelInfo->StartupExtSize = 0;
   KernelInfo->XCPMStart = 0;
   KernelInfo->XCPMEnd = 0;
+  KernelInfo->XCPMSize = 0;
   KernelInfo->CPUInfoStart = 0;
   KernelInfo->CPUInfoEnd = 0;
+  KernelInfo->CPUInfoSize = 0;
   KernelInfo->VersionMajor = 0;
   KernelInfo->VersionMinor = 0;
   KernelInfo->Revision = 0;
@@ -979,79 +967,65 @@ KernelAndKextsPatcherStart (
     ((Entry->KernelAndKextPatches->NrKexts > 0) && (Entry->KernelAndKextPatches->KextPatches != NULL))
   );
 
-  DBG_RT(Entry, "\nKernelToPatch: ");
+  //
+  // KernelToPatch
+  //
 
   if (
     gSettings.KernelPatchesAllowed &&
     (Entry->KernelAndKextPatches->KernelPatches != NULL) &&
     Entry->KernelAndKextPatches->NrKernels
   ) {
-    DBG_RT(Entry, "Enabled: ");
     if (!KernelAndKextPatcherInit(Entry)) {
       goto NoKernelData;
     }
 
-    patchedOk = KernelUserPatch(Entry);
-    DBG_RT(Entry, patchedOk ? " OK\n" : " FAILED!\n");
-  } else {
-    DBG_RT(Entry, "Disabled\n");
+    KernelUserPatch(Entry);
   }
 
-  //other method for KernelCPU patch is FakeCPUID
-  DBG_RT(Entry, "\nFakeCPUID patch: ");
+  //
+  // Kext FakeCPUID
+  //
 
   if (Entry->KernelAndKextPatches->FakeCPUID) {
-    DBG_RT(Entry, "Enabled: 0x%06x\n", Entry->KernelAndKextPatches->FakeCPUID);
-
     if (!KernelAndKextPatcherInit(Entry)) {
       goto NoKernelData;
     }
 
     KernelCPUIDPatch(Entry);
-  } else {
-    DBG_RT(Entry, "Disabled\n");
   }
 
-  // CPU power management patch for haswell with locked msr
-  DBG_RT(Entry, "\nKernelPm patch: ");
+  //
+  // Power Management
+  //
 
+  // CPU power management patch for haswell with locked msr
   if (Entry->KernelAndKextPatches->KPKernelPm) {
-    DBG_RT(Entry, "Enabled: ");
     if (!KernelAndKextPatcherInit(Entry)) {
       goto NoKernelData;
     }
 
-    patchedOk = KernelPatchPm(Entry);
-    DBG_RT(Entry, patchedOk ? " OK\n" : " FAILED!\n");
-  } else {
-    DBG_RT(Entry, "Disabled\n");
+    KernelPatchPm(Entry);
   }
-
-  //DBG_PAUSE(Entry, 2);
 
   //
   // Kext patches
   //
 
-  DBG_RT(Entry, "\nKextPatches Needed: %c, Allowed: %c ... ",
-         (KextPatchesNeeded ? L'Y' : L'n'),
-         (gSettings.KextPatchesAllowed ? L'Y' : L'n')
-         );
+  DBG_RT(Entry, "\nKextPatches Needed: %a, Allowed: %a ... ",
+    (KextPatchesNeeded ? "Yes" : "No"),
+    (gSettings.KextPatchesAllowed ? "Yes" : "No")
+  );
 
   if (KextPatchesNeeded && gSettings.KextPatchesAllowed) {
     if (!KernelAndKextPatcherInit(Entry)) {
       goto NoKernelData;
     }
 
-    DBG_RT(Entry, "\nKext patching: STARTED\n\n");
     KextPatcherStart(Entry);
-    DBG_RT(Entry, "\nKext patching: ENDED\n");
-  } else {
-    DBG_RT(Entry, "Disabled\n");
   }
 
-  DBG_RT(Entry, "Pausing 10 secs ...\n\n");
-  DBG_PAUSE(Entry, 10);
+  //DBG_PAUSE(Entry, 5);
 
   //
   // Kext add
@@ -1078,17 +1052,13 @@ KernelAndKextsPatcherStart (
       goto NoKernelData;
     }
 
-    if (bootArgs2 != NULL) {
-      deviceTreeP = bootArgs2->deviceTreeP;
-      deviceTreeLength = bootArgs2->deviceTreeLength;
+    deviceTreeP = bootArgs2->deviceTreeP;
+    deviceTreeLength = bootArgs2->deviceTreeLength;
 
-      Status = InjectKexts(deviceTreeP, &deviceTreeLength, Entry);
+    Status = InjectKexts(deviceTreeP, &deviceTreeLength, Entry);
 
-#if !defined(MACH_PATCH)
-      if (!EFI_ERROR(Status)) {
-        KernelBooterExtensionsPatch(Entry);
-      }
-#endif
+    if (!EFI_ERROR(Status)) {
+      KernelBooterExtensionsPatch(Entry);
     }
   }
 
@@ -1096,6 +1066,6 @@ KernelAndKextsPatcherStart (
 
 NoKernelData:
 
-  DBG_RT(Entry, "==> ERROR: Kernel not found\n");
+  DBG_RT(Entry, "==> ERROR: in KernelAndKextPatcherInit\n");
   DBG_PAUSE(Entry, 5);
 }

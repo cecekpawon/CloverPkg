@@ -158,6 +158,9 @@ SearchAndReplaceTxt (
 }
 
 /** Extracts kext BundleIdentifier from given Plist into gKextBundleIdentifier */
+
+#define PropCFBundleIdentifierKey "<key>" kPropCFBundleIdentifier "</key>"
+
 CHAR8
 *ExtractKextBundleIdentifier (
   CHAR8     *Plist
@@ -186,7 +189,7 @@ CHAR8
       // closing dict
       DictLevel--;
       Tag += 7;
-    } else if ((DictLevel == 1) && (AsciiStrnCmp(Tag, "<key>CFBundleIdentifier</key>", 29) == 0)) {
+    } else if ((DictLevel == 1) && (AsciiStrnCmp(Tag, PropCFBundleIdentifierKey, 29) == 0)) {
       // BundleIdentifier is next <string>...</string>
       BIStart = AsciiStrStr(Tag + 29, "<string>");
       if (BIStart != NULL) {
@@ -380,10 +383,9 @@ ATIConnectorsPatch (
     DBG_RT(Entry, "==> NOT patched!\n");
   }
 
-  DBG_PAUSE(Entry, 5);
+  //DBG_PAUSE(Entry, 5);
 }
 
-#if defined(MACH_PATCH)
 VOID
 GetText (
   UINT8           *binary,
@@ -424,13 +426,13 @@ GetText (
 
       if (
         (sect64->size > 0) &&
-        (AsciiStrCmp(sect64->segname, "__TEXT") == 0) &&
-        (AsciiStrCmp(sect64->sectname, "__text") == 0)
+        (AsciiStrCmp(sect64->segname, kTextSegment) == 0) &&
+        (AsciiStrCmp(sect64->sectname, kTextTextSection) == 0)
       ) {
         *Addr = (UINT32)sect64->addr;
         *Size = (UINT32)sect64->size;
         *Off = sect64->offset;
-        //DBG_RT(Entry, "__TEXT, __text address 0x%x\n", Off);
+        //DBG_RT(Entry, "%a, %a address 0x%x\n", kTextSegment, kTextTextSection, Off);
         //DBG_PAUSE(Entry, 10);
         break;
       }
@@ -441,7 +443,6 @@ GetText (
 
   return;
 }
-#endif
 
 ////////////////////////////////////
 //
@@ -467,23 +468,20 @@ AsusAICPUPMPatch (
   UINT32          InfoPlistSize,
   LOADER_ENTRY    *Entry
 ) {
-  UINTN   Index1, Index2, Count = 0;
-#if defined(MACH_PATCH)
-  UINT32  addr, size, off, end;
+  UINTN   Index1 = 0, Index2 = 0, Count = 0;
+  UINT32  addr, size, off;
 
   GetText (Driver, &addr, &size, &off, Entry);
 
-  end = (off+size);
-#endif
-
   DBG_RT(Entry, "\nAsusAICPUPMPatch: driverAddr = %x, driverSize = %x\n", Driver, DriverSize);
 
+  if (off && size) {
+    Index1 = off;
+    DriverSize = (off + size);
+  }
+
   //TODO: we should scan only __text __TEXT
-#if defined(MACH_PATCH)
-  for (Index1 = off; Index1 < end; Index1++) {
-#else
-  for (Index1 = 0; Index1 < DriverSize; Index1++) {
-#endif
+  for (; Index1 < DriverSize; Index1++) {
     // search for MovlE2ToEcx
     if (CompareMem(Driver + Index1, MovlE2ToEcx, sizeof(MovlE2ToEcx)) == 0) {
       // search for wrmsr in next few bytes
@@ -531,7 +529,7 @@ AsusAICPUPMPatch (
   }
 
   DBG_RT(Entry, "= %d patches\n", Count);
-  DBG_PAUSE(Entry, 5);
+  //DBG_PAUSE(Entry, 5);
 }
 
 ////////////////////////////////////
@@ -540,8 +538,6 @@ AsusAICPUPMPatch (
 //
 
 // ...
-
-
 
 ////////////////////////////////////
 //
@@ -568,9 +564,9 @@ AnyKextPatch (
     return;
   }
 
-  if (Entry->KernelAndKextPatches->KextPatches[N].IsPlistPatch) {
-    // Info plist patch
+  if (Entry->KernelAndKextPatches->KextPatches[N].IsPlistPatch) { // Info plist patch
     DBG_RT(Entry, "Info.plist patch\n");
+
     /*
       DBG_RT(Entry, "Info.plist data : '");
 
@@ -587,6 +583,7 @@ AnyKextPatch (
 
       DBG_RT(Entry, "' \n");
     */
+
     Num = SearchAndReplaceTxt (
             (UINT8*)InfoPlist,
             InfoPlistSize,
@@ -595,21 +592,21 @@ AnyKextPatch (
             Entry->KernelAndKextPatches->KextPatches[N].Patch,
             -1
           );
-  } else {
-    // kext binary patch
-#if defined(MACH_PATCH)
+  } else { // kext binary patch
     UINT32    addr, size, off;
+
     GetText (Driver, &addr, &size, &off, Entry);
-#endif
+
     DBG_RT(Entry, "Binary patch\n");
+
+    if (off && size) {
+      Driver += off;
+      DriverSize = size;
+    }
+
     Num = SearchAndReplace (
-#if defined(MACH_PATCH)
-            Driver+off,
-            size,
-#else
             Driver,
             DriverSize,
-#endif
             Entry->KernelAndKextPatches->KextPatches[N].Data,
             Entry->KernelAndKextPatches->KextPatches[N].DataLen,
             Entry->KernelAndKextPatches->KextPatches[N].Patch,
@@ -623,7 +620,7 @@ AnyKextPatch (
     DBG_RT(Entry, "==> NOT patched!\n");
   }
 
-  DBG_PAUSE(Entry, 2);
+  //DBG_PAUSE(Entry, 2);
 }
 
 //
@@ -642,8 +639,8 @@ KextPatcherRegisterKexts (
     ATIConnectorsPatchRegisterKexts(FSInject, ForceLoadKexts, Entry);
   }
 
-  //for (i = 0; i < Entry->KernelAndKextPatches->NrKexts; i++) {
-  for (i = 0; i < Entry->KernelAndKextPatches->NrForceKexts; i++) {
+  // Not sure about this. NrKexts / NrForceKexts, what purposes?
+  for (i = 0; i < Entry->KernelAndKextPatches->/*NrKexts*/NrForceKexts; i++) {
     FSInject->AddStringToList (
                 ForceLoadKexts,
                 //PoolPrint(
@@ -786,11 +783,11 @@ GetPlistHexValue (
   IDLen = IDEnd - IDStart;
 
   /*
-   if (DbgCount < 3) {
-   AsciiStrnCpy(Buffer, Value, sizeof(Buffer) - 1);
-   DBG(L"\nRef: '%a'\n", Buffer);
-   }
-   */
+    if (DbgCount < 3) {
+      AsciiStrnCpy(Buffer, Value, sizeof(Buffer) - 1);
+      DBG(L"\nRef: '%a'\n", Buffer);
+    }
+  */
 
   if (IDLen > 8) {
     //DBG(L"\nIDLen too big\n");
@@ -802,10 +799,10 @@ GetPlistHexValue (
   AsciiStrCat(Buffer, "\"");
 
   /*
-   if (DbgCount < 3) {
-   DBG(L"Searching: '%a'\n", Buffer);
-   }
-   */
+    if (DbgCount < 3) {
+      DBG(L"Searching: '%a'\n", Buffer);
+    }
+  */
 
   // and search whole plist for ID
   IntTag = AsciiStrStr(WholePlist, Buffer);
@@ -816,11 +813,11 @@ GetPlistHexValue (
 
   // got it. find closing >
   /*
-   if (DbgCount < 3) {
-   AsciiStrnCpy(Buffer, IntTag, sizeof(Buffer) - 1);
-   DBG(L"Found: '%a'\n", Buffer);
-   }
-   */
+    if (DbgCount < 3) {
+      AsciiStrnCpy(Buffer, IntTag, sizeof(Buffer) - 1);
+      DBG(L"Found: '%a'\n", Buffer);
+    }
+  */
 
   Value = AsciiStrStr(IntTag, ">");
   if (Value == NULL) {
@@ -837,13 +834,13 @@ GetPlistHexValue (
   NumValue = AsciiStrHexToUint64(Value + 1);
 
   /*
-   if (DbgCount < 3) {
-   AsciiStrnCpy(Buffer, IntTag, sizeof(Buffer) - 1);
-   DBG(L"Found num: %x\n", NumValue);
-   gBS->Stall(10000000);
-   }
-   DbgCount++;
-   */
+    if (DbgCount < 3) {
+      AsciiStrnCpy(Buffer, IntTag, sizeof(Buffer) - 1);
+      DBG(L"Found num: %x\n", NumValue);
+      gBS->Stall(10000000);
+    }
+    DbgCount++;
+  */
 
   return NumValue;
 }
@@ -933,14 +930,13 @@ PatchPrelinkedKexts (
 
         KextSize = (UINT32)GetPlistHexValue(InfoPlistStart, kPrelinkExecutableSizeKey, WholePlist);
 
-        /*if (DbgCount < 3
-         || DbgCount == 100 || DbgCount == 101 || DbgCount == 102
-         ) {
-         DBG(L"\n\nKext: St = %x, Size = %x\n", KextAddr, KextSize);
-         DBG(L"Info: St = %p, End = %p\n%a\n", InfoPlistStart, InfoPlistEnd, InfoPlistStart);
-         gBS->Stall(20000000);
-         }
-         */
+        /*
+          if (DbgCount < 3 || DbgCount == 100 || DbgCount == 101 || DbgCount == 102 ) {
+            DBG(L"\n\nKext: St = %x, Size = %x\n", KextAddr, KextSize);
+            DBG(L"Info: St = %p, End = %p\n%a\n", InfoPlistStart, InfoPlistEnd, InfoPlistStart);
+            gBS->Stall(20000000);
+          }
+        */
 
         // patch it
         PatchKext (
@@ -994,7 +990,9 @@ PatchLoadedKexts (
         if (AsciiStrStr(PropName,"Driver-")) {
           // PropEntry _DeviceTreeBuffer is the value of Driver-XXXXXX property
           PropEntry = (_DeviceTreeBuffer*)(((UINT8*)PropIter->currentProperty) + sizeof(DeviceTreeNodeProperty));
-          //if (DbgCount < 3) DBG_RT(Entry, "%a: paddr = %x, length = %x\n", PropName, PropEntry->paddr, PropEntry->length);
+          //if (DbgCount < 3) {
+          //  DBG_RT(Entry, "%a: paddr = %x, length = %x\n", PropName, PropEntry->paddr, PropEntry->length);
+          //}
 
           // PropEntry->paddr points to _BooterKextFileInfo
           KextFileInfo = (_BooterKextFileInfo *)(UINTN)PropEntry->paddr;
@@ -1038,6 +1036,8 @@ VOID
 KextPatcherStart (
   LOADER_ENTRY    *Entry
 ) {
+  DBG_RT(Entry, "\n\n%a: Start\n", __FUNCTION__);
+
   if (KernelInfo->isCache) {
     DBG_RT(Entry, "Patching kernelcache ...\n");
     DBG_PAUSE(Entry, 2);
@@ -1049,4 +1049,6 @@ KextPatcherStart (
 
     PatchLoadedKexts(Entry);
   }
+
+  DBG_RT(Entry, "%a: End\n", __FUNCTION__);
 }

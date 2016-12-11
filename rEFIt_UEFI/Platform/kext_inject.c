@@ -19,8 +19,8 @@
 ////////////////////
 // globals
 ////////////////////
-LIST_ENTRY gKextList = INITIALIZE_LIST_HEAD_VARIABLE (gKextList);
-UINT32     gKextCount = 0, gKextSize = 0;
+LIST_ENTRY    gKextList = INITIALIZE_LIST_HEAD_VARIABLE (gKextList);
+UINT32        gKextCount = 0, gKextSize = 0;
 
 ////////////////////
 // before booting
@@ -32,12 +32,11 @@ ThinFatFile (
   IN OUT UINTN    *length,
   IN cpu_type_t   archCpuType
 ) {
-  UINT32        nfat, swapped, size = 0, fapoffset, fapsize;
+  UINT32        nfat, swapped = 0, size = 0, fapoffset, fapsize;
   FAT_HEADER    *fhp = (FAT_HEADER *)*binary;
   FAT_ARCH      *fap = (FAT_ARCH *)(*binary + sizeof(FAT_HEADER));
   cpu_type_t    fapcputype;
 
-  swapped = 0;
   if (fhp->magic == FAT_MAGIC) {
     nfat = fhp->nfat_arch;
   } else if (fhp->magic == FAT_CIGAM) {
@@ -50,12 +49,7 @@ ThinFatFile (
     }
 
     return EFI_NOT_FOUND;
-  }/* else if (fhp->magic == THIN_IA32){
-    if (archCpuType == CPU_TYPE_I386) {
-      return EFI_SUCCESS;
-    }
-    return EFI_NOT_FOUND;
-  }*/ else {
+  } else {
     MsgLog("Thinning fails\n");
     return EFI_NOT_FOUND;
   }
@@ -128,7 +122,7 @@ LoadKext (
     return EFI_NOT_FOUND;
   }
 
-  prop = GetProperty(dict,"CFBundleExecutable");
+  prop = GetProperty(dict, kPropCFBundleExecutable);
   if (prop != 0) {
     AsciiStrToUnicodeStr(prop->string,Executable);
     if (NoContents) {
@@ -421,7 +415,7 @@ InjectKexts (
   DBG_RT(Entry, "\nInjectKexts: ");
 
   if (gKextCount == 0) {
-    DBG_RT(Entry, "no kexts to inject.\nPausing 5 secs ...\n");
+    DBG_RT(Entry, "no kexts to inject ...\n");
     DBG_PAUSE(Entry, 5);
 
     return EFI_NOT_FOUND;
@@ -454,7 +448,7 @@ InjectKexts (
           infoPtr = (UINT8*) prop;
         }
 
-        if (AsciiStrCmp(prop->name,"extra")==0) {
+        if (AsciiStrCmp(prop->name,"extra") == 0) {
           extraPtr = (UINT8*) prop;
         }
       }

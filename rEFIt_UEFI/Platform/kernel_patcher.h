@@ -6,10 +6,6 @@
 #include "LoaderUefi.h"
 #include "device_tree.h"
 
-//##################
-#define MACH_PATCH
-//##################
-
 #ifndef __LIBSAIO_KERNEL_PATCHER_H
 #define __LIBSAIO_KERNEL_PATCHER_H
 
@@ -28,6 +24,18 @@
 
 #define PTR_OFFSET(SourcePtr, Offset, ReturnType) ((ReturnType)(((UINT8*)SourcePtr) + Offset))
 
+#define kLinkeditSegment                    "__LINKEDIT"
+
+#define kKldSegment                         "__KLD"
+#define kKldTextSection                     "__text"
+
+#define kDataSegment                        "__DATA"
+#define kDataDataSection                    "__data"
+
+#define kTextSegment                        "__TEXT"
+#define kTextTextSection                    "__text"
+#define kTextConstSection                   "__const"
+#define kTextCstringSection                 "__cstring"
 
 #define kPrelinkTextSegment                 "__PRELINK_TEXT"
 #define kPrelinkTextSection                 "__text"
@@ -50,12 +58,12 @@
 #define kPrelinkLinkStateKey                "_PrelinkLinkState"
 #define kPrelinkLinkStateSizeKey            "_PrelinkLinkStateSize"
 
-#define kPropCFBundleIdentifier             ("CFBundleIdentifier")
-#define kPropCFBundleExecutable             ("CFBundleExecutable")
-#define kPropOSBundleRequired               ("OSBundleRequired")
-#define kPropOSBundleLibraries              ("OSBundleLibraries")
-#define kPropIOKitPersonalities             ("IOKitPersonalities")
-#define kPropIONameMatch                    ("IONameMatch")
+#define kPropCFBundleIdentifier             "CFBundleIdentifier"
+#define kPropCFBundleExecutable             "CFBundleExecutable"
+#define kPropOSBundleRequired               "OSBundleRequired"
+#define kPropOSBundleLibraries              "OSBundleLibraries"
+#define kPropIOKitPersonalities             "IOKitPersonalities"
+#define kPropIONameMatch                    "IONameMatch"
 
 typedef struct _BooterKextFileInfo {
   UINT32  infoDictPhysAddr;
@@ -100,10 +108,18 @@ typedef struct KERNEL_INFO {
                         // - PrelinkInfoAddr is sect->addr + KernelRelocBase
   UINT32                PrelinkInfoAddr;
   UINT32                PrelinkInfoSize;
+  UINT32                LoadEXEStart;
+  UINT32                LoadEXEEnd;
+  UINT32                LoadEXESize;
+  UINT32                StartupExtStart;
+  UINT32                StartupExtEnd;
+  UINT32                StartupExtSize;
   UINT32                XCPMStart;
   UINT32                XCPMEnd;
+  UINT32                XCPMSize;
   UINT32                CPUInfoStart;
   UINT32                CPUInfoEnd;
+  UINT32                CPUInfoSize;
   UINT32                VersionMajor;
   UINT32                VersionMinor;
   UINT32                Revision;
