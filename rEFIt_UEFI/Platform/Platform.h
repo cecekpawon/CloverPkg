@@ -128,6 +128,7 @@ typedef enum {
 
 #define PREBOOT_LOG         PoolPrint(L"%s\\%s", DIR_MISC, L"preboot.log")
 #define DEBUG_LOG           PoolPrint(L"%s\\%s", DIR_MISC, L"debug.log")
+#define DATAHUB_LOG         L"boot-log"
 
 #ifndef DEBUG_ALL
 #define MsgLog(...)  DebugLog(1, __VA_ARGS__)
@@ -806,7 +807,7 @@ typedef struct {
   BOOLEAN                 NoCaches;
 
   // GUI parameters
-  BOOLEAN                 Debug;
+  BOOLEAN                 DebugKP;
 
   //ACPI
   BOOLEAN                 DropSSDT;
@@ -1187,10 +1188,12 @@ extern EFI_GUID                         gEfiPartTypeSystemPartGuid;
 extern EFI_GUID                         gMsgLogProtocolGuid;
 extern EFI_GUID                         gEfiLegacy8259ProtocolGuid;
 
+#if 0
 extern EFI_EVENT                        mVirtualAddressChangeEvent;
 extern EFI_EVENT                        OnReadyToBootEvent;
-extern EFI_EVENT                        ExitBootServiceEvent;
 extern EFI_EVENT                        mSimpleFileSystemChangeEvent;
+#endif
+extern EFI_EVENT                        ExitBootServiceEvent;
 extern UINTN                            gEvent;
 
 extern UINT32                           devices_number;
@@ -1264,7 +1267,7 @@ InitBooterLog ();
 
 EFI_STATUS
 SetupBooterLog (
-  BOOLEAN AllowGrownSize
+  BOOLEAN   AllowGrownSize
 );
 
 EFI_STATUS
@@ -1329,8 +1332,8 @@ StrToGuidLE (
 //EFI_STATUS
 //InitializeConsoleSim ();
 
-EFI_STATUS
-GuiEventsInitialize ();
+//EFI_STATUS
+//GuiEventsInitialize ();
 
 EFI_STATUS
 InitializeEdidOverride ();

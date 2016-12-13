@@ -125,7 +125,7 @@ REFIT_MENU_SCREEN   MainMenu          = { SCREEN_MAIN, L"Main Menu", NULL, 0, NU
                     OptionMenu        = { SCREEN_OPTIONS, L"Options", NULL, 0, NULL, 0, NULL, 0, NULL,
                                           NULL, FALSE, FALSE, 0, 0, 0, 0, {0, 0, 0, 0}, NULL };
 
-#define SUBMENU_COUNT  5 // MainMenu with SUB total
+#define SUBMENU_COUNT  6 // MainMenu with SUB total
 
 typedef enum {
   mBootArgs,
@@ -134,7 +134,7 @@ typedef enum {
 
   // DSDT
   mDSDTName,
-  mDebugDSDT,
+  //mDebugDSDT,
   mDSDTFix,
 
   // Tables
@@ -154,6 +154,11 @@ typedef enum {
   mKernelPatchesAllowed,
   mKPKernelPm,
   mKPAsusAICPUPM,
+
+  // Debug
+  mDebugKP,
+  mDebugDSDT,
+  mDebugLog,
 
   // OTHER
   mFlagsBits,
@@ -188,7 +193,7 @@ INTN    OptMenuPatchesNum = ARRAY_SIZE(OPT_MENU_PATCHES);
 
 OPT_MENU_GEN OPT_MENU_DSDT[] = {
   { mDSDTName,              L"DSDT name"  },
-  { mDebugDSDT,             L"Debug DSDT" },
+  //{ mDebugDSDT,             L"Debug DSDT" },
   { mDSDTFix,               NULL          },
 };
 
@@ -199,6 +204,14 @@ OPT_MENU_GEN OPT_MENU_TABLE[] = {
 };
 
 INTN    OptMenuTableNum = ARRAY_SIZE(OPT_MENU_TABLE);
+
+OPT_MENU_GEN OPT_MENU_DEBUG[] = {
+  { mDebugKP,     L"Kext Patch" },
+  { mDebugDSDT,   L"DSDT"       },
+  { mDebugLog,    L"Log"        },
+};
+
+INTN    OptMenuDebugNum = ARRAY_SIZE(OPT_MENU_DEBUG);
 
 typedef struct {
   CHAR16  *Title;
@@ -405,6 +418,7 @@ FillInputs (
     OptMenuItemsNum = (
       1 + // mBootArgs
       1 + // mConfigs
+      OptMenuDebugNum +
       OptMenuDevicesNum +
       OptMenuPatchesNum +
       OptMenuDSDTFixesNum +
@@ -447,6 +461,11 @@ FillInputs (
   FillInputBool(mKernelPatchesAllowed, gSettings.KernelPatchesAllowed);
   FillInputBool(mKPKernelPm, gSettings.KernelAndKextPatches.KPKernelPm);
   FillInputBool(mKPAsusAICPUPM, gSettings.KernelAndKextPatches.KPAsusAICPUPM);
+
+  // Debug
+  FillInputBool(mDebugKP, gSettings.DebugKP);
+  FillInputBool(mDebugDSDT, gSettings.DebugDSDT);
+  FillInputBool(mDebugLog, GlobalConfig.DebugLog);
 
   // OTHER
   FillInputInt(mOptionsBits, gSettings.OptionsBits);
@@ -550,10 +569,6 @@ ApplyInputs () {
         ApplyInputString(mDSDTName, gSettings.DsdtName, sizeof(gSettings.DsdtName));
         break;
 
-      case mDebugDSDT:
-        gSettings.DebugDSDT = ApplyInputBool(i);
-        break;
-
       case mDSDTFix:
         gSettings.FixDsdt = ApplyInputInt(i);
         break;
@@ -604,6 +619,19 @@ ApplyInputs () {
         gSettings.KernelAndKextPatches.KPAsusAICPUPM = ApplyInputBool(i);
         break;
 
+      // Debug
+      case mDebugKP:
+        gSettings.DebugKP = ApplyInputBool(i);
+        break;
+
+      case mDebugDSDT:
+        gSettings.DebugDSDT = ApplyInputBool(i);
+        break;
+
+      case mDebugLog:
+        GlobalConfig.DebugLog = ApplyInputBool(i);
+        break;
+
       // OTHER
       case mOptionsBits:
         gSettings.OptionsBits = ApplyInputInt(i);
@@ -614,9 +642,6 @@ ApplyInputs () {
         break;
 
       default:
-        //if (InputItems[i].ItemType == BoolValue) {
-        //  gSettings.DropSSDT = InputItems[i].BValue;
-        //}
         break;
     }
   }
@@ -3131,6 +3156,25 @@ REFIT_MENU_ENTRY
 }
 
 REFIT_MENU_ENTRY
+*SubMenuDebug () {
+  REFIT_MENU_ENTRY      *Entry = NULL;
+  REFIT_MENU_SCREEN     *SubScreen = NULL;
+  INTN                  i = 0;
+
+  CreateHeaderEntries(&Entry, &SubScreen, L"Debug", SCREEN_DEBUG, 'B');
+
+  while (i < OptMenuDebugNum) {
+    AddMenuBOOL(SubScreen, OPT_MENU_DEBUG[i].Title, NULL, OPT_MENU_DEBUG[i].ID);
+    i++;
+  }
+
+  AddMenuEntry(SubScreen, &MenuEntryReturn);
+  Entry->SubScreen = SubScreen;
+
+  return Entry;
+}
+
+REFIT_MENU_ENTRY
 *SubMenuAcpi () {
   REFIT_MENU_ENTRY    *Entry = NULL;
   REFIT_MENU_SCREEN   *SubScreen = NULL;
@@ -3150,9 +3194,9 @@ REFIT_MENU_ENTRY
         AddMenuString(SubScreen, OPT_MENU_DSDT[i].Title, ID);
         break;
 
-      case mDebugDSDT:
-        AddMenuBOOL(SubScreen, OPT_MENU_DSDT[i].Title, NULL, ID);
-        break;
+      //case mDebugDSDT:
+      //  AddMenuBOOL(SubScreen, OPT_MENU_DSDT[i].Title, NULL, ID);
+      //  break;
     }
 
     i++;
@@ -3306,6 +3350,7 @@ OptionsMenu (
     AddMenuEntry(&OptionMenu, SubMenuPatches());
     AddMenuEntry(&OptionMenu, SubMenuAcpi());
     AddMenuEntry(&OptionMenu, SubMenuDevices());
+    AddMenuEntry(&OptionMenu, SubMenuDebug());
 
     AddMenuEntry(&OptionMenu, &MenuEntryReturn);
     //DBG("option menu created entries=%d\n", OptionMenu.EntryCount);

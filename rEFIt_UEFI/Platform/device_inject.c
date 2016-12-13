@@ -343,7 +343,7 @@ DevPropDevice
     DevicePath = NextDevicePathNode(DevicePath);
     if ((DevicePath->Type == HARDWARE_DEVICE_PATH) && (DevicePath->SubType == HW_PCI_DP)) {
       CopyMem(&device->pci_dev_path[NumPaths], DevicePath, sizeof(struct PCIDevPath));
-      //DBG("PCI[%d] f=%x, d=%x ", NumPaths, device->pci_dev_path[NumPaths].function, device->pci_dev_path[NumPaths].device);
+      //DBG(" - PCI[%02d]: f=%x, d=%x ", NumPaths, device->pci_dev_path[NumPaths].function, device->pci_dev_path[NumPaths].device);
     } else {
       // not PCI path - break the loop
       //DBG("not PCI ");
@@ -727,7 +727,7 @@ set_hda_props (
   } else {
     // HDA - determine layout-id
     layoutId = (UINT32)gSettings.HDALayoutId;
-    DBG(" setting specified layout-id=%d (0x%x)\n", layoutId, layoutId);
+    DBG(" setting specified layout-id=%d\n", layoutId);
 
     if (gSettings.NrAddProperties != 0xFFFE) {
       for (i = 0; i < gSettings.NrAddProperties; i++) {

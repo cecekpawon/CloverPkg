@@ -14,7 +14,6 @@
 #define DBG(...) DebugLog(DEBUG_EDID, __VA_ARGS__)
 #endif
 
-
 EFI_STATUS EFIAPI
 GetEdidImpl (
   IN      EFI_EDID_OVERRIDE_PROTOCOL    *This,
@@ -30,6 +29,7 @@ GetEdidImpl (
   if (*Edid) {
     return EFI_SUCCESS;
   }
+
   return EFI_NOT_FOUND;
 }
 
@@ -48,6 +48,7 @@ InitializeEdidOverride () {
                    EdidOverride,
                    NULL
                  );
+
   if (EFI_ERROR (Status)) {
     DBG("Can't install EdidOverride on ImageHandle\n");
   }
@@ -72,7 +73,7 @@ UINT8
     }
   }
 
-  DBG(" %a\n", Edid != NULL ? "found" : "not found");
+  DBG(" %a\n", (Edid != NULL) ? "found" : "not found");
 
   return Edid;
 }
@@ -105,7 +106,7 @@ GetEdidDiscovered () {
 
     if (!GlobalConfig.DebugLog) {
       for (i=0; i<N; i+=16) {
-        MsgLog("%02d | ", i);
+        MsgLog("%03d | ", i);
         for (j=0; j<16; j++) {
           MsgLog("%02x%a", EdidDiscovered->Edid[i+j], (j<15) ? " " : "");
         }

@@ -1562,19 +1562,20 @@ PatchACPI (
   DbgHeader("PatchACPI");
 
   PathDsdt = PoolPrint(L"\\%s", gSettings.DsdtName);
-    //try to find in SystemTable
-    for(Index = 0; Index < gST->NumberOfTableEntries; Index++) {
-      if (CompareGuid (&gST->ConfigurationTable[Index].VendorGuid, &gEfiAcpi20TableGuid)) {
-        // Acpi 2.0
-        RsdPointer = (EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_POINTER*)gST->ConfigurationTable[Index].VendorTable;
-        break;
-      }
-      else if (CompareGuid (&gST->ConfigurationTable[Index].VendorGuid, &gEfiAcpi10TableGuid)) {
-        // Acpi 1.0 - RSDT only
-        RsdPointer = (EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_POINTER*)gST->ConfigurationTable[Index].VendorTable;
-        continue;
-      }
+
+  //try to find in SystemTable
+  for(Index = 0; Index < gST->NumberOfTableEntries; Index++) {
+    if (CompareGuid (&gST->ConfigurationTable[Index].VendorGuid, &gEfiAcpi20TableGuid)) {
+      // Acpi 2.0
+      RsdPointer = (EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_POINTER*)gST->ConfigurationTable[Index].VendorTable;
+      break;
     }
+    else if (CompareGuid (&gST->ConfigurationTable[Index].VendorGuid, &gEfiAcpi10TableGuid)) {
+      // Acpi 1.0 - RSDT only
+      RsdPointer = (EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_POINTER*)gST->ConfigurationTable[Index].VendorTable;
+      continue;
+    }
+  }
 
   if (!RsdPointer) {
     return EFI_UNSUPPORTED;
@@ -1924,7 +1925,7 @@ PatchACPI (
   // if (gSettings.FixDsdt) { //fix even with zero mask because we want to know PCIRootUID and CPUBase and count(?)
   //DBG("Apply DsdtFixMask=0x%08x %a way\n", gSettings.FixDsdt, (gSettings.FixDsdt & FIX_NEW_WAY)?"new":"old");
   DBG("Apply DsdtFixMask=0x%08x\n", gSettings.FixDsdt);
-  DBG("   drop _DSM mask=0x%04x\n", gSettings.DropOEM_DSM);//dropDSM
+  DBG(" - drop _DSM mask=0x%04x\n", gSettings.DropOEM_DSM);//dropDSM
 
   FixBiosDsdt((UINT8*)(UINTN)FadtPointer->XDsdt, FadtPointer, OSVersion);
 
@@ -1952,7 +1953,7 @@ PatchACPI (
   // Drop tables
   if (gSettings.ACPIDropTables) {
     DbgHeader("ACPIDropTables");
-    ACPI_DROP_TABLE *DropTable = gSettings.ACPIDropTables;
+    ACPI_DROP_TABLE   *DropTable = gSettings.ACPIDropTables;
 
     while (DropTable) {
       if (DropTable->MenuItem.BValue) {
@@ -2001,7 +2002,7 @@ PatchACPI (
 
         if (!ACPIPatchedAMLTmp) { // NULL when not disabled
           UnicodeSPrint(FullName, 512, L"%s\\%s", AcpiOemPath, gSettings.SortedACPI[Index]);
-          DBG("Inserting table[%d]:%s from %s ... ", Index, gSettings.SortedACPI[Index], AcpiOemPath);
+          DBG(" - [%02d]: %s from %s ... ", Index, gSettings.SortedACPI[Index], AcpiOemPath);
           Status = egLoadFile(SelfRootDir, FullName, &buffer, &bufferLen);
           if (!EFI_ERROR(Status)) {
             //before insert we should checksum it
@@ -2022,11 +2023,12 @@ PatchACPI (
     } else {
       ACPI_PATCHED_AML    *ACPIPatchedAMLTmp = ACPIPatchedAML;
       DBG("Unsorted\n");
+      Index = 0;
 
       while (ACPIPatchedAMLTmp) {
         if (ACPIPatchedAMLTmp->MenuItem.BValue == FALSE) {
           UnicodeSPrint(FullName, 512, L"%s\\%s", AcpiOemPath, ACPIPatchedAMLTmp->FileName);
-          DBG("Inserting %s from %s ... ", ACPIPatchedAMLTmp->FileName, AcpiOemPath);
+          DBG(" - [%02d]: %s from %s ... ", Index++, ACPIPatchedAMLTmp->FileName, AcpiOemPath);
           Status = egLoadFile(SelfRootDir, FullName, &buffer, &bufferLen);
 
           if (!EFI_ERROR(Status)) {
@@ -2054,6 +2056,12 @@ PatchACPI (
 
     DBG("End: Processing Patched AML(s)\n");
   }
+
+  if (!gSettings.GeneratePStates || !gSettings.GenerateCStates) {
+    goto SkipGenStates;
+  }
+
+  DbgHeader("CPU States");
 
   //Slice - this is a time to patch MADT table.
   //DBG("Fool proof: size of APIC NMI  = %d\n", sizeof(EFI_ACPI_2_0_LOCAL_APIC_NMI_STRUCTURE));
@@ -2143,6 +2151,8 @@ PatchACPI (
       DBG("GenerateCStates failed Status=%r\n", Status);
     }
   }
+
+  SkipGenStates:
 
   if (Rsdt) {
     Rsdt->Header.Checksum = 0;

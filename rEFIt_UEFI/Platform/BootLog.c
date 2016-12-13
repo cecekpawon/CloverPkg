@@ -200,7 +200,7 @@ MemLogCallback (
 }
 
 VOID
-InitBooterLog() {
+InitBooterLog () {
   SetMemLogCallback(MemLogCallback);
 }
 

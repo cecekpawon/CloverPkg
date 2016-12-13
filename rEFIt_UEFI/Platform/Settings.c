@@ -803,7 +803,7 @@ FillinKextPatches (
     Patches->KPAsusAICPUPM = TRUE;
   }
 
-  Patches->KPDebug = IsPropertyTrue (GetProperty (DictPointer, "Debug"));
+  gSettings.DebugKP = Patches->KPDebug = IsPropertyTrue (GetProperty (DictPointer, "Debug"));
 
   gSettings.FlagsBits = Patches->KPDebug
     ? OSFLAG_SET(gSettings.FlagsBits, OSFLAG_DBGPATCHES)

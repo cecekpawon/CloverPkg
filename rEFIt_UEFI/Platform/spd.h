@@ -118,6 +118,7 @@
 #define SPD_MEMORY_TYPE_SDRAM_DDR2_FB_PROBE   0xa
 #define SPD_MEMORY_TYPE_SDRAM_DDR3            0xb
 #define SPD_MEMORY_TYPE_SDRAM_DDR4            0xc
+#define SPD_MEMORY_TYPE_SDRAM_UNSUPPORTED     0xd
 
 /* SPD_MODULE_VOLTAGE values. */
 #define SPD_VOLTAGE_TTL                       0 /* 5.0 Volt/TTL */

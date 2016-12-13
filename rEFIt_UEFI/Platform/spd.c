@@ -319,6 +319,7 @@ UINT8 smb_read_byte (
 
 /* SPD i2c read optimization: prefetch only what we need, read non prefetcheable bytes on the fly */
 #define READ_SPD(spd, base, slot, x) spd[x] = smb_read_byte(base, 0x50 + slot, x)
+#define LOG_INDENT "        "
 
 /** Read from spd *used* values only*/
 VOID init_spd (
@@ -383,7 +384,7 @@ getDDRspeedMhz (
             mincycle = spd[SPD_XMP20_PROF1_MINCYCLE];
             fineadjust = spd[SPD_XMP20_PROF1_FINEADJUST];
             xmpFrequency1 = (UINT16)(2000000 / (mincycle * 125 + fineadjust));
-            DBG("XMP Profile1: %d*125 %d ns\n", mincycle, fineadjust);
+            DBG("%a XMP Profile1: %d*125 %d ns\n", LOG_INDENT, mincycle, fineadjust);
           }
 
           if ((xmpProfiles & 2) == 2) {
@@ -391,7 +392,7 @@ getDDRspeedMhz (
             mincycle = spd[SPD_XMP20_PROF2_MINCYCLE];
             fineadjust = spd[SPD_XMP20_PROF2_FINEADJUST];
             xmpFrequency2 = (UINT16)(2000000 / (mincycle * 125 + fineadjust));
-            DBG("XMP Profile2: %d*125 %d ns\n", mincycle, fineadjust);
+            DBG("%a XMP Profile2: %d*125 %d ns\n", LOG_INDENT, mincycle, fineadjust);
           }
         }
       }
@@ -421,7 +422,7 @@ getDDRspeedMhz (
             ratio = spd[SPD_XMP_PROF1_RATIO];
             xmpFrequency1 = (((dividend != 0) && (divisor != 0) && (ratio != 0)) ?
                              ((2000 * dividend) / (divisor * ratio)) : 0);
-            DBG("XMP Profile1: %d*%d/%dns\n", ratio, divisor, dividend);
+            DBG("%a XMP Profile1: %d*%d/%dns\n", LOG_INDENT, ratio, divisor, dividend);
           }
 
           if ((xmpProfiles & 2) == 2) {
@@ -431,7 +432,7 @@ getDDRspeedMhz (
             ratio = spd[SPD_XMP_PROF2_RATIO];
             xmpFrequency2 = (((dividend != 0) && (divisor != 0) && (ratio != 0)) ?
                              ((2000 * dividend) / (divisor * ratio)) : 0);
-            DBG("XMP Profile2: %d*%d/%dns\n", ratio, divisor, dividend);
+            DBG("%a XMP Profile2: %d*%d/%dns\n", LOG_INDENT, ratio, divisor, dividend);
           }
         }
       }
@@ -459,18 +460,18 @@ getDDRspeedMhz (
   }
 
   if (xmpProfiles) {
-    DBG("Found module with XMP version %d.%d\n", (xmpVersion >> 4) & 0xF, xmpVersion & 0xF);
+    DBG("%a Found module with XMP version %d.%d\n", LOG_INDENT, (xmpVersion >> 4) & 0xF, xmpVersion & 0xF);
 
     switch (gSettings.XMPDetection) {
       case 0:
         // Detect the better XMP profile
         if (xmpFrequency1 >= xmpFrequency2) {
           if (xmpFrequency1 >= frequency) {
-            DBG("Using XMP Profile1 instead of standard frequency %dMHz\n", frequency);
+            DBG("%a Using XMP Profile1 instead of standard frequency %dMHz\n", LOG_INDENT, frequency);
             frequency = xmpFrequency1;
           }
         } else if (xmpFrequency2 >= frequency) {
-          DBG("Using XMP Profile2 instead of standard frequency %dMHz\n", frequency);
+          DBG("%a Using XMP Profile2 instead of standard frequency %dMHz\n", LOG_INDENT, frequency);
           frequency = xmpFrequency2;
         }
         break;
@@ -479,9 +480,9 @@ getDDRspeedMhz (
         // Use first profile if present
         if ((xmpProfiles & 1) == 1) {
           frequency = xmpFrequency1;
-          DBG("Using XMP Profile1 instead of standard frequency %dMHz\n", frequency);
+          DBG("%a Using XMP Profile1 instead of standard frequency %dMHz\n", LOG_INDENT, frequency);
         } else {
-          DBG("Not using XMP Profile1 because it is not present\n");
+          DBG("%a Not using XMP Profile1 because it is not present\n");
         }
         break;
 
@@ -489,9 +490,9 @@ getDDRspeedMhz (
         // Use second profile
         if ((xmpProfiles & 2) == 2) {
           frequency = xmpFrequency2;
-          DBG("Using XMP Profile2 instead of standard frequency %dMHz\n", frequency);
+          DBG("%a Using XMP Profile2 instead of standard frequency %dMHz\n", LOG_INDENT, frequency);
         } else {
-          DBG("Not using XMP Profile2 because it is not present\n");
+          DBG("%a Not using XMP Profile2 because it is not present\n", LOG_INDENT);
         }
         break;
 
@@ -502,12 +503,12 @@ getDDRspeedMhz (
     // Print out XMP not detected
     switch (gSettings.XMPDetection) {
       case 0:
-        DBG("Not using XMP because it is not present\n");
+        DBG("%a Not using XMP because it is not present\n");
         break;
 
       case 1:
       case 2:
-        DBG("Not using XMP Profile%d because it is not present\n", gSettings.XMPDetection);
+        DBG("%a Not using XMP Profile%d because it is not present\n", LOG_INDENT, gSettings.XMPDetection);
         break;
 
       default:
@@ -634,7 +635,7 @@ read_smb (
   //UINT16      vid, did;
   UINT16      speed, Command;
   UINT32      base, mmio, hostc;
-  UINT8       *spdbuf, TotalSlotsCount, i;// spd_size, spd_type;
+  UINT8       *spdbuf, TotalSlotsCount, i, spd_type;// spd_size;
 
   smbPage = 0; // valid pages are 0 and 1; assume the first page (page 0) is already selected
   //vid = gPci->Hdr.VendorId;
@@ -714,27 +715,30 @@ read_smb (
    }
   */
   TotalSlotsCount = 8; //MAX_RAM_SLOTS;  -- spd can read only 8 slots
-  DBG("Slots to scan [%d]...\n", TotalSlotsCount);
+  DBG("Slots to scan: %d ...\n", TotalSlotsCount);
 
   for (i = 0; i <  TotalSlotsCount; i++){
     //<==
     ZeroMem(spdbuf, MAX_SPD_SIZE);
     READ_SPD(spdbuf, base, i, SPD_MEMORY_TYPE);
 
-    if (spdbuf[SPD_MEMORY_TYPE] == 0xFF) {
+    spd_type = spdbuf[SPD_MEMORY_TYPE];
+
+    //if (spd_type == 0xFF) {
+    if (spd_type >= SPD_MEMORY_TYPE_SDRAM_UNSUPPORTED) {
       //DBG("SPD[%d]: Empty\n", i);
       continue;
-    } else if (spdbuf[SPD_MEMORY_TYPE] == 0) {
+    } else if (spd_type == 0) {
       // First 0x40 bytes of DDR4 spd second page is 0. Maybe we need to change page, so do that and retry.
-      DBG("SPD[%d]: Got invalid type %d @0x%x. Will set page and retry.\n", i, spdbuf[SPD_MEMORY_TYPE], 0x50 + i);
+      //DBG(" - [%02d]: Got invalid type %d @0x%x. Will set page and retry.\n", i, spd_type, 0x50 + i);
       smbPage = 0xFF; // force page to be set
       READ_SPD(spdbuf, base, i, SPD_MEMORY_TYPE);
     }
 
     // Copy spd data into buffer
-    DBG("SPD[%d]: Type %d @0x%x\n", i, spdbuf[SPD_MEMORY_TYPE], 0x50 + i);
+    DBG(" - [%02d]: Type %d @0x%x\n", i, spd_type, 0x50 + i);
 
-    switch (spdbuf[SPD_MEMORY_TYPE])  {
+    switch (spd_type)  {
       case SPD_MEMORY_TYPE_SDRAM_DDR:
         init_spd(spd_indexes_ddr, spdbuf, base, i);
 
@@ -855,7 +859,7 @@ read_smb (
     // determine spd speed
     speed = getDDRspeedMhz(spdbuf);
 
-    DBG("DDR speed %dMHz\n", speed);
+    DBG("%a DDR speed %dMHz\n", LOG_INDENT, speed);
 
     if (gRAM.SPD[i].Frequency < speed) {
       gRAM.SPD[i].Frequency = speed;
@@ -875,12 +879,12 @@ read_smb (
       }
 
       gRAM.SPD[i].Frequency = freq;
-      DBG("RAM speed %dMHz\n", freq);
+      DBG("%a RAM speed %dMHz\n", LOG_INDENT, freq);
     }
 
     MsgLog (
-      "Slot: %d Type %d %dMB %dMHz Vendor=%a PartNo=%a SerialNo=%a\n",
-      i,
+      "%a Type %d %dMB %dMHz Vendor=%a PartNo=%a SerialNo=%a\n",
+      LOG_INDENT,
       (INT32)gRAM.SPD[i].Type,
       gRAM.SPD[i].ModuleSize,
       gRAM.SPD[i].Frequency,

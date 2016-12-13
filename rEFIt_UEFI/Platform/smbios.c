@@ -1071,7 +1071,7 @@ PatchTableType9 () {
       //
       Dev = SlotDevices[Index].DevFuncNum >> 3;
       Func = SlotDevices[Index].DevFuncNum & 7;
-      DBG("insert table 9 for dev %x:%x\n", Dev, Func);
+      //DBG("insert table 9 for dev %x:%x\n", Dev, Func);
       UpdateSmbiosString(newSmbiosTable, &newSmbiosTable.Type9->SlotDesignation, SlotDevices[Index].SlotName);
       LogSmbiosTable(newSmbiosTable);
     }
@@ -1420,7 +1420,7 @@ PatchTableType17 () {
     }
 
     if (mTotalSystemMemory > 0) {
-      DBG("mTotalSystemMemory = %d\n", mTotalSystemMemory);
+      DBG("mTotalSystemMemory = %dMB\n", mTotalSystemMemory);
     }
 
     return;
@@ -1776,7 +1776,7 @@ PatchTableType17 () {
   }
 
   if (mTotalSystemMemory > 0) {
-    DBG("mTotalSystemMemory = %d\n", mTotalSystemMemory);
+    DBG("mTotalSystemMemory = %dMB\n", mTotalSystemMemory);
   }
 }
 
@@ -1859,8 +1859,8 @@ PatchTableType20 () {
         k = newSmbiosTable.Type20->EndingAddress;
         m += mMemory17[j];
 
-        DBG("Type20[%d]->End = 0x%x, Type17[%d] = 0x%x\n",
-            Index, k, j, m);
+        //DBG("Type20[%02d]->End = 0x%x, Type17[%02d] = 0x%x\n",
+        //    Index, k, j, m);
 
         //DBG(" MemoryDeviceHandle = 0x%x\n", newSmbiosTable.Type20->MemoryDeviceHandle);
         mMemory17[j] = 0; // used

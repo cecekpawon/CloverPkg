@@ -23,10 +23,12 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define DBG(...)
 #endif
 
+EFI_EVENT   ExitBootServiceEvent = NULL;
+#if 0
 EFI_EVENT   mVirtualAddressChangeEvent = NULL;
 EFI_EVENT   OnReadyToBootEvent = NULL;
-EFI_EVENT   ExitBootServiceEvent = NULL;
 EFI_EVENT   mSimpleFileSystemChangeEvent = NULL;
+#endif
 
 VOID
 EFIAPI
@@ -48,6 +50,7 @@ OnExitBootServices(IN EFI_EVENT Event, IN VOID *Context) {
   KernelAndKextsPatcherStart((LOADER_ENTRY *)Context);
 }
 
+#if 0
 VOID
 EFIAPI
 OnReadyToBoot (
@@ -109,8 +112,10 @@ GuiEventsInitialize () {
                   );
   }
 
+
   return Status;
 }
+#endif
 
 EFI_STATUS
 EventsInitialize (

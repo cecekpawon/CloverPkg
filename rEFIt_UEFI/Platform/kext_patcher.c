@@ -15,7 +15,8 @@
 
 // runtime debug
 #define DBG_ON(entry) \
-  ((entry != NULL) && (entry->KernelAndKextPatches != NULL) /*&& entry->KernelAndKextPatches->KPDebug*/ && OSFLAG_ISSET(gSettings.FlagsBits, OSFLAG_DBGPATCHES))
+  ((entry != NULL) && (entry->KernelAndKextPatches != NULL) \
+  /*&& entry->KernelAndKextPatches->KPDebug*/ && (OSFLAG_ISSET(gSettings.FlagsBits, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
 #define DBG_RT(entry, ...) \
   if (DBG_ON(entry)) AsciiPrint(__VA_ARGS__)
 #define DBG_PAUSE(entry, s) \

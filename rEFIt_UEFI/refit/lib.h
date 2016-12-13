@@ -139,6 +139,7 @@ typedef struct {
 #define OSTYPE_IS_LINUX(type) ((type == OSTYPE_LIN) || (type == OSTYPE_LINEFI) || (type == OSTYPE_EFI) || (type == OSTYPE_VAR))
 #define OSTYPE_IS_LINUX_GLOB(type) ((type == OSTYPE_LIN) || (type == OSTYPE_LINEFI))
 #define OSTYPE_IS_OTHER(type) ((type == OSTYPE_OTHER) || (type == OSTYPE_EFI) || (type == OSTYPE_VAR))
+#define OSTYPE_IS_NOT(type) (type != OSTYPE_OTHER)
 #define OSTYPE_COMPARE_IMP(comparator, type1, type2) (comparator(type1) && comparator(type2))
 #define OSTYPE_COMPARE(type1, type2) \
           (OSTYPE_COMPARE_IMP(OSTYPE_IS_OSX, type1, type2) || OSTYPE_COMPARE_IMP(OSTYPE_IS_OSX_RECOVERY, type1, type2) || \
@@ -285,9 +286,10 @@ extern UI_IMG   SelectionImg[];
 #define SCREEN_CONFIGS      (5)
 #define SCREEN_DEVICES      (6)
 #define SCREEN_PATCHES      (7)
-#define SCREEN_TABLES       (8)
-#define SCREEN_DSDT         (9)
-#define SCREEN_THEMES       (10)
+#define SCREEN_DEBUG        (8)
+#define SCREEN_TABLES       (9)
+#define SCREEN_DSDT         (10)
+#define SCREEN_THEMES       (11)
 
 //some unreal values
 #define SCREEN_EDGE_LEFT    (50000)

@@ -228,6 +228,7 @@ StartEFILoadedImage (
   }
 
   if (!EFI_ERROR(ReturnStatus)) { //why unload driver?!
+    //gBS->CloseEvent (ExitBootServiceEvent);
     goto bailout;
   }
 
@@ -513,6 +514,49 @@ NullConOutOutputString (
   return EFI_SUCCESS;
 }
 
+VOID
+EFIAPI
+ClosingEventAndLog (
+  IN LOADER_ENTRY   *Entry
+) {
+  EFI_STATUS    Status;
+  BOOLEAN       CloseBootServiceEvent = TRUE;
+
+  DBG("Closing Event & Log\n");
+
+  if (OSTYPE_IS_OSX_GLOB(Entry->LoaderType)) {
+    if (DoHibernateWake) {
+      // When doing hibernate wake, save to DataHub only up to initial size of log
+      SavePreBootLog = FALSE;
+    } else {
+      // delete boot-switch-vars if exists
+      /*Status = */gRT->SetVariable (
+                  L"boot-switch-vars", &gEfiAppleBootGuid,
+                  EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS,
+                  0, NULL
+                );
+
+      CloseBootServiceEvent = FALSE;
+    }
+
+    SetupBooterLog(!DoHibernateWake);
+  }
+
+  if (CloseBootServiceEvent) {
+    //gBS->CloseEvent (OnReadyToBootEvent);
+    gBS->CloseEvent (ExitBootServiceEvent);
+    //gBS->CloseEvent (mSimpleFileSystemChangeEvent);
+    //gBS->CloseEvent (mVirtualAddressChangeEvent);
+  }
+
+  if (SavePreBootLog) {
+    Status = SaveBooterLog(SelfRootDir, PREBOOT_LOG);
+    if (EFI_ERROR(Status)) {
+      /*Status = */SaveBooterLog(NULL, PREBOOT_LOG);
+    }
+  }
+}
+
 //
 // EFI OS loader functions
 //
@@ -679,7 +723,8 @@ StartLoader (
       OSFLAG_ISSET(gSettings.OptionsBits, OPT_SINGLE_USER) ||
       OSFLAG_ISSET(gSettings.OptionsBits, OPT_SAFE) ||
       //((Entry->KernelAndKextPatches != NULL) && Entry->KernelAndKextPatches->KPDebug)
-      ((Entry->KernelAndKextPatches != NULL) && OSFLAG_ISSET(gSettings.FlagsBits, OSFLAG_DBGPATCHES))
+      ((Entry->KernelAndKextPatches != NULL) && OSFLAG_ISSET(gSettings.FlagsBits, OSFLAG_DBGPATCHES)) ||
+      gSettings.DebugKP
     ) {
       gSettings.OptionsBits = OSFLAG_SET(gSettings.OptionsBits, OPT_VERBOSE);
     }
@@ -749,20 +794,12 @@ StartLoader (
       Entry->LoadOptions = TempOptions;
     }
   } else if (OSTYPE_IS_WINDOWS_GLOB(Entry->LoaderType)) {
-    DBG("Closing events for Windows\n");
-
-    gBS->CloseEvent (OnReadyToBootEvent);
-    gBS->CloseEvent (ExitBootServiceEvent);
-    gBS->CloseEvent (mSimpleFileSystemChangeEvent);
+    //DBG("Closing events for Windows\n");
 
     PatchACPI_OtherOS(L"Windows", FALSE);
     //PauseForKey(L"continue");
   } else if (OSTYPE_IS_LINUX_GLOB(Entry->LoaderType)) {
-    DBG("Closing events for Linux\n");
-
-    gBS->CloseEvent (OnReadyToBootEvent);
-    gBS->CloseEvent (ExitBootServiceEvent);
-    gBS->CloseEvent (mSimpleFileSystemChangeEvent);
+    //DBG("Closing events for Linux\n");
 
     //FinalizeSmbios();
     PatchACPI_OtherOS(L"Linux", FALSE);
@@ -778,6 +815,8 @@ StartLoader (
     RemoveStartupDiskVolume();
   }
 
+  ClosingEventAndLog(Entry);
+
   //DBG("BeginExternalScreen\n");
   BeginExternalScreen(OSFLAG_ISSET(Entry->Flags, OSFLAG_USEGRAPHICS), L"Booting OS");
 
@@ -787,36 +826,6 @@ StartLoader (
       // null implementation
       ConOutOutputString = gST->ConOut->OutputString;
       gST->ConOut->OutputString = NullConOutOutputString;
-    }
-  }
-
-  if (OSTYPE_IS_OSX_GLOB(Entry->LoaderType)) {
-    if (DoHibernateWake) {
-      DBG("Closing events for wake\n");
-      gBS->CloseEvent (OnReadyToBootEvent);
-      gBS->CloseEvent (ExitBootServiceEvent);
-      gBS->CloseEvent (mSimpleFileSystemChangeEvent);
-      //gBS->CloseEvent (mVirtualAddressChangeEvent);
-      // When doing hibernate wake, save to DataHub only up to initial size of log
-      SavePreBootLog = FALSE;
-    } else {
-      // delete boot-switch-vars if exists
-      Status = gRT->SetVariable (
-                  L"boot-switch-vars", &gEfiAppleBootGuid,
-                  EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS,
-                  0, NULL
-                );
-    }
-
-    SetupBooterLog(!DoHibernateWake);
-  }
-
-  DBG("Closing log\n");
-
-  if (SavePreBootLog) {
-    Status = SaveBooterLog(SelfRootDir, PREBOOT_LOG);
-    if (EFI_ERROR(Status)) {
-      /*Status = */SaveBooterLog(NULL, PREBOOT_LOG);
     }
   }
 
@@ -1408,7 +1417,7 @@ RefitMain (
 
   //DumpBiosMemoryMap();
 
-  GuiEventsInitialize();
+  //GuiEventsInitialize();
 
   if (!gSettings.EnabledCores) {
     gSettings.EnabledCores = gCPUStructure.Cores;

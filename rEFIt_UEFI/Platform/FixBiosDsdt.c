@@ -251,7 +251,7 @@ CheckHardware() {
             #if DEBUG_FIX
             dadr1 = DisplayADR1[display];
             dadr2 = DisplayADR2[display];
-            DBG("DisplayADR1[%d] = 0x%x, DisplayADR2[%d] = 0x%x\n", display, dadr1, display, dadr2);
+            DBG(" - DisplayADR1[%02d]: 0x%x, DisplayADR2[%02d] = 0x%x\n", display, dadr1, display, dadr2);
             #endif
 
                  //dadr2 = dadr1; //to avoid warning "unused variable" :(
@@ -332,7 +332,7 @@ CheckHardware() {
               if (gSettings.HDALayoutId > 0) {
                 // layoutId is specified - use it
                 layoutId = (UINT32)gSettings.HDALayoutId;
-                DBG("Audio HDA (addr:0x%x) setting specified layout-id=%d (0x%x)\n", HDAADR1, layoutId, layoutId);
+                DBG("Audio HDA (addr:0x%x) setting specified layout-id=%d\n", HDAADR1, layoutId);
               }
 
               HDAFIX = TRUE;
