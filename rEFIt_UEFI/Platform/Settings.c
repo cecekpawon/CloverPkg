@@ -230,6 +230,22 @@ GetPropertyInteger (
 // or in <string></string> hex encoded
 //
 VOID
+*StringDataToHex (
+  IN   CHAR8    *Val,
+  OUT  UINTN    *DataLen
+) {
+  UINT8     *Data = NULL;
+  UINT32    Len;
+
+  Len = (UINT32)AsciiStrLen (Val) >> 1; // number of hex digits
+  Data = AllocateZeroPool(Len); // 2 chars per byte, one more byte for odd number
+  Len  = hex2bin (Val, Data, Len);
+  *DataLen = Len;
+
+  return Data;
+}
+
+VOID
 *GetDataSetting (
   IN   TagPtr   Dict,
   IN   CHAR8    *PropName,
@@ -237,8 +253,7 @@ VOID
 ) {
   TagPtr    Prop;
   UINT8     *Data = NULL;
-  UINT32    Len;
-  //UINTN   i;
+  UINTN     Len;
 
   Prop = GetProperty (Dict, PropName);
   if (Prop != NULL) {
@@ -259,13 +274,8 @@ VOID
       */
     } else {
       // assume data in hex encoded string property
-      Len = (UINT32)AsciiStrLen (Prop->string) >> 1; // number of hex digits
-      Data = AllocateZeroPool(Len); // 2 chars per byte, one more byte for odd number
-      Len  = hex2bin (Prop->string, Data, Len);
-
-      if (DataLen != NULL) {
-        *DataLen = Len;
-      }
+      Data = StringDataToHex(Prop->string, &Len);
+      *DataLen = Len;
 
       /*
         DBG ("Data(str): %p, Len: %d = ", data, len);
@@ -3032,6 +3042,46 @@ ParseSMBIOSSettings (
   gFwFeatures = (UINT32)GetPropertyInteger (Prop, gFwFeatures);
 }
 
+//
+//  Attempt to parse ROM string with "%" char
+//
+
+CHAR8
+*GetDataROM (
+  IN CHAR8   *Str
+) {
+  CHAR8     *Tmp = NULL;
+  INTN      i = 0, y = 0, x = 0;
+  BOOLEAN   Found = FALSE;
+
+  for (i = 0; Str[i]; i++) {
+    if (Str[i] == '%') {
+      Found = TRUE;
+      x = 0;
+      continue;
+    }
+
+    if (!y) {
+      Tmp = AllocateZeroPool(64);
+    }
+
+    if (Found) {
+      if (x < 2) {
+        Tmp[y++] = Str[i];
+        x++;
+        continue;
+      } else {
+        Found = FALSE;
+      }
+    }
+
+    AsciiStrCat(Tmp, Bytes2HexStr((UINT8*)Str+i, 1));
+    y += 2;
+  }
+
+  return Tmp;
+}
+
 EFI_STATUS
 GetUserSettings (
   IN  EFI_FILE    *RootDir,
@@ -3771,19 +3821,19 @@ GetUserSettings (
 
             // Get memory vendor
             Dict2 = GetProperty (Prop3, "Vendor");
-            if (Dict2 && Dict2->type == kTagTypeString && Dict2->string != NULL) {
+            if (Dict2 && (Dict2->type == kTagTypeString) && (Dict2->string != NULL)) {
               SlotPtr->Vendor = Dict2->string;
             }
 
             // Get memory part number
             Dict2 = GetProperty (Prop3, "Part");
-            if (Dict2 && Dict2->type == kTagTypeString && Dict2->string != NULL) {
+            if (Dict2 && (Dict2->type == kTagTypeString) && (Dict2->string != NULL)) {
               SlotPtr->PartNo = Dict2->string;
             }
 
             // Get memory serial number
             Dict2 = GetProperty (Prop3, "Serial");
-            if (Dict2 && Dict2->type == kTagTypeString && Dict2->string != NULL) {
+            if (Dict2 && (Dict2->type == kTagTypeString) && (Dict2->string != NULL)) {
               SlotPtr->SerialNo = Dict2->string;
             }
 
@@ -3995,7 +4045,11 @@ GetUserSettings (
         } else {
           UINTN   ROMLength = 0;
 
-          gSettings.RtROM = GetDataSetting (DictPointer, "ROM", &ROMLength);
+          if (AsciiStrStr(Prop->string, "%") != NULL) {
+            gSettings.RtROM = StringDataToHex (GetDataROM (Prop->string), &ROMLength);
+          } else {
+            gSettings.RtROM = GetDataSetting (DictPointer, "ROM", &ROMLength);
+          }
           gSettings.RtROMLen = ROMLength;
         }
 

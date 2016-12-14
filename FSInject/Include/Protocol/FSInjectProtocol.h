@@ -42,7 +42,7 @@ typedef EFI_STATUS (EFIAPI * FSINJECTION_INSTALL) \
  * Creates new string list. List can be populated with FSINJECTION_PROTOCOL.AddStringToList()
  * @return Created list or NULL if there is no memory.
  */
-typedef FSI_STRING_LIST* (EFIAPI *FSINJECTION_CREATE_STRING_LIST) ();
+typedef FSI_STRING_LIST* (EFIAPI *FSINJECTION_CREATE_STRING_LIST) (VOID);
 
 /**
  * FSINJECTION_PROTOCOL.AddStringToList() type definition

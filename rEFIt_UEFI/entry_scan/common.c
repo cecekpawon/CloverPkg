@@ -344,12 +344,6 @@ CHAR16
   return NewLoadOptions;
 }
 
-#define TO_LOWER(ch) (((ch >= L'A') && (ch <= L'Z')) ? ((ch - L'A') + L'a') : ch)
-#define TO_UPPER(ch) (((ch >= L'a') && (ch <= L'z')) ? ((ch - L'a') + L'A') : ch)
-
-#define TO_ALOWER(ch) (((ch >= 'A') && (ch <= 'Z')) ? ((ch - 'A') + 'a') : ch)
-#define TO_AUPPER(ch) (((ch >= 'a') && (ch <= 'z')) ? ((ch - 'a') + 'A') : ch)
-
 INTN
 StrniCmp (
   IN CHAR16   *Str1,

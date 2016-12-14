@@ -740,212 +740,211 @@ struct S_FILES
 
 typedef struct {
   // SMBIOS TYPE0
-  CHAR8                   VendorName[64];
-  CHAR8                   RomVersion[64];
-  CHAR8                   ReleaseDate[64];
+  CHAR8                     VendorName[64];
+  CHAR8                     RomVersion[64];
+  CHAR8                     ReleaseDate[64];
   // SMBIOS TYPE1
-  CHAR8                   ManufactureName[64];
-  CHAR8                   ProductName[64];
-  CHAR8                   VersionNr[64];
-  CHAR8                   SerialNr[64];
-  EFI_GUID                SmUUID;
-  BOOLEAN                 SmUUIDConfig;
-  CHAR8                   FamilyName[64];
-  CHAR8                   OEMProduct[64];
-  CHAR8                   OEMVendor[64];
+  CHAR8                     ManufactureName[64];
+  CHAR8                     ProductName[64];
+  CHAR8                     VersionNr[64];
+  CHAR8                     SerialNr[64];
+  EFI_GUID                  SmUUID;
+  BOOLEAN                   SmUUIDConfig;
+  CHAR8                     FamilyName[64];
+  CHAR8                     OEMProduct[64];
+  CHAR8                     OEMVendor[64];
   // SMBIOS TYPE2
-  CHAR8                   BoardManufactureName[64];
-  CHAR8                   BoardSerialNumber[64];
-  CHAR8                   BoardNumber[64]; //Board-ID
-  CHAR8                   LocationInChassis[64];
-  CHAR8                   BoardVersion[64];
-  CHAR8                   OEMBoard[64];
-  UINT8                   BoardType;
+  CHAR8                     BoardManufactureName[64];
+  CHAR8                     BoardSerialNumber[64];
+  CHAR8                     BoardNumber[64]; //Board-ID
+  CHAR8                     LocationInChassis[64];
+  CHAR8                     BoardVersion[64];
+  CHAR8                     OEMBoard[64];
+  UINT8                     BoardType;
   // SMBIOS TYPE3
-  BOOLEAN                 Mobile;
-  UINT8                   ChassisType;
-  CHAR8                   ChassisManufacturer[64];
-  CHAR8                   ChassisAssetTag[64];
+  BOOLEAN                   Mobile;
+  UINT8                     ChassisType;
+  CHAR8                     ChassisManufacturer[64];
+  CHAR8                     ChassisAssetTag[64];
   // SMBIOS TYPE4
-  UINT32                  CpuFreqMHz;
-  UINT32                  BusSpeed; //in kHz
-  BOOLEAN                 Turbo;
-  UINT8                   EnabledCores;
-  BOOLEAN                 UserBusSpeed;
-  BOOLEAN                 QEMU;
+  UINT32                    CpuFreqMHz;
+  UINT32                    BusSpeed; //in kHz
+  BOOLEAN                   Turbo;
+  UINT8                     EnabledCores;
+  BOOLEAN                   UserBusSpeed;
+  BOOLEAN                   QEMU;
   // SMBIOS TYPE17
-  CHAR8                   MemoryManufacturer[64];
-  CHAR8                   MemorySerialNumber[64];
-  CHAR8                   MemoryPartNumber[64];
-  CHAR8                   MemorySpeed[64];
+  CHAR8                     MemoryManufacturer[64];
+  CHAR8                     MemorySerialNumber[64];
+  CHAR8                     MemoryPartNumber[64];
+  CHAR8                     MemorySpeed[64];
   // SMBIOS TYPE131
-  UINT16                  CpuType;
+  UINT16                    CpuType;
   // SMBIOS TYPE132
-  UINT16                  QPI;
-  BOOLEAN                 TrustSMBIOS;
-  BOOLEAN                 InjectMemoryTables;
-  INT8                    XMPDetection;
-  BOOLEAN                 UseARTFreq;
+  UINT16                    QPI;
+  BOOLEAN                   TrustSMBIOS;
+  BOOLEAN                   InjectMemoryTables;
+  INT8                      XMPDetection;
+  BOOLEAN                   UseARTFreq;
   // SMBIOS TYPE133
-  UINT64                  PlatformFeature;
+  UINT64                    PlatformFeature;
 
   // OS parameters
-  CHAR8                   Language[16];
-  CHAR8                   BootArgs[256];
-  CHAR16                  CustomUuid[40];
-  CHAR16                  *DefaultVolume;
+  //CHAR8                     Language[16];
+  CHAR8                     BootArgs[256];
+  CHAR16                    CustomUuid[40];
+  CHAR16                    *DefaultVolume;
 
-  BOOLEAN                 LastBootedVolume;
+  BOOLEAN                   LastBootedVolume;
 
-  CHAR16                  *DefaultLoader;
+  CHAR16                    *DefaultLoader;
 
-  UINT16                  BacklightLevel;
-  BOOLEAN                 BacklightLevelConfig;
-  BOOLEAN                 IntelBacklight;
-  //BOOLEAN                 MemoryFix;
-  BOOLEAN                 WithKexts;
-  BOOLEAN                 NoCaches;
+  UINT16                    BacklightLevel;
+  BOOLEAN                   BacklightLevelConfig;
+  BOOLEAN                   IntelBacklight;
+  //BOOLEAN                   MemoryFix;
+  BOOLEAN                   WithKexts;
+  BOOLEAN                   NoCaches;
 
   // GUI parameters
-  BOOLEAN                 DebugKP;
+  BOOLEAN                   DebugKP;
 
   //ACPI
-  BOOLEAN                 DropSSDT;
-  BOOLEAN                 GeneratePStates;
-  BOOLEAN                 GenerateCStates;
-  BOOLEAN                 DoubleFirstState;
-  BOOLEAN                 EnableC2;
-  BOOLEAN                 EnableC4;
-  BOOLEAN                 EnableC6;
-  UINT16                  C3Latency;
-  BOOLEAN                 smartUPS;
-  BOOLEAN                 EnableC7;
+  BOOLEAN                   DropSSDT;
+  BOOLEAN                   GeneratePStates;
+  BOOLEAN                   GenerateCStates;
+  BOOLEAN                   DoubleFirstState;
+  BOOLEAN                   EnableC2;
+  BOOLEAN                   EnableC4;
+  BOOLEAN                   EnableC6;
+  UINT16                    C3Latency;
+  BOOLEAN                   smartUPS;
+  BOOLEAN                   EnableC7;
 
-  CHAR16                  DsdtName[28];
-  UINT32                  FixDsdt;
-  UINT8                   MinMultiplier;
-  UINT8                   MaxMultiplier;
-  UINT8                   PluginType;
-  BOOLEAN                 DropMCFG;
+  CHAR16                    DsdtName[28];
+  UINT32                    FixDsdt;
+  UINT8                     MinMultiplier;
+  UINT8                     MaxMultiplier;
+  UINT8                     PluginType;
+  BOOLEAN                   DropMCFG;
 
   //Injections
-  BOOLEAN                 StringInjector;
-  BOOLEAN                 InjectSystemID;
-  BOOLEAN                 NoDefaultProperties;
+  BOOLEAN                   StringInjector;
+  BOOLEAN                   InjectSystemID;
+  BOOLEAN                   NoDefaultProperties;
 
-  BOOLEAN                 ReuseFFFF;
+  BOOLEAN                   ReuseFFFF;
 
   //PCI devices
-  UINT32                  FakeATI;
-  UINT32                  FakeNVidia;
-  UINT32                  FakeIntel;
-  UINT32                  FakeLAN;
-  UINT32                  FakeWIFI;
+  UINT32                    FakeATI;
+  UINT32                    FakeNVidia;
+  UINT32                    FakeIntel;
+  UINT32                    FakeLAN;
+  UINT32                    FakeWIFI;
 
   //Graphics
-  UINT16                  PCIRootUID;
-  BOOLEAN                 GraphicsInjector;
-  BOOLEAN                 InjectIntel;
-  BOOLEAN                 InjectATI;
-  BOOLEAN                 InjectNVidia;
-  BOOLEAN                 LoadVBios;
+  UINT16                    PCIRootUID;
+  BOOLEAN                   GraphicsInjector;
+  BOOLEAN                   InjectIntel;
+  BOOLEAN                   InjectATI;
+  BOOLEAN                   InjectNVidia;
+  BOOLEAN                   LoadVBios;
 
-  BOOLEAN                 InjectEDID;
-  UINT16                  DropOEM_DSM;
-  UINT8                   *CustomEDID;
+  BOOLEAN                   InjectEDID;
+  UINT16                    DropOEM_DSM;
+  UINT8                     *CustomEDID;
 
 
-  CHAR16                  FBName[16];
-  UINT16                  VideoPorts;
-  BOOLEAN                 NvidiaSingle;
-  UINT64                  VRAM;
-  UINT8                   Dcfg[8];
-  UINT8                   NVCAP[20];
-  INT8                    BootDisplay;
-  UINT32                  DualLink;
-  UINT32                  IgPlatform;
-  S_HAS_GRAPHICS          *HasGraphics;
+  CHAR16                    FBName[16];
+  UINT16                    VideoPorts;
+  BOOLEAN                   NvidiaSingle;
+  UINT64                    VRAM;
+  UINT8                     Dcfg[8];
+  UINT8                     NVCAP[20];
+  INT8                      BootDisplay;
+  UINT32                    DualLink;
+  UINT32                    IgPlatform;
+  S_HAS_GRAPHICS            *HasGraphics;
 
   // HDA
-  INT32                   HDALayoutId;
+  INT32                     HDALayoutId;
 
   //Volumes hiding
-  CHAR16                  **HVHideStrings;
+  CHAR16                    **HVHideStrings;
 
-  INTN                    HVCount;
+  INTN                      HVCount;
 
   // KernelAndKextPatches
-  KERNEL_AND_KEXT_PATCHES KernelAndKextPatches;
-  BOOLEAN                 KextPatchesAllowed;
-  BOOLEAN                 KernelPatchesAllowed; //From GUI: Only for user patches, not internal Clover
+  KERNEL_AND_KEXT_PATCHES   KernelAndKextPatches;
+  BOOLEAN                   KextPatchesAllowed;
+  BOOLEAN                   KernelPatchesAllowed; //From GUI: Only for user patches, not internal Clover
 
   // SysVariables
-  CHAR8                   *RtMLB;
+  CHAR8                     *RtMLB;
 
+  UINT8                     *RtROM;
 
-  UINT8                   *RtROM;
+  UINTN                     RtROMLen;
 
-  UINTN                   RtROMLen;
-
-  UINT32                  CsrActiveConfig;
-  UINT16                  BooterConfig;
+  UINT32                    CsrActiveConfig;
+  UINT16                    BooterConfig;
 
   // Multi-config
-  CHAR16                  *ConfigName;
+  CHAR16                    *ConfigName;
 
   //Drivers
-  INTN                    BlackListCount;
+  INTN                      BlackListCount;
 
-  CHAR16                  **BlackList;
+  CHAR16                    **BlackList;
 
   //SMC keys
-  CHAR8                   RPlt[8];
-  CHAR8                   RBr[8];
-  UINT8                   EPCI[4];
-  UINT8                   REV[6];
+  CHAR8                     RPlt[8];
+  CHAR8                     RBr[8];
+  UINT8                     EPCI[4];
+  UINT8                     REV[6];
 
   //Patch DSDT arbitrary
-  UINT32                  PatchDsdtNum;
-  UINT8                   **PatchDsdtFind;
-  UINT32                  *LenToFind;
-  UINT8                   **PatchDsdtReplace;
-  UINT32                  *LenToReplace;
-  BOOLEAN                 DebugDSDT;
-  BOOLEAN                 SlpWak;
-  BOOLEAN                 UseIntelHDMI;
+  UINT32                    PatchDsdtNum;
+  UINT8                     **PatchDsdtFind;
+  UINT32                    *LenToFind;
+  UINT8                     **PatchDsdtReplace;
+  UINT32                    *LenToReplace;
+  BOOLEAN                   DebugDSDT;
+  BOOLEAN                   SlpWak;
+  BOOLEAN                   UseIntelHDMI;
 
   // Table dropping
-  ACPI_DROP_TABLE         *ACPIDropTables;
+  ACPI_DROP_TABLE           *ACPIDropTables;
 
   // Custom entries
-  BOOLEAN                 DisableEntryScan;
-  BOOLEAN                 DisableToolScan;
-  BOOLEAN                 ShowHiddenEntries;
-  UINT8                   KernelScan;
-  BOOLEAN                 LinuxScan;
-  BOOLEAN                 AndroidScan;
-  //UINT8                 pad84[3];
-  CUSTOM_LOADER_ENTRY     *CustomEntries;
-  CUSTOM_TOOL_ENTRY       *CustomTool;
+  BOOLEAN                   DisableEntryScan;
+  BOOLEAN                   DisableToolScan;
+  BOOLEAN                   ShowHiddenEntries;
+  UINT8                     KernelScan;
+  BOOLEAN                   LinuxScan;
+  BOOLEAN                   AndroidScan;
+  //UINT8                   pad84[3];
+  CUSTOM_LOADER_ENTRY       *CustomEntries;
+  CUSTOM_TOOL_ENTRY         *CustomTool;
 
   //Add custom properties
-  INTN                    NrAddProperties;
-  DEV_PROPERTY            *AddProperties;
+  INTN                      NrAddProperties;
+  DEV_PROPERTY              *AddProperties;
 
   //BlackListed kexts
-  CHAR16                  BlockKexts[64];
+  CHAR16                    BlockKexts[64];
 
   //ACPI tables
-  UINTN                   SortedACPICount;
+  UINTN                     SortedACPICount;
 
-  CHAR16                  **SortedACPI;
+  CHAR16                    **SortedACPI;
 
   // ACPI/PATCHED/AML
-  UINT32                  DisabledAMLCount;
-  CHAR16                  **DisabledAML;
+  UINT32                    DisabledAMLCount;
+  CHAR16                    **DisabledAML;
 
-  UINT32                  OptionsBits;
-  UINT32                  FlagsBits;
+  UINT32                    OptionsBits;
+  UINT32                    FlagsBits;
 } SETTINGS_DATA;
 
 typedef struct {
@@ -1828,6 +1827,11 @@ UINT64 AsciiStrVersionToUint64(const CHAR8 *Version, UINT8 MaxDigitByPart, UINT8
 #define OSX_LE(OSVersion, CurrVer) (OSVersion && (AsciiOSVersionToUint64(OSVersion) <= AsciiOSVersionToUint64(CurrVer)))
 #define OSX_GT(OSVersion, CurrVer) (OSVersion && (AsciiOSVersionToUint64(OSVersion) > AsciiOSVersionToUint64(CurrVer)))
 #define OSX_GE(OSVersion, CurrVer) (OSVersion && (AsciiOSVersionToUint64(OSVersion) >= AsciiOSVersionToUint64(CurrVer)))
+
+#define TO_LOWER(ch) (((ch >= L'A') && (ch <= L'Z')) ? ((ch - L'A') + L'a') : ch)
+#define TO_UPPER(ch) (((ch >= L'a') && (ch <= L'z')) ? ((ch - L'a') + L'A') : ch)
+#define TO_ALOWER(ch) (((ch >= 'A') && (ch <= 'Z')) ? ((ch - 'A') + 'a') : ch)
+#define TO_AUPPER(ch) (((ch >= 'a') && (ch <= 'z')) ? ((ch - 'a') + 'A') : ch)
 
 //Unicode
 #define IS_COMMA(a)             ((a) == L',')

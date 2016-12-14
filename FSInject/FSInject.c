@@ -166,7 +166,7 @@ StrCmpiBasic (
 ) {
   CHAR16    Chr1, Chr2;
 
-  DBG("Cmpi('%s', '%s') ", String1, String2);
+  //DBG("Cmpi('%s', '%s') ", String1, String2);
 
   if ((String1 == NULL) || (String2 == NULL)) {
     return 1;
@@ -190,7 +190,7 @@ StrCmpiBasic (
     Chr2 = ToUpperChar(*String2);
   }
 
-  DBG("=%s ", (Chr1 - Chr2) ? L"NEQ" : L"EQ");
+  //DBG("=%s ", (Chr1 - Chr2) ? L"NEQ" : L"EQ");
 
   return Chr1 - Chr2;
 }
@@ -205,7 +205,7 @@ StriStartsWithBasic (
   CHAR16    Chr1, Chr2;
   BOOLEAN   Result;
 
-  DBG("StriStarts('%s', '%s') ", String1, String2);
+  //DBG("StriStarts('%s', '%s') ", String1, String2);
 
   if ((String1 == NULL) || (String2 == NULL)) {
     return FALSE;
@@ -232,7 +232,7 @@ StriStartsWithBasic (
   Result = ((Chr1 == L'\0') && (Chr2 == L'\0')) ||
            ((Chr1 != L'\0') && (Chr2 == L'\0'));
 
-  DBG("=%s \n", Result ? L"TRUE" : L"FALSE");
+  //DBG("=%s \n", Result ? L"TRUE" : L"FALSE");
 
   return Result;
 }
@@ -247,7 +247,7 @@ GetNormalizedFName (
   CHAR16    *TmpStr, *TmpStr2;
   UINTN     Len;
 
-  DBG("NormFName('%s' + '%s')", Parent, FName);
+  //DBG("NormFName('%s' + '%s')", Parent, FName);
   // case: FName starts with \ "\System\Xx"
   // we'll just use it as is, but we are wrong if "\System\Xx\..\Yy\.\Zz" or similar
   if (FName[0] == L'\\') {
@@ -290,7 +290,7 @@ GetNormalizedFName (
     FName = StrCat(TmpStr, FName);
   }
 
-  DBG("='%s' ", FName);
+  //DBG("='%s' ", FName);
 
   return FName;
 }
@@ -1195,7 +1195,7 @@ ErrorExit:
  */
 FSI_STRING_LIST*
 EFIAPI
-FSInjectionCreateStringList () {
+FSInjectionCreateStringList (VOID) {
   FSI_STRING_LIST   *List;
 
   List = AllocateZeroPool(sizeof(FSI_STRING_LIST));

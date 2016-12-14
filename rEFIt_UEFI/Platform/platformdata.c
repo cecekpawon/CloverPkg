@@ -52,7 +52,8 @@ CHAR8   *AppleFirmwareVersion[] =
   "MP31.88Z.006C.B05.0802291410",
   "MP41.88Z.0081.B07.0903051113",
   "MP51.88Z.007F.B03.1010071432",   //007F.B00.1008031144"
-  "MP61.88Z.0116.B20.1610051057",
+  //"MP61.88Z.0116.B20.1610051057",
+  "MP61.88Z.0116.B21.1610201524",
 };
 
 CHAR8* AppleBoardID[] =    //Lion DR1 compatible
@@ -648,6 +649,7 @@ GetDefaultSettings () {
 
   gSettings.SmUUIDConfig         = FALSE;
   //gSettings.DefaultBackgroundColor = 0x80000000; //the value to delete the variable
+
   gSettings.RtROM                = NULL;
   gSettings.RtROMLen             = 0;
   gSettings.CsrActiveConfig      = 0xFFFF;
