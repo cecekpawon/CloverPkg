@@ -3165,7 +3165,7 @@ GetUserSettings (
       Prop = GetProperty (DictPointer, "NVCAP");
       if (Prop != NULL) {
         hex2bin (Prop->string, (UINT8*)&gSettings.NVCAP[0], 20);
-        DBG ("Read NVCAP:");
+        DBG ("Read NVCAP: ");
 
         for (i = 0; i<20; i++) {
           DBG ("%02x", gSettings.NVCAP[i]);

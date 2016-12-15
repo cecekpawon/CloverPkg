@@ -1865,7 +1865,7 @@ AddHDMI (
   }
 
   if (!AddProperties(pack, DEV_HDMI)) {
-    DBG("  with default properties\n");
+    DBG(" - with default properties\n");
     aml_add_string(pack, "layout-id");
     aml_add_byte_buffer(pack, (CHAR8*)&GfxlayoutId[0], 4);
 

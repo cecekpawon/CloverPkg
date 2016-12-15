@@ -31,6 +31,7 @@ Headers collection for procedures
 #include <Protocol/FSInjectProtocol.h>
 #include <Protocol/MsgLog.h>
 #include <Protocol/efiConsoleControl.h>
+#include <Protocol/AptioFixProtocol.h>
 
 #include "Version.h"
 #include "../refit/lib.h"
@@ -1186,6 +1187,7 @@ extern EFI_GUID                         gEfiAppleVendorGuid;
 extern EFI_GUID                         gEfiPartTypeSystemPartGuid;
 extern EFI_GUID                         gMsgLogProtocolGuid;
 extern EFI_GUID                         gEfiLegacy8259ProtocolGuid;
+extern EFI_GUID                         gAptioProtocolGuid;
 
 #if 0
 extern EFI_EVENT                        mVirtualAddressChangeEvent;

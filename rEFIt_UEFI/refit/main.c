@@ -132,6 +132,7 @@ LoadEFIImageList (
   Status = gBS->UnloadImage(ChildImageHandle);
 
 bailout:
+
   DBG("\n");
 
   return ReturnStatus;
@@ -233,6 +234,7 @@ StartEFILoadedImage (
   }
 
 bailout_unload:
+
   // unload the image, we don't care if it works or not...
   Status = gBS->UnloadImage(ChildImageHandle);
 
@@ -241,6 +243,7 @@ bailout_unload:
   }
 
 bailout:
+
   return ReturnStatus;
 }
 
@@ -260,7 +263,6 @@ LoadEFIImage (
 
   return LoadEFIImageList(DevicePaths, ImageTitle, ErrorInStep, NewImageHandle);
 }
-
 
 STATIC
 EFI_STATUS
@@ -373,6 +375,7 @@ FilterKextPatches (
     INTN    i = 0;
 
     DBG("Filtering KextPatches:\n");
+
     for (; i < Entry->KernelAndKextPatches->NrKexts; ++i) {
       BOOLEAN   NeedBuildVersion = (
                   (Entry->BuildVersion != NULL) &&
@@ -645,10 +648,10 @@ StartLoader (
           InstallerVersion += 9; // advance to version location
 
           if (
-            AsciiStrnCmp(InstallerVersion, "10.", 3) &&
-            AsciiStrnCmp(InstallerVersion, "11.", 3) &&
-            AsciiStrnCmp(InstallerVersion, "12.", 3)
-          ) { //xxx
+            AsciiStrnCmp(InstallerVersion, "10.", 3) /*&&   //
+            AsciiStrnCmp(InstallerVersion, "11.", 3) &&     // When Tim Cook migrate to Windoze
+            AsciiStrnCmp(InstallerVersion, "12.", 3)*/      //
+          ) {
             InstallerVersion = NULL; // flag known version was not found
           }
 
@@ -722,9 +725,14 @@ StartLoader (
     if (
       OSFLAG_ISSET(gSettings.OptionsBits, OPT_SINGLE_USER) ||
       OSFLAG_ISSET(gSettings.OptionsBits, OPT_SAFE) ||
-      //((Entry->KernelAndKextPatches != NULL) && Entry->KernelAndKextPatches->KPDebug)
-      ((Entry->KernelAndKextPatches != NULL) && OSFLAG_ISSET(gSettings.FlagsBits, OSFLAG_DBGPATCHES)) ||
-      gSettings.DebugKP
+      (
+        (Entry->KernelAndKextPatches != NULL) &&
+        (
+          Entry->KernelAndKextPatches->KPDebug ||
+          gSettings.DebugKP ||
+          OSFLAG_ISSET(gSettings.FlagsBits, OSFLAG_DBGPATCHES)
+        )
+      )
     ) {
       gSettings.OptionsBits = OSFLAG_SET(gSettings.OptionsBits, OPT_VERBOSE);
     }
@@ -878,7 +886,7 @@ StartTool (
 //
 
 STATIC
-VOID
+UINTN
 ScanDriverDir (
   IN  CHAR16        *Path,
   OUT EFI_HANDLE    **DriversToConnect,
@@ -890,7 +898,7 @@ ScanDriverDir (
   EFI_HANDLE                      DriverHandle, *DriversArr = NULL;
   EFI_DRIVER_BINDING_PROTOCOL     *DriverBinding;
   CHAR16                          FileName[256];
-  UINTN                           DriversArrSize = 0, DriversArrNum = 0;
+  UINTN                           DriversArrSize = 0, DriversArrNum = 0, NumLoad = 0;
   INTN                            i;
   BOOLEAN                         Skip;
 
@@ -911,11 +919,6 @@ ScanDriverDir (
       continue;
     }
 
-    // either AptioFix, AptioFix2 or LowMemFix
-    if (StriStr(DirEntry->FileName, L"AptioFixDrv") != NULL) {
-      gDriversFlags.AptioFixLoaded = TRUE;
-    }
-
     UnicodeSPrint(FileName, 512, L"%s\\%s", Path, DirEntry->FileName);
     Status = StartEFIImage (
                 FileDevicePath(SelfLoadedImage->DeviceHandle, FileName),
@@ -930,19 +933,26 @@ ScanDriverDir (
       continue;
     }
 
+    NumLoad++;
+
+    // either AptioFix, AptioFix2 or LowMemFix
+    //if (StriStr(DirEntry->FileName, L"AptioFixDrv") != NULL) {
+    //  gDriversFlags.AptioFixLoaded = TRUE;
+    //}
+
     if (StriStr(FileName, L"HFS") != NULL) {
       gDriversFlags.HFSLoaded = TRUE;
     }
 
     if (
       (DriverHandle != NULL) &&
-      (DriversToConnectNum != NULL) &&
+      (DriversToConnectNum != 0) &&
       (DriversToConnect != NULL)
     ) {
       // driver loaded - check for EFI_DRIVER_BINDING_PROTOCOL
       Status = gBS->HandleProtocol(DriverHandle, &gEfiDriverBindingProtocolGuid, (VOID **) &DriverBinding);
 
-      if (!EFI_ERROR(Status) && DriverBinding != NULL) {
+      if (!EFI_ERROR(Status) && (DriverBinding != NULL)) {
         DBG(" - driver needs connecting\n");
 
         // standard UEFI driver - we would reconnect after loading - add to array
@@ -972,7 +982,7 @@ ScanDriverDir (
     CheckError(Status, FileName);
   }
 
-  if ((DriversToConnectNum != NULL) && (DriversToConnect != NULL)) {
+  if ((DriversToConnectNum != 0) && (DriversToConnect != NULL)) {
     *DriversToConnectNum = DriversArrNum;
     *DriversToConnect = DriversArr;
   }
@@ -984,6 +994,8 @@ ScanDriverDir (
       gSettings.BlackList[i] = NULL;
     }
   }
+
+  return NumLoad;
 }
 
 VOID
@@ -1062,17 +1074,19 @@ DisconnectSomeDevices () {
   }
 }
 
-
 STATIC
 VOID
 LoadDrivers () {
-  EFI_HANDLE    *DriversToConnect = NULL;
-  UINTN         DriversToConnectNum = 0;
+  EFI_HANDLE          *DriversToConnect = NULL;
+  UINTN               DriversToConnectNum = 0, NumLoad = 0;
+
+  EFI_STATUS          Status;
+  APTIOFIX_PROTOCOL   *AptioFix;
 
   DbgHeader("LoadDrivers");
 
   // load drivers from /efi/drivers
-  ScanDriverDir(DIR_DRIVERS, &DriversToConnect, &DriversToConnectNum);
+  NumLoad = ScanDriverDir(DIR_DRIVERS, &DriversToConnect, &DriversToConnectNum);
 
   if (DriversToConnectNum > 0) {
     DBG("%d drivers needs connecting ...\n", DriversToConnectNum);
@@ -1084,6 +1098,14 @@ LoadDrivers () {
     DisconnectSomeDevices();
 
     BdsLibConnectAllDriversToAllControllers();
+  }
+
+  if (NumLoad) {
+    Status = EfiLibLocateProtocol(&gAptioProtocolGuid, (VOID **)&AptioFix);
+    if (!EFI_ERROR (Status) && (AptioFix->Signature == APTIOFIX_SIGNATURE)) {
+      DBG (" - AptioFixLoaded = TRUE\n");
+      gDriversFlags.AptioFixLoaded = TRUE;
+    }
   }
 }
 

@@ -68,7 +68,7 @@ EFI_PHYSICAL_ADDRESS      gRelocBase = 0;
 UINTN                     gRelocSizePages = 0;
 
 // location of memory allocated by boot.efi for hibernate image
-EFI_PHYSICAL_ADDRESS gHibernateImageAddress = 0;
+EFI_PHYSICAL_ADDRESS      gHibernateImageAddress = 0;
 
 // last memory map obtained by boot.efi
 UINTN                     gLastMemoryMapSize = 0;
@@ -76,12 +76,24 @@ EFI_MEMORY_DESCRIPTOR     *gLastMemoryMap = NULL;
 UINTN                     gLastDescriptorSize = 0;
 UINT32                    gLastDescriptorVersion = 0;
 
+//
+// Struct for holding APTIOFIX_PROTOCOL.
+//
+typedef struct {
+  UINT64   Signature;
+} APTIOFIX_PROTOCOL;
+
+#define APTIOFIX_SIGNATURE SIGNATURE_64('A','P','T','I','O','F','I','X')
+
+EFI_GUID  gAptioFixProtocolGuid = {0xB79DCC2E, 0x61BE, 0x453F, {0xBC, 0xAC, 0xC2, 0x60, 0xFA, 0xAE, 0xCC, 0xDA }};
+
 /** Helper function that calls GetMemoryMap() and returns new MapKey.
  * Uses gStoredGetMemoryMap, so can be called only after gStoredGetMemoryMap is set.
  */
 EFI_STATUS
-GetMemoryMapKey (OUT UINTN *MapKey)
-{
+GetMemoryMapKey (
+  OUT UINTN   *MapKey
+) {
   EFI_STATUS              Status;
   UINTN                   MemoryMapSize;
   EFI_MEMORY_DESCRIPTOR   *MemoryMap;
@@ -94,8 +106,9 @@ GetMemoryMapKey (OUT UINTN *MapKey)
 
 /** Helper function that calculates number of RT and MMIO pages from mem map. */
 EFI_STATUS
-GetNumberOfRTPages (OUT UINTN *NumPages)
-{
+GetNumberOfRTPages (
+  OUT UINTN   *NumPages
+) {
   EFI_STATUS              Status;
   UINTN                   MemoryMapSize, MapKey, DescriptorSize, NumEntries, Index;
   UINT32                  DescriptorVersion;
@@ -201,8 +214,7 @@ MOHandleProtocol (
   IN  EFI_HANDLE    Handle,
   IN  EFI_GUID      *Protocol,
   OUT VOID          **Interface
-)
-{
+) {
   EFI_STATUS                    res;
   EFI_GRAPHICS_OUTPUT_PROTOCOL  *GraphicsOutput;
 
@@ -246,7 +258,7 @@ MOAllocatePages (
   //BOOLEAN                 FromRelocBlock = FALSE;
 
 
-//  MemoryIn = *Memory;
+  //MemoryIn = *Memory;
 
   if ((Type == AllocateAddress) && (MemoryType == EfiLoaderData)) {
     // called from boot.efi
@@ -510,6 +522,7 @@ MOStartImage (
     //DBG("ERROR: MOStartImage: OpenProtocol(gEfiLoadedImageProtocolGuid) = %r\n", Status);
     return EFI_INVALID_PARAMETER;
   }
+
   FilePathText = FileDevicePathToText (Image->FilePath);
   //if (FilePathText != NULL) {
   //  DBG ("FilePath: %s\n", FilePathText);
@@ -557,12 +570,32 @@ OsxAptioFixDrvEntrypoint (
   IN EFI_HANDLE         ImageHandle,
   IN EFI_SYSTEM_TABLE   *SystemTable
 ) {
+  EFI_STATUS              Status;
+  APTIOFIX_PROTOCOL       *AptioFix;
+  EFI_HANDLE              AptioFixIHandle;
+
   // install StartImage override
   // all other overrides will be started when boot.efi is started
   gStartImage = gBS->StartImage;
   gBS->StartImage = MOStartImage;
   gBS->Hdr.CRC32 = 0;
   gBS->CalculateCrc32(gBS, gBS->Hdr.HeaderSize, &gBS->Hdr.CRC32);
+
+  // install APTIOFIX_PROTOCOL to new handle
+  AptioFix = AllocateZeroPool(sizeof(APTIOFIX_PROTOCOL));
+
+  if (AptioFix == NULL)   {
+    DBG("%a: Can not allocate memory for APTIOFIX_PROTOCOL\n", __FUNCTION__);
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  AptioFix->Signature = APTIOFIX_SIGNATURE;
+  AptioFixIHandle = NULL; // install to new handle
+  Status = gBS->InstallMultipleProtocolInterfaces(&AptioFixIHandle, &gAptioFixProtocolGuid, AptioFix, NULL);
+
+  if (EFI_ERROR(Status)) {
+    DBG("%a: error installing APTIOFIX_PROTOCOL, Status = %r\n", __FUNCTION__, Status);
+  }
 
   return EFI_SUCCESS;
 }

@@ -84,7 +84,7 @@ BootArgsPrint (
 #endif
 }
 
-BootArgs gBootArgs;
+BootArgs    gBootArgs;
 
 BootArgs*
 EFIAPI

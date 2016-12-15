@@ -370,20 +370,15 @@ PatchCPUID (
     Adr += patchLocation;
     DBG_RT(Entry, " - found Pattern at %x, len: %d\n", Adr, LenPatt);
 
-    patchLocation = (End - Adr);
-
-    patchLocation = FindBin(&Ptr[Adr], patchLocation, Search4, Len);
+    patchLocation = FindBin(&Ptr[Adr], (End - Adr), Search4, Len);
 
     if (patchLocation > 0) {
-      //found
       Adr += patchLocation;
       DBG_RT(Entry, " - found Model at %x, len: %d\n", Adr, Len);
       CopyMem(&Ptr[Adr], ReplaceModel, Len);
       Ptr[Adr + 1] = FakeModel;
 
-      patchLocation = (End - Adr);
-
-      patchLocation = FindBin(&Ptr[Adr], patchLocation, Search10, Len);
+      patchLocation = FindBin(&Ptr[Adr], (End - Adr), Search10, Len);
 
       if (patchLocation > 0) {
         Adr += patchLocation;

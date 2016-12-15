@@ -32,7 +32,7 @@ EFI_EVENT   mSimpleFileSystemChangeEvent = NULL;
 
 VOID
 EFIAPI
-OnExitBootServices(IN EFI_EVENT Event, IN VOID *Context) {
+OnExitBootServices (IN EFI_EVENT Event, IN VOID *Context) {
   //EFI_STATUS Status;
   /*
   if (DoHibernateWake) {

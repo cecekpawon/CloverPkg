@@ -197,6 +197,8 @@ KernelEntryFromMachOPatchJump (
   return KernelEntryPatchJump((UINT32)KernelEntry);
 }
 
+
+#if 0
 /** Patches kernel entry point with HLT - used for testing to cause system halt. */
 EFI_STATUS
 KernelEntryPatchHalt (
@@ -233,6 +235,7 @@ KernelEntryPatchZero (
 
   return Status;
 }
+#endif
 
 
 //
