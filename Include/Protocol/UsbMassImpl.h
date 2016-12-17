@@ -52,7 +52,7 @@ USBMassDriverBindingSupported (
   IN EFI_DRIVER_BINDING_PROTOCOL  *This,
   IN EFI_HANDLE                   Controller,
   IN EFI_DEVICE_PATH_PROTOCOL     *RemainingDevicePath
-  );
+);
 
 /**
   Starts the USB mass storage device with this driver.
@@ -78,7 +78,7 @@ USBMassDriverBindingStart (
   IN EFI_DRIVER_BINDING_PROTOCOL  *This,
   IN EFI_HANDLE                   Controller,
   IN EFI_DEVICE_PATH_PROTOCOL     *RemainingDevicePath
-  );
+);
 
 /**
   Stop controlling the device.
@@ -101,7 +101,7 @@ USBMassDriverBindingStop (
   IN  EFI_HANDLE                  Controller,
   IN  UINTN                       NumberOfChildren,
   IN  EFI_HANDLE                  *ChildHandleBuffer
-  );
+);
 
 //
 // Functions for Block I/O Protocol
@@ -110,7 +110,7 @@ USBMassDriverBindingStop (
 /**
   Reset the block device.
 
-  This function implements EFI_BLOCK_IO_PROTOCOL.Reset(). 
+  This function implements EFI_BLOCK_IO_PROTOCOL.Reset().
   It resets the block device hardware.
   ExtendedVerification is ignored in this implementation.
 
@@ -127,12 +127,12 @@ EFIAPI
 UsbMassReset (
   IN EFI_BLOCK_IO_PROTOCOL    *This,
   IN BOOLEAN                  ExtendedVerification
-  );
+);
 
 /**
   Reads the requested number of blocks from the device.
 
-  This function implements EFI_BLOCK_IO_PROTOCOL.ReadBlocks(). 
+  This function implements EFI_BLOCK_IO_PROTOCOL.ReadBlocks().
   It reads the requested number of blocks from the device.
   All the blocks are read, or an error is returned.
 
@@ -161,12 +161,12 @@ UsbMassReadBlocks (
   IN EFI_LBA                  Lba,
   IN UINTN                    BufferSize,
   OUT VOID                    *Buffer
-  );
+);
 
 /**
   Writes a specified number of blocks to the device.
 
-  This function implements EFI_BLOCK_IO_PROTOCOL.WriteBlocks(). 
+  This function implements EFI_BLOCK_IO_PROTOCOL.WriteBlocks().
   It writes a specified number of blocks to the device.
   All blocks are written, or an error is returned.
 
@@ -196,7 +196,7 @@ UsbMassWriteBlocks (
   IN EFI_LBA                  Lba,
   IN UINTN                    BufferSize,
   IN VOID                     *Buffer
-  );
+);
 
 /**
   Flushes all modified data to a physical block device.
@@ -216,7 +216,7 @@ EFI_STATUS
 EFIAPI
 UsbMassFlushBlocks (
   IN EFI_BLOCK_IO_PROTOCOL  *This
-  );
+);
 
 //
 // EFI Component Name Functions
@@ -262,7 +262,7 @@ UsbMassStorageGetDriverName (
   IN  EFI_COMPONENT_NAME_PROTOCOL  *This,
   IN  CHAR8                        *Language,
   OUT CHAR16                       **DriverName
-  );
+);
 
 
 /**
@@ -331,6 +331,6 @@ UsbMassStorageGetControllerName (
   IN  EFI_HANDLE                                      ChildHandle        OPTIONAL,
   IN  CHAR8                                           *Language,
   OUT CHAR16                                          **ControllerName
-  );
+);
 
 #endif

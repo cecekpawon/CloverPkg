@@ -18,8 +18,8 @@ Module Name:
 
 /** String list entry. */
 typedef struct {
-	LIST_ENTRY	List;		// must be first in struct
-	CHAR16		String[1];
+  LIST_ENTRY  List;   // must be first in struct
+  CHAR16    String[1];
 } FSI_STRING_LIST_ENTRY;
 
 typedef FSI_STRING_LIST_ENTRY FSI_STRING_LIST;
@@ -47,7 +47,7 @@ typedef FSI_STRING_LIST* (EFIAPI *FSINJECTION_CREATE_STRING_LIST) (VOID);
 
 /**
  * FSINJECTION_PROTOCOL.AddStringToList() type definition
- * @param List			List created with CreateStringList()
+ * @param List      List created with CreateStringList()
  * @param String        String to add
  * @return List if ok, or NULL if no memory
  */
@@ -58,9 +58,9 @@ typedef FSI_STRING_LIST* (EFIAPI *FSINJECTION_ADD_STRING_TO_LIST) (FSI_STRING_LI
  * FSINJECTION_PROTOCOL that can be used to install FSInjection to some existing volume handle
  */
 typedef struct _FSINJECTION_PROTOCOL {
-	FSINJECTION_INSTALL				Install;			// installs FSInjection EFI_SIMPLE_FILE_SYSTEM_PROTOCOL
-	FSINJECTION_CREATE_STRING_LIST	CreateStringList;	// creates new string list
-	FSINJECTION_ADD_STRING_TO_LIST	AddStringToList;	// adds list to string
+  FSINJECTION_INSTALL       Install;      // installs FSInjection EFI_SIMPLE_FILE_SYSTEM_PROTOCOL
+  FSINJECTION_CREATE_STRING_LIST  CreateStringList; // creates new string list
+  FSINJECTION_ADD_STRING_TO_LIST  AddStringToList;  // adds list to string
 } FSINJECTION_PROTOCOL;
 
 #define FSINJECTION_PROTOCOL_GUID \

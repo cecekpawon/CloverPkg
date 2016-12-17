@@ -1,6 +1,6 @@
 /*
  *  MsgLog.h
- *  
+ *
  *
  *  Created by Slice on 10.04.12.
  *  Copyright 2012 Home. All rights reserved.
@@ -30,19 +30,19 @@
 #define BootLog(...) if(msgCursor){AsciiSPrint(msgCursor, BOOTER_LOG_SIZE, __VA_ARGS__); while(*msgCursor){msgCursor++;} Msg->Cursor = msgCursor;}
 
 /* sample using
-#include <Protocol/MsgLog.h> 
+#include <Protocol/MsgLog.h>
 #include <Library/PrintLib.h>
 
 CHAR8 *msgCursor;
-MESSAGE_LOG_PROTOCOL *Msg; 
- 
+MESSAGE_LOG_PROTOCOL *Msg;
+
  Msg = NULL;
  Status = gBS->LocateProtocol(&gMsgLogProtocolGuid, NULL, (VOID **) &Msg);
  if (!EFI_ERROR(Status) && (Msg != NULL)) {
    msgCursor = Msg->Cursor;
  }
- 
 */
+
 typedef struct {
   UINT32    SizeOfLog;
   BOOLEAN   Dirty;

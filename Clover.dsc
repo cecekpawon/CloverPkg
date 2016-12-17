@@ -68,23 +68,24 @@
   #
   # Our libs
   #
-  MemLogLib|Clover/Library/MemLogLibDefault/MemLogLibDefault.inf
+  MemLogLib|Clover/Modules/MemLogLibDefault/MemLogLibDefault.inf
 
 [Components.X64]
   # Misc
-  Clover/FSInject/FSInject.inf
-  Clover/OsxAptioFixDrv/OsxAptioFixDrv.inf
-  #Clover/OsxFatBinaryDrv/OsxFatBinaryDrv.inf
+  Clover/Modules/FSInject/FSInject.inf
+  Clover/Modules/OsxAptioFixDrv/OsxAptioFixDrv.inf
+  #Clover/Modules/OsxFatBinaryDrv/OsxFatBinaryDrv.inf
 
   #
   # Sample Application
   #
-  #Clover/bdmesg_efi/bdmesg.inf
+  #Clover/Applications/bdmesg_efi/bdmesg.inf
 
-  Clover/rEFIt_UEFI/refit.inf {
-    <LibraryClasses>
-      BaseMemoryLib|MdePkg/Library/UefiMemoryLib/UefiMemoryLib.inf
-  }
+  #Clover/Clover.inf {
+  #  <LibraryClasses>
+  #    BaseMemoryLib|MdePkg/Library/UefiMemoryLib/UefiMemoryLib.inf
+  #}
+  Clover/Applications/Clover/Clover.inf
 
 [BuildOptions]
 

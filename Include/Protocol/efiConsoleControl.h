@@ -1,13 +1,13 @@
-/*++ 
+/*++
 
-Copyright (c) 2004, Intel Corporation                                                         
-All rights reserved. This program and the accompanying materials                          
-are licensed and made available under the terms and conditions of the BSD License         
-which accompanies this distribution.  The full text of the license may be found at        
-http://opensource.org/licenses/bsd-license.php                                            
-                                                                                          
-THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,                     
-WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.             
+Copyright (c) 2004, Intel Corporation
+All rights reserved. This program and the accompanying materials
+are licensed and made available under the terms and conditions of the BSD License
+which accompanies this distribution.  The full text of the license may be found at
+http://opensource.org/licenses/bsd-license.php
+
+THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 Module Name:
 
@@ -34,17 +34,7 @@ typedef enum {
   EfiConsoleControlScreenMaxValue
 } EFI_CONSOLE_CONTROL_SCREEN_MODE;
 
-
-typedef
-EFI_STATUS
-(EFIAPI *EFI_CONSOLE_CONTROL_PROTOCOL_GET_MODE) (
-  IN  struct _EFI_CONSOLE_CONTROL_PROTOCOL *This,
-  OUT EFI_CONSOLE_CONTROL_SCREEN_MODE   *Mode,
-  OUT BOOLEAN                           *UgaExists,   OPTIONAL  
-  OUT BOOLEAN                           *StdInLocked  OPTIONAL
-  )
 /*++
-
   Routine Description:
     Return the current video mode information. Also returns info about existence
     of UGA Draw devices in system, and if the Std In device is locked. All the
@@ -60,40 +50,36 @@ EFI_STATUS
     EFI_SUCCESS     - Mode information returned.
 
 --*/
-;
-
-
 typedef
 EFI_STATUS
-(EFIAPI *EFI_CONSOLE_CONTROL_PROTOCOL_SET_MODE) (
+(EFIAPI *EFI_CONSOLE_CONTROL_PROTOCOL_GET_MODE) (
   IN  struct _EFI_CONSOLE_CONTROL_PROTOCOL *This,
-  OUT EFI_CONSOLE_CONTROL_SCREEN_MODE   Mode
-  )
-/*++
+  OUT EFI_CONSOLE_CONTROL_SCREEN_MODE   *Mode,
+  OUT BOOLEAN                           *UgaExists,   OPTIONAL
+  OUT BOOLEAN                           *StdInLocked  OPTIONAL
+);
 
+/*++
   Routine Description:
     Set the current mode to either text or graphics. Graphics is
     for Quiet Boot.
 
   Arguments:
     This  - Protocol instance pointer.
-    Mode  - Mode to set the 
+    Mode  - Mode to set the
 
   Returns:
     EFI_SUCCESS     - Mode information returned.
 
 --*/
-;
-
-
 typedef
 EFI_STATUS
-(EFIAPI *EFI_CONSOLE_CONTROL_PROTOCOL_LOCK_STD_IN) (
-  IN struct _EFI_CONSOLE_CONTROL_PROTOCOL *This,
-  IN CHAR16                             *Password
-  )
-/*++
+(EFIAPI *EFI_CONSOLE_CONTROL_PROTOCOL_SET_MODE) (
+  IN  struct _EFI_CONSOLE_CONTROL_PROTOCOL *This,
+  OUT EFI_CONSOLE_CONTROL_SCREEN_MODE   Mode
+);
 
+/*++
   Routine Description:
     Lock Std In devices until Password is typed.
 
@@ -106,9 +92,12 @@ EFI_STATUS
     EFI_DEVICE_ERROR - Std In not locked
 
 --*/
-;
-
-
+typedef
+EFI_STATUS
+(EFIAPI *EFI_CONSOLE_CONTROL_PROTOCOL_LOCK_STD_IN) (
+  IN struct _EFI_CONSOLE_CONTROL_PROTOCOL *This,
+  IN CHAR16                             *Password
+);
 
 typedef struct _EFI_CONSOLE_CONTROL_PROTOCOL {
   EFI_CONSOLE_CONTROL_PROTOCOL_GET_MODE           GetMode;
