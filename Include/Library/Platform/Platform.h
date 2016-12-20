@@ -1929,4 +1929,6 @@ VOID egEncodeBMP(IN EG_IMAGE *Image, OUT UINT8 **FileData, OUT UINTN *FileDataLe
 //#define DEC_PNG_BUILTIN(ico) egDecodePNG(&ico[0], ARRAY_SIZE(ico), 0, TRUE)
 #define DEC_PNG_BUILTIN(ico) egDecodePNG(ico, ARRAY_SIZE(ico), 0, TRUE)
 
+VOID hehe();
+
 #endif

@@ -37,6 +37,8 @@
 #ifndef __REFITLIB_STANDARD_H__
 #define __REFITLIB_STANDARD_H__
 
+//#define UGASUPPORT 1
+
 #include <Library/UI/Libeg.h>
 
 #define REFIT_DEBUG (2)

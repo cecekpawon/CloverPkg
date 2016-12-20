@@ -77,6 +77,7 @@
   ../../Library/Common/IO.c
   ../../Library/Common/Lib.c
   ../../Library/Common/Screen.c
+  #../../Library/Common/lzvn.c
 
   Main.c
 
@@ -92,14 +93,15 @@
   UefiBootServicesTableLib
   UefiLib
   MemoryAllocationLib
-  BaseMemoryLib
+  #BaseMemoryLib
   BaseLib
   DxeServicesLib
   DxeServicesTableLib
   HobLib
-  PeCoffLib
+  #PeCoffLib
   MemLogLib
   NetLib
+  #LZFSELib
 
 [Guids]
   gEfiAcpiTableGuid
@@ -124,7 +126,7 @@
   gEfiUnicodeCollation2ProtocolGuid                       # ALWAYS_CONSUMED
 
   gEfiBlockIoProtocolGuid                                 # PROTOCOL CONSUMES
-  gEfiDiskIoProtocolGuid                                  # PROTOCOL CONSUMES
+  #gEfiDiskIoProtocolGuid                                  # PROTOCOL CONSUMES
   gEfiPciIoProtocolGuid                                   # PROTOCOL CONSUMES
   gEfiScsiIoProtocolGuid                                  # PROTOCOL SOMETIMES_CONSUMES
   gEfiStatusCodeRuntimeProtocolGuid                       # PROTOCOL CONSUMES
@@ -132,7 +134,7 @@
   gEfiEdidActiveProtocolGuid
   gEfiEdidDiscoveredProtocolGuid
   gEfiEdidOverrideProtocolGuid
-  gEfiSimplePointerProtocolGuid
+  #gEfiSimplePointerProtocolGuid
 
   gEfiConsoleControlProtocolGuid
 
@@ -141,10 +143,10 @@
   gMsgLogProtocolGuid
   gEfiPlatformDriverOverrideProtocolGuid
 
-[FeaturePcd]
-  gEfiMdePkgTokenSpaceGuid.PcdUgaConsumeSupport
+#[FeaturePcd]
+#  gEfiMdePkgTokenSpaceGuid.PcdUgaConsumeSupport
 
-[Pcd]
+#[Pcd]
 
 [BuildOptions]
   XCODE:*_*_*_CC_FLAGS = -fsigned-char -Os

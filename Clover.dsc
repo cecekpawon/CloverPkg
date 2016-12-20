@@ -29,8 +29,6 @@
   #
   # Entry point
   #
-  PeimEntryPoint|MdePkg/Library/PeimEntryPoint/PeimEntryPoint.inf
-  DxeCoreEntryPoint|MdePkg/Library/DxeCoreEntryPoint/DxeCoreEntryPoint.inf
   UefiDriverEntryPoint|MdePkg/Library/UefiDriverEntryPoint/UefiDriverEntryPoint.inf
   UefiApplicationEntryPoint|MdePkg/Library/UefiApplicationEntryPoint/UefiApplicationEntryPoint.inf
   #
@@ -43,8 +41,8 @@
   IoLib|MdePkg/Library/BaseIoLibIntrinsic/BaseIoLibIntrinsic.inf
   PciLib|MdePkg/Library/BasePciLibCf8/BasePciLibCf8.inf
   PciCf8Lib|MdePkg/Library/BasePciCf8Lib/BasePciCf8Lib.inf
-  PeCoffLib|MdePkg/Library/BasePeCoffLib/BasePeCoffLib.inf
-  PeCoffExtraActionLib|MdePkg/Library/BasePeCoffExtraActionLibNull/BasePeCoffExtraActionLibNull.inf
+  #PeCoffLib|MdePkg/Library/BasePeCoffLib/BasePeCoffLib.inf
+  #PeCoffExtraActionLib|MdePkg/Library/BasePeCoffExtraActionLibNull/BasePeCoffExtraActionLibNull.inf
   #
   # UEFI & PI
   #
@@ -69,22 +67,14 @@
   # Our libs
   #
   MemLogLib|Clover/Modules/MemLogLibDefault/MemLogLibDefault.inf
+  #LZFSELib|Clover/Modules/LZFSE/lzfse.inf
 
 [Components.X64]
   # Misc
   Clover/Modules/FSInject/FSInject.inf
   Clover/Modules/OsxAptioFixDrv/OsxAptioFixDrv.inf
   #Clover/Modules/OsxFatBinaryDrv/OsxFatBinaryDrv.inf
-
-  #
-  # Sample Application
-  #
   #Clover/Applications/bdmesg_efi/bdmesg.inf
-
-  #Clover/Clover.inf {
-  #  <LibraryClasses>
-  #    BaseMemoryLib|MdePkg/Library/UefiMemoryLib/UefiMemoryLib.inf
-  #}
   Clover/Applications/Clover/Clover.inf
 
 [BuildOptions]

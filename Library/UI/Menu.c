@@ -706,28 +706,6 @@ AddSeparator (
   REFIT_MENU_SCREEN   *SubScreen,
   CHAR8               *Label
 ) {
-  /*
-    INTN    len = 40 - AsciiStrSize(Label);
-    CHAR8   *fill = AllocateZeroPool(len);
-    CHAR16  *Str;
-
-    if (!Label) {
-      Str = L"";
-      goto FINISH;
-    }
-
-    SetMem(fill, len, '=');
-    fill[len] = '\0';
-    Str = PoolPrint(L"=== [ %a ] %a", Label, fill);
-    FreePool(fill);
-
-    FINISH:
-
-    AddMenuLabel(SubScreen, Str);
-    FreePool(Str);
-  */
-
-  //AddMenuLabel(SubScreen, Label ? PoolPrint(L"=== %a ===", Label) : L"");
   AddMenuLabel(SubScreen, Label ? PoolPrint(L"** %a:", Label) : L"");
 }
 
@@ -846,8 +824,8 @@ FindMenuShortcutEntry (
   if (Shortcut) {
     for (i = 0; i < Screen->EntryCount; i++) {
       if (
-        Screen->Entries[i]->ShortcutDigit == Shortcut ||
-        Screen->Entries[i]->ShortcutLetter == Shortcut
+        (Screen->Entries[i]->ShortcutDigit == Shortcut) ||
+        (Screen->Entries[i]->ShortcutLetter == Shortcut)
       ) {
         return i;
       }
@@ -3505,6 +3483,7 @@ HelpRefit () {
         AddMenuInfo(&HelpMenu, L"A - ACPI");
         AddMenuInfo(&HelpMenu, L"P - Patches");
         AddMenuInfo(&HelpMenu, L"D - Devices");
+        AddMenuInfo(&HelpMenu, L"B - Debug");
         break;
     }
 

@@ -228,8 +228,7 @@ isPatchNameMatch (
   return
     (
       (InfoPlist != NULL) &&
-      //(AsciiStrStr(Name, ".") == NULL) // Full BundleIdentifier: com.apple.driver.AppleHDA
-      (countOccurrences(Name, '.') < 2)
+      (countOccurrences(Name, '.') < 2) // Full BundleIdentifier: com.apple.driver.AppleHDA
     )
       ? (AsciiStrStr(InfoPlist, Name) != NULL)
       : (AsciiStrCmp(BundleIdentifier, Name) == 0);

@@ -70,10 +70,9 @@ EG_IMAGE  *BackgroundImage = NULL, *Banner = NULL, *BigBack = NULL;
 
 static    BOOLEAN GraphicsScreenDirty, haveError = FALSE;
 
-
-
 //
 // LibScreen.c
+//
 
 //#include <efiUgaDraw.h>
 #include <Protocol/GraphicsOutput.h>
@@ -84,8 +83,10 @@ static    BOOLEAN GraphicsScreenDirty, haveError = FALSE;
 static EFI_GUID ConsoleControlProtocolGuid = EFI_CONSOLE_CONTROL_PROTOCOL_GUID;
 static EFI_CONSOLE_CONTROL_PROTOCOL *ConsoleControl = NULL;
 
+#if UGASUPPORT
 static EFI_GUID UgaDrawProtocolGuid = EFI_UGA_DRAW_PROTOCOL_GUID;
 static EFI_UGA_DRAW_PROTOCOL *UgaDraw = NULL;
+#endif
 
 static EFI_GUID GraphicsOutputProtocolGuid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
 static EFI_GRAPHICS_OUTPUT_PROTOCOL *GraphicsOutput = NULL;
@@ -210,7 +211,7 @@ egSetMode (
 
   MaxMode = GraphicsOutput->Mode->MaxMode;
   Mode = GraphicsOutput->Mode->Mode;
-  while (EFI_ERROR(Status) && Index <= MaxMode) {
+  while (EFI_ERROR(Status) && (Index <= MaxMode)) {
     Mode = Mode + Next;
     Mode = (Mode >= (INT32)MaxMode) ? 0 : Mode;
     Mode = (Mode < 0) ? ((INT32)MaxMode - 1) : Mode;
@@ -255,7 +256,7 @@ egSetScreenResolution (
   // parse Width and Height
   HeightP = WidthHeight;
 
-  while (*HeightP != L'\0' && *HeightP != L'x' && *HeightP != L'X') {
+  while ((*HeightP != L'\0') && (*HeightP != L'x') && (*HeightP != L'X')) {
     HeightP++;
   }
 
@@ -306,7 +307,9 @@ egInitScreen (
   IN BOOLEAN    SetMaxResolution
 ) {
   EFI_STATUS    Status;
+#if UGASUPPORT
   UINT32        Width, Height, Depth, RefreshRate;
+#endif
   CHAR16        *Resolution;
 
   // get protocols
@@ -316,11 +319,13 @@ egInitScreen (
     ConsoleControl = NULL;
   }
 
+#if UGASUPPORT
   Status = EfiLibLocateProtocol(&UgaDrawProtocolGuid, (VOID **) &UgaDraw);
 
   if (EFI_ERROR(Status)) {
     UgaDraw = NULL;
   }
+#endif
 
   Status = EfiLibLocateProtocol(&GraphicsOutputProtocolGuid, (VOID **) &GraphicsOutput);
 
@@ -365,7 +370,10 @@ egInitScreen (
     egScreenWidth = GraphicsOutput->Mode->Info->HorizontalResolution;
     egScreenHeight = GraphicsOutput->Mode->Info->VerticalResolution;
     egHasGraphics = TRUE;
-  } else if (UgaDraw != NULL) {
+  }
+
+#if UGASUPPORT
+   else if (UgaDraw != NULL) {
     //is there anybody ever see UGA protocol???
     //MsgLog("you are lucky guy having UGA, inform please projectosx!\n");
     Status = UgaDraw->GetMode(UgaDraw, &Width, &Height, &Depth, &RefreshRate);
@@ -377,6 +385,7 @@ egInitScreen (
       egHasGraphics = TRUE;
     }
   }
+#endif
 
   //egDumpSetConsoleVideoModes();
 }
@@ -400,9 +409,15 @@ CHAR16
   if (egHasGraphics) {
     if (GraphicsOutput != NULL) {
       return PoolPrint(L"Graphics Output (UEFI), %dx%d", egScreenWidth, egScreenHeight);
-    } else if (UgaDraw != NULL) {
+    }
+
+#if UGASUPPORT
+    else if (UgaDraw != NULL) {
       return PoolPrint(L"UGA Draw (EFI 1.10), %dx%d", egScreenWidth, egScreenHeight);
-    } else {
+    }
+#endif
+
+    else {
       return L"Internal Error";
     }
   } else {
@@ -443,7 +458,11 @@ egSetGraphicsModeEnabled (
     // We know it blocks text out on HPQ UEFI (HP ProBook for example - reported by dmazar), Apple firmwares with UGA, and some VMs.
     // So, it may be better considering to do this only with firmware vendors where the bug was observed (currently it is known to exist on some AMI firmwares).
     //if (GraphicsOutput != NULL && StrCmp(gST->FirmwareVendor, L"American Megatrends") == 0) {
-    if ((GraphicsOutput != NULL) && (StrCmp(gST->FirmwareVendor, L"HPQ") != 0) && (StrCmp(gST->FirmwareVendor, L"VMware, Inc.") != 0)) {
+    if (
+      (GraphicsOutput != NULL) &&
+      (StrCmp(gST->FirmwareVendor, L"HPQ") != 0) &&
+      (StrCmp(gST->FirmwareVendor, L"VMware, Inc.") != 0)
+    ) {
       if (!Enable) {
         // Don't allow switching to text mode, but report that we are in text mode when queried
         ConsoleControl->GetMode = NullConsoleControlGetModeText;
@@ -472,7 +491,7 @@ VOID
 egClearScreen (
   IN EG_PIXEL     *Color
 ) {
-  EFI_UGA_PIXEL FillColor;
+  EFI_GRAPHICS_OUTPUT_BLT_PIXEL FillColor;
 
   if (!egHasGraphics) {
     return;
@@ -491,12 +510,17 @@ egClearScreen (
       GraphicsOutput, (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *)&FillColor, EfiBltVideoFill,
       0, 0, 0, 0, egScreenWidth, egScreenHeight, 0
     );
-  } else if (UgaDraw != NULL) {
+  }
+
+#if UGASUPPORT
+   else if (UgaDraw != NULL) {
     UgaDraw->Blt (
-      UgaDraw, &FillColor, EfiUgaVideoFill,
+      UgaDraw, (EFI_UGA_PIXEL *)&FillColor, EfiUgaVideoFill,
       0, 0, 0, 0, egScreenWidth, egScreenHeight, 0
     );
   }
+#endif
+
 }
 
 VOID
@@ -513,7 +537,7 @@ egDrawImageArea (
     return;
   }
 
-  if (ScreenPosX < 0 || ScreenPosX >= UGAWidth || ScreenPosY < 0 || ScreenPosY >= UGAHeight) {
+  if ((ScreenPosX < 0) || (ScreenPosX >= UGAWidth) || (ScreenPosY < 0) || (ScreenPosY >= UGAHeight)) {
     // This is outside of screen area
     return;
   }
@@ -539,11 +563,11 @@ egDrawImageArea (
   //  egSetPlane(PLPTR(Image, a), 255, Image->Width * Image->Height);
   //}
 
-  if (ScreenPosX + AreaWidth > UGAWidth) {
+  if ((ScreenPosX + AreaWidth) > UGAWidth) {
     AreaWidth = UGAWidth - ScreenPosX;
   }
 
-  if (ScreenPosY + AreaHeight > UGAHeight) {
+  if ((ScreenPosY + AreaHeight) > UGAHeight) {
     AreaHeight = UGAHeight - ScreenPosY;
   }
 
@@ -554,13 +578,18 @@ egDrawImageArea (
       (UINTN)AreaPosX, (UINTN)AreaPosY, (UINTN)ScreenPosX, (UINTN)ScreenPosY,
       (UINTN)AreaWidth, (UINTN)AreaHeight, (UINTN)Image->Width * 4
     );
-  } else if (UgaDraw != NULL) {
+  }
+
+#if UGASUPPORT
+   else if (UgaDraw != NULL) {
     UgaDraw->Blt (
       UgaDraw, (EFI_UGA_PIXEL *)Image->PixelData, EfiUgaBltBufferToVideo,
       (UINTN)AreaPosX, (UINTN)AreaPosY, (UINTN)ScreenPosX, (UINTN)ScreenPosY,
       (UINTN)AreaWidth, (UINTN)AreaHeight, (UINTN)Image->Width * 4
     );
   }
+#endif
+
 }
 
 // Blt(this, Buffer, mode, srcX, srcY, destX, destY, w, h, deltaSrc);
@@ -589,7 +618,10 @@ egTakeImage (
       ScreenPosY,
       0, 0, AreaWidth, AreaHeight, (UINTN)Image->Width * 4
     );
-  } else if (UgaDraw != NULL) {
+  }
+
+#if UGASUPPORT
+   else if (UgaDraw != NULL) {
     UgaDraw->Blt (
       UgaDraw,
       (EFI_UGA_PIXEL *)Image->PixelData,
@@ -599,6 +631,7 @@ egTakeImage (
       0, 0, AreaWidth, AreaHeight, (UINTN)Image->Width * 4
     );
   }
+#endif
 }
 
 //
@@ -606,13 +639,13 @@ egTakeImage (
 //
 
 EFI_STATUS egScreenShot() {
-  EFI_STATUS      Status = EFI_NOT_READY;
-  EG_IMAGE        *Image;
-  UINT8           *FileData;
-  UINTN           FileDataLength, Index;
-  CHAR16          ScreenshotName[128];
-  EFI_UGA_PIXEL   *ImagePNG;
-  UINTN           ImageSize, i;
+  EFI_STATUS                      Status = EFI_NOT_READY;
+  EG_IMAGE                        *Image;
+  UINT8                           *FileData;
+  UINTN                           FileDataLength, Index;
+  CHAR16                          ScreenshotName[128];
+  EFI_GRAPHICS_OUTPUT_BLT_PIXEL   *ImagePNG;
+  UINTN                           ImageSize, i;
 
   if (!egHasGraphics) {
     return EFI_NOT_READY;
@@ -632,14 +665,18 @@ EFI_STATUS egScreenShot() {
       EfiBltVideoToBltBuffer,
       0, 0, 0, 0, (UINTN)Image->Width, (UINTN)Image->Height, 0
     );
-  } else if (UgaDraw != NULL) {
+  }
+
+#if UGASUPPORT
+   else if (UgaDraw != NULL) {
     UgaDraw->Blt (
       UgaDraw, (EFI_UGA_PIXEL *)Image->PixelData, EfiUgaVideoToBltBuffer,
       0, 0, 0, 0, (UINTN)Image->Width, (UINTN)Image->Height, 0
     );
   }
+#endif
 
-  ImagePNG = (EFI_UGA_PIXEL *)Image->PixelData;
+  ImagePNG = (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *)Image->PixelData;
   ImageSize = Image->Width * Image->Height;
 
   // Convert BGR to RGBA with Alpha set to 0xFF

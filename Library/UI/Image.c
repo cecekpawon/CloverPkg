@@ -787,7 +787,7 @@ egRestrictImageArea (
     return;
   }
 
-  if (AreaPosX >= Image->Width || AreaPosY >= Image->Height) {
+  if ((AreaPosX >= Image->Width) || (AreaPosY >= Image->Height)) {
     // out of bounds, operation has no effect
     *AreaWidth  = 0;
     *AreaHeight = 0;
@@ -796,6 +796,7 @@ egRestrictImageArea (
     if (*AreaWidth > Image->Width - AreaPosX) {
       *AreaWidth = Image->Width - AreaPosX;
     }
+
     if (*AreaHeight > Image->Height - AreaPosY) {
       *AreaHeight = Image->Height - AreaPosY;
     }
@@ -816,8 +817,9 @@ egFillImage (
 
   FillColor = *Color;
 
-  if (!CompImage->HasAlpha)
+  if (!CompImage->HasAlpha) {
     FillColor.a = 0;
+  }
 
   PixelPtr = CompImage->PixelData;
   for (i = 0; i < CompImage->Width * CompImage->Height; i++) {
@@ -855,6 +857,7 @@ egFillImageArea (
     PixelBasePtr = CompImage->PixelData + AreaPosY * CompImage->Width + AreaPosX;
     for (y = 0; y < xAreaHeight; y++) {
       EG_PIXEL    *PixelPtr = PixelBasePtr;
+
       for (x = 0; x < xAreaWidth; x++) {
         *PixelPtr++ = FillColor;
       }
@@ -882,10 +885,12 @@ egRawCopy (
   for (y = 0; y < Height; y++) {
     EG_PIXEL    *TopPtr = TopBasePtr;
     EG_PIXEL    *CompPtr = CompBasePtr;
+
     for (x = 0; x < Width; x++) {
       *CompPtr = *TopPtr;
       TopPtr++, CompPtr++;
     }
+
     TopBasePtr += TopLineOffset;
     CompBasePtr += CompLineOffset;
   }
@@ -1134,7 +1139,6 @@ egCopyPlane (
   }
 }
 
-//#if defined(LODEPNG)
 EG_IMAGE
 *egDecodePNG (
   IN UINT8      *FileData,
@@ -1163,17 +1167,11 @@ EG_IMAGE
 
   Pixel = (EG_PIXEL*)NewImage->PixelData;
   PixelD = PixelData;
-  for (i = 0; i < ImageSize; i++) {
-    //UINT8 Temp;
-    //Temp = Pixel->b;
-    //Pixel->b = Pixel->r;
-    //Pixel->r = Temp;
+  for (i = 0; i < ImageSize; i++, Pixel++, PixelD++) {
     Pixel->b = PixelD->r; //change r <-> b
     Pixel->r = PixelD->b;
     Pixel->g = PixelD->g;
     Pixel->a = PixelD->a; // 255 is opaque, 0 - transparent
-    Pixel++;
-    PixelD++;
   }
 
   lodepng_free(PixelData);
