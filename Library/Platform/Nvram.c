@@ -22,7 +22,7 @@
 
 
 // for saving nvram.plist and it's data
-TagPtr    gNvramDict;
+//TagPtr    gNvramDict;
 
 //
 // vars filled after call to GetEfiBootDeviceFromNvram ()

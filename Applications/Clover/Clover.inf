@@ -31,11 +31,9 @@
 #
 
 [Sources]
-  ../../Library/Entry/Common.c
   ../../Library/Entry/Loader.c
   ../../Library/Entry/Tool.c
 
-  ../../Library/UI/BmLib.c
   ../../Library/UI/Image.c
   ../../Library/UI/LoadBmp.c
   ../../Library/UI/LoadIcns.c
@@ -47,7 +45,7 @@
   ../../Library/Platform/AcpiPatcher.c
   ../../Library/Platform/AmlGenerator.c
   ../../Library/Platform/Ati.c
-  ../../Library/Platform/BdsConnect.c #included into GenericBdsLib
+  ../../Library/Platform/BdsConnect.c
   ../../Library/Platform/BootLog.c
   ../../Library/Platform/VideoCardList.c
   ../../Library/Platform/Cpu.c
@@ -74,6 +72,7 @@
   ../../Library/Platform/Spd.c
   ../../Library/Platform/StateGenerator.c
 
+  ../../Library/Common/Common.c
   ../../Library/Common/IO.c
   ../../Library/Common/Lib.c
   ../../Library/Common/Screen.c

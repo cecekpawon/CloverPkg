@@ -1989,7 +1989,8 @@ PatchACPI (
     if (gSettings.SortedACPICount) {
       DBG("Sorted\n");
 
-      for (Index = 0; Index < gSettings.SortedACPICount; Index++) {
+      Index = gSettings.SortedACPICount;
+      while (Index--) {
         ACPI_PATCHED_AML    *ACPIPatchedAMLTmp = ACPIPatchedAML;
 
         while (ACPIPatchedAMLTmp) {

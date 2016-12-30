@@ -59,13 +59,7 @@ EFI_BOOT_SERVICES*      gBS;
 EFI_RUNTIME_SERVICES*   gRS;
 EFI_DXE_SERVICES*       gDS;
 
-//the initializer is not needed for global variables
-//DRIVERS_FLAGS gDriversFlags = {FALSE, FALSE, FALSE, FALSE, FALSE, FALSE};
-
-DRIVERS_FLAGS gDriversFlags = {FALSE, FALSE};  //the initializer is not needed for global variables
-
-extern VOID HelpRefit(VOID);
-extern VOID AboutRefit(VOID);
+DRIVERS_FLAGS           gDriversFlags = {FALSE, FALSE};  //the initializer is not needed for global variables
 
 STATIC
 EFI_STATUS
@@ -295,73 +289,6 @@ StartEFIImage (
 
   return Status;
 }
-
-STATIC
-CHAR8
-*SearchString (
-  IN  CHAR8       *Source,
-  IN  UINT64      SourceSize,
-  IN  CHAR8       *Search,
-  IN  UINTN       SearchSize
-) {
-  CHAR8   *End = Source + SourceSize;
-
-  while (Source < End) {
-    if (CompareMem(Source, Search, SearchSize) == 0) {
-      return Source;
-    } else {
-      Source++;
-    }
-  }
-
-  return NULL;
-}
-
-#if 0
-VOID DumpKernelAndKextPatches(KERNEL_AND_KEXT_PATCHES *Patches) {
-  if (!Patches) {
-    DBG("Kernel and Kext Patches null pointer\n");
-    return;
-  }
-
-  DBG("Kernel and Kext Patches at %p:\n", Patches);
-  DBG("\tAllowed: %c\n", gSettings.KextPatchesAllowed ? 'y' : 'n');
-  DBG("\tDebug: %c\n", Patches->KPDebug ? 'y' : 'n');
-  //DBG("\tKernelCpu: %c\n", Patches->KPKernelCpu ? 'y' : 'n');
-  //DBG("\tLapic: %c\n", Patches->KPLapicPanic ? 'y' : 'n');
-  //DBG("\tHaswell-E: %c\n", Patches->KPHaswellE ? 'y' : 'n');
-  DBG("\tAICPUPM: %c\n", Patches->KPAsusAICPUPM ? 'y' : 'n');
-  //DBG("\tAppleRTC: %c\n", Patches->KPAppleRTC ? 'y' : 'n');
-  DBG("\tKernelPm: %c\n", Patches->KPKernelPm ? 'y' : 'n');
-  DBG("\tFakeCPUID: 0x%x\n", Patches->FakeCPUID);
-  DBG("\tATIController: %s\n", (Patches->KPATIConnectorsController == NULL)
-    ? L"null"
-    : Patches->KPATIConnectorsController);
-  DBG("\tATIDataLength: %d\n", Patches->KPATIConnectorsDataLen);
-  DBG("\t%d Kexts to load\n", Patches->NrForceKexts);
-
-  if (Patches->ForceKexts) {
-    INTN i = 0;
-    for (; i < Patches->NrForceKexts; ++i) {
-      DBG("\t  KextToLoad[%02d]: %s\n", i, Patches->ForceKexts[i]);
-    }
-  }
-
-  DBG("\t%d Kexts to patch\n", Patches->NrKexts);
-
-  if (Patches->KextPatches) {
-    INTN i = 0;
-    for (; i < Patches->NrKexts; ++i) {
-      if (Patches->KextPatches[i].IsPlistPatch) {
-        DBG("\t  KextPatchPlist[%02d]: %d bytes, %a\n",
-          i, Patches->KextPatches[i].DataLen, Patches->KextPatches[i].Name);
-      } else {
-        DBG("\t  KextPatch[%02d]: %d bytes, %a\n", i, Patches->KextPatches[i].DataLen, Patches->KextPatches[i].Name);
-      }
-    }
-  }
-}
-#endif
 
 VOID
 FilterKextPatches (
@@ -965,9 +892,8 @@ ScanDriverDir (
           DriversArrSize += 16;
         }
 
-        DriversArr[DriversArrNum] = DriverHandle;
+        DriversArr[DriversArrNum++] = DriverHandle;
         //DBG(" driver %s included with Binding=%x\n", FileName, DriverBinding);
-        DriversArrNum++;
         // we'll make array terminated
         DriversArr[DriversArrNum] = NULL;
       }
@@ -1133,7 +1059,6 @@ FindDefaultEntry () {
   // if not null or empty, search volume that matches gSettings.DefaultVolume
   //
   if (gSettings.DefaultVolume != NULL) {
-
     // if not null or empty, also search for loader that matches gSettings.DefaultLoader
     SearchForLoader = ((gSettings.DefaultLoader != NULL) && (gSettings.DefaultLoader[0] != L'\0'));
 
@@ -1321,10 +1246,6 @@ RefitMain (
                       *OptionEntry = NULL;
   TagPtr              gConfigDict;
 
-  // Init assets dir: misc
-  /*Status = */egMkDir(SelfRootDir, DIR_MISC);
-  //Should apply to: "ACPI/origin/" too
-
   // get TSC freq and init MemLog if needed
   gCPUStructure.TSCCalibr = GetMemLogTscTicksPerSecond(); //ticks for 1second
 
@@ -1334,6 +1255,17 @@ RefitMain (
   gBS           = SystemTable->BootServices;
   gRS           = SystemTable->RuntimeServices;
   /*Status = */EfiGetSystemConfigurationTable (&gEfiDxeServicesTableGuid, (VOID **) &gDS);
+
+  // To initialize 'SelfRootDir', we should place it here
+  Status = InitRefitLib(gImageHandle);
+
+  if (EFI_ERROR(Status)) {
+    return Status;
+  }
+
+  // Init assets dir: misc
+  /*Status = */egMkDir(SelfRootDir, DIR_MISC);
+  //Should apply to: "ACPI/origin/" too
 
   gRS->GetTime(&Now, NULL);
 
@@ -1354,12 +1286,6 @@ RefitMain (
 
   MsgLog("Starting %a on %s EFI (rev %a)\n", CLOVER_REVISION_STR, gST->FirmwareVendor, EDK2_REVISION);
   MsgLog(" - Build with: [%a]\n", CLOVER_BUILDINFOS_STR);
-
-  Status = InitRefitLib(gImageHandle);
-
-  if (EFI_ERROR(Status)) {
-    return Status;
-  }
 
   // disable EFI watchdog timer
   gBS->SetWatchdogTimer(0x0000, 0x0000, 0x0000, NULL);

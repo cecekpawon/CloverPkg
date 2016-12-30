@@ -304,6 +304,7 @@ extern UI_IMG   SelectionImg[];
 typedef struct _refit_menu_screen REFIT_MENU_SCREEN;
 
 typedef struct _refit_menu_entry {
+  UINTN               ID;
   CHAR16              *Title;
   UINTN               Tag;
   UINTN               Row;
@@ -465,6 +466,7 @@ typedef struct {
   CHAR8     *MatchOS;
   CHAR8     *MatchBuild;
   BOOLEAN   Disabled;
+  BOOLEAN   Patched;
 } KEXT_PATCH;
 
 typedef struct {
@@ -599,6 +601,14 @@ VOID          ReplaceExtension (IN OUT CHAR16 *Path, IN CHAR16 *Extension);
 CHAR16        *egFindExtension (IN CHAR16 *FileName);
 
 INTN          FindMem (IN VOID *Buffer, IN UINTN BufferLength, IN VOID *SearchString, IN UINTN SearchStringLength);
+
+CHAR8
+*SearchString (
+  IN  CHAR8       *Source,
+  IN  UINT64      SourceSize,
+  IN  CHAR8       *Search,
+  IN  UINTN       SearchSize
+);
 
 CHAR16        *FileDevicePathToStr (IN EFI_DEVICE_PATH_PROTOCOL *DevPath);
 CHAR16        *FileDevicePathFileToStr (IN EFI_DEVICE_PATH_PROTOCOL *DevPath);
@@ -756,6 +766,9 @@ VOID      SetBar (INTN PosX, INTN UpPosY, INTN DownPosY, IN SCROLL_STATE *State)
 #define MENU_EXIT_HELP                    (7)
 #define MENU_EXIT_HIDE_TOGGLE             (8)
 
+#define MENU_ENTRY_ID_GEN                 (0)
+#define MENU_ENTRY_ID_BOOT                (1)
+
 #define X_IS_LEFT                         (64)
 #define X_IS_RIGHT                        (0)
 #define X_IS_CENTER                       (1)
@@ -793,6 +806,13 @@ INTN      GetSubMenuCount ();
 VOID      SplitInfoLine (IN REFIT_MENU_SCREEN *SubScreen, IN CHAR16 *Str);
 BOOLEAN   BootArgsExists (IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
 
+UINT32    EncodeOptions (CHAR16 *Options);
+//VOID    DecodeOptions (LOADER_ENTRY *Entry);
+VOID      HelpRefit ();
+VOID      AboutRefit ();
+
+LOADER_ENTRY *DuplicateLoaderEntry (IN LOADER_ENTRY *Entry);
+
 //
 // config module
 //
@@ -802,6 +822,39 @@ extern REFIT_CONFIG   GlobalConfig;
 extern REFIT_CONFIG   DefaultConfig;
 
 VOID ReadConfig (INTN What);
+
+EG_IMAGE
+*egEnsureImageSize (
+  IN EG_IMAGE   *Image,
+  IN INTN       Width,
+  IN INTN       Height,
+  IN EG_PIXEL   *Color
+);
+
+EFI_STATUS egLoadFile (
+  IN EFI_FILE_HANDLE  BaseDir,
+  IN CHAR16           *FileName,
+  OUT UINT8           **FileData,
+  OUT UINTN           *FileDataLength
+);
+
+EFI_STATUS egSaveFile (
+  IN EFI_FILE_HANDLE  BaseDir OPTIONAL,
+  IN CHAR16           *FileName,
+  IN UINT8            *FileData,
+  IN UINTN            FileDataLength
+);
+
+EFI_STATUS
+egMkDir (
+  IN EFI_FILE_HANDLE    BaseDir OPTIONAL,
+  IN CHAR16             *DirName
+);
+
+EFI_STATUS
+egFindESP (
+  OUT EFI_FILE_HANDLE   *RootDir
+);
 
 //
 // BmLib
@@ -866,6 +919,8 @@ EfiReallocatePool (
   IN UINTN    NewSize
 );
 
+BOOLEAN DumpVariable (CHAR16* Name, EFI_GUID* Guid, INTN DevicePathAt);
+
 /*
 BOOLEAN
 TimeCompare (
@@ -880,22 +935,11 @@ TimeCompare (
   IN EFI_TIME    *Time2
 );
 
-//BOOLEAN DumpVariable (CHAR16* Name, EFI_GUID* Guid, INTN DevicePathAt);
-
-// Utils functions
-//VOID DumpKernelAndKextPatches (KERNEL_AND_KEXT_PATCHES *Patches);
-
 #define KERNEL_MAX_SIZE 40000000
 //#define FSearchReplace (Source, Search, Replace) SearchAndReplace(Source, KERNEL_MAX_SIZE, Search, sizeof(Search), Replace, 1)
 #define FSearchReplace (Source, Size, Search, Replace) SearchAndReplace((UINT8*)(UINTN)Source, Size, Search, sizeof(Search), Replace, 1)
-
 BOOLEAN IsKernelIs64BitOnly (IN LOADER_ENTRY *Entry);
 VOID    DbgHeader (CHAR8 *str);
-
-//REFIT_MENU_ENTRY *AddMenuCheck (REFIT_MENU_SCREEN *Screen, CHAR16 *Title, UINTN Bit, INTN ItemNum);
-UINT32 EncodeOptions (CHAR16 *Options);
-//VOID DecodeOptions (LOADER_ENTRY *Entry);
-LOADER_ENTRY *DuplicateLoaderEntry (IN LOADER_ENTRY *Entry);
 
 #endif
 

@@ -65,10 +65,13 @@ typedef enum {
 #define kXMLTagDate       "date"
 #define kXMLTagFalse      "false/"
 #define kXMLTagTrue       "true/"
+#define kXMLTagFalse2     "false /"
+#define kXMLTagTrue2      "true /"
 #define kXMLTagArray      "array"
 #define kXMLTagReference  "reference"
 #define kXMLTagID         "ID="
 #define kXMLTagIDREF      "IDREF="
+#define kXMLTagSIZE       "size="
 
 #define MAX_NUM_DEVICES  64
 
@@ -222,16 +225,16 @@ typedef enum {
  * The CPUID_FEATURE_XXX values define 64-bit values
  * returned in %ecx:%edx to a CPUID request with %eax of 1:
  */
-#define CPUID_FEATURE_FPU             _Bit(0) /* Floating point unit on-chip */
-#define CPUID_FEATURE_VME             _Bit(1) /* Virtual Mode Extension */
-#define CPUID_FEATURE_DE              _Bit(2) /* Debugging Extension */
-#define CPUID_FEATURE_PSE             _Bit(3) /* Page Size Extension */
-#define CPUID_FEATURE_TSC             _Bit(4) /* Time Stamp Counter */
-#define CPUID_FEATURE_MSR             _Bit(5) /* Model Specific Registers */
-#define CPUID_FEATURE_PAE             _Bit(6) /* Physical Address Extension */
-#define CPUID_FEATURE_MCE             _Bit(7) /* Machine Check Exception */
-#define CPUID_FEATURE_CX8             _Bit(8) /* CMPXCHG8B */
-#define CPUID_FEATURE_APIC            _Bit(9) /* On-chip APIC */
+#define CPUID_FEATURE_FPU             _Bit(0)   /* Floating point unit on-chip */
+#define CPUID_FEATURE_VME             _Bit(1)   /* Virtual Mode Extension */
+#define CPUID_FEATURE_DE              _Bit(2)   /* Debugging Extension */
+#define CPUID_FEATURE_PSE             _Bit(3)   /* Page Size Extension */
+#define CPUID_FEATURE_TSC             _Bit(4)   /* Time Stamp Counter */
+#define CPUID_FEATURE_MSR             _Bit(5)   /* Model Specific Registers */
+#define CPUID_FEATURE_PAE             _Bit(6)   /* Physical Address Extension */
+#define CPUID_FEATURE_MCE             _Bit(7)   /* Machine Check Exception */
+#define CPUID_FEATURE_CX8             _Bit(8)   /* CMPXCHG8B */
+#define CPUID_FEATURE_APIC            _Bit(9)   /* On-chip APIC */
 #define CPUID_FEATURE_SEP             _Bit(11)  /* Fast System Call */
 #define CPUID_FEATURE_MTRR            _Bit(12)  /* Memory Type Range Register */
 #define CPUID_FEATURE_PGE             _Bit(13)  /* Page Global Enable */
@@ -253,7 +256,7 @@ typedef enum {
 #define CPUID_FEATURE_PBE             _Bit(31)  /* Pend Break Enable */
 
 #define CPUID_FEATURE_SSE3            _HBit(0)  /* Streaming SIMD extensions 3 */
-#define CPUID_FEATURE_PCLMULQDQ       _HBit(1) /* PCLMULQDQ Instruction */
+#define CPUID_FEATURE_PCLMULQDQ       _HBit(1)  /* PCLMULQDQ Instruction */
 #define CPUID_FEATURE_DTES64          _HBit(2)  /* 64-bit DS layout */
 #define CPUID_FEATURE_MONITOR         _HBit(3)  /* Monitor/mwait */
 #define CPUID_FEATURE_DSCPL           _HBit(4)  /* Debug Store CPL */
@@ -288,42 +291,42 @@ typedef enum {
  * Leaf 7, subleaf 0 additional features.
  * Bits returned in %ebx to a CPUID request with {%eax,%ecx} of (0x7,0x0}:
  */
-#define CPUID_LEAF7_FEATURE_RDWRFSGS  _Bit(0)  /* FS/GS base read/write */
-#define CPUID_LEAF7_FEATURE_SMEP      _Bit(7)  /* Supervisor Mode Execute Protect */
-#define CPUID_LEAF7_FEATURE_ENFSTRG   _Bit(9)  /* ENhanced Fast STRinG copy */
+#define CPUID_LEAF7_FEATURE_RDWRFSGS  _Bit(0)   /* FS/GS base read/write */
+#define CPUID_LEAF7_FEATURE_SMEP      _Bit(7)   /* Supervisor Mode Execute Protect */
+#define CPUID_LEAF7_FEATURE_ENFSTRG   _Bit(9)   /* ENhanced Fast STRinG copy */
 
 
 /*
  * The CPUID_EXTFEATURE_XXX values define 64-bit values
  * returned in %ecx:%edx to a CPUID request with %eax of 0x80000001:
  */
-#define CPUID_EXTFEATURE_SYSCALL      _Bit(11) /* SYSCALL/sysret */
-#define CPUID_EXTFEATURE_XD           _Bit(20) /* eXecute Disable */
-#define CPUID_EXTFEATURE_1GBPAGE      _Bit(26)     /* 1G-Byte Page support */
-#define CPUID_EXTFEATURE_RDTSCP       _Bit(27) /* RDTSCP */
-#define CPUID_EXTFEATURE_EM64T        _Bit(29) /* Extended Mem 64 Technology */
+#define CPUID_EXTFEATURE_SYSCALL      _Bit(11)  /* SYSCALL/sysret */
+#define CPUID_EXTFEATURE_XD           _Bit(20)  /* eXecute Disable */
+#define CPUID_EXTFEATURE_1GBPAGE      _Bit(26)  /* 1G-Byte Page support */
+#define CPUID_EXTFEATURE_RDTSCP       _Bit(27)  /* RDTSCP */
+#define CPUID_EXTFEATURE_EM64T        _Bit(29)  /* Extended Mem 64 Technology */
 
-//#define CPUID_EXTFEATURE_LAHF       _HBit(20)  /* LAFH/SAHF instructions */
+//#define CPUID_EXTFEATURE_LAHF       _HBit(20) /* LAFH/SAHF instructions */
 // New definition with Snow kernel
-#define CPUID_EXTFEATURE_LAHF         _HBit(0) /* LAHF/SAHF instructions */
+#define CPUID_EXTFEATURE_LAHF         _HBit(0)  /* LAHF/SAHF instructions */
 /*
  * The CPUID_EXTFEATURE_XXX values define 64-bit values
  * returned in %ecx:%edx to a CPUID request with %eax of 0x80000007:
  */
-#define CPUID_EXTFEATURE_TSCI         _Bit(8)  /* TSC Invariant */
+#define CPUID_EXTFEATURE_TSCI         _Bit(8)   /* TSC Invariant */
 
-#define CPUID_CACHE_SIZE              16  /* Number of descriptor values */
+#define CPUID_CACHE_SIZE              16        /* Number of descriptor values */
 
-#define CPUID_MWAIT_EXTENSION         _Bit(0) /* enumeration of WMAIT extensions */
-#define CPUID_MWAIT_BREAK             _Bit(1) /* interrupts are break events     */
+#define CPUID_MWAIT_EXTENSION         _Bit(0)   /* enumeration of WMAIT extensions */
+#define CPUID_MWAIT_BREAK             _Bit(1)   /* interrupts are break events     */
 
 /* Known MSR registers */
 #define MSR_IA32_PLATFORM_ID          0x0017
-#define IA32_APIC_BASE                0x001B  /* used also for AMD */
-#define MSR_CORE_THREAD_COUNT         0x0035   /* limited use - not for Penryn or older */
+#define IA32_APIC_BASE                0x001B    /* used also for AMD */
+#define MSR_CORE_THREAD_COUNT         0x0035    /* limited use - not for Penryn or older */
 #define IA32_TSC_ADJUST               0x003B
-#define MSR_IA32_BIOS_SIGN_ID         0x008B   /* microcode version */
-#define MSR_FSB_FREQ                  0x00CD   /* limited use - not for i7            */
+#define MSR_IA32_BIOS_SIGN_ID         0x008B    /* microcode version */
+#define MSR_FSB_FREQ                  0x00CD    /* limited use - not for i7 */
 /*
 • 101B: 100 MHz (FSB 400)
 • 001B: 133 MHz (FSB 533)
@@ -334,25 +337,25 @@ typedef enum {
 • 110B: 400 MHz (FSB 1600)
  */
 // T8300 -> 0x01A2 => 200MHz
-#define MSR_PLATFORM_INFO             0x00CE   /* limited use - MinRatio for i7 but Max for Yonah */
-                                             /* turbo for penryn */
+#define MSR_PLATFORM_INFO             0x00CE    /* limited use - MinRatio for i7 but Max for Yonah */
+                                                /* turbo for penryn */
 //haswell
 //Low Frequency Mode. LFM is Pn in the P-state table. It can be read at MSR CEh [47:40].
 //Minimum Frequency Mode. MFM is the minimum ratio supported by the processor and can be read from MSR CEh [55:48].
-#define MSR_PKG_CST_CONFIG_CONTROL    0x00E2   /* sandy and up */
-#define MSR_PMG_IO_CAPTURE_BASE       0x00E4  /* sandy and up */
-#define IA32_MPERF                    0x00E7   /* TSC in C0 only */
-#define IA32_APERF                    0x00E8   /* actual clocks in C0 */
-#define MSR_IA32_EXT_CONFIG           0x00EE   /* limited use - not for i7            */
-#define MSR_FLEX_RATIO                0x0194   /* limited use - not for Penryn or older     */
-                                             //see no value on most CPUs
+#define MSR_PKG_CST_CONFIG_CONTROL    0x00E2    /* sandy and up */
+#define MSR_PMG_IO_CAPTURE_BASE       0x00E4    /* sandy and up */
+#define IA32_MPERF                    0x00E7    /* TSC in C0 only */
+#define IA32_APERF                    0x00E8    /* actual clocks in C0 */
+#define MSR_IA32_EXT_CONFIG           0x00EE    /* limited use - not for i7 */
+#define MSR_FLEX_RATIO                0x0194    /* limited use - not for Penryn or older */
+                                                //see no value on most CPUs
 #define MSR_IA32_PERF_STATUS          0x0198
 #define MSR_IA32_PERF_CONTROL         0x0199
 #define MSR_IA32_CLOCK_MODULATION     0x019A
 #define MSR_THERMAL_STATUS            0x019C
 #define MSR_IA32_MISC_ENABLE          0x01A0
-#define MSR_THERMAL_TARGET            0x01A2   /* TjMax limited use - not for Penryn or older     */
-#define MSR_TURBO_RATIO_LIMIT         0x01AD   /* limited use - not for Penryn or older     */
+#define MSR_THERMAL_TARGET            0x01A2    /* TjMax limited use - not for Penryn or older */
+#define MSR_TURBO_RATIO_LIMIT         0x01AD    /* limited use - not for Penryn or older */
 
 //#define IA32_ENERGY_PERF_BIAS       0x01B0
 ////MSR 000001B0                                      0000-0000-0000-0005
@@ -364,14 +367,14 @@ typedef enum {
 // Sandy Bridge & JakeTown specific 'Running Average Power Limit' MSR's.
 #define MSR_RAPL_POWER_UNIT           0x606     /* R/O */
 //MSR 00000606                                      0000-0000-000A-1003
-#define MSR_PKGC3_IRTL                0x60A    /* RW time limit to go C3 */
+#define MSR_PKGC3_IRTL                0x60A     /* RW time limit to go C3 */
           // bit 15 = 1 -- the value valid for C-state PM
-#define MSR_PKGC6_IRTL                0x60B    /* RW time limit to go C6 */
+#define MSR_PKGC6_IRTL                0x60B     /* RW time limit to go C6 */
 //MSR 0000060B                                      0000-0000-0000-8854
   //Valid + 010=1024ns + 0x54=84mks
-#define MSR_PKGC7_IRTL                0x60C    /* RW time limit to go C7 */
+#define MSR_PKGC7_IRTL                0x60C     /* RW time limit to go C7 */
 //MSR 0000060C                                      0000-0000-0000-8854
-#define MSR_PKG_C2_RESIDENCY          0x60D   /* same as TSC but in C2 only */
+#define MSR_PKG_C2_RESIDENCY          0x60D     /* same as TSC but in C2 only */
 
 #define MSR_PKG_RAPL_POWER_LIMIT      0x610
 //MSR 00000610                                      0000-A580-0000-8960
@@ -594,29 +597,45 @@ struct Symbol {
 
 typedef struct Symbol Symbol, *SymbolPtr;
 
+struct sREF
+{
+  CHAR8   *string;
+  INT32   id;
+  INTN    integer;
+  INTN    size;
+  struct  sREF *next;
+};
+typedef struct sREF sREF;
+
 typedef struct {
 
-  UINTN type;
-  CHAR8 *string;
-  UINT8 *data;
-  UINTN dataLen;
-  UINTN offset;
-  VOID  *tag;
-  VOID  *tagNext;
+  UINTN   type;
+  CHAR8   *string;
+  INTN    integer;
+  UINT8   *data;
+  UINTN   size;
+  VOID    *tag;
+  VOID    *tagNext;
+  UINTN   offset;
+  UINTN   taglen;
+  INT32   ref;
+  INT32   id;
+  sREF    *ref_strings;
+  sREF    *ref_integer;
 
 } TagStruct, *TagPtr;
 
 typedef struct {
 
-  EFI_ACPI_DESCRIPTION_HEADER Header;
-  UINT32                      Entry;
+  EFI_ACPI_DESCRIPTION_HEADER   Header;
+  UINT32                        Entry;
 
 } RSDT_TABLE;
 
 typedef struct {
 
-  EFI_ACPI_DESCRIPTION_HEADER Header;
-  UINT64                      Entry;
+  EFI_ACPI_DESCRIPTION_HEADER   Header;
+  UINT64                        Entry;
 
 } XSDT_TABLE;
 
@@ -1245,7 +1264,7 @@ FixBiosDsdt (
   UINT8                                       *Dsdt,
   EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE   *fadt,
   CHAR8                                       *OSVersion
-  );
+);
 
 VOID
 GetBiosRegions (
@@ -1281,7 +1300,12 @@ SaveBooterLog (
 );
 
 VOID
-EFIAPI DebugLog(IN INTN DebugMode, IN CONST CHAR8 *FormatString, ...);
+EFIAPI
+DebugLog (
+  IN INTN DebugMode,
+  IN CONST CHAR8 *FormatString,
+  ...
+);
 
 /** Prints series of bytes. */
 VOID
@@ -1331,7 +1355,7 @@ StrToGuidLE (
 //EFI_STATUS
 //InitBootScreen (
 //  IN  LOADER_ENTRY *Entry
-//  );
+//);
 
 //EFI_STATUS
 //InitializeConsoleSim ();
@@ -1600,12 +1624,12 @@ GetAcpiTablesList ();
 EFI_STATUS
 EventsInitialize (
   IN LOADER_ENTRY *Entry
-  );
+);
 
 EFI_STATUS
 EjectVolume (
   IN REFIT_VOLUME *Volume
-  );
+);
 
 CHAR8*
 XMLDecode (
@@ -1614,22 +1638,38 @@ XMLDecode (
 
 EFI_STATUS
 ParseXML (
-  CONST CHAR8  *buffer,
-        TagPtr *dict,
-        UINT32 bufSize
+  CHAR8  *buffer,
+  TagPtr *dict,
+  UINT32 bufSize
 );
 
 TagPtr
 GetProperty (
-        TagPtr dict,
-  CONST CHAR8* key
+  TagPtr dict,
+  CHAR8* key
 );
 
 EFI_STATUS
-XMLParseNextTag (
-  CHAR8  *buffer,
-  TagPtr *tag,
-  UINT32 *lenPtr
+GetRefInteger (
+   IN TagPtr  tag,
+   IN INT32   id,
+  OUT CHAR8   **val,
+  OUT INTN    *decval,
+  OUT INTN    *size
+);
+
+EFI_STATUS
+GetRefString (
+  IN TagPtr   tag,
+  IN INT32    id,
+  OUT CHAR8   **val,
+  OUT INTN    *size
+);
+
+VOID
+DumpTag (
+  TagPtr  tag,
+  INT32   depth
 );
 
 VOID
@@ -1637,18 +1677,10 @@ FreeTag (
   TagPtr tag
 );
 
-EFI_STATUS
-GetNextTag (
-  UINT8  *buffer,
-  CHAR8  **tag,
-  UINT32 *start,
-  UINT32 *length
-  );
-
 INTN
 GetTagCount (
   TagPtr dict
-  );
+);
 
 EFI_STATUS
 GetElement (
@@ -1660,7 +1692,7 @@ GetElement (
 BOOLEAN
 IsPropertyTrue (
   TagPtr Prop
-  );
+);
 
 INTN
 GetPropertyInteger (
@@ -1784,7 +1816,7 @@ StrniCmp (
   IN CHAR16 *Str1,
   IN CHAR16 *Str2,
   IN UINTN  Count
- );
+);
 
 CHAR16
 *StriStr (

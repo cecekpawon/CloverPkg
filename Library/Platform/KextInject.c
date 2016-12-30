@@ -10,8 +10,9 @@
 
 // runtime debug
 #define DBG_ON(entry) \
-  ((entry != NULL) && (entry->KernelAndKextPatches != NULL) \
-  /*&& entry->KernelAndKextPatches->KPDebug*/ && (OSFLAG_ISSET(gSettings.FlagsBits, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
+  ((entry != NULL) && (entry->KernelAndKextPatches != NULL) && \
+  (OSFLAG_ISSET(gSettings.FlagsBits, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
+  /*entry->KernelAndKextPatches->KPDebug && \*/
 #define DBG_RT(entry, ...) \
   if (DBG_ON(entry)) AsciiPrint(__VA_ARGS__)
 #define DBG_PAUSE(entry, s) \
@@ -89,7 +90,7 @@ LoadKext (
   IN cpu_type_t             archCpuType,
   IN OUT _DeviceTreeBuffer  *kext
 ) {
-  EFI_STATUS  Status;
+  EFI_STATUS            Status;
   UINT8                 *infoDictBuffer = NULL, *executableFatBuffer = NULL, *executableBuffer = NULL;
   UINTN                 infoDictBufferLength = 0, executableBufferLength = 0, bundlePathBufferLength = 0;
   CHAR8                 *bundlePathBuffer = NULL;
@@ -114,7 +115,7 @@ LoadKext (
     NoContents = TRUE;
   }
 
-  if (ParseXML((CHAR8*)infoDictBuffer, &dict, 0) != 0) {
+  if (EFI_ERROR(ParseXML((CHAR8*)infoDictBuffer, &dict, 0))) {
     FreePool(infoDictBuffer);
     MsgLog("Failed to load extra kext (failed to parse Info.plist): %s\n", FileName);
     return EFI_NOT_FOUND;
@@ -122,7 +123,7 @@ LoadKext (
 
   prop = GetProperty(dict, kPropCFBundleExecutable);
   if (prop != 0) {
-    AsciiStrToUnicodeStr(prop->string,Executable);
+    AsciiStrToUnicodeStr(prop->string, Executable);
     if (NoContents) {
       UnicodeSPrint(TempName, 512, L"%s\\%s", FileName, Executable);
     } else {
@@ -143,6 +144,8 @@ LoadKext (
       MsgLog("Thinning failed: %s\n", FileName);
       return EFI_NOT_FOUND;
     }
+  } else {
+    MsgLog("Failed to read '%a' prop\n", kPropCFBundleExecutable);
   }
 
   bundlePathBufferLength = StrLen(FileName) + 1;
@@ -251,7 +254,7 @@ LoadPlugInKexts (
 
   DirIterOpen(RootDir, DirName, &PlugInIter);
   while (DirIterNext(&PlugInIter, 1, L"*.kext", &PlugInFile)) {
-    if (PlugInFile->FileName[0] == '.' || StrStr(PlugInFile->FileName, L".kext") == NULL) {
+    if (PlugInFile->FileName[0] == '.' || StriStr(PlugInFile->FileName, L".kext") == NULL) {
       continue;   // skip this
     }
 
@@ -393,7 +396,6 @@ LoadKexts (
 ////////////////////
 EFI_STATUS
 InjectKexts (
-  //IN EFI_MEMORY_DESCRIPTOR *Desc
   IN UINT32       deviceTreeP,
   IN UINT32       *deviceTreeLength,
   LOADER_ENTRY    *Entry
@@ -503,6 +505,7 @@ InjectKexts (
 
       DBG_RT(Entry, " %d - %a\n", Index, (CHAR8 *)(UINTN)drvinfo->bundlePathPhysAddr);
 
+#if 0
       if (
         gSettings.KextPatchesAllowed &&
         Entry->KernelAndKextPatches->NrKexts &&
@@ -517,7 +520,7 @@ InjectKexts (
 
         for (i = 0; i < Entry->KernelAndKextPatches->NrKexts; i++) {
           if (
-            isPatchNameMatch(gKextBundleIdentifier, InfoPlist, Entry->KernelAndKextPatches->KextPatches[i].Name)
+            isPatchNameMatch(gKextBundleIdentifier, Entry->KernelAndKextPatches->KextPatches[i].Name, InfoPlist)
           ) {
             DBG_RT(Entry, "Kext: %a\n", gKextBundleIdentifier);
             AnyKextPatch (
@@ -534,6 +537,7 @@ InjectKexts (
         InfoPlist[drvinfo->infoDictLength] = SavedValue;
         FreePool(gKextBundleIdentifier);
       }
+#endif
 
       Index++;
     }

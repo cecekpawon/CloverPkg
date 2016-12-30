@@ -206,7 +206,7 @@ GetPropertyInteger (
   }
 
   if (Prop->type == kTagTypeInteger) {
-    return (INTN)Prop->string;
+    return Prop->integer; //(INTN)Prop->string;
   } else if ((Prop->type == kTagTypeString) && Prop->string) {
     if ((Prop->string[1] == 'x') || (Prop->string[1] == 'X')) {
       return (INTN)AsciiStrHexToUintn (Prop->string);
@@ -255,17 +255,18 @@ VOID
 
   Prop = GetProperty (Dict, PropName);
   if (Prop != NULL) {
-    if (Prop->data != NULL /*&& Prop->dataLen > 0*/) { //rehabman: allow zero length data
+    //if (Prop->data != NULL/* && Prop->size > 0*/) { //rehabman: allow zero length data
+    if (Prop->data && Prop->size) { //rehabman: allow zero length data
       // data property
-      Data = AllocateZeroPool (Prop->dataLen);
-      CopyMem (Data, Prop->data, Prop->dataLen);
+      Data = AllocateZeroPool (Prop->size);
+      CopyMem (Data, Prop->data, Prop->size);
 
       if (DataLen != NULL) {
-        *DataLen = Prop->dataLen;
+        *DataLen = Prop->size;
       }
       /*
-        DBG ("Data: %p, Len: %d = ", Data, Prop->dataLen);
-        for (i = 0; i < Prop->dataLen; i++) {
+        DBG ("Data: %p, Len: %d = ", Data, Prop->size);
+        for (i = 0; i < Prop->size; i++) {
           DBG ("%02x ", Data[i]);
         }
         DBG ("\n");
@@ -693,6 +694,7 @@ CopyKernelAndKextPatches (
         Dst->KextPatches[Dst->NrKexts].Filename     = (CHAR8 *)AllocateCopyPool (AsciiStrSize (Src->KextPatches[i].Filename), Src->KextPatches[i].Filename);
       }
 
+      Dst->KextPatches[Dst->NrKexts].Patched        = FALSE;
       Dst->KextPatches[Dst->NrKexts].Disabled       = Src->KextPatches[i].Disabled;
       Dst->KextPatches[Dst->NrKexts].IsPlistPatch   = Src->KextPatches[i].IsPlistPatch;
       Dst->KextPatches[Dst->NrKexts].DataLen        = Src->KextPatches[i].DataLen;
@@ -997,6 +999,7 @@ FillinKextPatches (
         Patches->KextPatches[Patches->NrKexts].MatchBuild = NULL;
         Patches->KextPatches[Patches->NrKexts].Filename   = NULL;
         Patches->KextPatches[Patches->NrKexts].Disabled   = FALSE;
+        Patches->KextPatches[Patches->NrKexts].Patched    = FALSE;
         Patches->KextPatches[Patches->NrKexts].Name       = AllocateCopyPool (AsciiStrnLenS(KextPatchesName, 255) + 1, KextPatchesName);
         Patches->KextPatches[Patches->NrKexts].Label      = AllocateCopyPool (AsciiStrnLenS(KextPatchesLabel, 255) + 1, KextPatchesLabel);
 
@@ -1253,7 +1256,7 @@ FillinCustomEntry (
           }
         }
       } else if (Prop->type == kTagTypeData) {
-        Entry->Image = egDecodePNG (Prop->data, Prop->dataLen, 0, TRUE);
+        Entry->Image = egDecodePNG (Prop->data, Prop->size, 0, TRUE);
       }
     }
   }
@@ -1297,7 +1300,7 @@ FillinCustomEntry (
           }
         }
       } else if (Prop->type == kTagTypeData) {
-        Entry->DriveImage = egDecodePNG (Prop->data, Prop->dataLen, 0, TRUE);
+        Entry->DriveImage = egDecodePNG (Prop->data, Prop->size, 0, TRUE);
       }
     }
   }
@@ -1414,10 +1417,6 @@ FillinCustomEntry (
         (KERNEL_AND_KEXT_PATCHES *)(((UINTN)Entry) + OFFSET_OF(CUSTOM_LOADER_ENTRY, KernelAndKextPatches)),
         (KERNEL_AND_KEXT_PATCHES *)(((UINTN)&gSettings) + OFFSET_OF(SETTINGS_DATA, KernelAndKextPatches))
       );
-
-      //#ifdef DUMP_KERNEL_KEXT_PATCHES
-      //  DumpKernelAndKextPatches ((KERNEL_AND_KEXT_PATCHES *)(((UINTN)Entry) + OFFSET_OF(CUSTOM_LOADER_ENTRY, KernelAndKextPatches)));
-      //#endif
     }
   }
 
@@ -1552,7 +1551,7 @@ FillinCustomTool (
           }
         }
       } else if (Prop->type == kTagTypeData) {
-        Entry->Image = egDecodePNG (Prop->data, Prop->dataLen, 0, TRUE);
+        Entry->Image = egDecodePNG (Prop->data, Prop->size, 0, TRUE);
       }
     }
   }
@@ -1561,7 +1560,6 @@ FillinCustomTool (
   if ((Prop != NULL) && (Prop->type == kTagTypeString) && Prop->string) {
     Entry->Hotkey = *(Prop->string);
   }
-
   // Hidden Property, Values:
   // - No (show the entry)
   // - Yes (hide the entry but can be show with F3)
@@ -1580,17 +1578,18 @@ FillinCustomTool (
     }
   }
 
+/*
   Entry->VolumeType = GetVolumeType(DictPointer);
-
+*/
   return TRUE;
 }
 
 VOID
 GetListOfACPI () {
-  EFI_STATUS          Status;
+  //EFI_STATUS          Status;
   REFIT_DIR_ITER      DirIter;
   EFI_FILE_INFO       *DirEntry;
-  UINTN               i = 0, y = 0, Size = 0;
+  UINTN               i = 0, y = 0/*, Size = 0*/;
   CHAR8               *Ptr = NULL;
   CHAR16*             AcpiPath = PoolPrint(DIR_ACPI_PATCHED, OEMPath);
 
@@ -1609,9 +1608,10 @@ GetListOfACPI () {
 
     DBG ("- [%02d]: %s", i++, DirEntry->FileName);
 
-    Status = egLoadFile (SelfRootDir, PoolPrint (L"%s\\%s", AcpiPath, DirEntry->FileName), (UINT8**)&Ptr, &Size);
+    //Status = egLoadFile (SelfRootDir, PoolPrint (L"%s\\%s", AcpiPath, DirEntry->FileName), (UINT8**)&Ptr, &Size);
 
-    if (EFI_ERROR (Status) || (Ptr == NULL) || (Size == 0)) {
+    //if (EFI_ERROR (Status) || (Ptr == NULL) || (Size == 0)) {
+    if (0) {
       DBG (" - bad, skip");
     } else {
       BOOLEAN   ACPIDisabled = FALSE;
@@ -1637,7 +1637,6 @@ GetListOfACPI () {
     DBG ("\n");
 
     FreePool(Ptr);
-    Size = 0;
   }
 
   if (ACPIPatchedAMLNum) {
@@ -1755,7 +1754,7 @@ LoadTheme (
       if (!EFI_ERROR (Status)) {
         Status = egLoadFile (ThemeDir, PoolPrint(L"%s.plist", CONFIG_THEME_FILENAME), (UINT8**)&ThemePtr, &Size);
         if (!EFI_ERROR (Status) && (ThemePtr != NULL) && (Size != 0)) {
-          Status = ParseXML ((const CHAR8*)ThemePtr, &ThemeDict, 0);
+          Status = ParseXML (ThemePtr, &ThemeDict, 0);
 
           if (EFI_ERROR (Status)) {
             ThemeDict = NULL;
@@ -2690,7 +2689,7 @@ GetEarlyUserSettings (
             gSettings.XMPDetection = (INT8)AsciiStrDecimalToUintn (Prop->string);
           }
         } else if (Prop->type == kTagTypeInteger) {
-          gSettings.XMPDetection   = (INT8)(UINTN)Prop->string;
+          gSettings.XMPDetection   = (INT8)(UINTN)Prop->integer;//Prop->string;
         }
 
         // Check that the setting value is sane
@@ -3268,32 +3267,33 @@ GetUserSettings (
 
     DictPointer = GetProperty (Dict, "Devices");
     if (DictPointer != NULL) {
+      gSettings.IntelBacklight = IsPropertyTrue (GetProperty (DictPointer, "SetIntelBacklight"));
       gSettings.StringInjector = IsPropertyTrue (GetProperty (DictPointer, "Inject"));
 
-      gSettings.IntelBacklight = IsPropertyTrue (GetProperty (DictPointer, "SetIntelBacklight"));
+      if (gSettings.StringInjector) {
+        Prop = GetProperty (DictPointer, "Properties");
+        if (Prop != NULL) {
+          EFI_PHYSICAL_ADDRESS    BufferPtr = EFI_SYSTEM_TABLE_MAX_ADDRESS; //0xFE000000;
+          UINTN                   strlength   = AsciiStrLen (Prop->string);
 
-      Prop = GetProperty (DictPointer, "Properties");
-      if (Prop != NULL) {
-        EFI_PHYSICAL_ADDRESS    BufferPtr = EFI_SYSTEM_TABLE_MAX_ADDRESS; //0xFE000000;
-        UINTN                   strlength   = AsciiStrLen (Prop->string);
+          cDeviceProperties = AllocateZeroPool (strlength + 1);
+          AsciiStrCpy (cDeviceProperties, Prop->string);
+          //-------
+          Status = gBS->AllocatePages (
+                           AllocateMaxAddress,
+                           EfiACPIReclaimMemory,
+                           EFI_SIZE_TO_PAGES (strlength) + 1,
+                           &BufferPtr
+                         );
 
-        cDeviceProperties = AllocateZeroPool (strlength + 1);
-        AsciiStrCpy (cDeviceProperties, Prop->string);
-        //-------
-        Status = gBS->AllocatePages (
-                         AllocateMaxAddress,
-                         EfiACPIReclaimMemory,
-                         EFI_SIZE_TO_PAGES (strlength) + 1,
-                         &BufferPtr
-                       );
-
-        if (!EFI_ERROR (Status)) {
-          cProperties = (UINT8*)(UINTN)BufferPtr;
-          cPropSize   = (UINT32)(strlength >> 1);
-          cPropSize   = hex2bin (cDeviceProperties, cProperties, cPropSize);
-          DBG ("Injected EFIString of length %d\n", cPropSize);
+          if (!EFI_ERROR (Status)) {
+            cProperties = (UINT8*)(UINTN)BufferPtr;
+            cPropSize   = (UINT32)(strlength >> 1);
+            cPropSize   = hex2bin (cDeviceProperties, cProperties, cPropSize);
+            DBG ("Injected EFIString of length %d\n", cPropSize);
+          }
+          //---------
         }
-        //---------
       }
 
       gSettings.NoDefaultProperties = IsPropertyTrue (GetProperty (DictPointer, "NoDefaultProperties"));
@@ -3366,7 +3366,7 @@ GetUserSettings (
                     gSettings.AddProperties->ValueLen = AsciiStrLen (Prop3->string) + 1;
                   } else if (Prop3 && (Prop3->type == kTagTypeInteger)) {
                     gSettings.AddProperties->Value = AllocatePool (4);
-                    CopyMem (gSettings.AddProperties->Value, &(Prop3->string), 4);
+                    CopyMem (gSettings.AddProperties->Value, &(Prop3->integer), 4);
                     gSettings.AddProperties->ValueLen = 4;
                   } else {
                     //else  data
@@ -3436,7 +3436,7 @@ GetUserSettings (
                 gSettings.AddProperties[Index].ValueLen = AsciiStrLen (Prop2->string) + 1;
               } else if (Prop2 && (Prop2->type == kTagTypeInteger)) {
                 gSettings.AddProperties[Index].Value = AllocatePool (4);
-                CopyMem (gSettings.AddProperties[Index].Value, &(Prop2->string), 4);
+                CopyMem (gSettings.AddProperties[Index].Value, &(Prop2->integer), 4);
                 gSettings.AddProperties[Index].ValueLen = 4;
               } else {
                 //else  data
@@ -3492,7 +3492,7 @@ GetUserSettings (
         Prop = GetProperty (Prop2, "Inject");
         if (Prop != NULL) {
           if (Prop->type == kTagTypeInteger) {
-            gSettings.HDALayoutId = (INT32)(UINTN)Prop->string; //must be signed
+            gSettings.HDALayoutId = (INT32)(UINTN)Prop->integer; //must be signed
           } else if (Prop->type == kTagTypeString) {
             if ((Prop->string[0] == '0') && ((Prop->string[1] == 'x') || (Prop->string[1] == 'X'))) {
               // assume it's a hex layout id
@@ -3703,7 +3703,7 @@ GetUserSettings (
 
         if (Prop != NULL) {
           if (Prop->type == kTagTypeInteger) {
-            gSettings.DropOEM_DSM = (UINT16)(UINTN)Prop->string;
+            gSettings.DropOEM_DSM = (UINT16)(UINTN)Prop->integer;
           } else if (Prop->type == kTagTypeDict) {
             INTN    i;
 
@@ -3864,7 +3864,7 @@ GetUserSettings (
             if ((Dict2->type == kTagTypeString) && Dict2->string) {
               Slot = (UINT8)AsciiStrDecimalToUintn (Dict2->string);
             } else if (Dict2->type == kTagTypeInteger) {
-              Slot = (UINT8)(UINTN)Dict2->string;
+              Slot = (UINT8)(UINTN)Dict2->integer;
             } else {
               continue;
             }
@@ -4261,7 +4261,7 @@ LoadUserSettings (
   }
 
   if (!EFI_ERROR (Status) && (gConfigPtr != NULL)) {
-    Status = ParseXML ((const CHAR8*)gConfigPtr, Dict, (UINT32)Size);
+    Status = ParseXML (gConfigPtr, Dict, (UINT32)Size);
 
     DBG ("Parsing plist: ... %r\n", Status);
   }
@@ -4292,7 +4292,7 @@ CHAR8
     if (SystemPlists[i] != NULL) { // found OSX System
       Status = egLoadFile (Entry->Volume->RootDir, SystemPlists[i], (UINT8 **)&PlistBuffer, &PlistLen);
 
-      if (!EFI_ERROR (Status) && (PlistBuffer != NULL) && (ParseXML (PlistBuffer, &Dict, 0) == EFI_SUCCESS)) {
+      if (!EFI_ERROR (Status) && (PlistBuffer != NULL) && !EFI_ERROR (ParseXML (PlistBuffer, &Dict, 0))) {
         Prop = GetProperty (Dict, "ProductVersion");
         if ((Prop != NULL) && (Prop->string != NULL) && (Prop->string[0] != '\0')) {
           OSVersion = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
@@ -4314,7 +4314,7 @@ CHAR8
       CHAR16 *IABootFilesSystemVersion = L"\\.IABootFilesSystemVersion.plist";
       if (FileExists (Entry->Volume->RootDir, IABootFilesSystemVersion)) {
         Status = egLoadFile (Entry->Volume->RootDir, IABootFilesSystemVersion, (UINT8 **)&PlistBuffer, &PlistLen);
-        if (!EFI_ERROR (Status) && PlistBuffer != NULL && ParseXML (PlistBuffer, &Dict, 0) == EFI_SUCCESS) {
+        if (!EFI_ERROR (Status) && PlistBuffer != NULL && !EFI_ERROR (ParseXML (PlistBuffer, &Dict, 0))) {
           Prop = GetProperty (Dict, "ProductVersion");
           if (Prop != NULL && Prop->string != NULL && Prop->string[0] != '\0') {
             OSVersion = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
@@ -4332,7 +4332,7 @@ CHAR8
       CHAR16 *InstallerPlist = L"\\.IABootFiles\\com.apple.Boot.plist";
       if (FileExists (Entry->Volume->RootDir, InstallerPlist)) {
         Status = egLoadFile (Entry->Volume->RootDir, InstallerPlist, (UINT8 **)&PlistBuffer, &PlistLen);
-        if (!EFI_ERROR (Status) && PlistBuffer != NULL && ParseXML (PlistBuffer, &Dict, 0) == EFI_SUCCESS) {
+        if (!EFI_ERROR (Status) && PlistBuffer != NULL && !EFI_ERROR (ParseXML (PlistBuffer, &Dict, 0))) {
           Prop = GetProperty (Dict, "Kernel Flags");
           if (Prop != NULL && Prop->string != NULL && Prop->string[0] != '\0') {
             if (AsciiStrStr (Prop->string, "Sierra") || AsciiStrStr (Prop->string, "10.12")) {
@@ -4360,7 +4360,7 @@ CHAR8
 
     if (FileExists (Entry->Volume->RootDir, RecoveryPlist)) {
       Status = egLoadFile (Entry->Volume->RootDir, RecoveryPlist, (UINT8 **)&PlistBuffer, &PlistLen);
-      if (!EFI_ERROR (Status) && (PlistBuffer != NULL) && (ParseXML (PlistBuffer, &Dict, 0) == EFI_SUCCESS)) {
+      if (!EFI_ERROR (Status) && (PlistBuffer != NULL) && !EFI_ERROR (ParseXML (PlistBuffer, &Dict, 0))) {
         Prop = GetProperty (Dict, "ProductVersion");
         if (Prop != NULL && Prop->string != NULL && Prop->string[0] != '\0') {
           OSVersion = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
@@ -4467,7 +4467,7 @@ GetRootUUID (
 
   if (!EFI_ERROR (Status)) {
     Dict = NULL;
-    if (ParseXML (PlistBuffer, &Dict, 0) != EFI_SUCCESS) {
+    if (EFI_ERROR (ParseXML (PlistBuffer, &Dict, 0))) {
       FreePool (PlistBuffer);
       return EFI_NOT_FOUND;
     }

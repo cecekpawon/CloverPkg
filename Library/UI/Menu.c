@@ -50,7 +50,6 @@
 
 // scrolling definitions
 STATIC INTN               MaxItemOnScreen = -1;
-extern REFIT_MENU_ENTRY   MenuEntryReturn;
 
 BOOLEAN SavePreBootLog = FALSE;
 
@@ -109,12 +108,12 @@ BOOLEAN             MainAnime = FALSE, mGuiReady = FALSE;
 
 INTN                OldChosenTheme, OldChosenConfig;
 
-REFIT_MENU_ENTRY    MenuEntryOptions  = { L"Options", TAG_OPTIONS, 1, 0, 'O', NULL, NULL, NULL, NULL, {0, 0, 0, 0}, NULL },
-                    MenuEntryAbout    = { L"About Clover", TAG_ABOUT, 1, 0, 'I', NULL, NULL, NULL, NULL, {0, 0, 0, 0},  NULL },
-                    MenuEntryReset    = { L"Restart Computer", TAG_RESET, 1, 0, 'R', NULL, NULL, NULL, NULL, {0, 0, 0, 0},  NULL },
-                    MenuEntryExit     = { L"Exit Clover", TAG_EXIT, 1, 0, 'X', NULL, NULL, NULL, NULL, {0, 0, 0, 0},  NULL },
-                    MenuEntryReturn   = { L"Return", TAG_RETURN, 0, 0, 0, NULL, NULL, NULL, NULL, {0, 0, 0, 0},  NULL },
-                    MenuEntryHelp     = { L"Help", TAG_HELP, 1, 0, 'H', NULL, NULL, NULL, NULL, {0, 0, 0, 0},  NULL };
+REFIT_MENU_ENTRY    MenuEntryOptions  = { MENU_ENTRY_ID_GEN, L"Options", TAG_OPTIONS, 1, 0, 'O', NULL, NULL, NULL, NULL, {0, 0, 0, 0}, NULL },
+                    MenuEntryAbout    = { MENU_ENTRY_ID_GEN, L"About Clover", TAG_ABOUT, 1, 0, 'I', NULL, NULL, NULL, NULL, {0, 0, 0, 0},  NULL },
+                    MenuEntryReset    = { MENU_ENTRY_ID_GEN, L"Restart Computer", TAG_RESET, 1, 0, 'R', NULL, NULL, NULL, NULL, {0, 0, 0, 0},  NULL },
+                    MenuEntryExit     = { MENU_ENTRY_ID_GEN, L"Exit Clover", TAG_EXIT, 1, 0, 'X', NULL, NULL, NULL, NULL, {0, 0, 0, 0},  NULL },
+                    MenuEntryReturn   = { MENU_ENTRY_ID_GEN, L"Return", TAG_RETURN, 0, 0, 0, NULL, NULL, NULL, NULL, {0, 0, 0, 0},  NULL },
+                    MenuEntryHelp     = { MENU_ENTRY_ID_GEN, L"Help", TAG_HELP, 1, 0, 'H', NULL, NULL, NULL, NULL, {0, 0, 0, 0},  NULL };
 
 REFIT_MENU_SCREEN   MainMenu          = { SCREEN_MAIN, L"Main Menu", NULL, 0, NULL, 0, NULL, 0, L"Automatic boot",
                                           NULL, FALSE, FALSE, 0, 0, 0, 0, {0, 0, 0, 0}, NULL },
@@ -1217,7 +1216,6 @@ InputDialog (
       Item->IValue ^= Pos;
       MenuExit = MENU_EXIT_ENTER;
     } else {
-
       Status = gST->ConIn->ReadKeyStroke (gST->ConIn, &key);
 
 #if DBG_INPUTDIALOG
@@ -3336,7 +3334,6 @@ OptionsMenu (
   }
 
   while (!MenuExit) {
-
     MenuExit = RunGenericMenu(&OptionMenu, Style, &EntryIndex, ChosenEntry);
     if ((MenuExit == MENU_EXIT_ESCAPE ) || ((*ChosenEntry)->Tag == TAG_RETURN)) {
       if (gBootChanged && gThemeChanged && (GlobalConfig.TextOnly != gTextOnly)) {
@@ -3460,9 +3457,9 @@ HelpRefit () {
   if (HelpMenu.EntryCount == 0) {
     CHAR16    *PathOrigin = PoolPrint(DIR_ACPI_ORIGIN, OEMPath);
 
-    switch (gLanguage) {
-      case english:
-      default:
+    //switch (gLanguage) {
+    //  case english:
+    //  default:
         AddMenuInfo(&HelpMenu, L"ESC - Escape from submenu, Refresh main menu");
         AddMenuInfo(&HelpMenu, L"F1 / H - This help");
         AddMenuInfo(&HelpMenu, PoolPrint(L"F2  - Save '%s' into '%s'", Basename(PREBOOT_LOG), DIR_MISC));
@@ -3484,8 +3481,8 @@ HelpRefit () {
         AddMenuInfo(&HelpMenu, L"P - Patches");
         AddMenuInfo(&HelpMenu, L"D - Devices");
         AddMenuInfo(&HelpMenu, L"B - Debug");
-        break;
-    }
+    //    break;
+    //}
 
     HelpMenu.AnimeRun = GetAnime(&HelpMenu);
     //AddMenuEntry(&HelpMenu, &MenuEntryReturn);
@@ -3552,7 +3549,13 @@ RunMainMenu (
 
       MenuExit = RunGenericMenu(TempChosenEntry->SubScreen, Style, &SubMenuIndex, &TempChosenEntry);
 
-      if ((MenuExit == MENU_EXIT_ENTER) && (TempChosenEntry->Tag == TAG_LOADER)) {
+      if (
+        (
+          (MenuExit == MENU_EXIT_ENTER) ||
+          (TempChosenEntry->ID == MENU_ENTRY_ID_BOOT)
+        ) &&
+        (TempChosenEntry->Tag == TAG_LOADER)
+      ) {
         DecodeOptions((LOADER_ENTRY*)TempChosenEntry);
         ((LOADER_ENTRY*)TempChosenEntry)->Flags |= (UINT16)(gSettings.FlagsBits & 0x0FFF);
         AsciiSPrint(gSettings.BootArgs, AVALUE_MAX_SIZE-1, "%s", ((LOADER_ENTRY*)TempChosenEntry)->LoadOptions);

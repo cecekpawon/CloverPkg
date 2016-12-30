@@ -104,12 +104,14 @@ typedef struct KERNEL_INFO {
                         // - PrelinkTextAddr is segCmd64->vmaddr + KernelRelocBase
   UINT32                PrelinkTextAddr;
   UINT32                PrelinkTextSize;
+  UINT32                PrelinkTextOff;
                         // notes:
                         // - 64bit sect->addr is 0xffffff80xxxxxxxx and we are taking
                         //   only lower 32bit part into PrelinkInfoAddr
                         // - PrelinkInfoAddr is sect->addr + KernelRelocBase
   UINT32                PrelinkInfoAddr;
   UINT32                PrelinkInfoSize;
+  UINT32                PrelinkInfoOff;
   UINT32                LoadEXEStart;
   UINT32                LoadEXEEnd;
   UINT32                LoadEXESize;
@@ -134,36 +136,52 @@ typedef struct KERNEL_INFO {
   VOID                  *Bin;
 } KERNEL_INFO;
 
-//extern BootArgs2    *bootArgs2;
-extern CHAR8        *dtRoot;
-extern KERNEL_INFO  *KernelInfo;
-
-VOID KernelAndKextsPatcherStart(IN LOADER_ENTRY *Entry);
+//extern BootArgs2      *bootArgs2;
+extern CHAR8            *dtRoot;
+extern KERNEL_INFO      *KernelInfo;
 
 
 /////////////////////
 //
 // kext_patcher.c
 //
+VOID
+KernelAndKextsPatcherStart (
+  IN LOADER_ENTRY   *Entry
+);
 
 //
 // Called from SetFSInjection(), before boot.efi is started,
 // to allow patchers to prepare FSInject to force load needed kexts.
 //
-VOID KextPatcherRegisterKexts(FSINJECTION_PROTOCOL *FSInject, FSI_STRING_LIST *ForceLoadKexts, LOADER_ENTRY *Entry);
+VOID
+KextPatcherRegisterKexts (
+  FSINJECTION_PROTOCOL    *FSInject,
+  FSI_STRING_LIST         *ForceLoadKexts,
+  LOADER_ENTRY            *Entry
+);
 
 //
 // Entry for all kext patches.
 // Will iterate through kext in prelinked kernel (kernelcache)
 // or DevTree (drivers boot) and do patches.
 //
-VOID KextPatcherStart(LOADER_ENTRY *Entry);
+VOID
+KextPatcherStart (
+  LOADER_ENTRY    *Entry
+);
 
 //
 // Searches Source for Search pattern of size SearchSize
 // and returns the number of occurences.
 //
-UINTN SearchAndCount(UINT8 *Source, UINT32 SourceSize, UINT8 *Search, UINTN SearchSize);
+UINTN
+SearchAndCount (
+  UINT8     *Source,
+  UINT32    SourceSize,
+  UINT8     *Search,
+  UINTN     SearchSize
+);
 
 //
 // Searches Source for Search pattern of size SearchSize
@@ -172,21 +190,43 @@ UINTN SearchAndCount(UINT8 *Source, UINT32 SourceSize, UINT8 *Search, UINTN Sear
 // Replace should have the same size as Search.
 // Returns number of replaces done.
 //
-UINTN SearchAndReplace(UINT8 *Source, UINT32 SourceSize, UINT8 *Search, UINTN SearchSize, UINT8 *Replace, INTN MaxReplaces);
-
-BOOLEAN   KernelAndKextPatcherInit(IN LOADER_ENTRY *Entry);
-VOID      AnyKextPatch(UINT8 *Driver, UINT32 DriverSize, CHAR8 *InfoPlist, UINT32 InfoPlistSize, INT32 N, LOADER_ENTRY *Entry);
-
-CHAR8
-*ExtractKextBundleIdentifier (
-  CHAR8     *Plist
+UINTN
+SearchAndReplace (
+  UINT8     *Source,
+  UINT32    SourceSize,
+  UINT8     *Search,
+  UINTN     SearchSize,
+  UINT8     *Replace,
+  INTN      MaxReplaces
 );
+
+BOOLEAN
+KernelAndKextPatcherInit (
+  IN LOADER_ENTRY   *Entry
+);
+
+VOID
+AnyKextPatch (
+  UINT8         *Driver,
+  UINT32        DriverSize,
+  CHAR8         *InfoPlist,
+  UINT32        InfoPlistSize,
+  //INT32         N,
+  KEXT_PATCH    *KextPatches,
+  LOADER_ENTRY  *Entry
+);
+
+//CHAR8
+//*ExtractKextBundleIdentifier (
+//  CHAR8     *Plist
+//);
 
 BOOLEAN
 isPatchNameMatch (
   CHAR8   *BundleIdentifier,
+  CHAR8   *Name,
   CHAR8   *InfoPlist,
-  CHAR8   *Name
+  INT32   *isBundle
 );
 
 #endif /* !__LIBSAIO_KERNEL_PATCHER_H */

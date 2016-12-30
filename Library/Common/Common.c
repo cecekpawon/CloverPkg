@@ -59,7 +59,7 @@ CONST CHAR16 *OsxPathLCaches[] = {
 CONST UINTN OsxPathLCachesCount = ARRAY_SIZE(OsxPathLCaches);
 CHAR8 *OsVerUndetected = "10.10.10";  //longer string
 
-extern BOOLEAN CopyKernelAndKextPatches(IN OUT KERNEL_AND_KEXT_PATCHES *Dst, IN KERNEL_AND_KEXT_PATCHES *Src);
+//extern BOOLEAN CopyKernelAndKextPatches(IN OUT KERNEL_AND_KEXT_PATCHES *Dst, IN KERNEL_AND_KEXT_PATCHES *Src);
 
 //--> Base64
 
@@ -204,146 +204,6 @@ UINT8
 
 //<-- Base64
 
-LOADER_ENTRY
-*DuplicateLoaderEntry (
-  IN LOADER_ENTRY   *Entry
-) {
-  if(Entry == NULL) {
-    return NULL;
-  }
-
-  LOADER_ENTRY *DuplicateEntry = AllocateZeroPool(sizeof(LOADER_ENTRY));
-
-  if (DuplicateEntry) {
-    DuplicateEntry->me.Tag                = Entry->me.Tag;
-    //DuplicateEntry->me.AtClick          = ActionEnter;
-    DuplicateEntry->Volume                = Entry->Volume;
-    DuplicateEntry->DevicePathString      = EfiStrDuplicate(Entry->DevicePathString);
-    DuplicateEntry->LoadOptions           = EfiStrDuplicate(Entry->LoadOptions);
-    DuplicateEntry->LoaderPath            = EfiStrDuplicate(Entry->LoaderPath);
-    DuplicateEntry->VolName               = EfiStrDuplicate(Entry->VolName);
-    DuplicateEntry->DevicePath            = Entry->DevicePath;
-    DuplicateEntry->Flags                 = Entry->Flags;
-    DuplicateEntry->LoaderType            = Entry->LoaderType;
-    DuplicateEntry->OSVersion             = Entry->OSVersion;
-    DuplicateEntry->BuildVersion          = Entry->BuildVersion;
-    DuplicateEntry->KernelAndKextPatches  = Entry->KernelAndKextPatches;
-  }
-
-  return DuplicateEntry;
-}
-
-CHAR16
-*ToggleLoadOptions (
-      UINT32    State,
-  IN  CHAR16    *LoadOptions,
-  IN  CHAR16    *LoadOption
-) {
-  return State ? AddLoadOption(LoadOptions, LoadOption) : RemoveLoadOption(LoadOptions, LoadOption);
-}
-
-CHAR16
-*AddLoadOption (
-  IN CHAR16   *LoadOptions,
-  IN CHAR16   *LoadOption
-) {
-  // If either option strings are null nothing to do
-  if (LoadOptions == NULL) {
-    if (LoadOption == NULL) {
-      return NULL;
-    }
-
-    // Duplicate original options as nothing to add
-    return EfiStrDuplicate(LoadOption);
-  }
-
-  // If there is no option or it is already present duplicate original
-  else if ((LoadOption == NULL) || BootArgsExists(LoadOptions, LoadOption)) {
-    return EfiStrDuplicate(LoadOptions);
-  }
-
-  // Otherwise add option
-  return PoolPrint(L"%s %s", LoadOptions, LoadOption);
-}
-
-CHAR16
-*RemoveLoadOption (
-  IN CHAR16   *LoadOptions,
-  IN CHAR16   *LoadOption
-) {
-  CHAR16    *Placement, *NewLoadOptions;
-  UINTN     Length, Offset, OptionLength;
-
-  //DBG("LoadOptions: '%s', remove LoadOption: '%s'\n", LoadOptions, LoadOption);
-  // If there are no options then nothing to do
-  if (LoadOptions == NULL) {
-    return NULL;
-  }
-
-  // If there is no option to remove then duplicate original
-  if (LoadOption == NULL) {
-    return EfiStrDuplicate(LoadOptions);
-  }
-
-  // If not present duplicate original
-  Placement = StriStr(LoadOptions, LoadOption);
-  if (Placement == NULL) {
-    return EfiStrDuplicate(LoadOptions);
-  }
-
-  // Get placement of option in original options
-  Offset = (Placement - LoadOptions);
-  Length = StrLen(LoadOptions);
-  OptionLength = StrLen(LoadOption);
-
-  // If this is just part of some larger option (contains non-space at the beginning or end)
-  if (
-    ((Offset > 0) && (LoadOptions[Offset - 1] != L' ')) ||
-    (((Offset + OptionLength) < Length) && (LoadOptions[Offset + OptionLength] != L' '))
-  ) {
-    return EfiStrDuplicate(LoadOptions);
-  }
-
-  // Consume preceeding spaces
-  while ((Offset > 0) && (LoadOptions[Offset - 1] == L' ')) {
-    OptionLength++;
-    Offset--;
-  }
-
-  // Consume following spaces
-  while (LoadOptions[Offset + OptionLength] == L' ') {
-    OptionLength++;
-  }
-
-  // If it's the whole string return NULL
-  if (OptionLength == Length) {
-    return NULL;
-  }
-
-  if (Offset == 0) {
-    // Simple case - we just need substring after OptionLength position
-    NewLoadOptions = EfiStrDuplicate(LoadOptions + OptionLength);
-  } else {
-    // The rest of LoadOptions is Length - OptionLength, but we may need additional space and ending 0
-    NewLoadOptions = AllocateZeroPool((Length - OptionLength + 2) * sizeof(CHAR16));
-    // Copy preceeding substring
-    CopyMem(NewLoadOptions, LoadOptions, Offset * sizeof(CHAR16));
-
-    if ((Offset + OptionLength) < Length) {
-      // Copy following substring, but include one space also
-      OptionLength--;
-
-      CopyMem (
-        NewLoadOptions + Offset,
-        LoadOptions + Offset + OptionLength,
-        (Length - OptionLength - Offset) * sizeof(CHAR16)
-      );
-    }
-  }
-
-  return NewLoadOptions;
-}
-
 INTN
 StrniCmp (
   IN CHAR16   *Str1,
@@ -472,6 +332,90 @@ CHAR16
   return Tmp;
 }
 
+/**
+  Duplicate a string.
+
+  @param Src             The source.
+
+  @return A new string which is duplicated copy of the source.
+  @retval NULL If there is not enough memory.
+
+**/
+CHAR16
+*EfiStrDuplicate (
+  IN CHAR16   *Src
+) {
+  CHAR16  *Dest;
+  UINTN   Size;
+
+  Size  = StrSize (Src); //at least 2bytes
+  Dest  = AllocatePool (Size);
+  //ASSERT (Dest != NULL);
+  if (Dest != NULL) {
+    CopyMem (Dest, Src, Size);
+  }
+
+  return Dest;
+}
+
+//Compare strings case insensitive
+INTN
+StriCmp (
+  IN  CONST CHAR16   *FirstS,
+  IN  CONST CHAR16   *SecondS
+) {
+  if (
+    (FirstS == NULL) || (SecondS == NULL) ||
+    (StrLen(FirstS) != StrLen(SecondS))
+  ) {
+    return 1;
+  }
+
+  while (*FirstS != L'\0') {
+    if ( (((*FirstS >= 'a') && (*FirstS <= 'z')) ? (*FirstS - ('a' - 'A')) : *FirstS ) !=
+      (((*SecondS >= 'a') && (*SecondS <= 'z')) ? (*SecondS - ('a' - 'A')) : *SecondS ) ) break;
+    FirstS++;
+    SecondS++;
+  }
+
+  return *FirstS - *SecondS;
+}
+
+/**
+  Adjusts the size of a previously allocated buffer.
+
+
+  @param OldPool         - A pointer to the buffer whose size is being adjusted.
+  @param OldSize         - The size of the current buffer.
+  @param NewSize         - The size of the new buffer.
+
+  @return   The newly allocated buffer.
+  @retval   NULL  Allocation failed.
+
+**/
+VOID
+*EfiReallocatePool (
+  IN VOID     *OldPool,
+  IN UINTN    OldSize,
+  IN UINTN    NewSize
+) {
+  VOID  *NewPool = NULL;
+
+  if (NewSize != 0) {
+    NewPool = AllocateZeroPool (NewSize);
+  }
+
+  if (OldPool != NULL) {
+    if (NewPool != NULL) {
+      CopyMem (NewPool, OldPool, OldSize < NewSize ? OldSize : NewSize);
+    }
+
+    FreePool (OldPool);
+  }
+
+  return NewPool;
+}
+
 UINT64
 AsciiStrVersionToUint64 (
   const CHAR8   *Version,
@@ -572,6 +516,46 @@ AsciiTrimSpaces (
   }
 
   return (EFI_SUCCESS);
+}
+
+// If Null-terminated strings are case insensitive equal or its sSize symbols are equal then TRUE
+BOOLEAN
+AsciiStriNCmp (
+  IN  CONST CHAR8   *FirstS,
+  IN  CONST CHAR8   *SecondS,
+  IN  CONST UINTN    sSize
+) {
+  INTN    i = sSize;
+
+  while ( i && (*FirstS != '\0') ) {
+    if ( (((*FirstS >= 'a') && (*FirstS <= 'z')) ? (*FirstS - ('a' - 'A')) : *FirstS ) !=
+      (((*SecondS >= 'a') && (*SecondS <= 'z')) ? (*SecondS - ('a' - 'A')) : *SecondS ) ) return FALSE;
+    FirstS++;
+    SecondS++;
+    i--;
+  }
+
+  return TRUE;
+}
+
+// Case insensitive search of WhatString in WhereString
+BOOLEAN
+AsciiStrStriN (
+  IN  CONST CHAR8   *WhatString,
+  IN  CONST UINTN   sWhatSize,
+  IN  CONST CHAR8   *WhereString,
+  IN  CONST UINTN   sWhereSize
+) {
+  INTN      i = sWhereSize;
+  BOOLEAN   Found = FALSE;
+
+  if (sWhatSize > sWhereSize) return FALSE;
+  for (; i && !Found; i--) {
+    Found = AsciiStriNCmp(WhatString, WhereString, sWhatSize);
+    WhereString++;
+  }
+
+  return Found;
 }
 
 UINT8

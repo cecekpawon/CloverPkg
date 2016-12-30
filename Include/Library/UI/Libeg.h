@@ -172,8 +172,11 @@ egInitScreen (
   IN BOOLEAN    SetMaxResolution
 );
 
-VOID egDumpGOPVideoModes();
-EFI_STATUS egSetMaxResolution();
+VOID
+egDumpGOPVideoModes();
+
+EFI_STATUS
+egSetMaxResolution();
 
 EFI_STATUS
 egSetScreenResolution (
@@ -191,9 +194,14 @@ egGetScreenSize (
   OUT INTN    *ScreenHeight
 );
 
-CHAR16    *egScreenDescription();
-BOOLEAN   egHasGraphicsMode();
-BOOLEAN   egIsGraphicsModeEnabled();
+CHAR16
+*egScreenDescription();
+
+BOOLEAN
+egHasGraphicsMode();
+
+BOOLEAN
+egIsGraphicsModeEnabled();
 
 VOID
 egSetGraphicsModeEnabled (
@@ -262,39 +270,6 @@ EG_IMAGE
   IN BOOLEAN              WantAlpha
 );
 
-EG_IMAGE
-*egEnsureImageSize (
-  IN EG_IMAGE   *Image,
-  IN INTN       Width,
-  IN INTN       Height,
-  IN EG_PIXEL   *Color
-);
-
-EFI_STATUS egLoadFile (
-  IN EFI_FILE_HANDLE  BaseDir,
-  IN CHAR16           *FileName,
-  OUT UINT8           **FileData,
-  OUT UINTN           *FileDataLength
-);
-
-EFI_STATUS egSaveFile (
-  IN EFI_FILE_HANDLE  BaseDir OPTIONAL,
-  IN CHAR16           *FileName,
-  IN UINT8            *FileData,
-  IN UINTN            FileDataLength
-);
-
-EFI_STATUS
-egMkDir (
-  IN EFI_FILE_HANDLE    BaseDir OPTIONAL,
-  IN CHAR16             *DirName
-);
-
-EFI_STATUS
-egFindESP (
-  OUT EFI_FILE_HANDLE   *RootDir
-);
-
 VOID
 egFillImage (
   IN OUT EG_IMAGE     *CompImage,
@@ -319,7 +294,8 @@ egComposeImage (
   IN INTN           PosY
 );
 
-VOID PrepareFont();
+VOID
+PrepareFont();
 
 VOID
 egMeasureText (
@@ -343,8 +319,6 @@ egClearScreen (
   IN EG_PIXEL     *Color
 );
 
-//VOID egDrawImage(IN EG_IMAGE *Image, IN INTN ScreenPosX, IN INTN ScreenPosY);
-
 VOID
 egDrawImageArea (
   IN EG_IMAGE   *Image,
@@ -365,7 +339,8 @@ egTakeImage (
   IN  INTN        AreaHeight
 );
 
-EFI_STATUS egScreenShot();
+EFI_STATUS
+egScreenShot();
 
 #endif /* __LIBEG_LIBEG_H__ */
 

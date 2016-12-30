@@ -50,29 +50,31 @@
 
 // variables
 
-EFI_HANDLE          SelfImageHandle;
-EFI_HANDLE          SelfDeviceHandle;
-EFI_LOADED_IMAGE    *SelfLoadedImage;
-EFI_FILE            *SelfRootDir;
-EFI_FILE            *SelfDir;
-CHAR16              *SelfDirPath;
-EFI_DEVICE_PATH     *SelfDevicePath;
-EFI_DEVICE_PATH     *SelfFullDevicePath;
-EFI_FILE            *ThemeDir = NULL;
-CHAR16              *ThemePath;
-BOOLEAN             gThemeChanged = FALSE;
-//BOOLEAN           gBootArgsChanged = FALSE;
-BOOLEAN             gBootChanged = FALSE;
-BOOLEAN             gThemeOptionsChanged = FALSE;
-BOOLEAN             gTextOnly = FALSE; // Temporary hold GlobalConfig.TextOnly. Switch (Text <-> Graphic) style after ESC.
+#define MAX_FILE_SIZE   (1024*1024*1024)
 
-EFI_FILE            *OEMDir;
-CHAR16              *OEMPath = DIR_CLOVER;
-//EFI_FILE            *OemThemeDir = NULL;
+EFI_HANDLE              SelfImageHandle;
+EFI_HANDLE              SelfDeviceHandle;
+EFI_LOADED_IMAGE        *SelfLoadedImage;
+EFI_FILE                *SelfRootDir;
+EFI_FILE                *SelfDir;
+CHAR16                  *SelfDirPath;
+EFI_DEVICE_PATH         *SelfDevicePath;
+EFI_DEVICE_PATH         *SelfFullDevicePath;
+EFI_FILE                *ThemeDir = NULL;
+CHAR16                  *ThemePath;
+BOOLEAN                 gThemeChanged = FALSE;
+//BOOLEAN               gBootArgsChanged = FALSE;
+BOOLEAN                 gBootChanged = FALSE;
+BOOLEAN                 gThemeOptionsChanged = FALSE;
+BOOLEAN                 gTextOnly = FALSE; // Temporary hold GlobalConfig.TextOnly. Switch (Text <-> Graphic) style after ESC.
 
-REFIT_VOLUME        *SelfVolume = NULL;
-REFIT_VOLUME        **Volumes = NULL;
-UINTN               VolumesCount = 0;
+EFI_FILE                *OEMDir;
+CHAR16                  *OEMPath = DIR_CLOVER;
+//EFI_FILE                *OemThemeDir = NULL;
+
+REFIT_VOLUME            *SelfVolume = NULL;
+REFIT_VOLUME            **Volumes = NULL;
+UINTN                   VolumesCount = 0;
 //
 // Unicode collation protocol interface
 //
@@ -80,9 +82,8 @@ EFI_UNICODE_COLLATION_PROTOCOL    *mUnicodeCollation = NULL;
 
 // functions
 
-static EFI_STATUS FinishInitRefitLib(VOID);
-
-static VOID UninitVolumes(VOID);
+static EFI_STATUS   FinishInitRefitLib(VOID);
+static VOID         UninitVolumes(VOID);
 
 BOOLEAN
 MetaiMatch (
@@ -134,7 +135,7 @@ InitRefitLib (
   SelfDevicePath = AllocateAlignedPages(EFI_SIZE_TO_PAGES(DevicePathSize), 64);
   CopyMem(SelfDevicePath, TmpDevicePath, DevicePathSize);
 
-  DBG("SelfDevicePath=%s @%x\n", FileDevicePathToStr(SelfDevicePath), SelfDeviceHandle);
+  //DBG("SelfDevicePath=%s @%x\n", FileDevicePathToStr(SelfDevicePath), SelfDeviceHandle);
 
   // find the current directory
   FilePathAsString = FileDevicePathToStr(SelfLoadedImage->FilePath);
@@ -154,7 +155,7 @@ InitRefitLib (
 
   SelfDirPath = FilePathAsString;
 
-  DBG("SelfDirPath = %s\n", SelfDirPath);
+  //DBG("SelfDirPath = %s\n", SelfDirPath);
 
   return FinishInitRefitLib();
 }
@@ -310,10 +311,11 @@ AddListElement (
 
   if ((*ElementCount & (SubMenuCount - 1)) == 0) {
     AllocateCount = *ElementCount + SubMenuCount;
-    if (*ElementCount == 0)
+    if (*ElementCount == 0) {
       *ListPtr = AllocatePool(sizeof(VOID *) * AllocateCount);
-    else
+    } else {
       *ListPtr =  EfiReallocatePool((VOID *)*ListPtr, sizeof(VOID *) * (*ElementCount), sizeof(VOID *) * AllocateCount);
+    }
   }
 
   (*ListPtr)[*ElementCount] = NewElement;
@@ -1505,6 +1507,187 @@ DirIterClose (
 }
 
 //
+// Basic file operations
+//
+
+EFI_STATUS
+egLoadFile (
+  IN EFI_FILE_HANDLE    BaseDir,
+  IN CHAR16             *FileName,
+  OUT UINT8             **FileData,
+  OUT UINTN             *FileDataLength
+) {
+  EFI_STATUS        Status;
+  EFI_FILE_HANDLE   FileHandle;
+  EFI_FILE_INFO     *FileInfo;
+  UINT64            ReadSize;
+  UINTN             BufferSize;
+  UINT8             *Buffer;
+
+  Status = BaseDir->Open(BaseDir, &FileHandle, FileName, EFI_FILE_MODE_READ, 0);
+
+  if (EFI_ERROR(Status)){
+    return Status;
+  }
+
+  FileInfo = EfiLibFileInfo(FileHandle);
+
+  if (FileInfo == NULL) {
+    FileHandle->Close(FileHandle);
+    return EFI_NOT_FOUND;
+  }
+
+  ReadSize = FileInfo->FileSize;
+
+  if (ReadSize > MAX_FILE_SIZE){
+    ReadSize = MAX_FILE_SIZE;
+  }
+
+  FreePool(FileInfo);
+
+  BufferSize = (UINTN)ReadSize;   // was limited to 1 GB above, so this is safe
+  Buffer = (UINT8 *) AllocateZeroPool (BufferSize);
+  if (Buffer == NULL) {
+    FileHandle->Close(FileHandle);
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  Status = FileHandle->Read(FileHandle, &BufferSize, Buffer);
+  FileHandle->Close(FileHandle);
+
+  if (EFI_ERROR(Status)) {
+    FreePool(Buffer);
+    return Status;
+  }
+
+  *FileData = Buffer;
+  *FileDataLength = BufferSize;
+
+  return EFI_SUCCESS;
+}
+
+//Slice - this is gEfiPartTypeSystemPartGuid
+//static EFI_GUID ESPGuid = { 0xc12a7328, 0xf81f, 0x11d2, { 0xba, 0x4b, 0x00, 0xa0, 0xc9, 0x3e, 0xc9, 0x3b } };
+//there is assumed only one ESP partition. What if there are two HDD gpt formatted?
+EFI_STATUS
+egFindESP (
+  OUT EFI_FILE_HANDLE   *RootDir
+) {
+  EFI_STATUS    Status;
+  UINTN         HandleCount = 0;
+  EFI_HANDLE    *Handles;
+
+  Status = gBS->LocateHandleBuffer(ByProtocol, &gEfiPartTypeSystemPartGuid, NULL, &HandleCount, &Handles);
+  if (!EFI_ERROR(Status) && HandleCount > 0) {
+    *RootDir = EfiLibOpenRoot(Handles[0]);
+
+    if (*RootDir == NULL){
+      Status = EFI_NOT_FOUND;
+    }
+
+    FreePool(Handles);
+  }
+  return Status;
+}
+
+//if (NULL, ...) then save to EFI partition
+EFI_STATUS
+egSaveFile (
+  IN EFI_FILE_HANDLE    BaseDir OPTIONAL,
+  IN CHAR16             *FileName,
+  IN UINT8              *FileData,
+  IN UINTN              FileDataLength
+) {
+  EFI_STATUS        Status;
+  EFI_FILE_HANDLE   FileHandle;
+  UINTN             BufferSize;
+  BOOLEAN           CreateNew = TRUE;
+
+  if (BaseDir == NULL) {
+    Status = egFindESP(&BaseDir);
+    if (EFI_ERROR(Status)) {
+      return Status;
+    }
+  }
+
+  // Delete existing file if it exists
+  Status = BaseDir->Open(BaseDir, &FileHandle, FileName,
+                         EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE, 0);
+
+  if (!EFI_ERROR(Status)) {
+    Status = FileHandle->Delete(FileHandle);
+
+    if (Status == EFI_WARN_DELETE_FAILURE) {
+      //This is READ_ONLY file system
+      CreateNew = FALSE; // will write into existing file
+    }
+  }
+
+  if (CreateNew) {
+    // Write new file
+    Status = BaseDir->Open(BaseDir, &FileHandle, FileName,
+                           EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE, 0);
+    if (EFI_ERROR(Status)) {
+      return Status;
+    }
+  } else {
+    //to write into existing file we must sure it size larger then our data
+    EFI_FILE_INFO *Info = EfiLibFileInfo(FileHandle);
+    if (Info && Info->FileSize < FileDataLength) {
+      return EFI_NOT_FOUND;
+    }
+  }
+
+  if (!FileHandle) {
+    return EFI_NOT_FOUND;
+  }
+
+  BufferSize = FileDataLength;
+  Status = FileHandle->Write(FileHandle, &BufferSize, FileData);
+  FileHandle->Close(FileHandle);
+
+  return Status;
+}
+
+
+EFI_STATUS
+egMkDir (
+  IN EFI_FILE_HANDLE    BaseDir OPTIONAL,
+  IN CHAR16             *DirName
+) {
+  EFI_STATUS        Status;
+  EFI_FILE_HANDLE   FileHandle;
+
+  //DBG("Looking up dir assets (%s):", DirName);
+
+  if (BaseDir == NULL) {
+    Status = egFindESP(&BaseDir);
+
+    if (EFI_ERROR(Status)) {
+      //DBG(" %r\n", Status);
+      return Status;
+    }
+  }
+
+  Status = BaseDir->Open (
+                      BaseDir, &FileHandle, DirName,
+                      EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE, EFI_FILE_DIRECTORY
+                    );
+
+  if (EFI_ERROR(Status)) {
+    // Write new dir
+    //DBG("%r, attempt to create one:", Status);
+    Status = BaseDir->Open (
+                        BaseDir, &FileHandle, DirName,
+                        EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE, EFI_FILE_DIRECTORY
+                      );
+  }
+
+  //DBG(" %r\n", Status);
+  return Status;
+}
+
+//
 // file name manipulation
 //
 BOOLEAN
@@ -1657,6 +1840,26 @@ FindMem (
   return -1;
 }
 
+CHAR8
+*SearchString (
+  IN  CHAR8       *Source,
+  IN  UINT64      SourceSize,
+  IN  CHAR8       *Search,
+  IN  UINTN       SearchSize
+) {
+  CHAR8   *End = Source + SourceSize;
+
+  while (Source < End) {
+    if (CompareMem(Source, Search, SearchSize) == 0) {
+      return Source;
+    } else {
+      Source++;
+    }
+  }
+
+  return NULL;
+}
+
 //
 // Aptio UEFI returns File DevPath as 2 nodes (dir, file)
 // and DevicePathToStr connects them with /, but we need '\\'
@@ -1691,7 +1894,7 @@ CHAR16
 *FileDevicePathFileToStr (
   IN EFI_DEVICE_PATH_PROTOCOL   *DevPath
 ) {
-  EFI_DEVICE_PATH_PROTOCOL *Node;
+  EFI_DEVICE_PATH_PROTOCOL  *Node;
 
   if (DevPath == NULL) {
     return NULL;
@@ -1712,41 +1915,46 @@ CHAR16
   return NULL;
 }
 
-//BOOLEAN DumpVariable(CHAR16* Name, EFI_GUID* Guid, INTN DevicePathAt) {
-//  UINTN   dataSize = 0, i;
-//  UINT8   *data = NULL;
-//  EFI_STATUS  Status;
-//
-//  Status = gRT->GetVariable (Name, Guid, NULL, &dataSize, data);
-//
-//  if (Status == EFI_BUFFER_TOO_SMALL) {
-//    data = AllocateZeroPool(dataSize);
-//    Status = gRT->GetVariable (Name, Guid, NULL, &dataSize, data);
-//    if (EFI_ERROR(Status)) {
-//      DBG("Can't get %s, size=%d\n", Name, dataSize);
-//      FreePool(data);
-//      data = NULL;
-//    } else {
-//      DBG("%s var size=%d\n", Name, dataSize);
-//      for (i = 0; i < dataSize; i++) {
-//        DBG("%02x ", data[i]);
-//      }
-//
-//      DBG("\n");
-//
-//      if (DevicePathAt >= 0) {
-//        DBG("%s: %s\n", Name, FileDevicePathToStr((EFI_DEVICE_PATH_PROTOCOL*)&data[DevicePathAt]));
-//      }
-//    }
-//  }
-//
-//  if (data) {
-//    FreePool(data);
-//    return TRUE;
-//  }
-//
-//  return FALSE;
-//}
+BOOLEAN
+DumpVariable (
+  CHAR16    *Name,
+  EFI_GUID  *Guid,
+  INTN      DevicePathAt
+) {
+  UINTN       dataSize = 0, i;
+  UINT8       *data = NULL;
+  EFI_STATUS  Status;
+
+  Status = gRT->GetVariable (Name, Guid, NULL, &dataSize, data);
+
+  if (Status == EFI_BUFFER_TOO_SMALL) {
+    data = AllocateZeroPool(dataSize);
+    Status = gRT->GetVariable (Name, Guid, NULL, &dataSize, data);
+    if (EFI_ERROR(Status)) {
+      DBG("Can't get %s, size=%d\n", Name, dataSize);
+      FreePool(data);
+      data = NULL;
+    } else {
+      DBG("%s var size=%d\n", Name, dataSize);
+      for (i = 0; i < dataSize; i++) {
+        DBG("%02x ", data[i]);
+      }
+
+      DBG("\n");
+
+      if (DevicePathAt >= 0) {
+        DBG("%s: %s\n", Name, FileDevicePathToStr((EFI_DEVICE_PATH_PROTOCOL*)&data[DevicePathAt]));
+      }
+    }
+  }
+
+  if (data) {
+    FreePool(data);
+    return TRUE;
+  }
+
+  return FALSE;
+}
 
 VOID
 DbgHeader (
@@ -1809,6 +2017,239 @@ BootArgsExists (
   FreePool(TmpOption);
 
   return Found;
+}
+
+//
+//  BmLib.c
+//
+
+/**
+
+  Find the first instance of this Protocol
+  in the system and return it's interface.
+
+
+  @param ProtocolGuid    Provides the protocol to search for
+  @param Interface       On return, a pointer to the first interface
+                         that matches ProtocolGuid
+
+  @retval  EFI_SUCCESS      A protocol instance matching ProtocolGuid was found
+  @retval  EFI_NOT_FOUND    No protocol instances were found that match ProtocolGuid
+
+**/
+EFI_STATUS
+EfiLibLocateProtocol (
+  IN  EFI_GUID    *ProtocolGuid,
+  OUT VOID        **Interface
+) {
+  EFI_STATUS  Status;
+
+  Status = gBS->LocateProtocol (
+    ProtocolGuid,
+    NULL,
+    (VOID **) Interface
+  );
+
+  return Status;
+}
+
+/**
+
+  Function opens and returns a file handle to the root directory of a volume.
+
+  @param DeviceHandle    A handle for a device
+
+  @return A valid file handle or NULL is returned
+
+**/
+EFI_FILE_HANDLE
+EfiLibOpenRoot (
+  IN EFI_HANDLE   DeviceHandle
+) {
+  EFI_STATUS                        Status;
+  EFI_SIMPLE_FILE_SYSTEM_PROTOCOL   *Volume;
+  EFI_FILE_HANDLE                   File;
+
+  File = NULL;
+
+  //
+  // File the file system interface to the device
+  //
+  Status = gBS->HandleProtocol (
+    DeviceHandle,
+    &gEfiSimpleFileSystemProtocolGuid,
+    (VOID **) &Volume
+  );
+
+  //
+  // Open the root directory of the volume
+  //
+  if (!EFI_ERROR (Status)) {
+    Status = Volume->OpenVolume (
+      Volume,
+      &File
+    );
+  }
+
+  return EFI_ERROR (Status) ? NULL : File;
+}
+
+/**
+
+  Function gets the file system information from an open file descriptor,
+  and stores it in a buffer allocated from pool.
+
+
+  @param FHand           The file handle.
+
+  @return                A pointer to a buffer with file information.
+  @retval                NULL is returned if failed to get Volume Label Info.
+
+**/
+EFI_FILE_SYSTEM_VOLUME_LABEL
+*EfiLibFileSystemVolumeLabelInfo (
+  IN EFI_FILE_HANDLE    FHand
+) {
+  EFI_STATUS    Status;
+  UINTN         Size = 0;
+  EFI_FILE_SYSTEM_VOLUME_LABEL *VolumeInfo = NULL;
+
+  Status = FHand->GetInfo (FHand, &gEfiFileSystemVolumeLabelInfoIdGuid, &Size, VolumeInfo);
+  if (Status == EFI_BUFFER_TOO_SMALL) {
+    // inc size by 2 because some drivers (HFSPlus.efi) do not count 0 at the end of file name
+    Size += 2;
+    VolumeInfo = AllocateZeroPool (Size);
+    Status = FHand->GetInfo (FHand, &gEfiFileSystemVolumeLabelInfoIdGuid, &Size, VolumeInfo);
+    // Check to make sure this isn't actually EFI_FILE_SYSTEM_INFO
+    if (!EFI_ERROR(Status)) {
+       EFI_FILE_SYSTEM_INFO *FSInfo = (EFI_FILE_SYSTEM_INFO *)VolumeInfo;
+       if (FSInfo->Size == (UINT64)Size) {
+          // Allocate a new volume label
+          VolumeInfo = (EFI_FILE_SYSTEM_VOLUME_LABEL *)EfiStrDuplicate(FSInfo->VolumeLabel);
+          FreePool(FSInfo);
+       }
+    }
+
+    if (!EFI_ERROR(Status)) {
+       return VolumeInfo;
+    }
+
+    FreePool(VolumeInfo);
+  }
+
+  return NULL;
+}
+
+/**
+
+  Function gets the file information from an open file descriptor, and stores it
+  in a buffer allocated from pool.
+
+  @param FHand           File Handle.
+
+  @return                A pointer to a buffer with file information or NULL is returned
+
+**/
+EFI_FILE_INFO
+*EfiLibFileInfo (
+  IN EFI_FILE_HANDLE    FHand
+) {
+  EFI_STATUS      Status;
+  EFI_FILE_INFO   *FileInfo = NULL;
+  UINTN           Size = 0;
+
+  Status = FHand->GetInfo (FHand, &gEfiFileInfoGuid, &Size, FileInfo);
+  if (Status == EFI_BUFFER_TOO_SMALL) {
+    // inc size by 2 because some drivers (HFSPlus.efi) do not count 0 at the end of file name
+    Size += 2;
+    FileInfo = AllocateZeroPool (Size);
+    Status = FHand->GetInfo (FHand, &gEfiFileInfoGuid, &Size, FileInfo);
+  }
+
+  return EFI_ERROR(Status)?NULL:FileInfo;
+}
+
+EFI_FILE_SYSTEM_INFO
+*EfiLibFileSystemInfo (
+  IN EFI_FILE_HANDLE    FHand
+) {
+  EFI_STATUS    Status;
+  UINTN         Size = 0;
+  EFI_FILE_SYSTEM_INFO    *FileSystemInfo = NULL;
+
+  Status = FHand->GetInfo (FHand, &gEfiFileSystemInfoGuid, &Size, FileSystemInfo);
+  if (Status == EFI_BUFFER_TOO_SMALL) {
+    // inc size by 2 because some drivers (HFSPlus.efi) do not count 0 at the end of file name
+    Size += 2;
+    FileSystemInfo = AllocateZeroPool (Size);
+    Status = FHand->GetInfo (FHand, &gEfiFileSystemInfoGuid, &Size, FileSystemInfo);
+  }
+
+  return EFI_ERROR(Status)?NULL:FileSystemInfo;
+}
+
+/**
+  Function is used to determine the number of device path instances
+  that exist in a device path.
+
+
+  @param DevicePath      A pointer to a device path data structure.
+
+  @return This function counts and returns the number of device path instances
+          in DevicePath.
+
+**/
+UINTN
+EfiDevicePathInstanceCount (
+  IN EFI_DEVICE_PATH_PROTOCOL      *DevicePath
+) {
+  UINTN   Count = 0, Size;
+
+  while (GetNextDevicePathInstance (&DevicePath, &Size) != NULL) {
+    Count += 1;
+  }
+
+  return Count;
+}
+
+INTN
+TimeCompare (
+  IN EFI_TIME   *Time1,
+  IN EFI_TIME   *Time2
+) {
+ INTN Comparison;
+
+ if (Time1 == NULL) {
+   if (Time2 == NULL) {
+     return 0;
+   } else {
+     return -1;
+   }
+ } else if (Time2 == NULL) {
+   return 1;
+ }
+
+ Comparison = Time1->Year - Time2->Year;
+ if (Comparison == 0) {
+   Comparison = Time1->Month - Time2->Month;
+   if (Comparison == 0) {
+     Comparison = Time1->Day - Time2->Day;
+     if (Comparison == 0) {
+       Comparison = Time1->Hour - Time2->Hour;
+       if (Comparison == 0) {
+         Comparison = Time1->Minute - Time2->Minute;
+         if (Comparison == 0) {
+           Comparison = Time1->Second - Time2->Second;
+           if (Comparison == 0) {
+             Comparison = Time1->Nanosecond - Time2->Nanosecond;
+           }
+         }
+       }
+     }
+   }
+ }
+
+ return Comparison;
 }
 
 // EOF

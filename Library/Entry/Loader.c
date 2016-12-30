@@ -655,10 +655,6 @@ FINISH:
     (Patches == NULL) ? (KERNEL_AND_KEXT_PATCHES *)(((UINTN)&gSettings) + OFFSET_OF(SETTINGS_DATA, KernelAndKextPatches)) : Patches
   );
 
-  //#ifdef DUMP_KERNEL_KEXT_PATCHES
-  //  DumpKernelAndKextPatches(Entry->KernelAndKextPatches);
-  //#endif
-
   //DBG("%aLoader entry created for '%s'\n", indent, Entry->DevicePathString);
 
   return Entry;
@@ -770,6 +766,7 @@ AddDefaultMenu (
   if (SubEntry) {
     AddOptionEntries(SubScreen, SubEntry);
     SubEntry->me.Title = L"Boot with selected options";
+    SubEntry->me.ID = MENU_ENTRY_ID_BOOT;
     AddMenuEntry(SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
   }
 
@@ -1518,4 +1515,144 @@ AddCustomEntries() {
     }
   }
   //DBG("Custom entries finish\n");
+}
+
+LOADER_ENTRY
+*DuplicateLoaderEntry (
+  IN LOADER_ENTRY   *Entry
+) {
+  if(Entry == NULL) {
+    return NULL;
+  }
+
+  LOADER_ENTRY *DuplicateEntry = AllocateZeroPool(sizeof(LOADER_ENTRY));
+
+  if (DuplicateEntry) {
+    DuplicateEntry->me.Tag                = Entry->me.Tag;
+    //DuplicateEntry->me.AtClick          = ActionEnter;
+    DuplicateEntry->Volume                = Entry->Volume;
+    DuplicateEntry->DevicePathString      = EfiStrDuplicate(Entry->DevicePathString);
+    DuplicateEntry->LoadOptions           = EfiStrDuplicate(Entry->LoadOptions);
+    DuplicateEntry->LoaderPath            = EfiStrDuplicate(Entry->LoaderPath);
+    DuplicateEntry->VolName               = EfiStrDuplicate(Entry->VolName);
+    DuplicateEntry->DevicePath            = Entry->DevicePath;
+    DuplicateEntry->Flags                 = Entry->Flags;
+    DuplicateEntry->LoaderType            = Entry->LoaderType;
+    DuplicateEntry->OSVersion             = Entry->OSVersion;
+    DuplicateEntry->BuildVersion          = Entry->BuildVersion;
+    DuplicateEntry->KernelAndKextPatches  = Entry->KernelAndKextPatches;
+  }
+
+  return DuplicateEntry;
+}
+
+CHAR16
+*ToggleLoadOptions (
+      UINT32    State,
+  IN  CHAR16    *LoadOptions,
+  IN  CHAR16    *LoadOption
+) {
+  return State ? AddLoadOption(LoadOptions, LoadOption) : RemoveLoadOption(LoadOptions, LoadOption);
+}
+
+CHAR16
+*AddLoadOption (
+  IN CHAR16   *LoadOptions,
+  IN CHAR16   *LoadOption
+) {
+  // If either option strings are null nothing to do
+  if (LoadOptions == NULL) {
+    if (LoadOption == NULL) {
+      return NULL;
+    }
+
+    // Duplicate original options as nothing to add
+    return EfiStrDuplicate(LoadOption);
+  }
+
+  // If there is no option or it is already present duplicate original
+  else if ((LoadOption == NULL) || BootArgsExists(LoadOptions, LoadOption)) {
+    return EfiStrDuplicate(LoadOptions);
+  }
+
+  // Otherwise add option
+  return PoolPrint(L"%s %s", LoadOptions, LoadOption);
+}
+
+CHAR16
+*RemoveLoadOption (
+  IN CHAR16   *LoadOptions,
+  IN CHAR16   *LoadOption
+) {
+  CHAR16    *Placement, *NewLoadOptions;
+  UINTN     Length, Offset, OptionLength;
+
+  //DBG("LoadOptions: '%s', remove LoadOption: '%s'\n", LoadOptions, LoadOption);
+  // If there are no options then nothing to do
+  if (LoadOptions == NULL) {
+    return NULL;
+  }
+
+  // If there is no option to remove then duplicate original
+  if (LoadOption == NULL) {
+    return EfiStrDuplicate(LoadOptions);
+  }
+
+  // If not present duplicate original
+  Placement = StriStr(LoadOptions, LoadOption);
+  if (Placement == NULL) {
+    return EfiStrDuplicate(LoadOptions);
+  }
+
+  // Get placement of option in original options
+  Offset = (Placement - LoadOptions);
+  Length = StrLen(LoadOptions);
+  OptionLength = StrLen(LoadOption);
+
+  // If this is just part of some larger option (contains non-space at the beginning or end)
+  if (
+    ((Offset > 0) && (LoadOptions[Offset - 1] != L' ')) ||
+    (((Offset + OptionLength) < Length) && (LoadOptions[Offset + OptionLength] != L' '))
+  ) {
+    return EfiStrDuplicate(LoadOptions);
+  }
+
+  // Consume preceeding spaces
+  while ((Offset > 0) && (LoadOptions[Offset - 1] == L' ')) {
+    OptionLength++;
+    Offset--;
+  }
+
+  // Consume following spaces
+  while (LoadOptions[Offset + OptionLength] == L' ') {
+    OptionLength++;
+  }
+
+  // If it's the whole string return NULL
+  if (OptionLength == Length) {
+    return NULL;
+  }
+
+  if (Offset == 0) {
+    // Simple case - we just need substring after OptionLength position
+    NewLoadOptions = EfiStrDuplicate(LoadOptions + OptionLength);
+  } else {
+    // The rest of LoadOptions is Length - OptionLength, but we may need additional space and ending 0
+    NewLoadOptions = AllocateZeroPool((Length - OptionLength + 2) * sizeof(CHAR16));
+    // Copy preceeding substring
+    CopyMem(NewLoadOptions, LoadOptions, Offset * sizeof(CHAR16));
+
+    if ((Offset + OptionLength) < Length) {
+      // Copy following substring, but include one space also
+      OptionLength--;
+
+      CopyMem (
+        NewLoadOptions + Offset,
+        LoadOptions + Offset + OptionLength,
+        (Length - OptionLength - Offset) * sizeof(CHAR16)
+      );
+    }
+  }
+
+  return NewLoadOptions;
 }

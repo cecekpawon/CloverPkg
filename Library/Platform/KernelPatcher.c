@@ -18,8 +18,9 @@
 
 // runtime debug
 #define DBG_ON(entry) \
-  ((entry != NULL) && (entry->KernelAndKextPatches != NULL) \
-  /*&& entry->KernelAndKextPatches->KPDebug*/ && (OSFLAG_ISSET(gSettings.FlagsBits, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
+  ((entry != NULL) && (entry->KernelAndKextPatches != NULL) && \
+  (OSFLAG_ISSET(gSettings.FlagsBits, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
+  /*entry->KernelAndKextPatches->KPDebug && \*/
 #define DBG_RT(entry, ...) \
   if (DBG_ON(entry)) AsciiPrint(__VA_ARGS__)
 #define DBG_PAUSE(entry, s) \
@@ -139,6 +140,7 @@ InitKernel (
             ) {
               KernelInfo->PrelinkTextAddr = Addr;
               KernelInfo->PrelinkTextSize = Size;
+              KernelInfo->PrelinkTextOff = Off;
             }
             else if (
               (AsciiStrCmp(sect64->segname, kPrelinkInfoSegment) == 0) &&
@@ -146,6 +148,7 @@ InitKernel (
             ) {
               KernelInfo->PrelinkInfoAddr = Addr;
               KernelInfo->PrelinkInfoSize = Size;
+              KernelInfo->PrelinkInfoOff = Off;
             }
             else if (
               (AsciiStrCmp(sect64->segname, kKldSegment) == 0) &&
@@ -905,7 +908,7 @@ VOID
 KernelAndKextsPatcherStart (
   IN LOADER_ENTRY   *Entry
 ) {
-  BOOLEAN   KextPatchesNeeded;
+  BOOLEAN   KextPatchesNeeded = FALSE;
 
   // we will call KernelAndKextPatcherInit() only if needed
   if ((Entry == NULL) || (Entry->KernelAndKextPatches == NULL)) {
@@ -932,8 +935,10 @@ KernelAndKextsPatcherStart (
   KernelInfo->DataOff = 0;
   KernelInfo->PrelinkTextAddr = 0;
   KernelInfo->PrelinkTextSize = 0;
+  KernelInfo->PrelinkTextOff = 0;
   KernelInfo->PrelinkInfoAddr = 0;
   KernelInfo->PrelinkInfoSize = 0;
+  KernelInfo->PrelinkInfoOff = 0;
   KernelInfo->LoadEXEStart = 0;
   KernelInfo->LoadEXEEnd = 0;
   KernelInfo->LoadEXESize = 0;

@@ -283,7 +283,7 @@ GetSleepImageLocation (
   DBG("    read prefs %s status=%r\n", PrefName, Status);
 
   if (!EFI_ERROR(Status)) {
-    Status = ParseXML((const CHAR8*)PrefBuffer, &PrefDict, 0);
+    Status = ParseXML((CHAR8*)PrefBuffer, &PrefDict, 0);
     if (!EFI_ERROR(Status)) {
       dict = GetProperty(PrefDict, "Custom Profile");
       if (dict) {
