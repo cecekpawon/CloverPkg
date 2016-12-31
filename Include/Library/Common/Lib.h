@@ -937,7 +937,7 @@ TimeCompare (
 
 #define KERNEL_MAX_SIZE 40000000
 //#define FSearchReplace (Source, Search, Replace) SearchAndReplace(Source, KERNEL_MAX_SIZE, Search, sizeof(Search), Replace, 1)
-#define FSearchReplace (Source, Size, Search, Replace) SearchAndReplace((UINT8*)(UINTN)Source, Size, Search, sizeof(Search), Replace, 1)
+#define FSearchReplace(Source, Size, Search, Replace) SearchAndReplace((UINT8*)(UINTN)Source, Size, Search, sizeof(Search), Replace, 1)
 BOOLEAN IsKernelIs64BitOnly (IN LOADER_ENTRY *Entry);
 VOID    DbgHeader (CHAR8 *str);
 

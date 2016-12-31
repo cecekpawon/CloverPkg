@@ -86,18 +86,22 @@ typedef struct KERNEL_INFO {
   UINT32                KldAddr;
   UINT32                KldSize;
   UINT32                KldOff;
+  UINT8                 KldIndex;
   UINT32                TextAddr;
   UINT32                TextSize;
   UINT32                TextOff;
-  //UINT32                ConstAddr;
-  //UINT32                ConstSize;
-  //UINT32                ConstOff;
+  UINT8                 TextIndex;
+  UINT32                ConstAddr;
+  UINT32                ConstSize;
+  UINT32                ConstOff;
+  UINT8                 ConstIndex;
   //UINT32                CStringAddr;
   //UINT32                CStringSize;
   //UINT32                CStringOff;
   UINT32                DataAddr;
   UINT32                DataSize;
   UINT32                DataOff;
+  UINT8                 DataIndex;
                         // notes:
                         // - 64bit segCmd64->vmaddr is 0xffffff80xxxxxxxx and we are taking
                         //   only lower 32bit part into PrelinkTextAddr
@@ -105,6 +109,7 @@ typedef struct KERNEL_INFO {
   UINT32                PrelinkTextAddr;
   UINT32                PrelinkTextSize;
   UINT32                PrelinkTextOff;
+  UINT8                 PrelinkTextIndex;
                         // notes:
                         // - 64bit sect->addr is 0xffffff80xxxxxxxx and we are taking
                         //   only lower 32bit part into PrelinkInfoAddr
@@ -112,6 +117,7 @@ typedef struct KERNEL_INFO {
   UINT32                PrelinkInfoAddr;
   UINT32                PrelinkInfoSize;
   UINT32                PrelinkInfoOff;
+  UINT8                 PrelinkInfoIndex;
   UINT32                LoadEXEStart;
   UINT32                LoadEXEEnd;
   UINT32                LoadEXESize;

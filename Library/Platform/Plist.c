@@ -786,7 +786,8 @@ ParseNextTag (
   CHAR8   *buffer,
   TagPtr  *tag
 ) {
-  INT32     length, pos, empty = 0, tLen;
+  INT32     length, pos, empty = 0;
+  UINTN     tLen;
   CHAR8     *tagName;
   //TagPtr  refTag;
   BOOLEAN   isTagFalse, isTagTrue;

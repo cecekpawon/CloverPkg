@@ -95,7 +95,7 @@ InitKernel (
                               symoff = 0, nsyms = 0, stroff = 0, strsize = 0;
           UINTN               cnt;
           UINT8               *Data = (UINT8*)KernelInfo->Bin,
-                              *symbin, *strbin;
+                              *symbin, *strbin, iSectionIndex = 0;
   struct  nlist_64            *systabentry;
   struct  symtab_command      *comSymTab;
   struct  load_command        *loadCommand;
@@ -125,6 +125,10 @@ InitKernel (
           }
         }
 
+        if (!iSectionIndex) {
+          iSectionIndex++; // Start from 1
+        }
+
         while (sectionIndex < segCmd64->cmdsize) {
           sect64 = (struct section_64 *)((UINT8*)segCmd64 + sectionIndex);
           sectionIndex += sizeof(struct section_64);
@@ -141,6 +145,7 @@ InitKernel (
               KernelInfo->PrelinkTextAddr = Addr;
               KernelInfo->PrelinkTextSize = Size;
               KernelInfo->PrelinkTextOff = Off;
+              KernelInfo->PrelinkTextIndex = iSectionIndex;
             }
             else if (
               (AsciiStrCmp(sect64->segname, kPrelinkInfoSegment) == 0) &&
@@ -149,6 +154,7 @@ InitKernel (
               KernelInfo->PrelinkInfoAddr = Addr;
               KernelInfo->PrelinkInfoSize = Size;
               KernelInfo->PrelinkInfoOff = Off;
+              KernelInfo->PrelinkInfoIndex = iSectionIndex;
             }
             else if (
               (AsciiStrCmp(sect64->segname, kKldSegment) == 0) &&
@@ -157,6 +163,7 @@ InitKernel (
               KernelInfo->KldAddr = Addr;
               KernelInfo->KldSize = Size;
               KernelInfo->KldOff = Off;
+              KernelInfo->KldIndex = iSectionIndex;
             }
             else if (
               (AsciiStrCmp(sect64->segname, kDataSegment) == 0) &&
@@ -165,12 +172,20 @@ InitKernel (
               KernelInfo->DataAddr = Addr;
               KernelInfo->DataSize = Size;
               KernelInfo->DataOff = Off;
+              KernelInfo->DataIndex = iSectionIndex;
             }
             else if (AsciiStrCmp(sect64->segname, kTextSegment) == 0) {
               if (AsciiStrCmp(sect64->sectname, kTextTextSection) == 0) {
                 KernelInfo->TextAddr = Addr;
                 KernelInfo->TextSize = Size;
                 KernelInfo->TextOff = Off;
+                KernelInfo->TextIndex = iSectionIndex;
+              }
+              else if (AsciiStrCmp(sect64->sectname, kTextConstSection) == 0) {
+                KernelInfo->ConstAddr = Addr;
+                KernelInfo->ConstSize = Size;
+                KernelInfo->ConstOff = Off;
+                KernelInfo->ConstIndex = iSectionIndex;
               }
 #if 0
               else if (
@@ -182,6 +197,8 @@ InitKernel (
 #endif
             }
           }
+
+          iSectionIndex++;
         }
         break;
 
@@ -201,7 +218,7 @@ InitKernel (
     binaryIndex += cmdsize;
   }
 
-  if ((linkeditaddr != 0) && (symoff != 0)) {
+  if (iSectionIndex && (linkeditaddr != 0) && (symoff != 0)) {
     UINTN     CntPatches = 12; // Max get / patches values. TODO: to use bits like Revoboot
     CHAR8     *symbolName = NULL;
     UINT32    patchLocation;
@@ -220,74 +237,67 @@ InitKernel (
         Addr = (UINT32) systabentry->n_value;
         patchLocation = Addr - (UINT32)(UINTN)KernelInfo->Bin + (UINT32)KernelInfo->RelocBase;
 
-        switch (systabentry->n_sect) {
-          case 1: // __TEXT, __text
-            if (AsciiStrCmp (symbolName, "__ZN6OSKext14loadExecutableEv") == 0) {
-              KernelInfo->LoadEXEStart = patchLocation;
-              CntPatches--;
-            }
-            else if (AsciiStrCmp (symbolName, "__ZN6OSKext23jettisonLinkeditSegmentEv") == 0) {
-              KernelInfo->LoadEXEEnd = patchLocation;
-              CntPatches--;
-            }
-            else if (AsciiStrCmp (symbolName, "_cpuid_set_info") == 0) {
-              KernelInfo->CPUInfoStart = patchLocation;
-              CntPatches--;
-            }
-            else if (AsciiStrCmp (symbolName, "_cpuid_info") == 0) {
-              KernelInfo->CPUInfoEnd = patchLocation;
-              CntPatches--;
-            }
-            break;
-
-          case 2: // __TEXT, __const
-            if (AsciiStrCmp (symbolName, "_version") == 0) {
-              KernelInfo->Version = PTR_OFFSET (Data, patchLocation, CHAR8 *);
-              CntPatches--;
-            }
-            else if (AsciiStrCmp (symbolName, "_version_major") == 0) {
-              KernelInfo->VersionMajor = *(PTR_OFFSET (Data, patchLocation, UINT32 *));
-              CntPatches--;
-            }
-            else if (AsciiStrCmp (symbolName, "_version_minor") == 0) {
-              KernelInfo->VersionMinor = *(PTR_OFFSET (Data, patchLocation, UINT32 *));
-              CntPatches--;
-            }
-            else if (AsciiStrCmp (symbolName, "_version_revision") == 0) {
-              KernelInfo->Revision = *(PTR_OFFSET (Data, patchLocation, UINT32 *));
-              CntPatches--;
-            }
-            break;
-
-          case 8: // __DATA, __data
-            if (AsciiStrCmp (symbolName, "_xcpm_core_scope_msrs") == 0) {
-              KernelInfo->XCPMStart = patchLocation;
-              CntPatches--;
-            }
-            else if (AsciiStrCmp (symbolName, "_xcpm_SMT_scope_msrs") == 0) {
-              KernelInfo->XCPMEnd = patchLocation;
-              CntPatches--;
-            }
-
-          case 25: // __KLD, __text
-            if (AsciiStrCmp (symbolName, "__ZN12KLDBootstrap21readStartupExtensionsEv") == 0) {
-              KernelInfo->StartupExtStart = patchLocation;
-              CntPatches--;
-            }
-            else if (AsciiStrCmp (symbolName, "__ZN12KLDBootstrap23readPrelinkedExtensionsEP10section_64") == 0) {
-              KernelInfo->StartupExtEnd = patchLocation;
-              CntPatches--;
-            }
-            break;
+        if (systabentry->n_sect == KernelInfo->TextIndex) {
+          if (AsciiStrCmp (symbolName, "__ZN6OSKext14loadExecutableEv") == 0) {
+            KernelInfo->LoadEXEStart = patchLocation;
+            CntPatches--;
+          }
+          else if (AsciiStrCmp (symbolName, "__ZN6OSKext23jettisonLinkeditSegmentEv") == 0) {
+            KernelInfo->LoadEXEEnd = patchLocation;
+            CntPatches--;
+          }
+          else if (AsciiStrCmp (symbolName, "_cpuid_set_info") == 0) {
+            KernelInfo->CPUInfoStart = patchLocation;
+            CntPatches--;
+          }
+          else if (AsciiStrCmp (symbolName, "_cpuid_info") == 0) {
+            KernelInfo->CPUInfoEnd = patchLocation;
+            CntPatches--;
+          }
+        } else if (systabentry->n_sect == KernelInfo->ConstIndex) {
+          if (AsciiStrCmp (symbolName, "_version") == 0) {
+            KernelInfo->Version = PTR_OFFSET (Data, patchLocation, CHAR8 *);
+            CntPatches--;
+          }
+          else if (AsciiStrCmp (symbolName, "_version_major") == 0) {
+            KernelInfo->VersionMajor = *(PTR_OFFSET (Data, patchLocation, UINT32 *));
+            CntPatches--;
+          }
+          else if (AsciiStrCmp (symbolName, "_version_minor") == 0) {
+            KernelInfo->VersionMinor = *(PTR_OFFSET (Data, patchLocation, UINT32 *));
+            CntPatches--;
+          }
+          else if (AsciiStrCmp (symbolName, "_version_revision") == 0) {
+            KernelInfo->Revision = *(PTR_OFFSET (Data, patchLocation, UINT32 *));
+            CntPatches--;
+          }
+        } else if (systabentry->n_sect == KernelInfo->DataIndex) {
+          if (AsciiStrCmp (symbolName, "_xcpm_core_scope_msrs") == 0) {
+            KernelInfo->XCPMStart = patchLocation;
+            CntPatches--;
+          }
+          else if (AsciiStrCmp (symbolName, "_xcpm_SMT_scope_msrs") == 0) {
+            KernelInfo->XCPMEnd = patchLocation;
+            CntPatches--;
+          }
+        } else if (systabentry->n_sect == KernelInfo->KldIndex) {
+          if (AsciiStrCmp (symbolName, "__ZN12KLDBootstrap21readStartupExtensionsEv") == 0) {
+            KernelInfo->StartupExtStart = patchLocation;
+            CntPatches--;
+          }
+          else if (AsciiStrCmp (symbolName, "__ZN12KLDBootstrap23readPrelinkedExtensionsEP10section_64") == 0) {
+            KernelInfo->StartupExtEnd = patchLocation;
+            CntPatches--;
+          }
         }
       }
 
       cnt++;
       symbin += sizeof (struct nlist_64);
     }
-  } /*else {
+  } else {
     DBG_RT(Entry, "%a: symbol table not found\n", __FUNCTION__);
-  }*/
+  }
 
   if (KernelInfo->LoadEXEStart && KernelInfo->LoadEXEEnd && (KernelInfo->LoadEXEEnd > KernelInfo->LoadEXEStart)) {
     KernelInfo->LoadEXESize = (KernelInfo->LoadEXEEnd - KernelInfo->LoadEXEStart);
@@ -312,7 +322,6 @@ InitKernel (
 //Slice - FakeCPUID substitution, (c)2014
 
 STATIC UINT8 StrMsr8b[]       = {0xb9, 0x8b, 0x00, 0x00, 0x00, 0x0f, 0x32};
-
 /*
  This patch searches
   mov ecx, eax
@@ -647,7 +656,7 @@ PatchStartupExt (
   UINT32    patchLocation = 0, patchEnd = 0;
   BOOLEAN   Ret = FALSE;
 
-  DBG_RT(Entry, "\n\n%a: Start\n", __FUNCTION__);
+  DBG_RT(Entry, "%a: Start\n", __FUNCTION__);
 
   if (Ptr == NULL) {
     DBG_RT(Entry, " - error 0 bin\n");
@@ -706,7 +715,7 @@ PatchLoadEXE (
   UINT32    patchLocation = 0, patchEnd = 0;
   BOOLEAN   Ret = FALSE;
 
-  DBG_RT(Entry, "\n\n%a: Start\n", __FUNCTION__);
+  DBG_RT(Entry, "%a: Start\n", __FUNCTION__);
 
   if (Ptr == NULL) {
     DBG_RT(Entry, " - error 0 bin\n");
@@ -796,7 +805,7 @@ UINT8 KBLoadExec_R2[]     = { 0xC3, 0x48, 0x85, 0xDB, 0xEB, 0x12, 0x48, 0x8B, 0x
 //
 VOID
 EFIAPI
-KernelBooterExtensionsPatch (
+KernelBooterExtensionsPatch_Old (
   LOADER_ENTRY    *Entry
 ) {
   UINTN   Num = 0;
@@ -838,7 +847,9 @@ KernelBooterExtensionsPatch (
 
   if (PatchStartupExt(Entry)) {
     PatchLoadEXE(Entry);
-  }
+  }/* else {
+    KernelBooterExtensionsPatch_Old(Entry);
+  }*/
 
   DBG_RT(Entry, "%a: End\n", __FUNCTION__);
   DBG_PAUSE(Entry, 5);
@@ -921,24 +932,30 @@ KernelAndKextsPatcherStart (
   KernelInfo->KldAddr = 0;
   KernelInfo->KldSize = 0;
   KernelInfo->KldOff = 0;
+  KernelInfo->KldIndex = 0;
   KernelInfo->TextAddr = 0;
   KernelInfo->TextSize = 0;
   KernelInfo->TextOff = 0;
-  //KernelInfo->ConstAddr = 0;
-  //KernelInfo->ConstSize = 0;
-  //KernelInfo->ConstOff = 0;
+  KernelInfo->TextIndex = 0;
+  KernelInfo->ConstAddr = 0;
+  KernelInfo->ConstSize = 0;
+  KernelInfo->ConstOff = 0;
+  KernelInfo->ConstIndex = 0;
   //KernelInfo->CStringAddr = 0;
   //KernelInfo->CStringSize = 0;
   //KernelInfo->CStringOff = 0;
   KernelInfo->DataAddr = 0;
   KernelInfo->DataSize = 0;
   KernelInfo->DataOff = 0;
+  KernelInfo->DataIndex = 0;
   KernelInfo->PrelinkTextAddr = 0;
   KernelInfo->PrelinkTextSize = 0;
   KernelInfo->PrelinkTextOff = 0;
+  KernelInfo->PrelinkTextIndex = 0;
   KernelInfo->PrelinkInfoAddr = 0;
   KernelInfo->PrelinkInfoSize = 0;
   KernelInfo->PrelinkInfoOff = 0;
+  KernelInfo->PrelinkInfoIndex = 0;
   KernelInfo->LoadEXEStart = 0;
   KernelInfo->LoadEXEEnd = 0;
   KernelInfo->LoadEXESize = 0;

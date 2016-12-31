@@ -178,7 +178,7 @@ GetScreenInfo (
 EFI_INTERFACE_SCREEN_INFO mScreenInfo = { GetScreenInfo };
 
 EFI_STATUS
-SetPrivateVarProto(VOID) {
+SetPrivateVarProto () {
   EFI_STATUS    Status;
 
   //This must be independent install
@@ -200,7 +200,8 @@ SetPrivateVarProto(VOID) {
 }
 
 
-DevPropString *devprop_create_string(VOID) {
+DevPropString
+*devprop_create_string () {
   //  DBG("Begin creating strings for devices:\n");
   string = (DevPropString*)AllocateZeroPool(sizeof(DevPropString));
 

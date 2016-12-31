@@ -156,7 +156,7 @@ extern DevPropString  *string;
 extern UINT8          *stringdata;
 extern UINT32         stringlength;
 
-DevPropString   *devprop_create_string(void);
+DevPropString   *devprop_create_string();
 //DevPropDevice *devprop_add_device(DevPropString *string, char *path);
 DevPropDevice   *devprop_add_device_pci(DevPropString *string, pci_dt_t *PciDt);
 BOOLEAN         devprop_add_value(DevPropDevice *device, CHAR8 *nm, UINT8 *vl, UINTN len);

@@ -835,36 +835,34 @@ PatchPrelinkedKexts (
   CHAR8   *WholePlist = (CHAR8*)(UINTN)KernelInfo->PrelinkInfoAddr;
 
   if (!EFI_ERROR(ParsePrelinkKexts(Entry, WholePlist))) {
-    if (!IsListEmpty(&gPrelinkKextList)) {
-      LIST_ENTRY    *Link;
+    LIST_ENTRY    *Link;
 
-      for (Link = gPrelinkKextList.ForwardLink; Link != &gPrelinkKextList; Link = Link->ForwardLink) {
-        PRELINKKEXTLIST   *sKext = CR(Link, PRELINKKEXTLIST, Link, PRELINKKEXTLIST_SIGNATURE);
-        CHAR8             *InfoPlist = AllocateCopyPool(sKext->Taglen, WholePlist + sKext->Offset);
+    for (Link = gPrelinkKextList.ForwardLink; Link != &gPrelinkKextList; Link = Link->ForwardLink) {
+      PRELINKKEXTLIST   *sKext = CR(Link, PRELINKKEXTLIST, Link, PRELINKKEXTLIST_SIGNATURE);
+      CHAR8             *InfoPlist = AllocateCopyPool(sKext->Taglen, WholePlist + sKext->Offset);
 
-        InfoPlist[sKext->Taglen] = '\0';
+      InfoPlist[sKext->Taglen] = '\0';
 
-        // patch it
-        PatchKext (
-          (UINT8*)(UINTN) (
-              // get kext address from _PrelinkExecutableSourceAddr
-              // truncate to 32 bit to get physical addr
-              (UINT32)sKext->Address +
-              // KextAddr is always relative to 0x200000
-              // and if KernelSlide is != 0 then KextAddr must be adjusted
-              KernelInfo->Slide +
-              // and adjust for AptioFixDrv's KernelRelocBase
-              (UINT32)KernelInfo->RelocBase
-            ),
-          (UINT32)sKext->Size,
-          WholePlist + sKext->Offset,
-          (UINT32)sKext->Taglen,
-          sKext->BundleIdentifier,
-          Entry
-        );
+      // patch it
+      PatchKext (
+        (UINT8*)(UINTN) (
+            // get kext address from _PrelinkExecutableSourceAddr
+            // truncate to 32 bit to get physical addr
+            (UINT32)sKext->Address +
+            // KextAddr is always relative to 0x200000
+            // and if KernelSlide is != 0 then KextAddr must be adjusted
+            KernelInfo->Slide +
+            // and adjust for AptioFixDrv's KernelRelocBase
+            (UINT32)KernelInfo->RelocBase
+          ),
+        (UINT32)sKext->Size,
+        WholePlist + sKext->Offset,
+        (UINT32)sKext->Taglen,
+        sKext->BundleIdentifier,
+        Entry
+      );
 
-        FreePool(InfoPlist);
-      }
+      FreePool(InfoPlist);
     }
   }
 }
@@ -893,55 +891,56 @@ PatchLoadedKexts (
 
   DTInit(dtRoot);
 
-  if (DTLookupEntry(NULL,"/chosen/memory-map", &MMEntry) == kSuccess) {
-    if (DTCreatePropertyIteratorNoAlloc(MMEntry, PropIter) == kSuccess) {
-      while (DTIterateProperties(PropIter, &PropName) == kSuccess) {
-        //DBG_RT(Entry, "Prop: %a\n", PropName);
-        if (AsciiStrStr(PropName,"Driver-")) {
-          TagPtr    KextsDict, Dict;
+  if (
+    (DTLookupEntry(NULL,"/chosen/memory-map", &MMEntry) == kSuccess) &&
+    (DTCreatePropertyIteratorNoAlloc(MMEntry, PropIter) == kSuccess)
+  ) {
+    while (DTIterateProperties(PropIter, &PropName) == kSuccess) {
+      //DBG_RT(Entry, "Prop: %a\n", PropName);
+      if (AsciiStrStr(PropName,"Driver-")) {
+        TagPtr    KextsDict, Dict;
 
-          // PropEntry _DeviceTreeBuffer is the value of Driver-XXXXXX property
-          PropEntry = (_DeviceTreeBuffer*)(((UINT8*)PropIter->currentProperty) + sizeof(DeviceTreeNodeProperty));
-          //if (DbgCount < 3) {
-          //  DBG_RT(Entry, "%a: paddr = %x, length = %x\n", PropName, PropEntry->paddr, PropEntry->length);
-          //}
+        // PropEntry _DeviceTreeBuffer is the value of Driver-XXXXXX property
+        PropEntry = (_DeviceTreeBuffer*)(((UINT8*)PropIter->currentProperty) + sizeof(DeviceTreeNodeProperty));
+        //if (DbgCount < 3) {
+        //  DBG_RT(Entry, "%a: paddr = %x, length = %x\n", PropName, PropEntry->paddr, PropEntry->length);
+        //}
 
-          // PropEntry->paddr points to _BooterKextFileInfo
-          KextFileInfo = (_BooterKextFileInfo *)(UINTN)PropEntry->paddr;
+        // PropEntry->paddr points to _BooterKextFileInfo
+        KextFileInfo = (_BooterKextFileInfo *)(UINTN)PropEntry->paddr;
 
-          // Info.plist should be terminated with 0, but will also do it just in case
-          InfoPlist = (CHAR8*)(UINTN)KextFileInfo->infoDictPhysAddr;
-          SavedValue = InfoPlist[KextFileInfo->infoDictLength];
-          InfoPlist[KextFileInfo->infoDictLength] = '\0';
+        // Info.plist should be terminated with 0, but will also do it just in case
+        InfoPlist = (CHAR8*)(UINTN)KextFileInfo->infoDictPhysAddr;
+        SavedValue = InfoPlist[KextFileInfo->infoDictLength];
+        InfoPlist[KextFileInfo->infoDictLength] = '\0';
 
-          // TODO: Store into list first & process all later?
-          if (!EFI_ERROR(ParseXML (InfoPlist, &KextsDict, 0))) {
-            Dict = GetProperty(KextsDict, kPropCFBundleIdentifier);
-            if ((Dict != NULL) && Dict->string) {
-              PatchKext (
-                (UINT8*)(UINTN)KextFileInfo->executablePhysAddr,
-                KextFileInfo->executableLength,
-                InfoPlist,
-                KextFileInfo->infoDictLength,
-                Dict->string,
-                Entry
-              );
-            }
+        // TODO: Store into list first & process all later?
+        if (!EFI_ERROR(ParseXML (InfoPlist, &KextsDict, 0))) {
+          Dict = GetProperty(KextsDict, kPropCFBundleIdentifier);
+          if ((Dict != NULL) && Dict->string) {
+            PatchKext (
+              (UINT8*)(UINTN)KextFileInfo->executablePhysAddr,
+              KextFileInfo->executableLength,
+              InfoPlist,
+              KextFileInfo->infoDictLength,
+              Dict->string,
+              Entry
+            );
           }
-
-          // Check for FakeSMC here
-          //CheckForFakeSMC(InfoPlist, Entry);
-
-          InfoPlist[KextFileInfo->infoDictLength] = SavedValue;
-          //DbgCount++;
         }
 
-        //if (AsciiStrStr(PropName,"DriversPackage-") != 0)
-        //{
-        //    DBG_RT(Entry, "Found %a\n", PropName);
-        //    break;
-        //}
+        // Check for FakeSMC here
+        //CheckForFakeSMC(InfoPlist, Entry);
+
+        InfoPlist[KextFileInfo->infoDictLength] = SavedValue;
+        //DbgCount++;
       }
+
+      //if (AsciiStrStr(PropName,"DriversPackage-") != 0)
+      //{
+      //    DBG_RT(Entry, "Found %a\n", PropName);
+      //    break;
+      //}
     }
   }
 }
