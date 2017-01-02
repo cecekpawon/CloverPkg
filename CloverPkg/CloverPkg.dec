@@ -1,0 +1,72 @@
+###### @file
+###
+### This Package provides all definitions(including functions, MACROs, structures and library classes)
+### and libraries instances, which are only used by Duet platform.
+###
+### Copyright (c) 2007 - 2011, Intel Corporation. All rights reserved.<BR>
+###
+### This program and the accompanying materials are licensed and made available under
+### the terms and conditions of the BSD License which accompanies this distribution.
+### The full text of the license may be found at
+### http://opensource.org/licenses/bsd-license.php
+###
+### THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+### WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+###
+######
+
+[Defines]
+  DEC_SPECIFICATION                 = 0x00010005
+  PACKAGE_NAME                      = CloverPkg
+  PACKAGE_GUID                      = C10BE46B-35C3-4B0B-9B9C-3F02051D782F
+  PACKAGE_VERSION                   = 0.4
+
+[Includes]
+  Include
+
+#[LibraryClasses]
+#  ######  @libraryclass  Provides MsgLog service
+#  ######
+#  MemLogLib|Include/Library/MemLogLib.h
+#  CommonLib|Include/Library/CommonLib.h
+
+[Guids]
+  gAppleEFINVRAMTRBSecureGuid             = {0XF68DA75E, 0X1B55, 0X4E70, {0XB4, 0X1B, 0XA7, 0XB7, 0XA5, 0XB7, 0X58, 0XEA}}
+  gAppleOsLoadedNamedEventGuid            = {0XC5C5DA95, 0X7D5C, 0X45E6, {0X83, 0X72, 0X89, 0XBD, 0X52, 0X6D, 0XE9, 0X56}}
+  gApplePlatformInfoKeyboardGuid          = {0X51871CB9, 0XE25D, 0X44B4, {0X96, 0X99, 0X0E, 0XE8, 0X64, 0X4C, 0XED, 0X69}}
+  gDataHubOptionsGuid                     = {0X0021001C, 0X3CE3, 0X41F8, {0X99, 0XC6, 0XEC, 0XF5, 0XDA, 0X75, 0X47, 0X31}}
+  gDataHubPlatformGuid                    = {0X64517CC8, 0X6561, 0X4051, {0XB0, 0X3C, 0X59, 0X64, 0XB6, 0X0F, 0X4C, 0X7A}}
+  gEfiAppleBootGuid                       = {0X7C436110, 0XAB2A, 0X4BBB, {0XA8, 0X80, 0XFE, 0X41, 0X99, 0X5C, 0X9F, 0X82}}
+  gEfiAppleNvramGuid                      = {0X4D1EDE05, 0X38C7, 0X4A6A, {0X9C, 0XC6, 0X4B, 0XCC, 0XA8, 0XB3, 0X8C, 0X14}}
+  gEfiAppleVendorGuid                     = {0XAC39C713, 0X7E50, 0X423D, {0X88, 0X9D, 0X27, 0X8F, 0XCC, 0X34, 0X22, 0XB6}}
+  gEfiGlobalVariableGuid                  = {0X8BE4DF61, 0X93CA, 0X11D2, {0XAA, 0X0D, 0X00, 0XE0, 0X98, 0X03, 0X2B, 0X8C}}
+
+[Protocols]
+  gAptioProtocolGuid                      = {0XB79DCC2E, 0X61BE, 0X453F, {0XBC, 0XAC, 0XC2, 0X60, 0XFA, 0XAE, 0XCC, 0XDA}}
+  gFSInjectProtocolGuid                   = {0X3F048284, 0X6D4C, 0X11E1, {0XA4, 0XD7, 0X37, 0XE3, 0X48, 0X24, 0X01, 0X9B}}
+  gMsgLogProtocolGuid                     = {0X511CE018, 0X0018, 0X4002, {0X20, 0X12, 0X17, 0X38, 0X05, 0X01, 0X02, 0X03}}
+
+  gAppleBootKeyPressProtocolGuid          = {0X5B213447, 0X6E73, 0X4901, {0XA4, 0XF1, 0XB8, 0X64, 0XF3, 0XB7, 0XA1, 0X72}}
+  gAppleDevicePropertyProtocolGuid        = {0X91BD12FE, 0XF6C3, 0X44FB, {0XA5, 0XB7, 0X51, 0X22, 0XAB, 0X30, 0X3A, 0XE0}}
+  gAppleNetBootProtocolGuid               = {0X78EE99FB, 0X6A5E, 0X4186, {0X97, 0XDE, 0XCD, 0X0A, 0XBA, 0X34, 0X5A, 0X74}}
+  gAppleEventProtocolGuid                 = {0X33BE0EF1, 0X89C9, 0X4A6D, {0XBB, 0X9F, 0X69, 0XDC, 0X8D, 0XD5, 0X16, 0XB9}}
+  gAppleFramebufferInfoProtocolGuid       = {0XE316E100, 0X0751, 0X4C49, {0X90, 0X56, 0X48, 0X6C, 0X7E, 0X47, 0X29, 0X03}}
+  gAppleGraphConfigProtocolGuid           = {0X03622D6D, 0X362A, 0X4E47, {0X97, 0X10, 0XC2, 0X38, 0XB2, 0X37, 0X55, 0XC1}}
+  gAppleImageCodecProtocolGuid            = {0X0DFCE9F6, 0XC4E3, 0X45EE, {0XA0, 0X6A, 0XA8, 0X61, 0X3B, 0X98, 0XA5, 0X07}}
+  gAppleKeyMapDatabaseProtocolGuid        = {0X584B9EBE, 0X80C1, 0X4BD6, {0X98, 0XB0, 0XA7, 0X78, 0X6E, 0XC2, 0XF2, 0XE2}}
+  gAppleKeyStateProtocolGuid              = {0X5B213447, 0X6E73, 0X4901, {0XA4, 0XF1, 0XB8, 0X64, 0XF3, 0XB7, 0XA1, 0X72}}
+  gApplePlatformInfoDatabaseProtocolGuid  = {0XAC5E4829, 0XA8FD, 0X440B, {0XAF, 0X33, 0X9F, 0XFE, 0X01, 0X3B, 0X12, 0XD8}}
+  gAppleSMCProtocolGuid                   = {0X17407E5A, 0XAF6C, 0X4EE8, {0X98, 0XA8, 0X00, 0X21, 0X04, 0X53, 0XCD, 0XD9}}
+  gAppleSMCStateProtocolGuid              = {0X5301FE59, 0X1770, 0X4166, {0XA1, 0X69, 0X00, 0XC4, 0XBD, 0XE4, 0XA1, 0X62}}
+  gAppleUserInterfaceThemeProtocolGuid    = {0XD5B0AC65, 0X9A2D, 0X4D2A, {0XBB, 0XD6, 0XE8, 0X71, 0XA9, 0X5E, 0X04, 0X35}}
+  gEfiAppleFirmwarePasswordProtocolGuid   = {0X8FFEEB3A, 0X4C98, 0X4630, {0X80, 0X3F, 0X74, 0X0F, 0X95, 0X67, 0X09, 0X1D}}
+  gEfiConsoleControlProtocolGuid          = {0XF42F7782, 0X012E, 0X4C12, {0X99, 0X56, 0X49, 0XF9, 0X43, 0X04, 0XF7, 0X21}}
+  gEfiDataHubProtocolGuid                 = {0XAE80D021, 0X618E, 0X11D4, {0XBC, 0XD7, 0X00, 0X80, 0XC7, 0X3C, 0X88, 0X81}}
+  gEfiKeyboardInfoProtocolGuid            = {0XE82A0A1E, 0X0E4D, 0X45AC, {0XA6, 0XDC, 0X2A, 0XE0, 0X58, 0X00, 0XD3, 0X11}}
+  gEfiLegacy8259ProtocolGuid              = {0X38321DBA, 0X4FE0, 0X4E17, {0X8A, 0XEC, 0X41, 0X30, 0X55, 0XEA, 0XED, 0XC1}}
+  gEfiMemorySubClassGuid                  = {0X4E8F4EBB, 0X64B9, 0X4E05, {0X9B, 0X18, 0X4C, 0XFE, 0X49, 0X23, 0X50, 0X97}}
+  gEfiMiscSubClassGuid                    = {0X772484B2, 0X7482, 0X4B91, {0X9F, 0X9A, 0XAD, 0X43, 0XF8, 0X1C, 0X58, 0X81}}
+  gEfiOSInfoProtocolGuid                  = {0XC5C5DA95, 0X7D5C, 0X45E6, {0XB2, 0XF1, 0X3F, 0XD5, 0X2B, 0XB1, 0X00, 0X77}}
+  gEfiProcessorSubClassGuid               = {0X26FDEB7E, 0XB8AF, 0X4CCF, {0XAA, 0X97, 0X02, 0X63, 0X3C, 0XE4, 0X8C, 0XA7}}
+  gNotifyMouseActivity                    = {0XF913C2C2, 0X5351, 0X4FDB, {0X93, 0X44, 0X70, 0XFF, 0XED, 0XB8, 0X42, 0X25}}
+
