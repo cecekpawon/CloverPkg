@@ -1,0 +1,142 @@
+## @file
+#  Sample UEFI Application Reference EDKII Module
+#
+#
+#  Copyright (c) 2009 - 2010, Intel Corporation. All rights reserved.<BR>
+#
+#  This program and the accompanying materials
+#  are licensed and made available under the terms and conditions of the BSD License
+#  which accompanies this distribution. The full text of the license may be found at
+#  http://opensource.org/licenses/bsd-license.php
+#  THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+#
+#
+##
+
+[Defines]
+  INF_VERSION                   = 0x00010005
+  BASE_NAME                     = CLOVER$(ARCH)
+  FILE_GUID                     = 8F7D7B1E-0E1C-4C98-B12E-4EC99C4081AC
+  MODULE_TYPE                   = UEFI_APPLICATION
+  EDK_RELEASE_VERSION           = 0x00020000
+  EFI_SPECIFICATION_VERSION     = 0x00010000
+  VERSION_STRING                = 1.0
+  ENTRY_POINT                   = RefitMain
+
+[Sources]
+  ../../Library/Entry/Loader.c
+  ../../Library/Entry/Tool.c
+
+  ../../Library/UI/Icns.c
+  ../../Library/UI/Image.c
+  ../../Library/UI/LoadBmp.c
+  ../../Library/UI/LoadIcns.c
+  ../../Library/UI/LodePng.c
+  ../../Library/UI/Menu.c
+  ../../Library/UI/Text.c
+
+  ../../Library/Platform/AcpiPatcher.c
+  ../../Library/Platform/AmlGenerator.c
+  ../../Library/Platform/Ati.c
+  ../../Library/Platform/BdsConnect.c
+  ../../Library/Platform/BootLog.c
+  ../../Library/Platform/Cpu.c
+  ../../Library/Platform/DataHubCpu.c
+  ../../Library/Platform/DeviceInject.c
+  ../../Library/Platform/Edid.c
+  ../../Library/Platform/Events.c
+  ../../Library/Platform/FixBiosDsdt.c
+  ../../Library/Platform/Gma.c
+  ../../Library/Platform/Hibernate.c
+  ../../Library/Platform/KernelPatcher.c
+  ../../Library/Platform/KextInject.c
+  ../../Library/Platform/KextPatcher.c
+  ../../Library/Platform/Net.c
+  ../../Library/Platform/Nvidia.c
+  ../../Library/Platform/Nvram.c
+  ../../Library/Platform/Platformdata.c
+  ../../Library/Platform/PlatformDriverOverride.c
+  ../../Library/Platform/Plist.c
+  ../../Library/Platform/Settings.c
+  ../../Library/Platform/Smbios.c
+  ../../Library/Platform/Spd.c
+  ../../Library/Platform/StateGenerator.c
+  ../../Library/Platform/VideoCardList.c
+
+  ../../Library/Common/IO.c
+  ../../Library/Common/Lib.c
+  #../../Library/Common/lzvn.c
+  ../../Library/Common/Screen.c
+
+  Main.c
+
+[Packages]
+  CloverPkg/CloverPkg.dec
+  IntelFrameworkModulePkg/IntelFrameworkModulePkg.dec
+  IntelFrameworkPkg/IntelFrameworkPkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  BaseLib
+  #BaseMemoryLib
+  CommonLib
+  DeviceTreeLib
+  DxeServicesLib
+  DxeServicesTableLib
+  HobLib
+  #LZFSELib
+  MemLogLib
+  MemoryAllocationLib
+  NetLib
+  UefiApplicationEntryPoint
+  UefiBootServicesTableLib
+  UefiLib
+
+[Guids]
+  gDataHubPlatformGuid
+  gEfiAcpi10TableGuid
+  gEfiAcpi20TableGuid
+  gEfiAcpiTableGuid
+  gEfiAppleBootGuid
+  gEfiAppleNvramGuid
+  gEfiFileSystemInfoGuid
+  gEfiFileSystemVolumeLabelInfoIdGuid
+  gEfiPartTypeSystemPartGuid
+
+[Protocols]
+  gAppleDevicePropertyProtocolGuid
+  gAppleFramebufferInfoProtocolGuid
+
+  gEfiBlockIoProtocolGuid
+  gEfiComponentName2ProtocolGuid
+  gEfiConsoleControlProtocolGuid
+  gEfiDataHubProtocolGuid
+  gEfiDevicePathToTextProtocolGuid
+  gEfiMiscSubClassGuid
+  gEfiPciIoProtocolGuid
+  gEfiPlatformDriverOverrideProtocolGuid
+  gEfiProcessorSubClassGuid
+  gEfiScsiIoProtocolGuid
+  gEfiSimpleFileSystemProtocolGuid
+  gEfiSimpleTextInProtocolGuid
+  gEfiSimpleTextInputExProtocolGuid
+  gEfiSimpleTextOutProtocolGuid
+  gEfiStatusCodeRuntimeProtocolGuid
+  gEfiUnicodeCollation2ProtocolGuid
+  gEfiUnicodeCollationProtocolGuid
+
+  gEfiEdidActiveProtocolGuid
+  gEfiEdidDiscoveredProtocolGuid
+  gEfiEdidOverrideProtocolGuid
+
+  gAptioProtocolGuid
+  gFSInjectProtocolGuid
+  gMsgLogProtocolGuid
+
+[BuildOptions]
+  XCODE:*_*_*_CC_FLAGS = -fsigned-char -Os
+  #GCC:*_*_*_CC_FLAGS = -Os -fno-omit-frame-pointer -maccumulate-outgoing-args
+  GCC:*_*_*_CC_FLAGS = -Os -fno-omit-frame-pointer
+  MSFT:*_*_*_CC_FLAGS = /Os

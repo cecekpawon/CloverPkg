@@ -1,0 +1,18 @@
+## @file
+#  Default instance of MemLogLib library for simple log services to memory buffer.
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = CommonLib
+  FILE_GUID                      = 3FDC125C-94B9-4F83-8817-A4E5A65A94AA
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = CommonLib
+
+[Sources]
+  CommonLib.c
+
+[Packages]
+  CloverPkg/CloverPkg.dec
+  MdePkg/MdePkg.dec
