@@ -136,7 +136,6 @@
   gMsgLogProtocolGuid
 
 [BuildOptions]
-  XCODE:*_*_*_CC_FLAGS = -fsigned-char -Os
-  #GCC:*_*_*_CC_FLAGS = -Os -fno-omit-frame-pointer -maccumulate-outgoing-args
-  GCC:*_*_*_CC_FLAGS = -Os -fno-omit-frame-pointer
+  XCODE:*_*_*_CC_FLAGS = -Os #-fsigned-char
+  GCC:*_*_*_CC_FLAGS = -Os #-fno-omit-frame-pointer
   MSFT:*_*_*_CC_FLAGS = /Os

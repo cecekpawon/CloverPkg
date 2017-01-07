@@ -68,10 +68,10 @@
   #
   MemLogLib|CloverPkg/Modules/MemLogLibDefault/MemLogLibDefault.inf
   !ifdef EMBED_FSINJECT
-    NULL|CloverPkg/Modules/FSInject/FSInject_internal.inf
+    NULL|CloverPkg/Modules/FSInject/FSInject_embed.inf
   !endif
   !ifdef EMBED_APTIOFIX
-    NULL|CloverPkg/Modules/OsxAptioFixDrv/OsxAptioFixDrv_internal.inf
+    NULL|CloverPkg/Modules/OsxAptioFixDrv/OsxAptioFixDrv_embed.inf
   !endif
   CommonLib|CloverPkg/Modules/CommonLib/CommonLib.inf
   DeviceTreeLib|CloverPkg/Modules/DeviceTreeLib/DeviceTreeLib.inf

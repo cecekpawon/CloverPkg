@@ -10,7 +10,8 @@
 #include <Library/DebugLib.h>
 #include <Library/BaseMemoryLib.h>
 
-#include "BootArgs.h"
+#include <Library/Common/Boot.h>
+
 #include "Lib.h"
 
 // DBG_TO: 0=no debug, 1=serial, 2=console
@@ -29,7 +30,6 @@
 #else
   #define DBG(...)
 #endif
-
 
 VOID
 EFIAPI
@@ -88,7 +88,7 @@ BootArgs    gBootArgs;
 
 BootArgs*
 EFIAPI
-GetBootArgs(
+GetBootArgs (
   VOID    *bootArgs
 ) {
   BootArgs2   *BA2 = bootArgs;
@@ -133,7 +133,7 @@ EFIAPI
 BootArgsFind (
   IN EFI_PHYSICAL_ADDRESS   Start
 ) {
-  UINT8     *ptr, archMode = sizeof(UINTN) * 8;
+  UINT8       *ptr, archMode = sizeof(UINTN) * 8;
   BootArgs2   *BA2;
 
   // start searching from 0x200000.
@@ -143,13 +143,15 @@ BootArgsFind (
     // check bootargs for 10.7 and up
     BA2 = (BootArgs2*)ptr;
 
-    if (BA2->Version==2 && BA2->Revision==0
+    if (
+      (BA2->Version == 2) &&
+      (BA2->Revision == 0) &&
       // plus additional checks - some values are not inited by boot.efi yet
-      && BA2->efiMode == archMode
-      && BA2->kaddr == 0 && BA2->ksize == 0
-      && BA2->efiSystemTable == 0
-      )
-    {
+      (BA2->efiMode == archMode) &&
+      (BA2->kaddr == 0) &&
+      (BA2->ksize == 0) &&
+      (BA2->efiSystemTable == 0)
+    ) {
       break;
     }
 

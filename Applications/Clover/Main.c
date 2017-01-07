@@ -59,7 +59,7 @@ EFI_BOOT_SERVICES*      gBS;
 EFI_RUNTIME_SERVICES*   gRS;
 EFI_DXE_SERVICES*       gDS;
 
-DRIVERS_FLAGS           gDriversFlags = {FALSE, FALSE};  //the initializer is not needed for global variables
+DRIVERS_FLAGS           gDriversFlags = {FALSE, FALSE, FALSE, FALSE};  //the initializer is not needed for global variables
 
 STATIC
 EFI_STATUS
@@ -836,7 +836,7 @@ ScanDriverDir (
 
     for (i = 0; i < gSettings.BlackListCount; i++) {
       if (StrStr(DirEntry->FileName, gSettings.BlackList[i]) != NULL) {
-        Skip = TRUE;   // skip this
+        Skip = TRUE; // skip this
         break;
       }
     }
@@ -846,6 +846,20 @@ ScanDriverDir (
     }
 
     UnicodeSPrint(FileName, 512, L"%s\\%s", Path, DirEntry->FileName);
+
+    if (
+      (
+        gDriversFlags.FSInjectEmbedded &&
+        (StriStr(DirEntry->FileName, L"FSInject") != NULL)
+      ) ||
+      (
+        gDriversFlags.AptioFixEmbedded &&
+        (StriStr(DirEntry->FileName, L"AptioFixDrv") != NULL)
+      )
+    ) {
+      continue;
+    }
+
     Status = StartEFIImage (
                 FileDevicePath(SelfLoadedImage->DeviceHandle, FileName),
                 L"",
@@ -932,7 +946,7 @@ DisconnectSomeDevices () {
   UINTN                             HandleCount, Index, Index2, ControllerHandleCount;
 
   if (gDriversFlags.HFSLoaded) {
-    DBG("HFS+ driver loaded\n");
+    DBG(" - HFS+ driver loaded\n");
 
     // get all FileSystem handles
     ControllerHandleCount = 0;
@@ -1031,7 +1045,7 @@ LoadDrivers () {
   if (NumLoad) {
     Status = EfiLibLocateProtocol(&gAptioProtocolGuid, (VOID **)&AptioFix);
     if (!EFI_ERROR (Status) && (AptioFix->Signature == APTIOFIX_SIGNATURE)) {
-      DBG (" - AptioFixLoaded = TRUE\n");
+      DBG (" - AptioFix driver loaded\n");
       gDriversFlags.AptioFixLoaded = TRUE;
     }
   }
@@ -1298,6 +1312,14 @@ RefitMain (
     gST->FirmwareRevision >> 16,
     gST->FirmwareRevision & ((1 << 16) - 1)
   );
+
+#if EMBED_FSINJECT
+  gDriversFlags.FSInjectEmbedded = TRUE;
+#endif
+
+#if EMBED_APTIOFIX
+  gDriversFlags.AptioFixEmbedded = TRUE;
+#endif
 
   // disable EFI watchdog timer
   gBS->SetWatchdogTimer(0x0000, 0x0000, 0x0000, NULL);

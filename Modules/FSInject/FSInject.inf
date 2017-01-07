@@ -37,6 +37,7 @@
 
 [Guids]
   gEfiFileInfoGuid
+  gEfiGlobalVariableGuid
 
 [Protocols]
   gEfiSimpleFileSystemProtocolGuid

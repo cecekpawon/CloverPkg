@@ -22,6 +22,8 @@
 //#define DBG(...) AsciiPrint(__VA_ARGS__);
 #endif
 
+#include <Library/Common/Hibernate.h>
+
 #pragma pack(push, 1)
 
 //
@@ -46,107 +48,6 @@ typedef struct _HFSPlusVolumeHeaderMin {
   UINT32  totalBlocks;
   UINT32  freeBlocks;
 } HFSPlusVolumeHeaderMin;
-
-// IOHibernateImageHeader.signature
-enum
-{
-  kIOHibernateHeaderSignature        = 0x73696d65,
-  kIOHibernateHeaderInvalidSignature = 0x7a7a7a7a
-};
-
-typedef struct _IOHibernateImageHeaderMin
-{
-  UINT64  imageSize;
-  UINT64  image1Size;
-
-  UINT32  restore1CodePhysPage;
-  UINT32    reserved1;
-  UINT64    restore1CodeVirt;
-  UINT32  restore1PageCount;
-  UINT32  restore1CodeOffset;
-  UINT32  restore1StackOffset;
-
-  UINT32  pageCount;
-  UINT32  bitmapSize;
-
-  UINT32  restore1Sum;
-  UINT32  image1Sum;
-  UINT32  image2Sum;
-
-  UINT32  actualRestore1Sum;
-  UINT32  actualImage1Sum;
-  UINT32  actualImage2Sum;
-
-  UINT32  actualUncompressedPages;
-  UINT32  conflictCount;
-  UINT32  nextFree;
-
-  UINT32  signature;
-  UINT32  processorFlags;
-  UINT32  runtimePages;
-  UINT32  runtimePageCount;
-  UINT64  runtimeVirtualPages;
-
-  UINT32  performanceDataStart;
-  UINT32  performanceDataSize;
-
-  UINT64  encryptStart;
-  UINT64  machineSignature;
-
-  UINT32  previewSize;
-  UINT32  previewPageListSize;
-
-  UINT32  diag[4];
-
-  UINT32  handoffPages;
-  UINT32  handoffPageCount;
-
-  UINT32  systemTableOffset;
-
-  UINT32  debugFlags;
-  UINT32  options;
-  UINT32  sleepTime;
-  UINT32  compression;
-
-} IOHibernateImageHeaderMin;
-
-typedef struct _IOHibernateImageHeaderMinSnow
-{
-  UINT64  imageSize;
-  UINT64  image1Size;
-
-  UINT32  restore1CodePhysPage;
-  UINT32  restore1PageCount;
-  UINT32  restore1CodeOffset;
-  UINT32  restore1StackOffset;
-
-  UINT32  pageCount;
-  UINT32  bitmapSize;
-
-  UINT32  restore1Sum;
-  UINT32  image1Sum;
-  UINT32  image2Sum;
-
-  UINT32  actualRestore1Sum;
-  UINT32  actualImage1Sum;
-  UINT32  actualImage2Sum;
-
-  UINT32  actualUncompressedPages;
-  UINT32  conflictCount;
-  UINT32  nextFree;
-
-  UINT32  signature;
-  UINT32  processorFlags;
-} IOHibernateImageHeaderMinSnow;
-
-
-typedef struct _AppleRTCHibernateVars
-{
-  UINT8   signature[4];
-  UINT32  revision;
-  UINT8   booterSignature[20];
-  UINT8   wiredCryptKey[16];
-} AppleRTCHibernateVars;
 
 #pragma pack(pop)
 
@@ -191,15 +92,14 @@ INT32 mac_to_posix(UINT32 mac_time) {
   return mac_time ?  mac_time - 2082844800 : 0;
 }
 
-
 EFI_BLOCK_READ OrigBlockIoRead = NULL;
 UINT64  gSleepImageOffset = 0;
 UINT32  gSleepTime = 0;
 
-
 /** BlockIo->Read() override. */
 EFI_STATUS
-EFIAPI OurBlockIoRead (
+EFIAPI
+OurBlockIoRead (
   IN EFI_BLOCK_IO_PROTOCOL    *This,
   IN UINT32                   MediaId,
   IN EFI_LBA                  Lba,
@@ -212,12 +112,12 @@ EFIAPI OurBlockIoRead (
   if (
     (gSleepImageOffset == 0) &&
     (Status == EFI_SUCCESS) &&
-    (BufferSize >= sizeof(IOHibernateImageHeaderMin))
+    (BufferSize >= sizeof(IOHibernateImageHeader))
   ) { //sizeof(IOHibernateImageHeaderMin)==96
     UINT32    BlockSize = 0;
 
-    IOHibernateImageHeaderMin *Header;
-    IOHibernateImageHeaderMinSnow *Header2;
+    IOHibernateImageHeader *Header;
+    //IOHibernateImageHeaderMinSnow *Header2;
 
     // Mark that we are executing, to avoid entering above phrase again, and don't add DBGs outside this scope, to avoid recursion
     gSleepImageOffset = (UINT64)-1;
@@ -230,17 +130,13 @@ EFIAPI OurBlockIoRead (
 
     DBG(" OurBlockIoRead: Lba=%lx, Offset=%lx (BlockSize=%d)\n", Lba, MultU64x32(Lba, BlockSize), BlockSize);
 
-    Header = (IOHibernateImageHeaderMin *) Buffer;
-    Header2 = (IOHibernateImageHeaderMinSnow *) Buffer;
+    Header = (IOHibernateImageHeader *) Buffer;
 
-    DBG(" sig lion: %x\n", Header->signature);
-    DBG(" sig snow: %x\n", Header2->signature);
+    //DBG(" sig lion: %x\n", Header->signature);
+    //DBG(" sig snow: %x\n", Header2->signature);
     // DBG(" sig swap: %x\n", SwapBytes32(Header->signature));
 
-    if (
-      (Header->signature == kIOHibernateHeaderSignature) ||
-      (Header2->signature == kIOHibernateHeaderSignature)
-    ) {
+    if (Header->signature == kIOHibernateHeaderSignature) {
       gSleepImageOffset = MultU64x32(Lba, BlockSize);
 
       DBG(" got sleep image offset\n");
@@ -356,7 +252,6 @@ GetSleepImageLocation (
   *SleepImageName = ImageName;
 }
 
-
 /** Returns byte offset of sleepimage on the whole disk or 0 if not found or error.
  *
  * To avoid messing with HFS+ format, we'll use the trick with overriding
@@ -462,7 +357,6 @@ GetSleepImagePosition (
 
   return gSleepImageOffset;
 }
-
 
 /** Returns TRUE if /private/var/vm/sleepimage exists
  *  and it's modification time is close to volume modification time).
@@ -595,8 +489,6 @@ IsOsxHibernated (
   return TRUE;
 }
 
-
-
 /** Prepares nvram vars needed for boot.efi to wake from hibernation:
  *  boot-switch-vars and boot-image.
  *
@@ -716,4 +608,3 @@ PrepareHibernation (
 
   return TRUE;
 }
-

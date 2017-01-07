@@ -37,11 +37,9 @@ SetKernelRelocBase() {
   UINTN   DataSize = sizeof(KernelInfo->RelocBase);
 
   // OsxAptioFixDrv will set this
-  gRT->GetVariable(L"OsxAptioFixDrv-RelocBase", &gEfiAppleBootGuid, NULL, &DataSize, &KernelInfo->RelocBase);
-  DeleteNvramVariable(L"OsxAptioFixDrv-RelocBase", &gEfiAppleBootGuid); // clean up the temporary variable
+  gRT->GetVariable(L"OsxAptioFixDrv-RelocBase", &gEfiGlobalVariableGuid, NULL, &DataSize, &KernelInfo->RelocBase);
+  DeleteNvramVariable(L"OsxAptioFixDrv-RelocBase", &gEfiGlobalVariableGuid); // clean up the temporary variable
   // KernelInfo->RelocBase is now either read or 0
-
-  return;
 }
 
 /*

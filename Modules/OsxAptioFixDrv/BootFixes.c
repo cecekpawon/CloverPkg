@@ -15,14 +15,14 @@
 #include <Library/Common/LoaderUefi.h>
 #include <Library/Platform/DeviceTree.h>
 
+#include <Library/Common/Boot.h>
+#include <Library/Common/Hibernate.h>
+
 #include "BootFixes.h"
 #include "AsmFuncs.h"
-#include "BootArgs.h"
 #include "VMem.h"
 #include "Lib.h"
-//#include "FlatDevTree/device_tree.h"
-//#include "Mach-O/Mach-O.h"
-#include "Hibernate.h"
+//#include "Hibernate.h"
 
 // DBG_TO: 0=no debug, 1=serial, 2=console
 // serial requires
@@ -378,9 +378,7 @@ ExecSetVirtualAddressesToMemMap (
   GetCurrentPageTable(&PageTable, &Flags);
 
   for (Index = 0; Index < NumEntries; Index++) {
-
     if ((Desc->Attribute & EFI_MEMORY_RUNTIME) != 0) {
-
       // check if there is enough space in gVirtualMemoryMap
       if (gVirtualMapSize + DescriptorSize > sizeof(gVirtualMemoryMap)) {
         return EFI_OUT_OF_RESOURCES;
@@ -417,7 +415,6 @@ ExecSetVirtualAddressesToMemMap (
 
   return Status;
 }
-
 
 VOID
 CopyEfiSysTableToSeparateRtDataArea (
@@ -463,8 +460,7 @@ ProtectRtDataFromRelocation (
     //BlockSize = EFI_PAGES_TO_SIZE((UINTN)Desc->NumberOfPages);
 
     if ((Desc->Attribute & EFI_MEMORY_RUNTIME) != 0) {
-      if ((Desc->Type == EfiRuntimeServicesData) && Desc->PhysicalStart != gSysTableRtArea)
-      {
+      if ((Desc->Type == EfiRuntimeServicesData) && Desc->PhysicalStart != gSysTableRtArea) {
         //DBG(" RT data %lx (0x%x) -> MemMapIO\n", Desc->PhysicalStart, Desc->NumberOfPages);
         Desc->Type = EfiMemoryMappedIO;
       }
@@ -538,7 +534,7 @@ DefragmentRuntimeServices (
 
   for (Index = 0; Index < NumEntries; Index++) {
     // defragment only RT blocks
-    if (Desc->Type == EfiRuntimeServicesCode || Desc->Type == EfiRuntimeServicesData) {
+    if ((Desc->Type == EfiRuntimeServicesCode) || (Desc->Type == EfiRuntimeServicesData)) {
 
       // skip our block with sys table copy if required
       if (SkipOurSysTableRtArea && Desc->PhysicalStart == gSysTableRtArea) {
@@ -800,8 +796,8 @@ RemoveRTFlagMappings (
 /** Fixes stuff when booting with relocation block. Called when boot.efi jumps to kernel. */
 UINTN
 FixBootingWithRelocBlock (
-  UINTN bootArgs,
-  BOOLEAN ModeX64
+  UINTN     bootArgs,
+  BOOLEAN   ModeX64
 ) {
   VOID                    *pBootArgs = (VOID*)bootArgs;
   BootArgs                *BA;
@@ -869,7 +865,6 @@ FixBootingWithoutRelocBlock(
   BA = GetBootArgs(pBootArgs);
 
   /*
-
     // Set boot args efi system table to our copied system table
     DBG(" old BA->efiSystemTable = %x:\n", *BA->efiSystemTable);
     *BA->efiSystemTable = (UINT32)gRelocatedSysTableRtArea;

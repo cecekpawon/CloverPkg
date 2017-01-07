@@ -13,12 +13,6 @@ Module Name:
 #ifndef __FSInject_H__
 #define __FSInject_H__
 
-/** Map of known guids and friendly names. Searchable with GuidStr() */
-typedef struct {
-  EFI_GUID  *Guid;
-  CHAR16    *Str;
-} MAP_EFI_GUID_STR;
-
 /**
  * FSInjection EFI_SIMPLE_FILE_SYSTEM_PROTOCOL private structure
  */
@@ -45,7 +39,6 @@ typedef struct {
 /** Macro to access FSI_SIMPLE_FILE_SYSTEM_PROTOCOL from public FS */
 #define FSI_FROM_SIMPLE_FILE_SYSTEM(a)  CR (a, FSI_SIMPLE_FILE_SYSTEM_PROTOCOL, FS, FSI_SIMPLE_FILE_SYSTEM_PROTOCOL_SIGNATURE)
 
-
 /**
  *  FSInjection EFI_FILE_PROTOCOL private structure.
  */
@@ -67,6 +60,5 @@ typedef struct {
 
 /** Macro to access FSI_FILE_PROTOCOL from public FP */
 #define FSI_FROM_FILE_PROTOCOL(a)  CR (a, FSI_FILE_PROTOCOL, FP, FSI_FILE_PROTOCOL_SIGNATURE)
-
 
 #endif

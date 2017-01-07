@@ -19,19 +19,16 @@ Module Name:
 #include <Library/BaseMemoryLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/DebugLib.h>
-//#include <Library/PrintLib.h>
+#include <Library/PrintLib.h>
 
 #include <Library/Common/MemLogLib.h>
 #include <Library/Common/CommonLib.h>
 
 #include <Protocol/SimpleFileSystem.h>
 
-#include <Guid/GlobalVariable.h>
-#include <Guid/FileInfo.h>
-#include <Guid/FileSystemInfo.h>
-#include <Guid/FileSystemVolumeLabelInfo.h>
-
 #include <Protocol/FSInjectProtocol.h>
+
+#include <Guid/FileInfo.h>
 
 #include "FSInject.h"
 

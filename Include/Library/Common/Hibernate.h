@@ -97,6 +97,12 @@ typedef struct _IOHibernateImageHeader
   IOPolledFileExtent  fileExtentMap[2];
 } IOHibernateImageHeader;
 
+// IOHibernateImageHeader.signature
+enum
+{
+  kIOHibernateHeaderSignature        = 0x73696d65,
+  kIOHibernateHeaderInvalidSignature = 0x7a7a7a7a
+};
 
 enum
 {

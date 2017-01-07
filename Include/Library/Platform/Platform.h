@@ -590,6 +590,8 @@ typedef struct _oper_region OPER_REGION;
 
 typedef struct _DRIVERS_FLAGS {
   BOOLEAN AptioFixLoaded;
+  BOOLEAN AptioFixEmbedded;
+  BOOLEAN FSInjectEmbedded;
   BOOLEAN HFSLoaded;
 } DRIVERS_FLAGS;
 

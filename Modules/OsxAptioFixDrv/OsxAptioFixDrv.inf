@@ -26,7 +26,8 @@
   UefiLib
 
 [Sources]
-  OsxAptioFixDrv.c
+  #OsxAptioFixDrv.c
+  OsxAptioFix2Drv.c
   BootFixes.c
   BootArgs.c
   VMem.c
@@ -39,3 +40,4 @@
 
 [Guids]
   gEfiAppleBootGuid
+  gEfiGlobalVariableGuid

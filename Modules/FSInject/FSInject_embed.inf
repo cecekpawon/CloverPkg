@@ -28,3 +28,6 @@
 
 [Sources]
   FSInject.c
+
+[Guids]
+  gEfiGlobalVariableGuid

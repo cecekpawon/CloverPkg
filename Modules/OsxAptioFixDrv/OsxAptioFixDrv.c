@@ -12,23 +12,16 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/DebugLib.h>
-#include <Library/CpuLib.h>
 
 #include <Library/Common/CommonLib.h>
-
-#include <Guid/GlobalVariable.h>
 
 #include <Protocol/LoadedImage.h>
 
 #include <Protocol/AptioFixProtocol.h>
 
 #include "BootFixes.h"
-#include "BootArgs.h"
-#include "AsmFuncs.h"
 #include "VMem.h"
 #include "Lib.h"
-#include "Hibernate.h"
-
 
 // DBG_TO: 0=no debug, 1=serial, 2=console
 // serial requires
@@ -80,16 +73,7 @@ EFI_MEMORY_DESCRIPTOR     *gLastMemoryMap = NULL;
 UINTN                     gLastDescriptorSize = 0;
 UINT32                    gLastDescriptorVersion = 0;
 
-//
-// Struct for holding APTIOFIX_PROTOCOL.
-//
-//typedef struct {
-//  UINT64   Signature;
-//} APTIOFIX_PROTOCOL;
-
-//#define APTIOFIX_SIGNATURE SIGNATURE_64('A','P','T','I','O','F','I','X')
-//
-EFI_GUID  gAptioFixProtocolGuid = {0xB79DCC2E, 0x61BE, 0x453F, {0xBC, 0xAC, 0xC2, 0x60, 0xFA, 0xAE, 0xCC, 0xDA }};
+EFI_GUID  gAptioFixProtocolGuid = {0xB79DCC2E, 0x61BE, 0x453F, {0xBC, 0xAC, 0xC2, 0x60, 0xFA, 0xAE, 0xCC, 0xDA}};
 
 /** Helper function that calls GetMemoryMap() and returns new MapKey.
  * Uses gStoredGetMemoryMap, so can be called only after gStoredGetMemoryMap is set.
@@ -156,7 +140,6 @@ CalculateRelocBlockSize () {
   EFI_STATUS    Status;
   UINTN         NumPagesRT;
 
-
   // Sum pages needed for RT and MMIO areas
   Status = GetNumberOfRTPages (&NumPagesRT);
   if (EFI_ERROR (Status)) {
@@ -195,9 +178,10 @@ AllocateRelocBlock () {
 
   // set reloc addr in runtime vars for boot manager
   //Print (L"OsxAptioFixDrv: AllocateRelocBlock(): gRelocBase set to %lx - %lx\n", gRelocBase, gRelocBase + EFI_PAGES_TO_SIZE(gRelocSizePages) - 1);
-  /*Status = */gRT->SetVariable (L"OsxAptioFixDrv-RelocBase", &gEfiAppleBootGuid,
+  /*Status = */gRT->SetVariable (L"OsxAptioFixDrv-RelocBase", &gEfiGlobalVariableGuid,
                 /*   EFI_VARIABLE_NON_VOLATILE |*/ EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS,
                 sizeof (gRelocBase) ,&gRelocBase);
+
   return Status;
 }
 
@@ -260,7 +244,6 @@ MOAllocatePages (
   EFI_PHYSICAL_ADDRESS      UpperAddr;
   //EFI_PHYSICAL_ADDRESS    MemoryIn;
   //BOOLEAN                 FromRelocBlock = FALSE;
-
 
   //MemoryIn = *Memory;
 
@@ -563,7 +546,6 @@ MOStartImage (
 
   return Status;
 }
-
 
 /** Entry point. Installs our StartImage override.
   * All other stuff will be installed from there when boot.efi is started.

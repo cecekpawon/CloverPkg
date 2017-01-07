@@ -10,25 +10,13 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/UefiBootServicesTableLib.h>
-#include <Library/UefiRuntimeServicesTableLib.h>
 #include <Library/DebugLib.h>
 #include <Library/PrintLib.h>
 #include <Library/DevicePathLib.h>
 
 #include <Protocol/LoadedImage.h>
-#include <Protocol/BlockIo.h>
-#include <Protocol/BlockIo2.h>
-#include <Protocol/DiskIo.h>
-#include <Protocol/DiskIo2.h>
-#include <Protocol/SimpleFileSystem.h>
 
-#include <Guid/FileInfo.h>
-#include <Guid/FileSystemInfo.h>
-#include <Guid/FileSystemVolumeLabelInfo.h>
-
-//#include "NVRAMDebug.h"
 #include "Lib.h"
-
 
 // DBG_TO: 0=no debug, 1=serial, 2=console
 // serial requires
@@ -263,6 +251,7 @@ PrintMemMap (
 #endif
 }
 
+#if 0
 VOID
 EFIAPI
 PrintSystemTable (
@@ -301,6 +290,7 @@ WaitForKeyPress (
     Status = gST->ConIn->ReadKeyStroke (gST->ConIn, &key);
   } while (Status == EFI_SUCCESS);
 }
+#endif
 
 /** Returns file path from FilePathProto in allocated memory. Mem should be released by caler.*/
 CHAR16 *
@@ -366,6 +356,7 @@ GetMemoryMapAlloc (
 
   *MemoryMapSize = 0;
   *MemoryMap = NULL;
+
   Status = GetMemoryMapFunction (MemoryMapSize, *MemoryMap, MapKey, DescriptorSize, DescriptorVersion);
   if (Status == EFI_BUFFER_TOO_SMALL) {
     // OK. Space needed for mem map is in MemoryMapSize

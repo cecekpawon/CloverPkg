@@ -54,7 +54,7 @@ AML_CHUNK   *aml_add_local0(AML_CHUNK* parent);
 AML_CHUNK   *aml_add_store(AML_CHUNK* parent);
 AML_CHUNK   *aml_add_return(AML_CHUNK* parent);
 
-UINT32      get_size(UINT8* Buffer, UINT32 adr);
+UINT32      AcpiGetSize(UINT8* Buffer, UINT32 adr);
 
 typedef     EFI_ACPI_DESCRIPTION_HEADER SSDT_TABLE;
 

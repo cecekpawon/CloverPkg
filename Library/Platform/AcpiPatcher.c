@@ -736,7 +736,6 @@ STATIC UINT8 NameSSDT2[] = {0x80, 0x53, 0x53, 0x44, 0x54};
 // OperationRegion (CSDT, SystemMemory, 0xDF5DBE18, 0x84)
 STATIC UINT8 NameCSDT2[] = {0x80, 0x43, 0x53, 0x44, 0x54};
 
-//UINT32 get_size(UINT8 * An, UINT32 ); // Let borrow from FixBiosDsdt.
 VOID
 DumpChildSsdt (
   EFI_ACPI_DESCRIPTION_HEADER   *TableEntry,
@@ -760,7 +759,7 @@ DumpChildSsdt (
       (CompareMem(Entry, NameCSDT, sizeof (NameCSDT)) == 0) ||
       (CompareMem(Entry, NameTSDT, sizeof (NameTSDT)) == 0)
     ) {
-      pacLen = get_size(Entry, sizeof (NameSSDT));
+      pacLen = AcpiGetSize(Entry, sizeof (NameSSDT));
 
       pacBody = Entry + sizeof (NameSSDT) + (pacLen > 63 ? 2 : 1); // Our packages are not huge
       pacCount = *pacBody++;
