@@ -22,31 +22,24 @@ DEFINE VS2015x86_BINX64                 = DEF(VS2015x86_BIN)\x86_amd64
 DEFINE WINSDK81_BIN                     = c:\Program Files\Windows Kits\8.1\bin\x86\
 DEFINE WINSDK81x86_BIN                  = c:\Program Files (x86)\Windows Kits\8.1\bin\x64
 
-################DEFINE WINSDK_VERSION   = v6.0A
-################DEFINE WINSDK_BIN       = c:\Program Files\Microsoft SDKs\Windows\DEF(WINSDK_VERSION)\bin
-################DEFINE WINSDKx86_BIN    = c:\Program Files (x86)\Microsoft SDKs\Windows\DEF(WINSDK_VERSION)\bin
-################
-################# Microsoft Visual Studio 2010
-################DEFINE WINSDK7_BIN       = c:\Program Files\Microsoft SDKs\Windows\v7.0A\Bin
-################DEFINE WINSDK7x86_BIN    = c:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\Bin
-################
-################# Microsoft Visual Studio 2012 Update 1 (required for rc.exe that was not included in the initial release)
-################DEFINE WINSDK71_BIN       = c:\Program Files\Microsoft SDKs\Windows\v7.1A\Bin
-################DEFINE WINSDK71x86_BIN    = c:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin
-################
-################# Microsoft Visual Studio 2013 Professional Edition
-################DEFINE WINSDK8_BIN       = c:\Program Files\Windows Kits\8.0\bin\x86\
-################DEFINE WINSDK8x86_BIN    = c:\Program Files (x86)\Windows Kits\8.0\bin\x64
-
 DEFINE GCC49_X64_PREFIX                 = ENV(GCC49_BIN)
 DEFINE GCC5_X64_PREFIX                  = ENV(GCC5_BIN)
 
 DEFINE UNIX_IASL_BIN                    = ENV(IASL_PREFIX)iasl
+DEFINE WIN_IASL_BIN                     = ENV(IASL_PREFIX)iasl.exe
 
 DEFINE IASL_FLAGS                       =
 DEFINE IASL_OUTFLAGS                    = -p
 DEFINE MS_ASL_OUTFLAGS                  = /Fo=
 DEFINE MS_ASL_FLAGS                     =
+
+DEFINE DEFAULT_WIN_ASL_BIN              = DEF(WIN_IASL_BIN)
+DEFINE DEFAULT_WIN_ASL_FLAGS            = DEF(IASL_FLAGS)
+DEFINE DEFAULT_WIN_ASL_OUTFLAGS         = DEF(IASL_OUTFLAGS)
+
+DEFINE MSFT_ASLPP_FLAGS                 = /nologo /E /C /FIAutoGen.h
+DEFINE MSFT_ASLCC_FLAGS                 = /nologo /c /FIAutoGen.h /TC /Dmain=ReferenceAcpiTable
+DEFINE MSFT_ASLDLINK_FLAGS              = /NODEFAULTLIB /ENTRY:ReferenceAcpiTable /SUBSYSTEM:CONSOLE
 
 DEFINE LLVM_X64_PREFIX                  = ENV(LLVM_BIN)
 DEFINE CLANG_X64_PREFIX                 = ENV(CLANG_BIN)
@@ -71,6 +64,16 @@ DEFINE CLANG_X64_PREFIX                 = ENV(CLANG_BIN)
 *_VS2015x86_*_ASM16_PATH                = DEF(VS2015x86_BIN)\ml.exe
 
 ##################
+# ASL definitions
+##################
+*_VS2015x86_*_ASL_PATH                  = DEF(WIN_IASL_BIN)
+*_VS2015x86_*_ASL_FLAGS                 = DEF(DEFAULT_WIN_ASL_FLAGS)
+*_VS2015x86_*_ASL_OUTFLAGS              = DEF(DEFAULT_WIN_ASL_OUTFLAGS)
+*_VS2015x86_*_ASLCC_FLAGS               = DEF(MSFT_ASLCC_FLAGS)
+*_VS2015x86_*_ASLPP_FLAGS               = DEF(MSFT_ASLPP_FLAGS)
+*_VS2015x86_*_ASLDLINK_FLAGS            = DEF(MSFT_ASLDLINK_FLAGS)
+
+##################
 # X64 definitions
 ##################
 
@@ -93,7 +96,7 @@ RELEASE_VS2015x86_X64_ASM_FLAGS         = /nologo /c /WX /W3 /Cx /Zd
 
 RELEASE_VS2015x86_X64_NASM_FLAGS        = -Ox -f win64
 
-RELEASE_VS2015x86_X64_DLINK_FLAGS  = /NOLOGO /NODEFAULTLIB /IGNORE:4001 /IGNORE:4254 /OPT:REF /OPT:ICF=10 /MAP /ALIGN:32 /SECTION:.xdata,D /SECTION:.pdata,D /Machine:X64 /DLL /ENTRY:$(IMAGE_ENTRY_POINT) /SUBSYSTEM:EFI_BOOT_SERVICE_DRIVER /SAFESEH:NO /BASE:0 /DRIVER /MERGE:.rdata=.data
+RELEASE_VS2015x86_X64_DLINK_FLAGS       = /NOLOGO /NODEFAULTLIB /IGNORE:4001 /IGNORE:4254 /OPT:REF /OPT:ICF=10 /MAP /ALIGN:32 /SECTION:.xdata,D /SECTION:.pdata,D /Machine:X64 /DLL /ENTRY:$(IMAGE_ENTRY_POINT) /SUBSYSTEM:EFI_BOOT_SERVICE_DRIVER /SAFESEH:NO /BASE:0 /DRIVER /MERGE:.rdata=.data
 
 ####################################################################################
 # GCC Common
@@ -109,7 +112,7 @@ DEFINE GCC_CC_FLAGS                     = -g -fshort-wchar -fno-strict-aliasing 
 DEFINE GCC_ASM_FLAGS                    = -c -x assembler -imacros $(DEST_DIR_DEBUG)/AutoGen.h
 DEFINE GCC_PP_FLAGS                     = -E -x assembler-with-cpp -include $(DEST_DIR_DEBUG)/AutoGen.h
 DEFINE GCC_VFRPP_FLAGS                  = -x c -E -P -DVFRCOMPILE --include $(DEST_DIR_DEBUG)/$(MODULE_NAME)StrDefs.h
-DEFINE GCC_ASLPP_FLAGS                  = -x c -E -P
+DEFINE GCC_ASLPP_FLAGS                  = -x c -E -include AutoGen.h
 DEFINE GCC_ASLCC_FLAGS                  = -x c -fno-lto -m64
 DEFINE GCC_X64_RC_FLAGS                 = -I binary -O elf64-x86-64 -B i386 --rename-section .data=.hii
 
@@ -132,15 +135,19 @@ DEFINE GCC5_ASM_FLAGS                   = DEF(GCC49_ASM_FLAGS)
 ####################################################################################
 
 *_GCC49_*_*_FAMILY                      = GCC
+*_GCC49_X64_GCCLINK_PREFIX              = -Wl,
 *_GCC49_*_*_BUILDRULEORDER              = nasm S s
+*_GCC49_*_ASL_PATH                      = DEF(UNIX_IASL_BIN)
 
 *_GCC49_*_MAKE_PATH                     = make
 #*_GCC49_*_MAKE_PATH                    = DEF(GCC49_X64_PREFIX)make
 *_GCC49_*_*_DLL                         = ENV(GCC49_DLL)
-*_GCC49_X64_GCCLINK_PREFIX              = -Wl,
-*_GCC49_*_ASL_PATH                      = DEF(UNIX_IASL_BIN)
+
 *_GCC49_*_PP_FLAGS                      = DEF(GCC_PP_FLAGS)
 *_GCC49_*_VFRPP_FLAGS                   = DEF(GCC_VFRPP_FLAGS)
+*_GCC49_*_ASLCC_FLAGS                   = DEF(GCC_ASLCC_FLAGS)
+*_GCC49_*_ASL_OUTFLAGS                  = DEF(IASL_OUTFLAGS)
+*_GCC49_*_ASLPP_FLAGS                   = DEF(GCC_ASLPP_FLAGS)
 
 ##################
 # X64 definitions
@@ -160,6 +167,7 @@ DEFINE GCC5_ASM_FLAGS                   = DEF(GCC49_ASM_FLAGS)
 
 *_GCC49_X64_ASM_FLAGS                   = DEF(GCC_ASM_FLAGS)
 *_GCC49_X64_CC_FLAGS                    = DEF(GCC49_X64_CC_FLAGS) ENV(GCC49_X64_EXTRA_CC_FLAGS) -c
+*_GCC49_X64_ASLDLINK_FLAGS              = DEF(GCC49_IA32_X64_ASLDLINK_FLAGS) -Wl,-m,elf_x86_64
 *_GCC49_X64_DLINK_FLAGS                 = DEF(GCC49_X64_DLINK_FLAGS) DEF(GCC49_X64_CC_FLAGS) ENV(GCC49_X64_EXTRA_CC_FLAGS)
 *_GCC49_X64_RC_FLAGS                    = DEF(GCC_X64_RC_FLAGS)
 *_GCC49_X64_OBJCOPY_FLAGS               =
@@ -183,8 +191,9 @@ DEFINE GCC5_ASM_FLAGS                   = DEF(GCC49_ASM_FLAGS)
 
 *_GCC5_*_PP_FLAGS                       = DEF(GCC_PP_FLAGS)
 *_GCC5_*_VFRPP_FLAGS                    = DEF(GCC_VFRPP_FLAGS)
-*_GCC5_*_ASLPP_FLAGS                    = DEF(GCC_ASLPP_FLAGS)
 *_GCC5_*_ASLCC_FLAGS                    = DEF(GCC_ASLCC_FLAGS)
+*_GCC5_*_ASL_OUTFLAGS                   = DEF(IASL_OUTFLAGS)
+*_GCC5_*_ASLPP_FLAGS                    = DEF(GCC_ASLPP_FLAGS)
 
 ##################
 # X64 definitions
@@ -282,7 +291,7 @@ RELEASE_XCODE5_*_DLINK_PATH           = clang
 # X64 definitions
 ##################
 
-RELEASE_XCODE5_X64_DLINK_FLAGS      = -arch x86_64 -nostdlib -Os -flto -Wl,-u,_$(IMAGE_ENTRY_POINT),-e,_$(IMAGE_ENTRY_POINT),-preload,-segalign,0x20,-pie,-all_load,-dead_strip,-seg1addr,0x240,-map,$(DEST_DIR_DEBUG)/$(BASE_NAME).map
+RELEASE_XCODE5_X64_DLINK_FLAGS        = -arch x86_64 -nostdlib -Os -flto -Wl,-u,_$(IMAGE_ENTRY_POINT),-e,_$(IMAGE_ENTRY_POINT),-preload,-segalign,0x20,-pie,-all_load,-dead_strip,-seg1addr,0x240,-map,$(DEST_DIR_DEBUG)/$(BASE_NAME).map
 
 *_XCODE5_X64_SLINK_FLAGS              = -static -o
 RELEASE_XCODE5_X64_ASM_FLAGS          = -arch x86_64
@@ -293,8 +302,8 @@ RELEASE_XCODE5_X64_ASM_FLAGS          = -arch x86_64
 RELEASE_XCODE5_X64_CC_FLAGS           = -target x86_64-pc-win32-macho -c -Os -flto -Wall -Werror -Wextra -include AutoGen.h -funsigned-char -fno-ms-extensions -fno-stack-protector -fno-builtin -fshort-wchar -mms-bitfields -Wno-unused-parameter -Wno-missing-braces -Wno-missing-field-initializers -Wno-tautological-compare -Wno-sign-compare $(PLATFORM_FLAGS) -Wno-shift-negative-value -Wno-empty-body
 
 *_XCODE5_*_ASLCC_FLAGS                = -x c -save-temps -g -O0 -fshort-wchar -fno-strict-aliasing -Wall -Werror -Wno-missing-braces -c -include AutoGen.h
-*_XCODE5_*_ASLDLINK_FLAGS             = -e _ReferenceAcpiTable -preload -segalign 0x20  -pie -seg1addr 0x240 -read_only_relocs suppress -map $(DEST_DIR_DEBUG)/$(BASE_NAME).map
-*_XCODE5_*_ASLPP_FLAGS                = -x c -E -P
+*_XCODE5_*_ASLDLINK_FLAGS             = -e _ReferenceAcpiTable -preload -segalign 0x20 -pie -seg1addr 0x240 -read_only_relocs suppress -map $(DEST_DIR_DEBUG)/$(BASE_NAME).map
+*_XCODE5_*_ASLPP_FLAGS                = -x c -E -include AutoGen.h
 *_XCODE5_*_ASL_FLAGS                  = -ta
 *_XCODE5_*_ASL_OUTFLAGS               = DEF(IASL_OUTFLAGS)
 

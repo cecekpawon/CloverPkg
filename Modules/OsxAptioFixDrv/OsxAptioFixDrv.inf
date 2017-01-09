@@ -22,6 +22,7 @@
 [LibraryClasses]
   CommonLib
   DeviceTreeLib
+  MemLogLib
   UefiDriverEntryPoint
   UefiLib
 
@@ -40,4 +41,5 @@
 
 [Guids]
   gEfiAppleBootGuid
+  gEfiFileInfoGuid
   gEfiGlobalVariableGuid

@@ -1209,21 +1209,6 @@ extern INPUT_ITEM                       *InputItems;
 extern BOOLEAN                          SavePreBootLog;
 //extern EFI_GRAPHICS_OUTPUT_PROTOCOL   *GraphicsOutput;
 
-extern EFI_GUID                         gEfiAppleBootGuid;
-extern EFI_GUID                         gEfiAppleNvramGuid;
-extern EFI_GUID                         AppleSystemInfoProducerName;
-extern EFI_GUID                         AppleDevicePropertyProtocolGuid;
-extern EFI_GUID                         gAppleFramebufferInfoProtocolGuid;
-extern EFI_GUID                         gEfiAppleVendorGuid;
-extern EFI_GUID                         gEfiPartTypeSystemPartGuid;
-extern EFI_GUID                         gMsgLogProtocolGuid;
-extern EFI_GUID                         gEfiLegacy8259ProtocolGuid;
-extern EFI_GUID                         gAptioProtocolGuid;
-
-extern EFI_GUID                         gDataHubPlatformGuid;
-extern EFI_GUID                         gEfiProcessorSubClassGuid;
-extern EFI_GUID                         gEfiMiscSubClassGuid;
-
 #if 0
 extern EFI_EVENT                        mVirtualAddressChangeEvent;
 extern EFI_EVENT                        OnReadyToBootEvent;

@@ -3404,10 +3404,9 @@ AboutRefit () {
   }
 
   if (AboutMenu.EntryCount == 0) {
-    //AddMenuInfo(&AboutMenu, PoolPrint(L"%a, on %a UEFI (rev %a)", CLOVER_REVISION_STR, gST->FirmwareVendor, EDK2_REVISION));
-    AddMenuInfo(&AboutMenu, PoolPrint(L"%a", CLOVER_REVISION_STR));
+    AddMenuInfo(&AboutMenu, PoolPrint(L"%a, %a", CLOVER_REVISION_STR, CLOVER_BUILDDATE));
     AddMenuInfo(&AboutMenu, PoolPrint(L" %a", CLOVER_BASED_INFO));
-    AddMenuInfo(&AboutMenu, PoolPrint(L" %a", CLOVER_BUILDDATE));
+    //AddMenuInfo(&AboutMenu, PoolPrint(L" %a", CLOVER_BUILDDATE));
     AddMenuInfo(&AboutMenu, PoolPrint(L" EDK II (rev %a)", EDK2_REVISION));
     //AddMenuInfo(&AboutMenu, PoolPrint(L" - Build with: [%a]", CLOVER_BUILDINFOS_STR));
 

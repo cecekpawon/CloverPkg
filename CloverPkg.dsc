@@ -20,38 +20,38 @@
   PLATFORM_GUID                  = 199E24E0-0989-42aa-87F2-611A8C397E72
   PLATFORM_VERSION               = 0.92
   DSC_SPECIFICATION              = 0x00010006
-  OUTPUT_DIRECTORY               = Build/Clover
+  OUTPUT_DIRECTORY               = Build/CloverX64
   SUPPORTED_ARCHITECTURES        = X64
-  BUILD_TARGETS                  = RELEASE|DEBUG
+  BUILD_TARGETS                  = RELEASE
   SKUID_IDENTIFIER               = DEFAULT
 
 [LibraryClasses]
   #
   # Entry point
   #
-  UefiDriverEntryPoint|MdePkg/Library/UefiDriverEntryPoint/UefiDriverEntryPoint.inf
   UefiApplicationEntryPoint|MdePkg/Library/UefiApplicationEntryPoint/UefiApplicationEntryPoint.inf
+  UefiDriverEntryPoint|MdePkg/Library/UefiDriverEntryPoint/UefiDriverEntryPoint.inf
   #
   # Basic
   #
+  #PeCoffExtraActionLib|MdePkg/Library/BasePeCoffExtraActionLibNull/BasePeCoffExtraActionLibNull.inf
+  #PeCoffLib|MdePkg/Library/BasePeCoffLib/BasePeCoffLib.inf
   BaseLib|MdePkg/Library/BaseLib/BaseLib.inf
   BaseMemoryLib|MdePkg/Library/BaseMemoryLib/BaseMemoryLib.inf
-  PrintLib|MdePkg/Library/BasePrintLib/BasePrintLib.inf
   CpuLib|MdePkg/Library/BaseCpuLib/BaseCpuLib.inf
   IoLib|MdePkg/Library/BaseIoLibIntrinsic/BaseIoLibIntrinsic.inf
-  PciLib|MdePkg/Library/BasePciLibCf8/BasePciLibCf8.inf
   PciCf8Lib|MdePkg/Library/BasePciCf8Lib/BasePciCf8Lib.inf
-  #PeCoffLib|MdePkg/Library/BasePeCoffLib/BasePeCoffLib.inf
-  #PeCoffExtraActionLib|MdePkg/Library/BasePeCoffExtraActionLibNull/BasePeCoffExtraActionLibNull.inf
+  PciLib|MdePkg/Library/BasePciLibCf8/BasePciLibCf8.inf
+  PrintLib|MdePkg/Library/BasePrintLib/BasePrintLib.inf
   #
   # UEFI & PI
   #
-  UefiBootServicesTableLib|MdePkg/Library/UefiBootServicesTableLib/UefiBootServicesTableLib.inf
-  UefiRuntimeServicesTableLib|MdePkg/Library/UefiRuntimeServicesTableLib/UefiRuntimeServicesTableLib.inf
-  UefiLib|MdePkg/Library/UefiLib/UefiLib.inf
   DevicePathLib|MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib.inf
   DxeServicesLib|MdePkg/Library/DxeServicesLib/DxeServicesLib.inf
   DxeServicesTableLib|MdePkg/Library/DxeServicesTableLib/DxeServicesTableLib.inf
+  UefiBootServicesTableLib|MdePkg/Library/UefiBootServicesTableLib/UefiBootServicesTableLib.inf
+  UefiLib|MdePkg/Library/UefiLib/UefiLib.inf
+  UefiRuntimeServicesTableLib|MdePkg/Library/UefiRuntimeServicesTableLib/UefiRuntimeServicesTableLib.inf
   #
   # Generic Modules
   #
@@ -61,8 +61,8 @@
   # Misc
   #
   DebugLib|MdePkg/Library/BaseDebugLibNull/BaseDebugLibNull.inf
-  MemoryAllocationLib|MdePkg/Library/UefiMemoryAllocationLib/UefiMemoryAllocationLib.inf
   HobLib|MdePkg/Library/DxeHobLib/DxeHobLib.inf
+  MemoryAllocationLib|MdePkg/Library/UefiMemoryAllocationLib/UefiMemoryAllocationLib.inf
   #
   # Our libs
   #
@@ -93,11 +93,12 @@
     DEFINE DISABLE_LTO_FLAG = -fno-lto
   !endif
 
-  DEFINE BUILD_OPTIONS=-DMDEPKG_NDEBUG
+  DEFINE BUILD_OPTIONS=MDEPKG_NDEBUG
 
-  MSFT:*_*_*_CC_FLAGS  = /FAcs /FR$(@R).SBR $(BUILD_OPTIONS) -Dinline=__inline $(MSFT_GRUB_FLAG)
+  #MSFT:*_*_*_CC_FLAGS  = /FAcs /FR$(@R).SBR $(BUILD_OPTIONS) -Dinline=__inline
+  #XCODE:*_*_*_CC_FLAGS = -fno-unwind-tables -Os $(BUILD_OPTIONS) -Wno-msvc-include $(DISABLE_LTO_FLAG)
+  #GCC:*_*_*_CC_FLAGS   = $(BUILD_OPTIONS)
 
-  XCODE:*_*_*_CC_FLAGS = -fno-unwind-tables -Os $(BUILD_OPTIONS) -Wno-msvc-include $(DISABLE_LTO_FLAG)
-  GCC:*_*_*_CC_FLAGS   = $(BUILD_OPTIONS)
-  #-Wunused-but-set-variable
-  # -Os -fno-omit-frame-pointer -maccumulate-outgoing-args
+  MSFT:*_*_*_CC_FLAGS  = /D $(BUILD_OPTIONS)
+  XCODE:*_*_*_CC_FLAGS = -D$(BUILD_OPTIONS) $(DISABLE_LTO_FLAG)
+  GCC:*_*_*_CC_FLAGS   = -D$(BUILD_OPTIONS)

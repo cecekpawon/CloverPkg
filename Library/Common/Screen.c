@@ -638,7 +638,8 @@ egTakeImage (
 // Make a screenshot
 //
 
-EFI_STATUS egScreenShot() {
+EFI_STATUS
+egScreenShot() {
   EFI_STATUS                      Status = EFI_NOT_READY;
   EG_IMAGE                        *Image;
   UINT8                           *FileData;

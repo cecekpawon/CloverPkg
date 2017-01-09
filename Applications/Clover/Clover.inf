@@ -15,12 +15,10 @@
 ##
 
 [Defines]
-  INF_VERSION                   = 0x00010005
+  INF_VERSION                   = 0x00010006
   BASE_NAME                     = CLOVER$(ARCH)
   FILE_GUID                     = 8F7D7B1E-0E1C-4C98-B12E-4EC99C4081AC
   MODULE_TYPE                   = UEFI_APPLICATION
-  EDK_RELEASE_VERSION           = 0x00020000
-  EFI_SPECIFICATION_VERSION     = 0x00010000
   VERSION_STRING                = 1.0
   ENTRY_POINT                   = RefitMain
 
@@ -110,19 +108,12 @@
   gAppleFramebufferInfoProtocolGuid
 
   gEfiBlockIoProtocolGuid
-  gEfiComponentName2ProtocolGuid
-  gEfiConsoleControlProtocolGuid
   gEfiDataHubProtocolGuid
-  gEfiDevicePathToTextProtocolGuid
   gEfiMiscSubClassGuid
   gEfiPciIoProtocolGuid
   gEfiPlatformDriverOverrideProtocolGuid
   gEfiProcessorSubClassGuid
   gEfiScsiIoProtocolGuid
-  gEfiSimpleFileSystemProtocolGuid
-  gEfiSimpleTextInProtocolGuid
-  gEfiSimpleTextInputExProtocolGuid
-  gEfiSimpleTextOutProtocolGuid
   gEfiStatusCodeRuntimeProtocolGuid
   gEfiUnicodeCollation2ProtocolGuid
   gEfiUnicodeCollationProtocolGuid
@@ -136,6 +127,6 @@
   gMsgLogProtocolGuid
 
 [BuildOptions]
-  XCODE:*_*_*_CC_FLAGS = -Os #-fsigned-char
-  GCC:*_*_*_CC_FLAGS = -Os #-fno-omit-frame-pointer
+  XCODE:*_*_*_CC_FLAGS = -Os
+  GCC:*_*_*_CC_FLAGS = -Os
   MSFT:*_*_*_CC_FLAGS = /Os
