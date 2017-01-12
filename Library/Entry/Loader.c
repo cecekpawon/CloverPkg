@@ -719,7 +719,7 @@ AddDefaultMenu (
   REFIT_VOLUME        *Volume;
   UINT64              VolumeSize;
   EFI_GUID            *Guid = NULL;
-  BOOLEAN             KernelIs64BitOnly;
+  //BOOLEAN             KernelIs64BitOnly;
   CHAR16              *FileName; //, *TempOptions
 
   if (Entry == NULL) {
@@ -733,7 +733,7 @@ AddDefaultMenu (
   }
 
   // Only kernels up to 10.7 have 32-bit mode
-  KernelIs64BitOnly = IsKernelIs64BitOnly(Entry);
+  //KernelIs64BitOnly = IsKernelIs64BitOnly(Entry);
 
   FileName = Basename(Entry->LoaderPath);
 

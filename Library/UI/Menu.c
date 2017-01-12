@@ -85,6 +85,8 @@ BOOLEAN SavePreBootLog = FALSE;
 
 typedef VOID (*MENU_STYLE_FUNC)(IN REFIT_MENU_SCREEN *Screen, IN SCROLL_STATE *State, IN UINTN Function, IN CHAR16 *ParamText);
 
+#define CHAR_SPACE  0x0020
+
 static CHAR16 ArrowUp[2]   = { ARROW_UP, 0 };
 static CHAR16 ArrowDown[2] = { ARROW_DOWN, 0 };
 
@@ -265,7 +267,7 @@ REFIT_MENU_ENTRY
   UINTN                 Tag,
   UINTN                 Row
 ) {
-  REFIT_INPUT_DIALOG *InputBootArgs = AllocateZeroPool(sizeof(REFIT_INPUT_DIALOG));
+  REFIT_INPUT_DIALOG    *InputBootArgs = AllocateZeroPool(sizeof(REFIT_INPUT_DIALOG));
 
   InputBootArgs->Entry.Title = PoolPrint(L"%s", Title);
   InputBootArgs->Entry.Tag = Tag;
@@ -816,11 +818,15 @@ FindMenuShortcutEntry (
 ) {
   INTN i;
 
-  if (Shortcut >= 'a' && Shortcut <= 'z') {
-    Shortcut -= ('a' - 'A');
-  }
+  //if (Shortcut >= 'a' && Shortcut <= 'z') {
+  //  Shortcut -= ('a' - 'A');
+  //}
 
   if (Shortcut) {
+    if (!IS_DIGIT(Shortcut) || !IS_ALFA(Shortcut)) {
+      return -1;
+    }
+
     for (i = 0; i < Screen->EntryCount; i++) {
       if (
         (Screen->Entries[i]->ShortcutDigit == Shortcut) ||
@@ -1196,7 +1202,6 @@ InputDialog (
   BackupPos = Pos;
 
   do {
-
     if (Item->ItemType == BoolValue) {
       Item->BValue = !Item->BValue;
       MenuExit = MENU_EXIT_ENTER;
@@ -1218,7 +1223,8 @@ InputDialog (
     } else {
       Status = gST->ConIn->ReadKeyStroke (gST->ConIn, &key);
 
-#if DBG_INPUTDIALOG
+#if 0
+\#if DBG_INPUTDIALOG
       // For debugging the InputDialog
       PrintAt(0, 0, L"%5d: Buffer:%x MaxSize:%d Line:%3d", Iteration, Buffer, SVALUE_MAX_SIZE, LineSize);
       PrintAt(0, 1, L"%5d: Size:%3d Len:%3d", Iteration, StrSize(Buffer), StrLen(Buffer));
@@ -1268,7 +1274,7 @@ InputDialog (
 
         case SCAN_ESC:
           MenuExit = MENU_EXIT_ESCAPE;
-          continue;
+          //continue;
           break;
 
         case SCAN_F2:
@@ -1454,8 +1460,8 @@ RunGenericMenu (
   EFI_INPUT_KEY     key;
   INTN              ShortcutEntry, TimeoutCountdown = 0;
   BOOLEAN           HaveTimeout = FALSE;
-  CHAR16            *TimeoutMessage;
-  UINTN             MenuExit;
+  CHAR16            *TimeoutMessage, CurrChar = 0;
+  UINTN             MenuExit, CurrentSelectionTag;
 
   //no default - no timeout!
   if (
@@ -1651,6 +1657,7 @@ RunGenericMenu (
 
       case SCAN_F9:
         SetNextScreenMode(1);
+        MenuExit = MENU_EXIT_ESCAPE;
         break;
 
       case SCAN_F10:
@@ -1663,47 +1670,48 @@ RunGenericMenu (
         break;
     }
 
-    switch (key.UnicodeChar) {
-      case CHAR_LINEFEED:
-      case CHAR_CARRIAGE_RETURN:
-        if (
-          ((Screen->Entries[State.CurrentSelection])->Tag == TAG_INPUT) ||
-          ((Screen->Entries[State.CurrentSelection])->Tag == TAG_CHECKBIT)
-        ) {
-          MenuExit = InputDialog(Screen, StyleFunc, &State);
-        } else if ((Screen->Entries[State.CurrentSelection])->Tag == TAG_SWITCH) {
-          MenuExit = InputDialog(Screen, StyleFunc, &State);
-          State.PaintAll = TRUE;
-        }/* else if ((Screen->Entries[State.CurrentSelection])->Tag == TAG_CLOVER){
-          MenuExit = MENU_EXIT_DETAILS;
-        }*/ else {
-          MenuExit = MENU_EXIT_ENTER;
-        }
+    CurrentSelectionTag = (Screen->Entries[State.CurrentSelection])->Tag;
+
+    //if (key.UnicodeChar >= 'a' && key.UnicodeChar <= 'z') {
+    //  key.UnicodeChar -= ('a' - 'A');
+    //}
+
+    CurrChar = TO_UPPER(key.UnicodeChar);
+
+    switch (CurrChar) {
+      case 'V':
+          if (CurrentSelectionTag == TAG_LOADER) {
+            gSettings.OptionsBits = OSFLAG_SET(gSettings.OptionsBits, OPT_VERBOSE);
+            MenuExit = MENU_EXIT_ENTER;
+          }
         break;
 
-      case ' ': //CHAR_SPACE
+      case CHAR_LINEFEED:
+      case CHAR_CARRIAGE_RETURN:
+      case CHAR_SPACE:
         if (
-          ((Screen->Entries[State.CurrentSelection])->Tag == TAG_INPUT) ||
-          ((Screen->Entries[State.CurrentSelection])->Tag == TAG_CHECKBIT)
+          (CurrentSelectionTag == TAG_INPUT) ||
+          (CurrentSelectionTag == TAG_CHECKBIT)
         ) {
           MenuExit = InputDialog(Screen, StyleFunc, &State);
-        } else if ((Screen->Entries[State.CurrentSelection])->Tag == TAG_SWITCH){
+        } else if (CurrentSelectionTag == TAG_SWITCH) {
           MenuExit = InputDialog(Screen, StyleFunc, &State);
           State.PaintAll = TRUE;
-        } else {
+        }/* else if (CurrentSelectionTag == TAG_CLOVER){
           MenuExit = MENU_EXIT_DETAILS;
+        }*/ else {
+          MenuExit = (key.UnicodeChar == CHAR_SPACE) ? MENU_EXIT_DETAILS : MENU_EXIT_ENTER;
         }
         break;
 
       default:
-        ShortcutEntry = FindMenuShortcutEntry(Screen, key.UnicodeChar);
+        ShortcutEntry = FindMenuShortcutEntry(Screen, CurrChar);
         if (ShortcutEntry >= 0) {
           State.CurrentSelection = ShortcutEntry;
           MenuExit = MENU_EXIT_ENTER;
         }
         break;
     }
-
   }
 
   StyleFunc(Screen, &State, MENU_FUNCTION_CLEANUP, NULL);
@@ -3469,6 +3477,7 @@ HelpRefit () {
         AddMenuInfo(&HelpMenu, PoolPrint(L"F4  - Save oem DSDT into '%s'", PathOrigin));
         AddMenuInfo(&HelpMenu, PoolPrint(L"F5  - Save patched DSDT into '%s'", PathOrigin));
         AddMenuInfo(&HelpMenu, PoolPrint(L"F6  - Save VideoBios into '%s'", DIR_MISC));
+        AddMenuInfo(&HelpMenu, L"F9  - Switch screen mode");
         AddMenuInfo(&HelpMenu, PoolPrint(L"F10 - Save screenshot into '%s'", DIR_MISC));
         AddMenuInfo(&HelpMenu, L"F12 - Eject selected volume (DVD)");
         AddMenuInfo(&HelpMenu, L"Space - Details about selected menu entry");
@@ -3477,12 +3486,13 @@ HelpRefit () {
         AddMenuInfo(&HelpMenu, L"O - Options");
         AddMenuInfo(&HelpMenu, L"R - Soft Reset");
         AddMenuInfo(&HelpMenu, L"X - Exit");
-        AddMenuInfo(&HelpMenu, L"C - Configs");
-        AddMenuInfo(&HelpMenu, L"T - Themes");
-        AddMenuInfo(&HelpMenu, L"A - ACPI");
-        AddMenuInfo(&HelpMenu, L"P - Patches");
-        AddMenuInfo(&HelpMenu, L"D - Devices");
-        AddMenuInfo(&HelpMenu, L"B - Debug");
+        AddMenuInfo(&HelpMenu, L"V - Boot verbose");
+        AddMenuInfo(&HelpMenu, L"C - Options - Configs");
+        AddMenuInfo(&HelpMenu, L"T - Options - Themes");
+        AddMenuInfo(&HelpMenu, L"A - Options - ACPI");
+        AddMenuInfo(&HelpMenu, L"P - Options - Patches");
+        AddMenuInfo(&HelpMenu, L"D - Options - Devices");
+        AddMenuInfo(&HelpMenu, L"B - Options - Debug");
     //    break;
     //}
 

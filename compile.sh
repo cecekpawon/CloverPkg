@@ -30,7 +30,7 @@ export LC_ALL="en_US.UTF-8"
 
 F_REV_TXT="rev.txt"
 
-CLOVER_PATH="`dirname "$0"`"
+CLOVER_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 CLOVER_BASEPATH=`basename ${CLOVER_PATH}`
 
 cd $CLOVER_PATH

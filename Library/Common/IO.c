@@ -1853,7 +1853,9 @@ WaitForInputEventPoll (
     if (Status != EFI_TIMEOUT) {
       break;
     }
+
     UpdateAnime(Screen, &(Screen->FilmPlace));
+
     /*
     if ((INTN)gItemID < Screen->EntryCount) {
       UpdateAnime(Screen->Entries[gItemID]->SubScreen, &(Screen->Entries[gItemID]->Place));
