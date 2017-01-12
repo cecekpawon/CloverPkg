@@ -726,10 +726,12 @@ AddMenuEntry (
   AddListElement((VOID ***) &(Screen->Entries), (UINTN*)&(Screen->EntryCount), Entry);
 }
 
+
 VOID
-SplitInfoLine (
+SplitMenuInfo (
   IN REFIT_MENU_SCREEN  *SubScreen,
-  IN CHAR16             *Str
+  IN CHAR16             *Str,
+  ADD_MENU_INFO         MenuInfo
 ) {
   CHAR16    *TmpStr;
   INTN      currentLen = 0,
@@ -752,7 +754,7 @@ SplitInfoLine (
     *TmpStr = '\0';
     StrnCat(TmpStr, Str + currentLen, TmpLen);
     //DBG("### %d: %s | Start -> %d | End -> %d\n", i++, TmpStr, currentLen, TmpLen);
-    AddMenuInfoLine(SubScreen, PoolPrint(L"%a%s", currentLen ? "  " : "", TmpStr));
+    MenuInfo(SubScreen, PoolPrint(L"%a%s", currentLen ? "  " : "", TmpStr));
 
     FreePool(TmpStr);
 
@@ -822,11 +824,7 @@ FindMenuShortcutEntry (
   //  Shortcut -= ('a' - 'A');
   //}
 
-  if (Shortcut) {
-    if (!IS_DIGIT(Shortcut) || !IS_ALFA(Shortcut)) {
-      return -1;
-    }
-
+  if (IS_DIGIT(Shortcut) || IS_ALFA(Shortcut)) {
     for (i = 0; i < Screen->EntryCount; i++) {
       if (
         (Screen->Entries[i]->ShortcutDigit == Shortcut) ||
@@ -3412,11 +3410,12 @@ AboutRefit () {
   }
 
   if (AboutMenu.EntryCount == 0) {
-    AddMenuInfo(&AboutMenu, PoolPrint(L"%a, %a", CLOVER_REVISION_STR, CLOVER_BUILDDATE));
+    AddMenuInfo(&AboutMenu, PoolPrint(L"%a on %a", CLOVER_REVISION_STR, CLOVER_BUILDDATE));
     AddMenuInfo(&AboutMenu, PoolPrint(L" %a", CLOVER_BASED_INFO));
     //AddMenuInfo(&AboutMenu, PoolPrint(L" %a", CLOVER_BUILDDATE));
     AddMenuInfo(&AboutMenu, PoolPrint(L" EDK II (rev %a)", EDK2_REVISION));
     //AddMenuInfo(&AboutMenu, PoolPrint(L" - Build with: [%a]", CLOVER_BUILDINFOS_STR));
+    SplitMenuInfo(&AboutMenu, PoolPrint(L" [%a]", CLOVER_BUILDINFOS_STR), AddMenuInfo);
 
     AddSeparator(&AboutMenu, NULL);
 

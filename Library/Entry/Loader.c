@@ -748,7 +748,7 @@ AddDefaultMenu (
 
   AddMenuInfoLine(SubScreen, PoolPrint(L"Volume size: %dMb", VolumeSize));
   //AddMenuInfoLine(SubScreen, FileDevicePathToStr(Entry->DevicePath));
-  SplitInfoLine(SubScreen, PoolPrint(L"Path: %s", FileDevicePathToStr(Entry->DevicePath)));
+  SplitMenuInfo(SubScreen, PoolPrint(L"Path: %s", FileDevicePathToStr(Entry->DevicePath)), AddMenuInfoLine);
 
   Guid = FindGPTPartitionGuidInDevicePath(Volume->DevicePath);
   if (Guid) {
@@ -760,7 +760,7 @@ AddDefaultMenu (
   }
 
   //AddMenuInfoLine(SubScreen, PoolPrint(L"Options: %s", Entry->LoadOptions));
-  SplitInfoLine(SubScreen, PoolPrint(L"Options: %s", Entry->LoadOptions));
+  SplitMenuInfo(SubScreen, PoolPrint(L"Options: %s", Entry->LoadOptions), AddMenuInfoLine);
 
   SubEntry = DuplicateLoaderEntry(Entry);
   if (SubEntry) {
@@ -1421,7 +1421,7 @@ AddCustomEntry (
 
             AddMenuInfoLine(SubScreen, PoolPrint(L"Volume size: %dMb", VolumeSize));
             //AddMenuInfoLine(SubScreen, FileDevicePathToStr(Entry->DevicePath));
-            SplitInfoLine(SubScreen, PoolPrint(L"Path: %s", FileDevicePathToStr(Entry->DevicePath)));
+            SplitMenuInfo(SubScreen, PoolPrint(L"Path: %s", FileDevicePathToStr(Entry->DevicePath)), AddMenuInfoLine);
 
             if (Guid) {
               CHAR8   *GuidStr = AllocateZeroPool(50);
@@ -1432,7 +1432,7 @@ AddCustomEntry (
             }
 
             //AddMenuInfoLine(SubScreen, PoolPrint(L"Options: %s", Entry->LoadOptions));
-            SplitInfoLine(SubScreen, PoolPrint(L"Options: %s", Entry->LoadOptions));
+            SplitMenuInfo(SubScreen, PoolPrint(L"Options: %s", Entry->LoadOptions), AddMenuInfoLine);
             //DBG("Create sub entries\n");
             for (CustomSubEntry = Custom->SubEntries; CustomSubEntry; CustomSubEntry = CustomSubEntry->Next) {
               if (!CustomSubEntry->Settings) {

@@ -780,6 +780,9 @@ VOID      SetBar (INTN PosX, INTN UpPosY, INTN DownPosY, IN SCROLL_STATE *State)
 #define ICON_FORMAT_PNG                   (2)
 //#define ICON_FORMAT_BMP                 (3)
 
+
+typedef VOID (*ADD_MENU_INFO)(IN REFIT_MENU_SCREEN *Screen, IN CHAR16 *InfoLine);
+
 VOID      AddMenuInfoLine (IN REFIT_MENU_SCREEN *Screen, IN CHAR16 *InfoLine);
 //VOID    AddMenuInfo (IN REFIT_MENU_SCREEN  *SubScreen, IN CHAR16 *Line);
 VOID      AddMenuEntry (IN REFIT_MENU_SCREEN *Screen, IN REFIT_MENU_ENTRY *Entry);
@@ -803,7 +806,7 @@ INTN      DrawTextXY (IN CHAR16 *Text, IN INTN XPos, IN INTN YPos, IN UINT8 XAli
 VOID      DrawBCSText (IN CHAR16 *Text, IN INTN XPos, IN INTN YPos, IN UINT8 XAlign);
 //VOID    DrawMenuText (IN CHAR16 *Text, IN INTN SelectedWidth, IN INTN XPos, IN INTN YPos, IN INTN Cursor);
 INTN      GetSubMenuCount ();
-VOID      SplitInfoLine (IN REFIT_MENU_SCREEN *SubScreen, IN CHAR16 *Str);
+VOID      SplitMenuInfo (IN REFIT_MENU_SCREEN *SubScreen, IN CHAR16 *Str, ADD_MENU_INFO MenuInfo);
 BOOLEAN   BootArgsExists (IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
 
 UINT32    EncodeOptions (CHAR16 *Options);

@@ -1298,11 +1298,11 @@ RefitMain (
       Now.Day, Now.Month, Now.Year, Now.Hour, Now.Minute, Now.Second, Now.TimeZone);
   }
 
-  MsgLog("Starting %a, %a\n", CLOVER_REVISION_STR, CLOVER_BUILDDATE);
+  MsgLog("Starting %a on %a\n", CLOVER_REVISION_STR, CLOVER_BUILDDATE);
   MsgLog(" - %a\n", CLOVER_BASED_INFO);
   //MsgLog(" - %a\n", CLOVER_BUILDDATE);
   MsgLog(" - EDK II (rev %a)\n", EDK2_REVISION);
-  MsgLog(" - Options: [%a]\n", CLOVER_BUILDINFOS_STR);
+  MsgLog(" - [%a]\n", CLOVER_BUILDINFOS_STR);
   MsgLog(" - UEFI Revision %d.%02d\n",
     gST->Hdr.Revision >> 16,
     gST->Hdr.Revision & ((1 << 16) - 1)
