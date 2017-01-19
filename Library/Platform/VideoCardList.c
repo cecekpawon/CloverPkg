@@ -5,6 +5,19 @@
 
 #include <Library/Platform/Platform.h>
 
+#ifndef DEBUG_ALL
+#ifndef DEBUG_VCARDLIST
+#define DEBUG_VCARDLIST -1
+#endif
+#else
+#ifdef DEBUG_VCARDLIST
+#undef DEBUG_VCARDLIST
+#endif
+#define DEBUG_VCARDLIST DEBUG_ALL
+#endif
+
+#define DBG(...) DebugLog(DEBUG_VCARDLIST, __VA_ARGS__)
+
 /*
  injection for NVIDIA card usage e.g (to be placed in the config.plist, under graphics tag):
  <key>Graphics</key>
@@ -54,14 +67,6 @@
   </dict>
 */
 
-#define DEBUG_CARD_VLIST 1
-
-#if DEBUG_CARD_VLIST == 0
-#define DBG(...)
-#else
-#define DBG(...) DebugLog(DEBUG_CARD_VLIST, __VA_ARGS__)
-#endif
-
 LIST_ENTRY gCardList = INITIALIZE_LIST_HEAD_VARIABLE (gCardList);
 
 VOID
@@ -82,7 +87,7 @@ AddCard (
     new_card->VideoRam = VideoRam;
     new_card->VideoPorts = VideoPorts;
     new_card->LoadVBios = LoadVBios;
-    AsciiSPrint(new_card->Model, 64, "%a", Model);
+    AsciiSPrint(new_card->Model, ARRAY_SIZE(new_card->Model), "%a", Model);
     InsertTailList (&gCardList, (LIST_ENTRY *)(((UINT8 *)new_card) + OFFSET_OF(CARDLIST, Link)));
   }
 }

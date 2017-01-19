@@ -43,16 +43,17 @@
 #include <Library/Common/CommonLib.h>
 
 #ifndef DEBUG_ALL
-#define DEBUG_COMMON_MENU 1
+#ifndef DEBUG_COMMON
+#define DEBUG_COMMON -1
+#endif
 #else
-#define DEBUG_COMMON_MENU DEBUG_ALL
+#ifdef DEBUG_COMMON
+#undef DEBUG_COMMON
+#endif
+#define DEBUG_COMMON DEBUG_ALL
 #endif
 
-#if DEBUG_COMMON_MENU == 0
-#define DBG(...)
-#else
-#define DBG(...) DebugLog(DEBUG_COMMON_MENU, __VA_ARGS__)
-#endif
+#define DBG(...) DebugLog(DEBUG_COMMON, __VA_ARGS__)
 
 CONST CHAR16 *OsxPathLCaches[] = {
    L"\\System\\Library\\Caches\\com.apple.kext.caches\\Startup\\kernelcache",
@@ -76,23 +77,23 @@ typedef enum {
 
 typedef struct {
   base64_decodestep   step;
-  char                plainchar;
+  CHAR8                plainchar;
 } base64_decodestate;
 
-int base64_decode_value(char value_in) {
-  static const signed char decoding[] = {
+INT32 base64_decode_value(CHAR8 value_in) {
+  STATIC CONST INT8 decoding[] = {
     62,-1,-1,-1,63,52,53,54,55,56,57,58,59,60,61,-1,-1,-1,-2,-1,-1,-1,0,1,2,3,4,5,6,
     7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,-1,-1,-1,-1,-1,-1,26,27,28,
     29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51
   };
 
-  int value_in_i = (unsigned char) value_in;
+  INT32 value_in_i = (UINT8) value_in;
   value_in_i -= 43;
-  if (value_in_i < 0 || (unsigned int) value_in_i >= sizeof decoding) return -1;
+  if (value_in_i < 0 || (UINT32) value_in_i >= sizeof (decoding)) return -1;
   return decoding[value_in_i];
 }
 
-void
+VOID
 base64_init_decodestate (
   base64_decodestate    *state_in
 ) {
@@ -100,16 +101,16 @@ base64_init_decodestate (
   state_in->plainchar = 0;
 }
 
-int
+INT32
 base64_decode_block (
-  const char                *code_in,
-  const int                 length_in,
-        char                *plaintext_out,
+  CONST CHAR8                *code_in,
+  CONST INT32                length_in,
+        CHAR8                *plaintext_out,
         base64_decodestate  *state_in
 ) {
-  const char  *codechar = code_in;
-  char        *plainchar = plaintext_out;
-  int         fragment;
+  CONST CHAR8  *codechar = code_in;
+  CHAR8        *plainchar = plaintext_out;
+  INT32        fragment;
 
   *plainchar = state_in->plainchar;
 
@@ -120,39 +121,39 @@ base64_decode_block (
           if (codechar == code_in+length_in) {
             state_in->step = step_a;
             state_in->plainchar = *plainchar;
-            return (int)(plainchar - plaintext_out);
+            return (INT32)(plainchar - plaintext_out);
           }
           fragment = base64_decode_value(*codechar++);
         } while (fragment < 0);
 
-        *plainchar    = (char) ((fragment & 0x03f) << 2);
+        *plainchar = (CHAR8) ((fragment & 0x03f) << 2);
 
       case step_b:
         do {
           if (codechar == code_in+length_in) {
             state_in->step = step_b;
             state_in->plainchar = *plainchar;
-            return (int)(plainchar - plaintext_out);
+            return (INT32)(plainchar - plaintext_out);
           }
 
           fragment = base64_decode_value(*codechar++);
         } while (fragment < 0);
 
-        *plainchar++ |= (char) ((fragment & 0x030) >> 4);
-        *plainchar    = (char) ((fragment & 0x00f) << 4);
+        *plainchar++ |= (CHAR8) ((fragment & 0x030) >> 4);
+        *plainchar    = (CHAR8) ((fragment & 0x00f) << 4);
 
       case step_c:
         do {
           if (codechar == code_in+length_in) {
             state_in->step = step_c;
             state_in->plainchar = *plainchar;
-            return (int)(plainchar - plaintext_out);
+            return (INT32)(plainchar - plaintext_out);
           }
           fragment = base64_decode_value(*codechar++);
         } while (fragment < 0);
 
-        *plainchar++ |= (char) ((fragment & 0x03c) >> 2);
-        *plainchar    = (char) ((fragment & 0x003) << 6);
+        *plainchar++ |= (CHAR8) ((fragment & 0x03c) >> 2);
+        *plainchar    = (CHAR8) ((fragment & 0x003) << 6);
 
       case step_d:
         do {
@@ -160,17 +161,17 @@ base64_decode_block (
           {
             state_in->step = step_d;
             state_in->plainchar = *plainchar;
-            return (int)(plainchar - plaintext_out);
+            return (INT32)(plainchar - plaintext_out);
           }
           fragment = base64_decode_value(*codechar++);
         } while (fragment < 0);
 
-        *plainchar++   |= (char) ((fragment & 0x03f));
+        *plainchar++ |= (CHAR8) ((fragment & 0x03f));
     }
   }
 
   /* control should not reach here */
-  return (int)(plainchar - plaintext_out);
+  return (INT32)(plainchar - plaintext_out);
 }
 
 /** UEFI interface to base54 decode.
@@ -182,7 +183,8 @@ UINT8
   IN  CHAR8     *EncodedData,
   OUT UINTN     *DecodedSize
 ) {
-  UINTN                 EncodedSize, DecodedSizeInternal;
+  UINTN                 EncodedSize;
+  INT32                 DecodedSizeInternal;
   UINT8                 *DecodedData;
   base64_decodestate    state_in;
 
@@ -200,10 +202,10 @@ UINT8
   DecodedData = AllocateZeroPool(EncodedSize);
 
   base64_init_decodestate(&state_in);
-  DecodedSizeInternal = base64_decode_block(EncodedData, (const int)EncodedSize, (char*) DecodedData, &state_in);
+  DecodedSizeInternal = base64_decode_block(EncodedData, (CONST INT32)EncodedSize, (CHAR8*) DecodedData, &state_in);
 
   if (DecodedSize != NULL) {
-    *DecodedSize = DecodedSizeInternal;
+    *DecodedSize = (UINTN)DecodedSizeInternal;
   }
 
   return DecodedData;
@@ -220,8 +222,9 @@ UINT8
   @retval NULL If there is not enough memory.
 
 **/
-CHAR16
-*EfiStrDuplicate (
+CHAR16 *
+EFIAPI
+EfiStrDuplicate (
   IN CHAR16   *Src
 ) {
   CHAR16  *Dest;
@@ -238,6 +241,7 @@ CHAR16
 }
 
 INTN
+EFIAPI
 StrniCmp (
   IN CHAR16   *Str1,
   IN CHAR16   *Str2,
@@ -278,8 +282,9 @@ StrniCmp (
   return 0;
 }
 
-CHAR16
-*StriStr (
+CHAR16 *
+EFIAPI
+StriStr (
   IN CHAR16   *Str,
   IN CHAR16   *SearchFor
 ) {
@@ -313,8 +318,9 @@ CHAR16
   return NULL;
 }
 
-CHAR16
-*StrToLower (
+CHAR16 *
+EFIAPI
+StrToLower (
   IN CHAR16   *Str
 ) {
   CHAR16    *Tmp = EfiStrDuplicate(Str);
@@ -327,8 +333,9 @@ CHAR16
   return Tmp;
 }
 
-CHAR16
-*StrToUpper (
+CHAR16 *
+EFIAPI
+StrToUpper (
   IN CHAR16   *Str
 ) {
   CHAR16    *Tmp = EfiStrDuplicate(Str);
@@ -341,8 +348,9 @@ CHAR16
   return Tmp;
 }
 
-CHAR16
-*StrToTitle (
+CHAR16 *
+EFIAPI
+StrToTitle (
   IN CHAR16   *Str
 ) {
   CHAR16    *Tmp = EfiStrDuplicate(Str);
@@ -367,6 +375,7 @@ CHAR16
 
 //Compare strings case insensitive
 INTN
+EFIAPI
 StriCmp (
   IN  CONST CHAR16   *FirstS,
   IN  CONST CHAR16   *SecondS
@@ -400,8 +409,9 @@ StriCmp (
   @retval   NULL  Allocation failed.
 
 **/
-VOID
-*EfiReallocatePool (
+VOID *
+EFIAPI
+EfiReallocatePool (
   IN VOID     *OldPool,
   IN UINTN    OldSize,
   IN UINTN    NewSize
@@ -424,10 +434,11 @@ VOID
 }
 
 UINT64
+EFIAPI
 AsciiStrVersionToUint64 (
-  const CHAR8   *Version,
-        UINT8   MaxDigitByPart,
-        UINT8   MaxParts
+  CONST   CHAR8 *Version,
+  UINT8   MaxDigitByPart,
+  UINT8   MaxParts
 ) {
   UINT64    result = 0;
   UINT16    part_value = 0, part_mult  = 1, max_part_value;
@@ -467,8 +478,9 @@ AsciiStrVersionToUint64 (
   return result;
 }
 
-CHAR8
-*AsciiStrToLower (
+CHAR8 *
+EFIAPI
+AsciiStrToLower (
   IN CHAR8   *Str
 ) {
   CHAR8   *Tmp = AllocateCopyPool(AsciiStrSize(Str), Str);
@@ -481,8 +493,9 @@ CHAR8
   return Tmp;
 }
 
-CHAR8
-*AsciiStriStr (
+CHAR8 *
+EFIAPI
+AsciiStriStr (
   IN CHAR8    *String,
   IN CHAR8    *SearchString
 ) {
@@ -527,6 +540,7 @@ AsciiTrimSpaces (
 
 // If Null-terminated strings are case insensitive equal or its sSize symbols are equal then TRUE
 BOOLEAN
+EFIAPI
 AsciiStriNCmp (
   IN  CONST CHAR8   *FirstS,
   IN  CONST CHAR8   *SecondS,
@@ -547,6 +561,7 @@ AsciiStriNCmp (
 
 // Case insensitive search of WhatString in WhereString
 BOOLEAN
+EFIAPI
 AsciiStrStriN (
   IN  CONST CHAR8   *WhatString,
   IN  CONST UINTN   sWhatSize,
@@ -566,6 +581,7 @@ AsciiStrStriN (
 }
 
 UINT8
+EFIAPI
 hexstrtouint8 (
   CHAR8   *buf
 ) {
@@ -601,10 +617,11 @@ IsHexDigit (
 //out value is a number of byte. If len is even then out = len/2
 
 UINT32
+EFIAPI
 hex2bin (
   IN  CHAR8   *hex,
   OUT UINT8   *bin,
-      UINT32  len
+  IN  UINT32  len
 ) {  //assume len = number of UINT8 values
   CHAR8   *p, buf[3];
   UINT32  i, outlen = 0;
@@ -642,8 +659,9 @@ hex2bin (
   return outlen;
 }
 
-CHAR8
-*Bytes2HexStr (
+CHAR8 *
+EFIAPI
+Bytes2HexStr (
   UINT8   *data,
   UINTN   len
 ) {
@@ -663,7 +681,7 @@ CHAR8
 }
 
 /** Returns pointer to last Char in String or NULL. */
-CHAR16*
+CHAR16 *
 EFIAPI
 GetStrLastChar (
   IN CHAR16   *String
@@ -687,7 +705,7 @@ GetStrLastChar (
 }
 
 /** Returns pointer to last occurence of Char in String or NULL. */
-CHAR16*
+CHAR16 *
 EFIAPI
 GetStrLastCharOccurence (
   IN CHAR16   *String,
@@ -713,63 +731,8 @@ GetStrLastCharOccurence (
   return (*Pos == Char) ? Pos : NULL;
 }
 
-#if 0
-
-/** Returns upper case version of char - valid only for ASCII chars in unicode. */
-CHAR16
-EFIAPI
-ToUpperChar (
-  IN CHAR16   Chr
-) {
-  CHAR8   C;
-
-  if (Chr > 0x100) return Chr;
-
-  C = (CHAR8)Chr;
-
-  return ((C >= 'a' && C <= 'z') ? C - ('a' - 'A') : C);
-}
-
-/** Returns 0 if two strings are equal, !=0 otherwise. Compares just first 8 bits of chars (valid for ASCII), case insensitive.. */
-UINTN
-EFIAPI
-StrCmpiBasic (
-  IN CHAR16   *String1,
-  IN CHAR16   *String2
-) {
-  CHAR16    Chr1, Chr2;
-
-  //DBG("Cmpi('%s', '%s') ", String1, String2);
-
-  if ((String1 == NULL) || (String2 == NULL)) {
-    return 1;
-  }
-
-  if ((*String1 == L'\0') && (*String2 == L'\0')) {
-    return 0;
-  }
-
-  if ((*String1 == L'\0') || (*String2 == L'\0')) {
-    return 1;
-  }
-
-  Chr1 = ToUpperChar(*String1);
-  Chr2 = ToUpperChar(*String2);
-
-  while ((*String1 != L'\0') && (Chr1 == Chr2)) {
-    String1++;
-    String2++;
-    Chr1 = ToUpperChar(*String1);
-    Chr2 = ToUpperChar(*String2);
-  }
-
-  //DBG("=%s ", (Chr1 - Chr2) ? L"NEQ" : L"EQ");
-
-  return Chr1 - Chr2;
-}
-#endif
-
-/** Returns TRUE if String1 starts with String2, FALSE otherwise. Compares just first 8 bits of chars (valid for ASCII), case insensitive.. */
+/** Returns TRUE if String1 starts with String2, FALSE otherwise.
+Compares just first 8 bits of chars (valid for ASCII), case insensitive.. */
 BOOLEAN
 EFIAPI
 StriStartsWith (

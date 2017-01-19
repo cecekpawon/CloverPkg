@@ -19,7 +19,6 @@
 //#define QWRVAL(x)     {kCst, 8, (UINT8 *)(UINTN)x}
 #define NULVAL        {kNul, 0, (UINT8 *)NULL}
 
-
 #define RADEON_CONFIG_MEMSIZE                     0x00f8
 #define RADEON_CONFIG_APER_SIZE                   0x0108
 #define RADEON_VIPH_CONTROL                       0x0c40

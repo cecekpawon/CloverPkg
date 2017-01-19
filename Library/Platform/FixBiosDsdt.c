@@ -5,27 +5,20 @@
 //totally rebuilt by Slice, 2012-2013
 // NForce additions by Oscar09, 2013
 
-//#include "StateGenerator.h"
 #include <Library/Platform/AmlGenerator.h>
-//#include <IndustryStandard/PciCommand.h>
 
-#ifdef DBG
-#undef DBG
-#endif
-
-#ifndef DEBUG_FIX
 #ifndef DEBUG_ALL
-#define DEBUG_FIX 1
-#else
-#define DEBUG_FIX DEBUG_ALL
+#ifndef DEBUG_FIX_DSDT
+#define DEBUG_FIX_DSDT -1
 #endif
+#else
+#ifdef DEBUG_FIX_DSDT
+#undef DEBUG_FIX_DSDT
+#endif
+#define DEBUG_FIX_DSDT DEBUG_ALL
 #endif
 
-#if DEBUG_FIX==0
-#define DBG(...)
-#else
-#define DBG(...) DebugLog(DEBUG_FIX, __VA_ARGS__)
-#endif
+#define DBG(...) DebugLog(DEBUG_FIX_DSDT, __VA_ARGS__)
 
 #define S_NETMODEL "Generic Ethernet"
 
@@ -51,6 +44,9 @@ BOOLEAN     NetworkName;
 BOOLEAN     ArptBCM;
 BOOLEAN     ArptAtheros;
 UINT16      ArptDID;
+
+UINT32      IMEIADR1;
+UINT32      IMEIADR2;
 
 // for read computer data
 
@@ -321,6 +317,12 @@ CheckHardware() {
             }
           }
 
+          //IMEI ADR
+          if ((Pci.Hdr.ClassCode[2] == PCI_CLASS_SCC) &&
+              (Pci.Hdr.ClassCode[1] == PCI_SUBCLASS_SCC_OTHER)) {
+            GetPciADR(DevicePath, &IMEIADR1, &IMEIADR2, NULL);
+          }
+
           // HDA and HDMI Audio
           if (
             (Pci.Hdr.ClassCode[2] == PCI_CLASS_MEDIA) &&
@@ -407,9 +409,9 @@ FindCPU (
   UINT8     *dsdt,
   UINT32    length
 ) {
-  UINT32      i, k, size, SBSIZE = 0, SBADR = 0;
+  UINT32      i, k, size, SBSIZE = 0, SBADR = 0,
+              off2, j1;
   BOOLEAN     SBFound = FALSE;
-  UINT32      off2, j1;
 
   if (acpi_cpu_score) {
     FreePool(acpi_cpu_score);
@@ -806,8 +808,12 @@ CmpAdr (
   );
 }
 
-BOOLEAN CmpPNP (UINT8 *dsdt, UINT32 j, UINT16 PNP)
-{
+BOOLEAN
+CmpPNP (
+  UINT8   *dsdt,
+  UINT32  j,
+  UINT16  PNP
+) {
   // Name (_HID, EisaId ("PNP0C0F")) for PNP=0x0C0F BigEndian
   if (PNP == 0) {
     return (BOOLEAN)
@@ -1008,6 +1014,7 @@ CorrectOuters (
         }  //else not an outer device
       } //else wrong size field - not a device
     } //else not a device
+
     // check scope
     // a problem 45 43 4F 4E 08   10 84 10 05 5F 53 42 5F
     SBSIZE = 0;
@@ -1118,7 +1125,7 @@ DevFind (
 
       if ((k + size + 1) > address) {
         return (k+1); //pointer to size
-      }  //else continue
+      } //else continue
     }
   }
 
@@ -1290,7 +1297,8 @@ FindPciRoot (
   return root;
 }
 
-UINT32 FixAny (
+UINT32
+FixAny (
   UINT8     *dsdt,
   UINT32    len,
   UINT8     *ToFind,
@@ -1303,14 +1311,14 @@ UINT32 FixAny (
   BOOLEAN   found = FALSE;
 
   if (!ToFind || !LenTF || !LenTR) {
-    DBG(" invalid patches!\n");
+    MsgLog(" invalid patches!\n");
     return len;
   }
 
-  DBG(" pattern %02x%02x%02x%02x,", ToFind[0], ToFind[1], ToFind[2], ToFind[3]);
+  MsgLog(" pattern %02x%02x%02x%02x,", ToFind[0], ToFind[1], ToFind[2], ToFind[3]);
 
   if ((LenTF + sizeof(EFI_ACPI_DESCRIPTION_HEADER)) > len) {
-    DBG(" the patch is too large!\n");
+    MsgLog(" the patch is too large!\n");
     return len;
   }
 
@@ -1319,15 +1327,19 @@ UINT32 FixAny (
     adr = FindBin(dsdt + i, len - i, ToFind, LenTF);
     if (adr < 0) {
       if (found) {
-        DBG(" ]\n");
+        //MsgLog(" ]\n");
+        DBG(" ]");
+        MsgLog("\n");
       } else {
-        DBG(" bin not found / already patched!\n");
+        MsgLog(" bin not found / already patched!\n");
       }
       return len;
     }
 
     if (!found) {
-      DBG(" patched at: [");
+      //MsgLog(" patched at: [");
+      MsgLog(" patched");
+      DBG(" at: [");
     }
 
     DBG(" (%x)", adr);
@@ -1351,8 +1363,7 @@ AddPNLF (
   UINT8     *dsdt,
   UINT32    len
 ) {
-  UINT32    i; //, j, size;
-  UINT32    adr  = 0;
+  UINT32    i, adr  = 0; //, j, size;
 
   DBG("Start PNLF Fix\n");
 
@@ -1915,11 +1926,12 @@ FIXNetwork (
   UINT8     *dsdt,
   UINT32    len
 ) {
-  UINT32      i, k, NetworkADR = 0, BridgeSize, Size, BrdADR = 0;
-  UINT32      PCIADR, PCISIZE = 0, FakeID = 0, FakeVen = 0;
+  UINT32      i, k, NetworkADR = 0, BridgeSize, Size, BrdADR = 0,
+              PCIADR, PCISIZE = 0, FakeID = 0, FakeVen = 0;
   INT32       sizeoffset;
   AML_CHUNK   *met, *met2, *brd, *root, *pack, *dev;
   CHAR8       *network, NameCard[32];
+  UINTN       Len = ARRAY_SIZE(NameCard);
 
   if (!NetworkADR1) {
     return len;
@@ -1930,8 +1942,8 @@ FIXNetwork (
   if (gSettings.FakeLAN) {
     FakeID = gSettings.FakeLAN >> 16;
     FakeVen = gSettings.FakeLAN & 0xFFFF;
-    AsciiSPrint(NameCard, 32, "pci%x,%x\0", FakeVen, FakeID);
-    AsciiStrCpy(NameCard, AsciiStrToLower(NameCard));
+    AsciiSPrint(NameCard, Len, "pci%x,%x\0", FakeVen, FakeID);
+    AsciiStrCpyS(NameCard, Len, AsciiStrToLower(NameCard));
     //Netmodel = get_net_model((FakeVen << 16) + FakeID);
   }
 
@@ -2134,7 +2146,8 @@ CHAR8 data1ATH[] = {0x2a, 0x00, 0x00, 0x00};
 CHAR8 data2ATH[] = {0x8F, 0x00, 0x00, 0x00};
 CHAR8 data3ATH[] = {0x6B, 0x10, 0x00, 0x00};
 
-UINT32 FIXAirport (
+UINT32
+FIXAirport (
   UINT8     *dsdt,
   UINT32    len
 ) {
@@ -2143,6 +2156,7 @@ UINT32 FIXAirport (
   INT32       sizeoffset;
   AML_CHUNK   *met, *met2, *brd, *root, *pack, *dev;
   CHAR8       *network, NameCard[32];
+  UINTN       Len = ARRAY_SIZE(NameCard);
 
   if (!ArptADR1) {
    return len; // no device - no patch
@@ -2151,8 +2165,8 @@ UINT32 FIXAirport (
   if (gSettings.FakeWIFI) {
     FakeID = gSettings.FakeWIFI >> 16;
     FakeVen = gSettings.FakeWIFI & 0xFFFF;
-    AsciiSPrint(NameCard, 32, "pci%x,%x\0", FakeVen, FakeID);
-    AsciiStrCpy(NameCard, AsciiStrToLower(NameCard));
+    AsciiSPrint(NameCard, Len, "pci%x,%x\0", FakeVen, FakeID);
+    AsciiStrCpyS(NameCard, Len, AsciiStrToLower(NameCard));
   }
 
   PCIADR = GetPciDevice(dsdt, len);
@@ -2430,6 +2444,98 @@ AddMCHC (
   return len;
 }
 
+
+
+UINT32
+AddIMEI (
+  UINT8     *dsdt,
+  UINT32    len
+) {
+  UINT32      i, k = 0, PCIADR, PCISIZE = 0, FakeID, FakeVen;
+  INT32       sizeoffset;
+  AML_CHUNK   *root, *device, *met, *met2, *pack;
+  CHAR8       *imei;
+
+  if (gSettings.FakeIMEI) {
+    FakeID = gSettings.FakeIMEI >> 16;
+    FakeVen = gSettings.FakeIMEI & 0xFFFF;
+  }
+
+  PCIADR = GetPciDevice(dsdt, len);
+  if (PCIADR) {
+    PCISIZE = AcpiGetSize(dsdt, PCIADR);
+  }
+
+  if (!PCISIZE) {
+    //DBG("wrong PCI0 address, patch IMEI will not be applied\n");
+    return len;
+  }
+
+  // Find Device IMEI
+  if (IMEIADR1) {
+    for (i=0x20; i<len-10; i++) {
+      if (CmpAdr(dsdt, i, IMEIADR1)) {
+        k = DevFind(dsdt, i);
+        if (k) {
+          DBG("device (IMEI) found at %x, don't add!\n", k);
+          //break;
+          return len;
+        }
+      }
+    }
+  }
+
+  //Find Device IMEI by name
+  for (i=0x20; i<len-10; i++) {
+    k = CmpDev(dsdt, i, (UINT8*)"IMEI");
+    if (k != 0) {
+      DBG("device name (IMEI) found at %x, don't add!\n", k);
+      return len;
+    }
+  }
+
+  DBG("Start Add IMEI\n");
+  root = aml_create_node(NULL);
+  device = aml_add_device(root, "IMEI");
+  aml_add_name(device, "_ADR");
+  aml_add_dword(device, IMEIADR1);
+
+  // add Method(_DSM,4,NotSerialized)
+  if (gSettings.FakeIMEI) {
+    met = aml_add_method(device, "_DSM", 4);
+    met2 = aml_add_store(met);
+    pack = aml_add_package(met2);
+
+    aml_add_string(pack, "device-id");
+    aml_add_byte_buffer(pack, (CHAR8*)&FakeID, 4);
+    aml_add_string(pack, "vendor-id");
+    aml_add_byte_buffer(pack, (CHAR8*)&FakeVen, 4);
+
+    aml_add_local0(met2);
+    aml_add_buffer(met, dtgp_1, sizeof(dtgp_1));
+    //finish Method(_DSM,4,NotSerialized)
+  }
+
+  aml_calculate_size(root);
+  imei = AllocateZeroPool(root->Size);
+  sizeoffset = root->Size;
+  aml_write_node(root, imei, 0);
+  aml_destroy_node(root);
+
+  // always add on PCIX back
+  len = MoveData(PCIADR+PCISIZE, dsdt, len, sizeoffset);
+  CopyMem(dsdt+PCIADR+PCISIZE, imei, sizeoffset);
+  // Fix PCIX size
+  k = WriteSize(PCIADR, dsdt, len, sizeoffset);
+  sizeoffset += k;
+  len += k;
+  len = CorrectOuters(dsdt, len, PCIADR-3, sizeoffset);
+
+  FreePool(imei);
+
+  return len;
+}
+
 UINT32
 AddHDEF (
   UINT8     *dsdt,
@@ -2600,14 +2706,14 @@ FixBiosDsdt (
   if (gSettings.PatchDsdtNum > 0) {
     UINTN   i;
 
-    DBG("Patching DSDT:\n");
+    MsgLog("Patching DSDT:\n");
 
     for (i = 0; i < gSettings.PatchDsdtNum; i++) {
       if (!gSettings.PatchDsdtFind[i] || !gSettings.LenToFind[i]) {
         continue;
       }
 
-      DBG(" - [%02d]:", i);
+      MsgLog(" - [%02d]:", i);
 
       DsdtLen = FixAny (
                   temp, DsdtLen,
@@ -2670,6 +2776,11 @@ FixBiosDsdt (
   if ((gCPUStructure.Family == 0x06)  && (gSettings.FixDsdt & FIX_MCHC)) {
     //DBG("patch MCHC in DSDT \n");
     DsdtLen = AddMCHC(temp, DsdtLen);
+  }
+
+  //add IMEI
+  if ((gSettings.FixDsdt & FIX_MCHC) || (gSettings.FixDsdt & FIX_IMEI)) {
+    DsdtLen = AddIMEI(temp, DsdtLen);
   }
 
   //Add HDMI device

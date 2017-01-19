@@ -3,13 +3,20 @@
  * 2010 mojodojo, 2012 slice
  */
 
-//#include "StateGenerator.h"
-
-
-//CHAR8* acpi_cpu_name[] = {"CPU0", "CPU1", "CPU2", "CPU3", "CPU4", "CPU5", "CPU6", "CPU7", "CPU8", "CPU9"};
-
 #include <Library/Platform/AmlGenerator.h>
 
+#ifndef DEBUG_ALL
+#ifndef DEBUG_STATE_GEN
+#define DEBUG_STATE_GEN -1
+#endif
+#else
+#ifdef DEBUG_STATE_GEN
+#undef DEBUG_STATE_GEN
+#endif
+#define DEBUG_STATE_GEN DEBUG_ALL
+#endif
+
+#define DBG(...) DebugLog(DEBUG_STATE_GEN, __VA_ARGS__)
 
 CONST UINT8 pss_ssdt_header[] =
 {
@@ -149,7 +156,7 @@ SSDT_TABLE
               realTurbo = (gCPUStructure.Turbo4 > gCPUStructure.Turbo1) ?
               (gCPUStructure.Turbo4 / 10) : (gCPUStructure.Turbo1 / 10);
               maximum.Control.Control = realTurbo;
-              MsgLog("Turbo control=0x%x\n", realTurbo);
+              DBG("Turbo control=0x%x\n", realTurbo);
             }
 
             Apsn = (realTurbo > realMax)?(realTurbo - realMax):0;
@@ -162,7 +169,7 @@ SSDT_TABLE
               minimum.Control.Control = realMin;
             }
 
-            MsgLog("P-States: min 0x%x, max 0x%x\n", minimum.Control.Control, maximum.Control.Control);
+            DBG("P-States: min 0x%x, max 0x%x\n", minimum.Control.Control, maximum.Control.Control);
 
             // Sanity check
             if (maximum.Control.Control < minimum.Control.Control) {

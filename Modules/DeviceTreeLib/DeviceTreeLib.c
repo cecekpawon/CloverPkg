@@ -26,7 +26,6 @@
  * @APPLE_OSREFERENCE_LICENSE_HEADER_END@
  */
 
-//#include <Library/Platform/Platform.h>
 #include <Uefi.h>
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
@@ -157,6 +156,7 @@ FindChild (
  * External Routines
  */
 VOID
+EFIAPI
 DTInit (
   VOID    *base
 ) {
@@ -234,6 +234,7 @@ DTFindEntry (
 
 //if(DTLookupEntry(NULL,"/",&efiPlatform)==kSuccess)
 INTN
+EFIAPI
 DTLookupEntry (
   CONST DTEntry   searchPoint,
   CONST CHAR8     *pathName,
@@ -428,6 +429,7 @@ DTRestartEntryIteration (
 }
 
 INTN
+EFIAPI
 DTGetProperty (
   CONST DTEntry   entry,
   CONST CHAR8     *propertyName,
@@ -457,6 +459,7 @@ DTGetProperty (
 }
 
 INTN
+EFIAPI
 DTCreatePropertyIterator (
   CONST DTEntry             entry,
         DTPropertyIterator  *iterator
@@ -476,6 +479,7 @@ DTCreatePropertyIterator (
 // dmazar: version without mem alloc which can be used during or after ExitBootServices.
 // caller should not call DTDisposePropertyIterator when using this version.
 INTN
+EFIAPI
 DTCreatePropertyIteratorNoAlloc (
   CONST DTEntry             entry,
         DTPropertyIterator  iterator
@@ -499,6 +503,7 @@ DTDisposePropertyIterator (
 }
 
 INTN
+EFIAPI
 DTIterateProperties (
   DTPropertyIterator    iterator,
   CHAR8                 **foundProperty

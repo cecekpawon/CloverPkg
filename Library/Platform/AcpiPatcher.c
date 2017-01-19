@@ -20,7 +20,18 @@ Re-Work by Slice 2011.
 
 #include <Library/Platform/AmlGenerator.h>
 
-//#define TEST 1
+#ifndef DEBUG_ALL
+#ifndef DEBUG_ACPI_PATCH
+#define DEBUG_ACPI_PATCH -1
+#endif
+#else
+#ifdef DEBUG_ACPI_PATCH
+#undef DEBUG_ACPI_PATCH
+#endif
+#define DEBUG_ACPI_PATCH DEBUG_ALL
+#endif
+
+#define DBG(...) DebugLog(DEBUG_ACPI_PATCH, __VA_ARGS__)
 
 #define XXXX_SIGN             SIGNATURE_32('X','X','X','X')
 #define HPET_SIGN             SIGNATURE_32('H','P','E','T')
@@ -543,13 +554,13 @@ PatchAllSSDT () {
       CopyMem(Ptr, (VOID*)TableEntry, SsdtLen);
 
       if (gSettings.PatchDsdtNum > 0) {
-        DBG("Patching SSDT:\n");
+        MsgLog("Patching SSDT:\n");
         for (i = 0; i < gSettings.PatchDsdtNum; i++) {
           if (!gSettings.PatchDsdtFind[i] || !gSettings.LenToFind[i]) {
             continue;
           }
 
-          DBG(" - [%02d]:", i);
+          MsgLog(" - [%02d]:", i);
           SsdtLen = FixAny (
                       (UINT8*)(UINTN)ssdt, SsdtLen,
                       gSettings.PatchDsdtFind[i], gSettings.LenToFind[i],
@@ -1924,7 +1935,7 @@ PatchACPI (
   // native DSDT or loaded we want to apply autoFix to this
   // if (gSettings.FixDsdt) { //fix even with zero mask because we want to know PCIRootUID and CPUBase and count(?)
   //DBG("Apply DsdtFixMask=0x%08x %a way\n", gSettings.FixDsdt, (gSettings.FixDsdt & FIX_NEW_WAY)?"new":"old");
-  DBG("Apply DsdtFixMask=0x%08x\n", gSettings.FixDsdt);
+  MsgLog("Apply DsdtFixMask=0x%08x\n", gSettings.FixDsdt);
   DBG(" - drop _DSM mask=0x%04x\n", gSettings.DropOEM_DSM);//dropDSM
 
   FixBiosDsdt((UINT8*)(UINTN)FadtPointer->XDsdt, FadtPointer, OSVersion);
@@ -1933,7 +1944,7 @@ PatchACPI (
     for (Index=0; Index < 60; Index++) {
       CHAR16    DsdtPatchedName[128];
 
-      UnicodeSPrint(DsdtPatchedName, 256, L"%s\\DSDT-pa%d.aml", PathOrigin, Index);
+      UnicodeSPrint(DsdtPatchedName, ARRAY_SIZE(DsdtPatchedName), L"%s\\DSDT-pa%d.aml", PathOrigin, Index);
 
       if (!FileExists(SelfRootDir, DsdtPatchedName)){
         Status = egSaveFile(SelfRootDir, DsdtPatchedName,
@@ -1982,11 +1993,11 @@ PatchACPI (
 
   if (ACPIPatchedAML) {
     DbgHeader("ACPIPatchedAML");
-    CHAR16  FullName[256];
-    DBG("Start: Processing Patched AML(s): ");
+    CHAR16  FullName[AVALUE_MAX_SIZE];
+    MsgLog("Start: Processing Patched AML(s): ");
 
     if (gSettings.SortedACPICount) {
-      DBG("Sorted\n");
+      MsgLog("Sorted\n");
 
       Index = gSettings.SortedACPICount;
       while (Index--) {
@@ -1995,22 +2006,22 @@ PatchACPI (
         while (ACPIPatchedAMLTmp) {
           if ((StriCmp(ACPIPatchedAMLTmp->FileName, gSettings.SortedACPI[Index]) == 0) &&
             (ACPIPatchedAMLTmp->MenuItem.BValue)) {
-            DBG("Disabled: %s, skip\n", ACPIPatchedAMLTmp->FileName);
+            MsgLog("Disabled: %s, skip\n", ACPIPatchedAMLTmp->FileName);
             break;
           }
           ACPIPatchedAMLTmp = ACPIPatchedAMLTmp->Next;
         }
 
         if (!ACPIPatchedAMLTmp) { // NULL when not disabled
-          UnicodeSPrint(FullName, 512, L"%s\\%s", AcpiOemPath, gSettings.SortedACPI[Index]);
-          DBG(" - [%02d]: %s from %s ... ", Index, gSettings.SortedACPI[Index], AcpiOemPath);
+          UnicodeSPrint(FullName, ARRAY_SIZE(FullName), L"%s\\%s", AcpiOemPath, gSettings.SortedACPI[Index]);
+          MsgLog(" - [%02d]: %s from %s ... ", Index, gSettings.SortedACPI[Index], AcpiOemPath);
           Status = egLoadFile(SelfRootDir, FullName, &buffer, &bufferLen);
           if (!EFI_ERROR(Status)) {
             //before insert we should checksum it
             if (buffer) {
               TableHeader = (EFI_ACPI_DESCRIPTION_HEADER*)buffer;
               if (TableHeader->Length > 500 * kilo) {
-                DBG("wrong table\n");
+                MsgLog("wrong table\n");
                 continue;
               }
               TableHeader->Checksum = 0;
@@ -2018,18 +2029,18 @@ PatchACPI (
             }
             Status = InsertTable((VOID*)buffer, bufferLen);
           }
-          DBG("%r\n", Status);
+          MsgLog("%r\n", Status);
         }
       }
     } else {
       ACPI_PATCHED_AML    *ACPIPatchedAMLTmp = ACPIPatchedAML;
-      DBG("Unsorted\n");
+      MsgLog("Unsorted\n");
       Index = 0;
 
       while (ACPIPatchedAMLTmp) {
         if (ACPIPatchedAMLTmp->MenuItem.BValue == FALSE) {
-          UnicodeSPrint(FullName, 512, L"%s\\%s", AcpiOemPath, ACPIPatchedAMLTmp->FileName);
-          DBG(" - [%02d]: %s from %s ... ", Index++, ACPIPatchedAMLTmp->FileName, AcpiOemPath);
+          UnicodeSPrint(FullName, ARRAY_SIZE(FullName), L"%s\\%s", AcpiOemPath, ACPIPatchedAMLTmp->FileName);
+          MsgLog(" - [%02d]: %s from %s ... ", Index++, ACPIPatchedAMLTmp->FileName, AcpiOemPath);
           Status = egLoadFile(SelfRootDir, FullName, &buffer, &bufferLen);
 
           if (!EFI_ERROR(Status)) {
@@ -2037,7 +2048,7 @@ PatchACPI (
             if (buffer) {
               TableHeader = (EFI_ACPI_DESCRIPTION_HEADER*)buffer;
               if (TableHeader->Length > 500 * kilo) {
-                DBG("wrong table\n");
+                MsgLog("wrong table\n");
                 continue;
               }
               TableHeader->Checksum = 0;
@@ -2046,16 +2057,16 @@ PatchACPI (
             Status = InsertTable((VOID*)buffer, bufferLen);
           }
 
-          DBG("%r\n", Status);
+          MsgLog("%r\n", Status);
         } else {
-          DBG("Disabled: %s, skip\n", ACPIPatchedAMLTmp->FileName);
+          MsgLog("Disabled: %s, skip\n", ACPIPatchedAMLTmp->FileName);
         }
 
         ACPIPatchedAMLTmp = ACPIPatchedAMLTmp->Next;
       }
     }
 
-    DBG("End: Processing Patched AML(s)\n");
+    MsgLog("End: Processing Patched AML(s)\n");
   }
 
   if (!gSettings.GeneratePStates || !gSettings.GenerateCStates) {
@@ -2136,7 +2147,7 @@ PatchACPI (
     }
 
     if (EFI_ERROR(Status)){
-      DBG("GeneratePStates failed: Status=%r\n", Status);
+      MsgLog("GeneratePStates failed: Status=%r\n", Status);
     }
   }
 
@@ -2149,7 +2160,7 @@ PatchACPI (
     }
 
     if (EFI_ERROR(Status)){
-      DBG("GenerateCStates failed Status=%r\n", Status);
+      MsgLog("GenerateCStates failed Status=%r\n", Status);
     }
   }
 

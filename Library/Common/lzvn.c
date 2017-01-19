@@ -406,7 +406,7 @@ lzvn_decode (
           caseTableIndex = (*((UINT8 *)address) & 255);
 
           compBufferPointer++;                                                      // add  $0x1,%r8
-          CopyMem((UINT8 *)decompBuffer + length, &caseTableIndex, 1);               // mov  %r9,(%rdi,%rax,1)
+          CopyMem((UINT8 *)decompBuffer + length, &caseTableIndex, 1);              // mov  %r9,(%rdi,%rax,1)
           length++;                                                                 // add  $0x1,%rax
 
           if (length == currentLength) {                                            // cmp  %rax,%r11
@@ -449,7 +449,7 @@ lzvn_decode (
         currentLength += byteCount;                                                 // add  %r10,%r11
 
         if (currentLength < decompressedSize) {                                     // cmp  %rsi,%r11 (block_end: jae Llzvn_l8)
-          CopyMem((UINT8 *)decompBuffer + length, &compBufferPointer, 8);            // mov  %r8,(%rdi,%rax,1)
+          CopyMem((UINT8 *)decompBuffer + length, &compBufferPointer, 8);           // mov  %r8,(%rdi,%rax,1)
           length += caseTableIndex;                                                 // add  %r9,%rax
           compBufferPointer = length;                                               // mov  %rax,%r8
 
@@ -483,7 +483,7 @@ lzvn_decode (
         do {
           DEBUG_STATE("jmpTable(6)\n");
 
-          CopyMem((UINT8 *)decompBuffer + length, &compBufferPointer, 1);            // mov  %r8b,(%rdi,%rax,1)
+          CopyMem((UINT8 *)decompBuffer + length, &compBufferPointer, 1);           // mov  %r8b,(%rdi,%rax,1)
           length++;                                                                 // add  $0x1,%rax
 
           if (length == currentLength) {                                            // cmp  %rax,%r11

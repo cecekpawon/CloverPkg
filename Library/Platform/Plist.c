@@ -31,24 +31,25 @@
 #include <Library/Platform/Platform.h>
 
 #ifndef DEBUG_ALL
-#define DEBUG_PLIST 0
+#ifndef DEBUG_PLIST
+#define DEBUG_PLIST -1
+#endif
 #else
+#ifdef DEBUG_PLIST
+#undef DEBUG_PLIST
+#endif
 #define DEBUG_PLIST DEBUG_ALL
 #endif
 
-#if DEBUG_PLIST == 0
-#define DBG(...)
-#else
 #define DBG(...) DebugLog(DEBUG_PLIST, __VA_ARGS__)
-#endif
 
 #define USE_REF 1
 #define DUMP_PLIST 1
 
 #define kTagsPerBlock (0x1000)
 
-INT32       ParseTagList        (CHAR8 *buffer, TagPtr *tag, INT32 type, INT32 empty);
-INT32       ParseNextTag        (CHAR8 *buffer, TagPtr *tag);
+INT32       ParseTagList (CHAR8 *buffer, TagPtr *tag, INT32 type, INT32 empty);
+INT32       ParseNextTag (CHAR8 *buffer, TagPtr *tag);
 
 INT32       dbgCount = 0;
 SymbolPtr   gSymbolsHead;
@@ -371,12 +372,13 @@ CHAR8
 
   // Add the new symbol.
   if (symbol == 0) {
-    symbol = AllocateZeroPool(sizeof(Symbol) + AsciiStrLen(string));
+    symbol = AllocateZeroPool(sizeof(Symbol)/* + AsciiStrLen(string)*/);
     if (symbol == 0) return 0;
 
     // Set the symbol's data.
     symbol->refCount = 0;
-    AsciiStrCpy(symbol->string, string);
+    //AsciiStrCpy(symbol->string, string);
+    symbol->string = AllocateCopyPool(AsciiStrSize(string), string);
 
     // Add the symbol to the list.
     symbol->next = gSymbolsHead;

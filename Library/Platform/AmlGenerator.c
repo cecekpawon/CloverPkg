@@ -10,6 +10,19 @@
 
 #include <Library/Platform/AmlGenerator.h>
 
+#ifndef DEBUG_ALL
+#ifndef DEBUG_AML_GEN
+#define DEBUG_AML_GEN -1
+#endif
+#else
+#ifdef DEBUG_AML_GEN
+#undef DEBUG_AML_GEN
+#endif
+#define DEBUG_AML_GEN DEBUG_ALL
+#endif
+
+#define DBG(...) DebugLog(DEBUG_AML_GEN, __VA_ARGS__)
+
 BOOLEAN
 aml_add_to_parent (
   AML_CHUNK   *parent,

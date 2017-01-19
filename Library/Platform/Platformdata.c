@@ -449,25 +449,27 @@ SetDMISettingsForModel (
   MACHINE_TYPES   Model,
   BOOLEAN         Redefine
 ) {
-  AsciiStrCpy (gSettings.VendorName,           BiosVendor);
-  AsciiStrCpy (gSettings.RomVersion,           AppleFirmwareVersion[Model]);
-  AsciiStrCpy (gSettings.ReleaseDate,          AppleReleaseDate[Model]);
-  AsciiStrCpy (gSettings.ManufactureName,      BiosVendor);
+  UINTN   Len = 0;
+
+  AsciiStrCpyS (gSettings.VendorName,             ARRAY_SIZE(gSettings.VendorName), BiosVendor);
+  AsciiStrCpyS (gSettings.RomVersion,             ARRAY_SIZE(gSettings.RomVersion), AppleFirmwareVersion[Model]);
+  AsciiStrCpyS (gSettings.ReleaseDate,            ARRAY_SIZE(gSettings.ReleaseDate), AppleReleaseDate[Model]);
+  AsciiStrCpyS (gSettings.ManufactureName,        ARRAY_SIZE(gSettings.ManufactureName), BiosVendor);
 
   if (Redefine) {
-    AsciiStrCpy (gSettings.ProductName,          AppleProductName[Model]);
+    AsciiStrCpyS (gSettings.ProductName,          ARRAY_SIZE(gSettings.ProductName), AppleProductName[Model]);
   }
 
-  AsciiStrCpy (gSettings.VersionNr,            AppleSystemVersion[Model]);
-  AsciiStrCpy (gSettings.SerialNr,             AppleSerialNumber[Model]);
-  AsciiStrCpy (gSettings.FamilyName,           AppleFamilies[Model]);
-  AsciiStrCpy (gSettings.BoardManufactureName, BiosVendor);
-  AsciiStrCpy (gSettings.BoardSerialNumber,    AppleBoardSN);
-  AsciiStrCpy (gSettings.BoardNumber,          AppleBoardID[Model]);
-  AsciiStrCpy (gSettings.BoardVersion,         AppleProductName[Model]);
-  AsciiStrCpy (gSettings.LocationInChassis,    AppleBoardLocation);
-  AsciiStrCpy (gSettings.ChassisManufacturer,  BiosVendor);
-  AsciiStrCpy (gSettings.ChassisAssetTag,      AppleChassisAsset[Model]);
+  AsciiStrCpyS (gSettings.VersionNr,              ARRAY_SIZE(gSettings.VersionNr), AppleSystemVersion[Model]);
+  AsciiStrCpyS (gSettings.SerialNr,               ARRAY_SIZE(gSettings.SerialNr), AppleSerialNumber[Model]);
+  AsciiStrCpyS (gSettings.FamilyName,             ARRAY_SIZE(gSettings.FamilyName), AppleFamilies[Model]);
+  AsciiStrCpyS (gSettings.BoardManufactureName,   ARRAY_SIZE(gSettings.BoardManufactureName), BiosVendor);
+  AsciiStrCpyS (gSettings.BoardSerialNumber,      ARRAY_SIZE(gSettings.BoardSerialNumber), AppleBoardSN);
+  AsciiStrCpyS (gSettings.BoardNumber,            ARRAY_SIZE(gSettings.BoardNumber), AppleBoardID[Model]);
+  AsciiStrCpyS (gSettings.BoardVersion,           ARRAY_SIZE(gSettings.BoardVersion), AppleProductName[Model]);
+  AsciiStrCpyS (gSettings.LocationInChassis,      ARRAY_SIZE(gSettings.LocationInChassis), AppleBoardLocation);
+  AsciiStrCpyS (gSettings.ChassisManufacturer,    ARRAY_SIZE(gSettings.ChassisManufacturer), BiosVendor);
+  AsciiStrCpyS (gSettings.ChassisAssetTag,        ARRAY_SIZE(gSettings.ChassisAssetTag), AppleChassisAsset[Model]);
 
   if (Model >= MacPro31) {
     gSettings.BoardType = BaseBoardTypeProcessorMemoryModule; //11;
@@ -545,43 +547,45 @@ SetDMISettingsForModel (
       break;
   }
 
+  Len = ARRAY_SIZE(gSettings.RPlt);
+
   //smc helper
   if (SmcPlatform[Model][0] != 'N') {
-    AsciiStrCpy (gSettings.RPlt, SmcPlatform[Model]);
+    AsciiStrCpyS (gSettings.RPlt, Len, SmcPlatform[Model]);
   } else {
     switch (gCPUStructure.Model) {
       case CPU_MODEL_SANDY_BRIDGE:
         if (gSettings.Mobile) {
-          AsciiStrCpy (gSettings.RPlt, "k90i");
+          AsciiStrCpyS (gSettings.RPlt, Len, "k90i");
         } else {
-          AsciiStrCpy (gSettings.RPlt, "k60");
+          AsciiStrCpyS (gSettings.RPlt, Len, "k60");
         }
         break;
 
       case CPU_MODEL_IVY_BRIDGE:
-        AsciiStrCpy (gSettings.RPlt, "j30");
+        AsciiStrCpyS (gSettings.RPlt, Len, "j30");
         break;
 
       case CPU_MODEL_IVY_BRIDGE_E5:
-        AsciiStrCpy (gSettings.RPlt, "j90");
+        AsciiStrCpyS (gSettings.RPlt, Len, "j90");
         break;
 
       case CPU_MODEL_HASWELL_ULT:
-        AsciiStrCpy (gSettings.RPlt, "j44");
+        AsciiStrCpyS (gSettings.RPlt, Len, "j44");
         break;
 
       case CPU_MODEL_SKYLAKE_S:
-        AsciiStrCpy (gSettings.RPlt, "j95");
+        AsciiStrCpyS (gSettings.RPlt, Len, "j95");
         break;
 
       default:
-        AsciiStrCpy (gSettings.RPlt, "T9");
+        AsciiStrCpyS (gSettings.RPlt, Len, "T9");
         break;
     }
   }
 
   CopyMem (gSettings.REV,  SmcRevision[Model], 6);
-  AsciiStrCpy (gSettings.RBr,  gSettings.RPlt); //SmcBranch[Model]); // as no other ideas
+  AsciiStrCpyS (gSettings.RBr, ARRAY_SIZE(gSettings.RBr),  gSettings.RPlt); //SmcBranch[Model]); // as no other ideas
   CopyMem (gSettings.EPCI, &SmcConfig[Model],  4);
 }
 

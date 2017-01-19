@@ -14,6 +14,8 @@
 #include <Library/PrintLib.h>
 #include <Library/DevicePathLib.h>
 
+#include <Library/Common/CommonLib.h>
+
 #include <Protocol/LoadedImage.h>
 
 #include "Lib.h"
@@ -300,26 +302,35 @@ FileDevicePathToText (
 ) {
   EFI_STATUS            Status;
   FILEPATH_DEVICE_PATH  *FilePath;
-  CHAR16                FilePathText[256], // possible problem: if filepath is bigger
+  CHAR16                FilePathText[AVALUE_MAX_SIZE], // possible problem: if filepath is bigger
                         *OutFilePathText;
-  UINTN                 Size, SizeAll, i;
+  UINTN                 Size, SizeAll, i, Len;
 
   FilePathText[0] = L'\0';
   i = 4;
   SizeAll = 0;
+  Len = ARRAY_SIZE(FilePathText);
+
   //DBG ("FilePathProto->Type: %d, SubType: %d, Length: %d\n", FilePathProto->Type, FilePathProto->SubType, DevicePathNodeLength (FilePathProto));
-  while (FilePathProto != NULL && FilePathProto->Type != END_DEVICE_PATH_TYPE && i > 0) {
-    if (FilePathProto->Type == MEDIA_DEVICE_PATH && FilePathProto->SubType == MEDIA_FILEPATH_DP) {
+
+  while (
+    (FilePathProto != NULL) &&
+    (FilePathProto->Type != END_DEVICE_PATH_TYPE) &&
+    (i > 0)
+  ) {
+    if ((FilePathProto->Type == MEDIA_DEVICE_PATH) && (FilePathProto->SubType == MEDIA_FILEPATH_DP)) {
       FilePath = (FILEPATH_DEVICE_PATH *) FilePathProto;
       Size = (DevicePathNodeLength (FilePathProto) - 4) / 2;
-      if (SizeAll + Size < 256) {
-        if (SizeAll > 0 && FilePathText[SizeAll / 2 - 2] != L'\\') {
-          StrCat (FilePathText, L"\\");
+      if ((SizeAll + Size) < Len) {
+        if ((SizeAll > 0) && (FilePathText[SizeAll / 2 - 2] != L'\\')) {
+          StrCatS (FilePathText, Len, L"\\");
         }
-        StrCat (FilePathText, FilePath->PathName);
+
+        StrCatS (FilePathText, Len, FilePath->PathName);
         SizeAll = StrSize (FilePathText);
       }
     }
+
     FilePathProto = NextDevicePathNode (FilePathProto);
     //DBG ("FilePathProto->Type: %d, SubType: %d, Length: %d\n", FilePathProto->Type, FilePathProto->SubType, DevicePathNodeLength (FilePathProto));
     i--;
@@ -332,7 +343,7 @@ FileDevicePathToText (
     // we are allocating mem here - should be released by caller
     Status = gBS->AllocatePool (EfiBootServicesData, Size, (VOID*)&OutFilePathText);
     if (Status == EFI_SUCCESS) {
-      StrCpy (OutFilePathText, FilePathText);
+      StrCpyS (OutFilePathText, Size, FilePathText);
     } else {
       OutFilePathText = NULL;
     }

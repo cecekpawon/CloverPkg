@@ -36,16 +36,17 @@
 #include <Library/Platform/Platform.h>
 
 #ifndef DEBUG_ALL
-#define DEBUG_SCAN_TOOL 1
+#ifndef DEBUG_SCAN_TOOL
+#define DEBUG_SCAN_TOOL -1
+#endif
 #else
+#ifdef DEBUG_SCAN_TOOL
+#undef DEBUG_SCAN_TOOL
+#endif
 #define DEBUG_SCAN_TOOL DEBUG_ALL
 #endif
 
-#if DEBUG_SCAN_TOOL == 0
-#define DBG(...)
-#else
 #define DBG(...) DebugLog(DEBUG_SCAN_TOOL, __VA_ARGS__)
-#endif
 
 STATIC CHAR16 *ShellPath[] = {
   L"Shell64U.efi",
@@ -103,7 +104,7 @@ AddToolEntry (
   Entry->LoadOptions        = NULL;
   Entry->ToolOptions        = Options ? Options : NULL;
 
-  DBG("found tool %s\n", LoaderPath);
+  MsgLog("- %s\n", LoaderPath);
   AddMenuEntry(&MainMenu, (REFIT_MENU_ENTRY *)Entry);
 
   return TRUE;
@@ -129,6 +130,7 @@ ScanTool () {
             NULL
           )
       ) {
+        //MsgLog("- %s\n", ShellPath[i]);
         break;
       }
     }
@@ -209,12 +211,16 @@ AddCustomTool () {
         continue;
       }
 
+      MsgLog("- [%02d]: %s\n", Basename(Custom->Path));
+
       // Change to custom image if needed
       Image = Custom->Image;
       if ((Image == NULL) && Custom->ImagePath) {
-        ImageHoverPath = EfiStrDuplicate(Custom->ImagePath);
-        ReplaceExtension(ImageHoverPath, L"");
-        ImageHoverPath = PoolPrint(L"%s_hover.%s", ImageHoverPath, egFindExtension(Custom->ImagePath));
+        ImageHoverPath = PoolPrint(
+                            L"%s_hover.%s",
+                            ReplaceExtension(Custom->ImagePath, L""),
+                            egFindExtension(Custom->ImagePath)
+                          );
         Image = egLoadImage(Volume->RootDir, Custom->ImagePath, TRUE);
         if (Image == NULL) {
           Image = egLoadImage(ThemeDir, Custom->ImagePath, TRUE);

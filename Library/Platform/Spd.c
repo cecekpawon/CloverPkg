@@ -21,20 +21,18 @@
 #include <Library/Platform/Spd.h>
 //#include "memvendors.h"
 
-
-#ifndef DEBUG_SPD
 #ifndef DEBUG_ALL
-#define DEBUG_SPD 1
+#ifndef DEBUG_SPD
+#define DEBUG_SPD -1
+#endif
 #else
+#ifdef DEBUG_SPD
+#undef DEBUG_SPD
+#endif
 #define DEBUG_SPD DEBUG_ALL
 #endif
-#endif
 
-#if DEBUG_SPD == 0
-#define DBG(...)
-#else
 #define DBG(...) DebugLog(DEBUG_SPD, __VA_ARGS__)
-#endif
 
 extern MEM_STRUCTURE    gRAM;
 
@@ -126,10 +124,10 @@ UINT8 spd_mem_to_smbios[] =
 /* 0x1E7 */
 
 UINT16 spd_indexes_ddr[] = {
-  /* 3 */ SPD_NUM_ROWS,  /* ModuleSize */
-  /* 4 */ SPD_NUM_COLUMNS,
-  /* 5 */ SPD_NUM_DIMM_BANKS,
-  /* 17 */ SPD_NUM_BANKS_PER_SDRAM,
+  /* 3 */   SPD_NUM_ROWS,  /* ModuleSize */
+  /* 4 */   SPD_NUM_COLUMNS,
+  /* 5 */   SPD_NUM_DIMM_BANKS,
+  /* 17 */  SPD_NUM_BANKS_PER_SDRAM,
   9, /* Frequency */
   64, /* Manufacturer */
   95,96,97,98, /* UIS */
@@ -174,7 +172,8 @@ UINT16 spd_indexes_ddr4[] = {
 
 /** Read one byte from i2c, used for reading SPD */
 
-UINT8 smb_read_byte (
+UINT8
+smb_read_byte (
   UINT32    base,
   UINT8     adr,
   UINT16    cmd
@@ -323,7 +322,8 @@ UINT8 smb_read_byte (
 #define LOG_INDENT "        "
 
 /** Read from spd *used* values only*/
-VOID init_spd (
+VOID
+init_spd (
   UINT16    *spd_indexes,
   UINT8     *spd, UINT32 base,
   UINT8     slot
@@ -461,7 +461,7 @@ getDDRspeedMhz (
   }
 
   if (xmpProfiles) {
-    DBG("%a Found module with XMP version %d.%d\n", LOG_INDENT, (xmpVersion >> 4) & 0xF, xmpVersion & 0xF);
+    MsgLog("%a Found module with XMP version %d.%d\n", LOG_INDENT, (xmpVersion >> 4) & 0xF, xmpVersion & 0xF);
 
     switch (gSettings.XMPDetection) {
       case 0:
@@ -523,14 +523,17 @@ getDDRspeedMhz (
 #define SLST(a) ((UINT8)(spd[a] & 0x0f))
 
 /** Get DDR3 or DDR2 serial number, 0 most of the times, always return a valid ptr */
-CHAR8* getDDRSerial(UINT8* spd) {
-  CHAR8* asciiSerial; //[16];
-  asciiSerial = AllocatePool(17);
+CHAR8
+*getDDRSerial (
+  UINT8  *spd
+) {
+  UINTN   Len = 17;
+  CHAR8*  asciiSerial = AllocateZeroPool(Len);
 
   switch (spd[SPD_MEMORY_TYPE]) {
     case SPD_MEMORY_TYPE_SDRAM_DDR4:
       AsciiSPrint (
-        asciiSerial, 17, "%2X%2X%2X%2X%2X%2X%2X%2X",
+        asciiSerial, Len, "%2X%2X%2X%2X%2X%2X%2X%2X",
         SMST(325) /*& 0x7*/,
         SLST(325),
         SMST(326),
@@ -544,7 +547,7 @@ CHAR8* getDDRSerial(UINT8* spd) {
 
     case SPD_MEMORY_TYPE_SDRAM_DDR3:
       AsciiSPrint (
-        asciiSerial, 17, "%2X%2X%2X%2X%2X%2X%2X%2X",
+        asciiSerial, Len, "%2X%2X%2X%2X%2X%2X%2X%2X",
         SMST(122) /*& 0x7*/,
         SLST(122),
         SMST(123),
@@ -559,7 +562,7 @@ CHAR8* getDDRSerial(UINT8* spd) {
     case SPD_MEMORY_TYPE_SDRAM_DDR2:
     case SPD_MEMORY_TYPE_SDRAM_DDR:
       AsciiSPrint (
-        asciiSerial, 17, "%2X%2X%2X%2X%2X%2X%2X%2X",
+        asciiSerial, Len, "%2X%2X%2X%2X%2X%2X%2X%2X",
         SMST(95) /*& 0x7*/,
         SLST(95),
         SMST(96),
@@ -572,7 +575,7 @@ CHAR8* getDDRSerial(UINT8* spd) {
       break;
 
     default:
-      AsciiStrCpy(asciiSerial, "0000000000000000");
+      AsciiStrCpyS(asciiSerial, Len, "0000000000000000");
       break;
   }
 
@@ -580,10 +583,14 @@ CHAR8* getDDRSerial(UINT8* spd) {
 }
 
 /** Get DDR2 or DDR3 or DDR4 Part Number, always return a valid ptr */
-CHAR8* getDDRPartNum(UINT8* spd, UINT32 base, UINT8 slot) {
-  UINT16 i, start=0, index = 0;
-  CHAR8 c;
-  CHAR8* asciiPartNo = AllocatePool(32); //[32];
+CHAR8
+*getDDRPartNum (
+  UINT8   *spd,
+  UINT32  base,
+  UINT8   slot
+) {
+  UINT16  i, start=0, index = 0;
+  CHAR8   c, *asciiPartNo = AllocatePool(32); //[32];
 
   switch (spd[SPD_MEMORY_TYPE]) {
     case SPD_MEMORY_TYPE_SDRAM_DDR4:
@@ -605,6 +612,7 @@ CHAR8* getDDRPartNum(UINT8* spd, UINT32 base, UINT8 slot) {
 
   // Check that the spd part name is zero terminated and that it is ascii:
   ZeroMem(asciiPartNo, 32);  //sizeof(asciiPartNo));
+
   for (i = start; i < start + 20; i++) {
     READ_SPD(spd, base, slot, (UINT16)i); // only read once the corresponding model part (ddr3 or ddr2)
     c = spd[i];
@@ -716,7 +724,7 @@ read_smb (
    }
   */
   TotalSlotsCount = 8; //MAX_RAM_SLOTS;  -- spd can read only 8 slots
-  DBG("Slots to scan: %d ...\n", TotalSlotsCount);
+  MsgLog("Slots to scan: %d ...\n", TotalSlotsCount);
 
   for (i = 0; i <  TotalSlotsCount; i++){
     //<==
@@ -737,7 +745,7 @@ read_smb (
     }
 
     // Copy spd data into buffer
-    DBG(" - [%02d]: Type %d @0x%x\n", i, spd_type, 0x50 + i);
+    MsgLog(" - [%02d]: Type %d @0x%x\n", i, spd_type, 0x50 + i);
 
     switch (spd_type)  {
       case SPD_MEMORY_TYPE_SDRAM_DDR:
@@ -904,7 +912,7 @@ read_smb (
 }
 
 VOID
-ScanSPD() {
+ScanSPD () {
   EFI_STATUS            Status;
   EFI_HANDLE            *HandleBuffer = NULL;
   EFI_PCI_IO_PROTOCOL   *PciIo = NULL;

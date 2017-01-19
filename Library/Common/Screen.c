@@ -37,16 +37,17 @@
 #include <Library/Platform/Platform.h>
 
 #ifndef DEBUG_ALL
-#define DEBUG_SCR 1
+#ifndef DEBUG_SCREEN
+#define DEBUG_SCREEN -1
+#endif
 #else
-#define DEBUG_SCR DEBUG_ALL
+#ifdef DEBUG_SCREEN
+#undef DEBUG_SCREEN
+#endif
+#define DEBUG_SCREEN DEBUG_ALL
 #endif
 
-#if DEBUG_SCR == 0
-#define DBG(...)
-#else
-#define DBG(...) DebugLog(DEBUG_SCR, __VA_ARGS__)
-#endif
+#define DBG(...) DebugLog(DEBUG_SCREEN, __VA_ARGS__)
 
 // Console defines and variables
 
@@ -74,19 +75,12 @@ static    BOOLEAN GraphicsScreenDirty, haveError = FALSE;
 // LibScreen.c
 //
 
-//#include <efiUgaDraw.h>
 #include <Protocol/GraphicsOutput.h>
-//#include <Protocol/efiConsoleControl.h>
 
 // Console defines and variables
 
 static EFI_GUID ConsoleControlProtocolGuid = EFI_CONSOLE_CONTROL_PROTOCOL_GUID;
 static EFI_CONSOLE_CONTROL_PROTOCOL *ConsoleControl = NULL;
-
-#if UGASUPPORT
-static EFI_GUID UgaDrawProtocolGuid = EFI_UGA_DRAW_PROTOCOL_GUID;
-static EFI_UGA_DRAW_PROTOCOL *UgaDraw = NULL;
-#endif
 
 static EFI_GUID GraphicsOutputProtocolGuid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
 static EFI_GRAPHICS_OUTPUT_PROTOCOL *GraphicsOutput = NULL;
@@ -307,9 +301,6 @@ egInitScreen (
   IN BOOLEAN    SetMaxResolution
 ) {
   EFI_STATUS    Status;
-#if UGASUPPORT
-  UINT32        Width, Height, Depth, RefreshRate;
-#endif
   CHAR16        *Resolution;
 
   // get protocols
@@ -318,14 +309,6 @@ egInitScreen (
   if (EFI_ERROR(Status)) {
     ConsoleControl = NULL;
   }
-
-#if UGASUPPORT
-  Status = EfiLibLocateProtocol(&UgaDrawProtocolGuid, (VOID **) &UgaDraw);
-
-  if (EFI_ERROR(Status)) {
-    UgaDraw = NULL;
-  }
-#endif
 
   Status = EfiLibLocateProtocol(&GraphicsOutputProtocolGuid, (VOID **) &GraphicsOutput);
 
@@ -372,21 +355,6 @@ egInitScreen (
     egHasGraphics = TRUE;
   }
 
-#if UGASUPPORT
-   else if (UgaDraw != NULL) {
-    //is there anybody ever see UGA protocol???
-    //MsgLog("you are lucky guy having UGA, inform please projectosx!\n");
-    Status = UgaDraw->GetMode(UgaDraw, &Width, &Height, &Depth, &RefreshRate);
-    if (EFI_ERROR(Status)) {
-      UgaDraw = NULL;   // graphics not available
-    } else {
-      egScreenWidth  = Width;
-      egScreenHeight = Height;
-      egHasGraphics = TRUE;
-    }
-  }
-#endif
-
   //egDumpSetConsoleVideoModes();
 }
 
@@ -409,15 +377,7 @@ CHAR16
   if (egHasGraphics) {
     if (GraphicsOutput != NULL) {
       return PoolPrint(L"Graphics Output (UEFI), %dx%d", egScreenWidth, egScreenHeight);
-    }
-
-#if UGASUPPORT
-    else if (UgaDraw != NULL) {
-      return PoolPrint(L"UGA Draw (EFI 1.10), %dx%d", egScreenWidth, egScreenHeight);
-    }
-#endif
-
-    else {
+    } else {
       return L"Internal Error";
     }
   } else {
@@ -511,16 +471,6 @@ egClearScreen (
       0, 0, 0, 0, egScreenWidth, egScreenHeight, 0
     );
   }
-
-#if UGASUPPORT
-   else if (UgaDraw != NULL) {
-    UgaDraw->Blt (
-      UgaDraw, (EFI_UGA_PIXEL *)&FillColor, EfiUgaVideoFill,
-      0, 0, 0, 0, egScreenWidth, egScreenHeight, 0
-    );
-  }
-#endif
-
 }
 
 VOID
@@ -579,17 +529,6 @@ egDrawImageArea (
       (UINTN)AreaWidth, (UINTN)AreaHeight, (UINTN)Image->Width * 4
     );
   }
-
-#if UGASUPPORT
-   else if (UgaDraw != NULL) {
-    UgaDraw->Blt (
-      UgaDraw, (EFI_UGA_PIXEL *)Image->PixelData, EfiUgaBltBufferToVideo,
-      (UINTN)AreaPosX, (UINTN)AreaPosY, (UINTN)ScreenPosX, (UINTN)ScreenPosY,
-      (UINTN)AreaWidth, (UINTN)AreaHeight, (UINTN)Image->Width * 4
-    );
-  }
-#endif
-
 }
 
 // Blt(this, Buffer, mode, srcX, srcY, destX, destY, w, h, deltaSrc);
@@ -619,19 +558,6 @@ egTakeImage (
       0, 0, AreaWidth, AreaHeight, (UINTN)Image->Width * 4
     );
   }
-
-#if UGASUPPORT
-   else if (UgaDraw != NULL) {
-    UgaDraw->Blt (
-      UgaDraw,
-      (EFI_UGA_PIXEL *)Image->PixelData,
-      EfiUgaVideoToBltBuffer,
-      ScreenPosX,
-      ScreenPosY,
-      0, 0, AreaWidth, AreaHeight, (UINTN)Image->Width * 4
-    );
-  }
-#endif
 }
 
 //
@@ -644,7 +570,7 @@ egScreenShot() {
   EG_IMAGE                        *Image;
   UINT8                           *FileData;
   UINTN                           FileDataLength, Index;
-  CHAR16                          ScreenshotName[128];
+  CHAR16                          ScreenshotName[AVALUE_MAX_SIZE];
   EFI_GRAPHICS_OUTPUT_BLT_PIXEL   *ImagePNG;
   UINTN                           ImageSize, i;
 
@@ -667,15 +593,6 @@ egScreenShot() {
       0, 0, 0, 0, (UINTN)Image->Width, (UINTN)Image->Height, 0
     );
   }
-
-#if UGASUPPORT
-   else if (UgaDraw != NULL) {
-    UgaDraw->Blt (
-      UgaDraw, (EFI_UGA_PIXEL *)Image->PixelData, EfiUgaVideoToBltBuffer,
-      0, 0, 0, 0, (UINTN)Image->Width, (UINTN)Image->Height, 0
-    );
-  }
-#endif
 
   ImagePNG = (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *)Image->PixelData;
   ImageSize = Image->Width * Image->Height;
@@ -705,7 +622,7 @@ egScreenShot() {
   }
 
   for (Index=0; Index < 60; Index++) {
-    UnicodeSPrint(ScreenshotName, 256, L"%s\\screenshot%d.png", DIR_MISC, Index);
+    UnicodeSPrint(ScreenshotName, ARRAY_SIZE(ScreenshotName), L"%s\\screenshot%d.png", DIR_MISC, Index);
 
     if(!FileExists(SelfRootDir, ScreenshotName)){
       Status = egSaveFile(SelfRootDir, ScreenshotName, FileData, FileDataLength);
@@ -718,7 +635,7 @@ egScreenShot() {
   // else save to file on the ESP
   if (EFI_ERROR(Status)) {
     for (Index=0; Index < 60; Index++) {
-      UnicodeSPrint(ScreenshotName, 256, L"%s\\screenshot%d.png", DIR_MISC, Index);
+      UnicodeSPrint(ScreenshotName, ARRAY_SIZE(ScreenshotName), L"%s\\screenshot%d.png", DIR_MISC, Index);
 
       //if(!FileExists(NULL, ScreenshotName)){
           Status = egSaveFile(NULL, ScreenshotName, FileData, FileDataLength);
@@ -1605,8 +1522,6 @@ BltImageCompositeBadge (
 //  ANIME
 //
 
-//#define MAX_SIZE_ANIME 256
-
 VOID
 FreeAnime (
   GUI_ANIME   *Anime
@@ -1716,7 +1631,7 @@ VOID
 InitAnime (
   REFIT_MENU_SCREEN   *Screen
 ) {
-  CHAR16      FileName[256], *Path;
+  CHAR16      FileName[AVALUE_MAX_SIZE], *Path;
   EG_IMAGE    *p = NULL, *Last = NULL;
   GUI_ANIME   *Anime;
 
@@ -1768,7 +1683,7 @@ InitAnime (
       UINTN   i;
 
       for (i = 0; i < Anime->Frames; i++) {
-        UnicodeSPrint(FileName, 512, L"%s\\%s_%03d.png", Path, Path, i);
+        UnicodeSPrint(FileName, ARRAY_SIZE(FileName), L"%s\\%s_%03d.png", Path, Path, i);
         //DBG("Try to load file %s\n", FileName);
 
         p = egLoadImage(ThemeDir, FileName, TRUE);

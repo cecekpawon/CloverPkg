@@ -5,18 +5,21 @@
 
 #include <Library/Platform/KernelPatcher.h>
 
-//#define KEXT_DEBUG 0
-
-//#if KEXT_DEBUG
-//#define DBG(...)  Print(__VA_ARGS__);
-//#else
-//#define DBG(...)
-//#endif
+#ifndef DEBUG_ALL
+#ifndef DEBUG_KEXT_PATCH
+#define DEBUG_KEXT_PATCH 0
+#endif
+#else
+#ifdef DEBUG_KEXT_PATCH
+#undef DEBUG_KEXT_PATCH
+#endif
+#define DEBUG_KEXT_PATCH DEBUG_ALL
+#endif
 
 // runtime debug
 #define DBG_ON(entry) \
   ((entry != NULL) && (entry->KernelAndKextPatches != NULL) && \
-  (OSFLAG_ISSET(gSettings.FlagsBits, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
+  ((DEBUG_KEXT_PATCH != 0) || OSFLAG_ISSET(gSettings.FlagsBits, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
   /*entry->KernelAndKextPatches->KPDebug && \*/
 #define DBG_RT(entry, ...) \
   if (DBG_ON(entry)) AsciiPrint(__VA_ARGS__)

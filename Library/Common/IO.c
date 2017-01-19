@@ -21,7 +21,6 @@ Revision History
 
 --*/
 
-//#include "EfiShellLib.h"
 #include <Library/Platform/Platform.h>
 
 #define PRINT_STRING_LEN        1024
@@ -1009,7 +1008,6 @@ _PPrint (
   return ps->Len;
 }
 
-
 EFI_STATUS
 WaitForSingleEvent (
   IN EFI_EVENT    Event,
@@ -1846,7 +1844,6 @@ WaitForInputEventPoll (
   UINTN         TimeoutRemain = TimeoutDefault * 100;
 
   while (TimeoutRemain != 0) {
-
     //Status = WaitForSingleEvent (gST->ConIn->WaitForKey, ONE_MSECOND * 10);
     Status = WaitFor2EventWithTsc (gST->ConIn->WaitForKey, NULL, 10);
 

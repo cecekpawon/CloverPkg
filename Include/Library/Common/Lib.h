@@ -37,8 +37,7 @@
 #ifndef __REFITLIB_STANDARD_H__
 #define __REFITLIB_STANDARD_H__
 
-//#define UGASUPPORT 1
-
+#include <Protocol/BlockIo.h>
 #include <Library/UI/Libeg.h>
 
 #define REFIT_DEBUG (2)
@@ -57,8 +56,8 @@
 #define CONFIG_THEME_FILENAME     L"theme"
 #define CONFIG_THEME_RANDOM       L"random"
 #define CONFIG_THEME_EMBEDDED     L"embedded"
-#define CONFIG_THEME_CHRISTMAS    L"christmas"
-#define CONFIG_THEME_NEWYEAR      L"newyear"
+//#define CONFIG_THEME_CHRISTMAS    L"christmas"
+//#define CONFIG_THEME_NEWYEAR      L"newyear"
 
 extern EFI_HANDLE                 gImageHandle;
 extern EFI_SYSTEM_TABLE           *gST;
@@ -231,10 +230,6 @@ typedef struct {
   UINTN       LineShift;
   UINTN       ID;
 } INPUT_ITEM;
-
-// Allow for 255 unicode characters + 2 byte unicode null terminator.
-#define SVALUE_MAX_SIZE 512
-#define AVALUE_MAX_SIZE 256
 
 typedef struct {
   INTN      CurrentSelection, LastSelection;
@@ -597,7 +592,7 @@ EFI_STATUS    DirIterClose (IN OUT REFIT_DIR_ITER *DirIter);
 
 CHAR16        *Basename (IN CHAR16 *Path);
 CHAR16        *Dirname (IN CHAR16 *Path);
-VOID          ReplaceExtension (IN OUT CHAR16 *Path, IN CHAR16 *Extension);
+CHAR16        *ReplaceExtension (IN CHAR16 *Path, IN CHAR16 *Extension);
 CHAR16        *egFindExtension (IN CHAR16 *FileName);
 
 INTN          FindMem (IN VOID *Buffer, IN UINTN BufferLength, IN VOID *SearchString, IN UINTN SearchStringLength);
@@ -728,7 +723,7 @@ EG_IMAGE    *ScanVolumeDefaultIcon (REFIT_VOLUME *Volume, IN UINT8 OSType);
 
 VOID      InitUISelection ();
 VOID      InitBar ();
-VOID      SetBar (INTN PosX, INTN UpPosY, INTN DownPosY, IN SCROLL_STATE *State);
+VOID      SetBar (IN INTN PosX, IN INTN UpPosY, IN INTN DownPosY, IN SCROLL_STATE *State);
 
 #define BUILTIN_ICON_FUNC_ABOUT           (0)
 #define BUILTIN_ICON_FUNC_OPTIONS         (1)
@@ -762,9 +757,8 @@ VOID      SetBar (INTN PosX, INTN UpPosY, INTN DownPosY, IN SCROLL_STATE *State)
 #define MENU_EXIT_DETAILS                 (3)
 #define MENU_EXIT_TIMEOUT                 (4)
 #define MENU_EXIT_OPTIONS                 (5)
-#define MENU_EXIT_EJECT                   (6)
-#define MENU_EXIT_HELP                    (7)
-#define MENU_EXIT_HIDE_TOGGLE             (8)
+#define MENU_EXIT_HELP                    (6)
+#define MENU_EXIT_HIDE_TOGGLE             (7)
 
 #define MENU_ENTRY_ID_GEN                 (0)
 #define MENU_ENTRY_ID_BOOT                (1)
@@ -806,7 +800,7 @@ INTN      DrawTextXY (IN CHAR16 *Text, IN INTN XPos, IN INTN YPos, IN UINT8 XAli
 VOID      DrawBCSText (IN CHAR16 *Text, IN INTN XPos, IN INTN YPos, IN UINT8 XAlign);
 //VOID    DrawMenuText (IN CHAR16 *Text, IN INTN SelectedWidth, IN INTN XPos, IN INTN YPos, IN INTN Cursor);
 INTN      GetSubMenuCount ();
-VOID      SplitMenuInfo (IN REFIT_MENU_SCREEN *SubScreen, IN CHAR16 *Str, ADD_MENU_INFO MenuInfo);
+VOID      SplitMenuInfo (IN REFIT_MENU_SCREEN *SubScreen, IN CHAR16 *Str, IN ADD_MENU_INFO MenuInfo);
 BOOLEAN   BootArgsExists (IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
 
 UINT32    EncodeOptions (CHAR16 *Options);

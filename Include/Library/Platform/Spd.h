@@ -23,7 +23,6 @@
  *   - PDF: http://www.jedec.org/download/search/4_01_02_00R9.PDF
  */
 
-
 /* Byte numbers. */
 #define SPD_NUM_MANUFACTURER_BYTES            0  /* Number of bytes used by module manufacturer */
 #define SPD_TOTAL_SPD_MEMORY_SIZE             1  /* Total SPD memory size | Byte 1 (0x001): SPD Revision*/

@@ -8,19 +8,18 @@
 
 #include <Library/Platform/Platform.h>
 
-#ifndef DEBUG_INJECT
 #ifndef DEBUG_ALL
-#define DEBUG_INJECT 1
+#ifndef DEBUG_INJECT
+#define DEBUG_INJECT -1
+#endif
 #else
+#ifdef DEBUG_INJECT
+#undef DEBUG_INJECT
+#endif
 #define DEBUG_INJECT DEBUG_ALL
 #endif
-#endif
 
-#if DEBUG_INJECT == 0
-#define DBG(...)
-#else
 #define DBG(...) DebugLog(DEBUG_INJECT, __VA_ARGS__)
-#endif
 
 DevPropString   *string = NULL;
 UINT8           *stringdata    = NULL;
@@ -32,8 +31,8 @@ UINT8           *mProperties = NULL;
 CHAR8           *gDeviceProperties = NULL;
 
 UINT32          cPropSize = 0;
-UINT8           * cProperties = NULL;
-CHAR8           * cDeviceProperties = NULL;
+UINT8           *cProperties = NULL;
+CHAR8           *cDeviceProperties = NULL;
 
 #define DEVICE_PROPERTIES_SIGNATURE SIGNATURE_64('A','P','P','L','E','D','E','V')
 
@@ -118,6 +117,7 @@ GetDeviceProps (
   }
 
   *BufferSize = 0;
+
   return EFI_SUCCESS;
 }
 
@@ -148,12 +148,14 @@ GetScreenInfo (
   //this print never occured so this procedure is redundant
   //  Print(L"GetScreenInfo called with args: %lx %lx %lx %lx %lx %lx\n",
   //        baseAddress, frameBufferSize, bpr, w, h, colorDepth);
+
   *frameBufferSize = (UINT64)mGraphicsOutput->Mode->FrameBufferSize;
   *baseAddress = (UINT64)mGraphicsOutput->Mode->FrameBufferBase;
   *w = (UINT32)mGraphicsOutput->Mode->Info->HorizontalResolution;
   *h = (UINT32)mGraphicsOutput->Mode->Info->VerticalResolution;
   *colorDepth = 32;
   *bpr = (UINT32)(mGraphicsOutput->Mode->Info->PixelsPerScanLine*32) >> 3;
+
   //  Print(L"  Screen info: FBsize=%lx FBaddr=%lx w=%d h=%d\n",
   //      *frameBufferSize, *baseAddress, *w, *h);
   //  PauseForKey(L"--- press any key ---\n");
@@ -167,20 +169,14 @@ EFI_STATUS
 SetPrivateVarProto () {
   EFI_STATUS    Status;
 
-  //This must be independent install
-  /*Status = */gBS->InstallMultipleProtocolInterfaces (
-                       &gImageHandle,
-                       &gAppleFramebufferInfoProtocolGuid,
-                       &mScreenInfo,
-                       NULL
-                     );
-
   Status = gBS->InstallMultipleProtocolInterfaces (
-                   &gImageHandle,
-                   &gAppleDevicePropertyProtocolGuid,
-                   &mDeviceProperties,
-                   NULL
-                 );
+                  &gImageHandle,
+                  &gAppleDevicePropertyProtocolGuid,
+                  &mDeviceProperties,
+                  &gAppleFramebufferInfoProtocolGuid,
+                  &mScreenInfo,
+                  NULL
+                );
 
   return Status;
 }
@@ -204,6 +200,7 @@ CHAR8
 *get_pci_dev_path (
   pci_dt_t    *PciDt
 ) {
+  UINTN                       Len;
   CHAR8                       *tmp;
   CHAR16                      *devpathstr = NULL;
   EFI_DEVICE_PATH_PROTOCOL    *DevicePath = NULL;
@@ -215,8 +212,9 @@ CHAR8
   }
 
   devpathstr = FileDevicePathToStr(DevicePath);
-  tmp = AllocateZeroPool((StrLen(devpathstr)+1)*sizeof(CHAR16));
-  UnicodeStrToAsciiStr(devpathstr, tmp);
+  Len = (StrLen(devpathstr) + 1) * sizeof(CHAR16);
+  tmp = AllocateZeroPool(Len);
+  UnicodeStrToAsciiStrS(devpathstr, tmp, Len);
 
   return tmp;
 }
@@ -421,7 +419,7 @@ devprop_add_value (
 
   offset = device->length - (24 + (6 * device->num_pci_devpaths));
 
-  newdata = (UINT8*)AllocateZeroPool((length + offset));
+  newdata = (UINT8*)AllocateZeroPool(length + offset);
 
   if (!newdata) {
     return FALSE;
@@ -483,6 +481,7 @@ CHAR8
     );
 
     buffer += 24;
+
     for (x = 0; x < StringBuf->entries[i]->num_pci_devpaths; x++) {
       AsciiSPrint(buffer, len, "%02x%02x%04x%02x%02x", StringBuf->entries[i]->pci_dev_path[x].type,
         StringBuf->entries[i]->pci_dev_path[x].subtype,
@@ -506,6 +505,7 @@ CHAR8
       AsciiSPrint(buffer, len, "%02x", *dataptr++);
       buffer += 2;
     }
+
     i++;
   }
 
@@ -553,13 +553,11 @@ set_eth_props (
   device = devprop_add_device_pci(string, eth_dev);
 
   if (!device) {
-    DBG(" - Unknown, continue\n");
+    MsgLog(" - Unknown, continue\n");
     return FALSE;
   }
 
-  // -------------------------------------------------
-  //DBG("LAN Controller [%04x:%04x] %a\n", eth_dev->vendor_id, eth_dev->device_id, devicepath);
-  DBG("LAN Controller [%04x:%04x]\n", eth_dev->vendor_id, eth_dev->device_id);
+  MsgLog("LAN Controller [%04x:%04x]\n", eth_dev->vendor_id, eth_dev->device_id);
 
   if ((eth_dev->vendor_id != 0x168c) && (builtin_set == 0)) {
     builtin_set = 1;
@@ -584,8 +582,8 @@ set_eth_props (
   }
 
   if (Injected) {
-    DBG(" - Custom LAN properties injected\n");
-    //    return TRUE;
+    MsgLog(" - Custom LAN properties injected\n");
+    //return TRUE;
   }
 
   DBG(" - Setting dev.prop built-in=0x%x\n", builtin);
@@ -594,14 +592,15 @@ set_eth_props (
 
   if (gSettings.FakeLAN) {
     UINT32    FakeID = gSettings.FakeLAN >> 16;
+    UINTN     Len = ARRAY_SIZE(compatible);
 
     devprop_add_value(device, "device-id", (UINT8*)&FakeID, 4);
-    AsciiSPrint(compatible, 64, "pci%x,%x", (gSettings.FakeLAN & 0xFFFF), FakeID);
-    AsciiStrCpy(compatible, AsciiStrToLower(compatible));
+    AsciiSPrint(compatible, Len, "pci%x,%x", (gSettings.FakeLAN & 0xFFFF), FakeID);
+    AsciiStrCpyS(compatible, Len, AsciiStrToLower(compatible));
     devprop_add_value(device, "compatible", (UINT8*)&compatible[0], 12);
     FakeID = gSettings.FakeLAN & 0xFFFF;
     devprop_add_value(device, "vendor-id", (UINT8*)&FakeID, 4);
-    DBG(" - With FakeLAN: %a\n", compatible);
+    MsgLog(" - With FakeLAN: %a\n", compatible);
   }
 
   return devprop_add_value(device, "built-in", (UINT8*)&builtin, 1);
@@ -683,7 +682,7 @@ set_hda_props (
     return FALSE;
   }
 
-  DBG(" - HDA Controller [%04x:%04x] %a =>", hda_dev->vendor_id, hda_dev->device_id, devicepath);
+  MsgLog(" - HDA Controller [%04x:%04x] %a\n", hda_dev->vendor_id, hda_dev->device_id, devicepath);
 
   if (IsHDMIAudio(hda_dev->DeviceHandle)) {
     if (gSettings.NrAddProperties != 0xFFFE) {
@@ -704,16 +703,16 @@ set_hda_props (
     }
 
     if (Injected) {
-      DBG("custom HDMI properties injected, continue\n");
+      DBG(" - custom HDMI properties injected, continue\n");
       //    return TRUE;
     } else if (gSettings.UseIntelHDMI) {
-      DBG(" HDMI Audio, setting hda-gfx=onboard-1\n");
+      DBG(" - HDMI Audio, setting hda-gfx=onboard-1\n");
       devprop_add_value(device, "hda-gfx", (UINT8*)"onboard-1", 10);
     }
   } else {
     // HDA - determine layout-id
     layoutId = (UINT32)gSettings.HDALayoutId;
-    DBG(" setting specified layout-id=%d\n", layoutId);
+    MsgLog(" - Layout-id=%d\n", layoutId);
 
     if (gSettings.NrAddProperties != 0xFFFE) {
       for (i = 0; i < gSettings.NrAddProperties; i++) {

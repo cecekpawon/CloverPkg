@@ -10,17 +10,17 @@
 #include <Library/Platform/Platform.h>
 
 #ifndef DEBUG_ALL
-#define DEBUG_HIB 1
+#ifndef DEBUG_HIBERNATE
+#define DEBUG_HIBERNATE -1
+#endif
 #else
-#define DEBUG_HIB DEBUG_ALL
+#ifdef DEBUG_HIBERNATE
+#undef DEBUG_HIBERNATE
+#endif
+#define DEBUG_HIBERNATE DEBUG_ALL
 #endif
 
-#if DEBUG_HIB == 0
-#define DBG(...)
-#else
-#define DBG(...) DebugLog(DEBUG_HIB, __VA_ARGS__);
-//#define DBG(...) AsciiPrint(__VA_ARGS__);
-#endif
+#define DBG(...) DebugLog(DEBUG_HIBERNATE, __VA_ARGS__)
 
 #include <Library/Common/Hibernate.h>
 

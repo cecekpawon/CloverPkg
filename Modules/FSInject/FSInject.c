@@ -141,14 +141,16 @@ GetNormalizedFName (
   else {
     Len = StrSize(Parent) + StrSize(FName); // has place for extra char (\\) if needed
     TmpStr = AllocateZeroPool(Len);
-    StrCpy(TmpStr, Parent);
+    StrCpyS(TmpStr, Len, Parent);
     TmpStr2 = GetStrLastChar(Parent);
 
     if ((TmpStr2 == NULL) || (*TmpStr2 != L'\\')) {
-      StrCat(TmpStr, L"\\");
+      StrCatS(TmpStr, Len, L"\\");
     }
 
-    FName = StrCat(TmpStr, FName);
+    //FName = StrCat(TmpStr, Len, FName);
+    StrCatS(TmpStr, Len, FName);
+    FName = AllocateCopyPool(StrSize(TmpStr), TmpStr);
   }
 
   //DBG("='%s' ", FName);
@@ -209,8 +211,8 @@ GetInjectionFName (
   Str1 = AllocateZeroPool(Size);
 
   if (Str1 != NULL) {
-    StrCpy(Str1, SrcDir);
-    StrCat(Str1, Str2);
+    StrCpyS(Str1, Size, SrcDir);
+    StrCatS(Str1, Size, Str2);
   }
 
   DBG("='%s' ", Str1);
@@ -1078,19 +1080,21 @@ FSInjectionAddStringToList (
   CONST CHAR16            *String
 ) {
   FSI_STRING_LIST_ENTRY   *Entry;
-  UINTN                   StringSize;
+  //UINTN                   StringSize;
 
   if ((List == NULL) || (String == NULL)) {
     return NULL;
   }
 
-  StringSize = StrSize(String); // num of bytes, including null terminator
+  //StringSize = StrSize(String); // num of bytes, including null terminator
 
-  Entry = AllocateZeroPool(sizeof(FSI_STRING_LIST_ENTRY) + StringSize);
+  Entry = AllocateZeroPool(sizeof(FSI_STRING_LIST_ENTRY)/* + StringSize*/);
 
   if (Entry != NULL) {
-    StrCpy(Entry->String, String);
+    //StrCpyS(Entry->String, SVALUE_MAX_SIZE, String);
+    Entry->String = AllocateCopyPool(StrSize(String), String);
     InsertTailList(&List->List, &Entry->List);
+
     return List;
   }
 

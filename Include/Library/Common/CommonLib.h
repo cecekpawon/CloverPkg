@@ -38,21 +38,53 @@
 #define IS_ASCII(x)             ((x>=0x20) && (x<=0x7F))
 #define IS_PUNCT(x)             ((x == '.') || (x == '-'))
 
+// Allow for 255 unicode characters + 2 byte unicode null terminator.
+#define SVALUE_MAX_SIZE 512
+#define AVALUE_MAX_SIZE 256
 
-EFI_STATUS  AsciiTrimSpaces(IN CHAR8 **String);
-UINT64      AsciiStrVersionToUint64(const CHAR8 *Version, UINT8 MaxDigitByPart, UINT8 MaxParts);
-UINT32      hex2bin(IN CHAR8 *hex, OUT UINT8 *bin, UINT32 len);
-UINT8       hexstrtouint8 (CHAR8* buf); //one or two hex letters to one byte
-CHAR8       *Bytes2HexStr(UINT8 *data, UINTN len);
+EFI_STATUS
+EFIAPI
+AsciiTrimSpaces (
+  IN CHAR8   **String
+);
 
-CHAR16*
+UINT64
+EFIAPI
+AsciiStrVersionToUint64 (
+  CONST   CHAR8 *Version,
+  UINT8   MaxDigitByPart,
+  UINT8   MaxParts
+);
+
+UINT32
+EFIAPI
+hex2bin (
+  IN  CHAR8   *hex,
+  OUT UINT8   *bin,
+  IN  UINT32  len
+);
+
+UINT8
+EFIAPI
+hexstrtouint8 (
+  CHAR8   *buf
+); //one or two hex letters to one byte
+
+CHAR8 *
+EFIAPI
+Bytes2HexStr (
+  UINT8   *data,
+  UINTN   len
+);
+
+CHAR16 *
 EFIAPI
 GetStrLastCharOccurence (
   IN CHAR16   *String,
   IN CHAR16   Char
 );
 
-CHAR16*
+CHAR16 *
 EFIAPI
 GetStrLastChar (
   IN CHAR16   *String
@@ -69,12 +101,15 @@ StriStartsWith (
 // entry_scan
 //
 
-CHAR16
-*EfiStrDuplicate (
+CHAR16 *
+EFIAPI
+EfiStrDuplicate (
   IN CHAR16   *Src
 );
 
-INTN StriCmp (
+INTN
+EFIAPI
+StriCmp (
   IN CONST CHAR16   *FirstString,
   IN CONST CHAR16   *SecondString
 );
@@ -84,13 +119,17 @@ INTN StriCmp (
 //  IN CONST CHAR8    *SecondString
 //);
 
-BOOLEAN AsciiStriNCmp (
+BOOLEAN
+EFIAPI
+AsciiStriNCmp (
   IN CONST CHAR8    *FirstString,
   IN CONST CHAR8    *SecondString,
   IN CONST UINTN     sSize
 );
 
-BOOLEAN AsciiStrStriN (
+BOOLEAN
+EFIAPI
+AsciiStrStriN (
   IN CONST CHAR8    *WhatString,
   IN CONST UINTN     sWhatSize,
   IN CONST CHAR8    *WhereString,
@@ -103,6 +142,7 @@ BOOLEAN AsciiStrStriN (
 //);
 
 VOID *
+EFIAPI
 EfiReallocatePool (
   IN VOID     *OldPool,
   IN UINTN    OldSize,
@@ -110,45 +150,52 @@ EfiReallocatePool (
 );
 
 INTN
+EFIAPI
 StrniCmp (
   IN CHAR16 *Str1,
   IN CHAR16 *Str2,
   IN UINTN  Count
 );
 
-CHAR16
-*StriStr (
+CHAR16 *
+EFIAPI
+StriStr (
   IN CHAR16 *Str,
   IN CHAR16 *SearchFor
 );
 
-CHAR16
-*StrToLower (
+CHAR16 *
+EFIAPI
+StrToLower (
   IN CHAR16   *Str
 );
 
-CHAR16
-*StrToUpper (
+CHAR16 *
+EFIAPI
+StrToUpper (
   IN CHAR16   *Str
 );
 
-CHAR16
-*StrToTitle (
+CHAR16 *
+EFIAPI
+StrToTitle (
   IN CHAR16   *Str
 );
 
-CHAR8
-*AsciiStrToLower (
+CHAR8 *
+EFIAPI
+AsciiStrToLower (
   IN CHAR8   *Str
 );
 
-CHAR8
-*AsciiStriStr (
+CHAR8 *
+EFIAPI
+AsciiStriStr (
   IN CHAR8  *String,
   IN CHAR8  *SearchString
 );
 
-CHAR16*
+CHAR16 *
 EFIAPI
 GuidStr (
   IN EFI_GUID   *Guid

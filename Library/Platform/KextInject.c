@@ -1,17 +1,20 @@
 #include <Library/Platform/Platform.h>
 
-//#define KEXT_INJECT_DEBUG 0
-
-//#if KEXT_INJECT_DEBUG
-//#define DBG(...)  AsciiPrint(__VA_ARGS__);
-//#else
-//#define DBG(...)
-//#endif
+#ifndef DEBUG_ALL
+#ifndef DEBUG_KEXT_INJECT
+#define DEBUG_KEXT_INJECT 0
+#endif
+#else
+#ifdef DEBUG_KEXT_INJECT
+#undef DEBUG_KEXT_INJECT
+#endif
+#define DEBUG_KEXT_INJECT DEBUG_ALL
+#endif
 
 // runtime debug
 #define DBG_ON(entry) \
   ((entry != NULL) && (entry->KernelAndKextPatches != NULL) && \
-  (OSFLAG_ISSET(gSettings.FlagsBits, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
+  ((DEBUG_KEXT_INJECT != 0) || OSFLAG_ISSET(gSettings.FlagsBits, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
   /*entry->KernelAndKextPatches->KPDebug && \*/
 #define DBG_RT(entry, ...) \
   if (DBG_ON(entry)) AsciiPrint(__VA_ARGS__)
@@ -94,17 +97,17 @@ LoadKext (
   UINT8                 *infoDictBuffer = NULL, *executableFatBuffer = NULL, *executableBuffer = NULL;
   UINTN                 infoDictBufferLength = 0, executableBufferLength = 0, bundlePathBufferLength = 0;
   CHAR8                 *bundlePathBuffer = NULL;
-  CHAR16                TempName[256], Executable[256];
+  CHAR16                TempName[AVALUE_MAX_SIZE], Executable[AVALUE_MAX_SIZE];
   TagPtr                dict = NULL, prop = NULL;
   BOOLEAN               NoContents = FALSE;
   _BooterKextFileInfo   *infoAddr = NULL;
 
-  UnicodeSPrint(TempName, 512, L"%s\\%s", FileName, L"Contents\\Info.plist");
+  UnicodeSPrint(TempName, SVALUE_MAX_SIZE, L"%s\\%s", FileName, L"Contents\\Info.plist");
 
   Status = egLoadFile(RootDir, TempName, &infoDictBuffer, &infoDictBufferLength);
   if (EFI_ERROR(Status)) {
     //try to find a planar kext, without Contents
-    UnicodeSPrint(TempName, 512, L"%s\\%s", FileName, L"Info.plist");
+    UnicodeSPrint(TempName, SVALUE_MAX_SIZE, L"%s\\%s", FileName, L"Info.plist");
 
     Status = egLoadFile(RootDir, TempName, &infoDictBuffer, &infoDictBufferLength);
     if (EFI_ERROR(Status)) {
@@ -123,11 +126,11 @@ LoadKext (
 
   prop = GetProperty(dict, kPropCFBundleExecutable);
   if (prop != 0) {
-    AsciiStrToUnicodeStr(prop->string, Executable);
+    AsciiStrToUnicodeStrS(prop->string, Executable, ARRAY_SIZE(Executable));
     if (NoContents) {
-      UnicodeSPrint(TempName, 512, L"%s\\%s", FileName, Executable);
+      UnicodeSPrint(TempName, SVALUE_MAX_SIZE, L"%s\\%s", FileName, Executable);
     } else {
-      UnicodeSPrint(TempName, 512, L"%s\\%s\\%s", FileName, L"Contents\\MacOS",Executable);
+      UnicodeSPrint(TempName, SVALUE_MAX_SIZE, L"%s\\%s\\%s", FileName, L"Contents\\MacOS",Executable);
     }
 
     Status = egLoadFile(RootDir, TempName, &executableFatBuffer, &executableBufferLength);
@@ -150,7 +153,7 @@ LoadKext (
 
   bundlePathBufferLength = StrLen(FileName) + 1;
   bundlePathBuffer = AllocateZeroPool(bundlePathBufferLength);
-  UnicodeStrToAsciiStr(FileName, bundlePathBuffer);
+  UnicodeStrToAsciiStrS(FileName, bundlePathBuffer, bundlePathBufferLength);
 
   kext->length = (UINT32)(sizeof(_BooterKextFileInfo) + infoDictBufferLength + executableBufferLength + bundlePathBufferLength);
 
@@ -246,7 +249,7 @@ LoadPlugInKexts (
 ) {
   REFIT_DIR_ITER          PlugInIter;
   EFI_FILE_INFO           *PlugInFile;
-  CHAR16                  FileName[256];
+  CHAR16                  FileName[AVALUE_MAX_SIZE];
 
   if ((Entry == NULL) || (RootDir == NULL) || (DirName == NULL)) {
     return;
@@ -258,7 +261,7 @@ LoadPlugInKexts (
       continue;   // skip this
     }
 
-    UnicodeSPrint(FileName, 512, L"%s\\%s", DirName, PlugInFile->FileName);
+    UnicodeSPrint(FileName, ARRAY_SIZE(FileName), L"%s\\%s", DirName, PlugInFile->FileName);
     MsgLog("    %s PlugIn kext: %s\n", Force ? L"Force" : L"Extra", FileName);
     AddKext(Entry, RootDir, FileName, archCpuType);
   }
@@ -271,7 +274,7 @@ LoadKexts (
   IN LOADER_ENTRY   *Entry
 ) {
   //EFI_STATUS      Status;
-  CHAR16            *SrcDir = NULL, FileName[256], PlugIns[256];
+  CHAR16            *SrcDir = NULL, FileName[AVALUE_MAX_SIZE], PlugIns[AVALUE_MAX_SIZE];
   REFIT_DIR_ITER    KextIter, PlugInIter;
   EFI_FILE_INFO     *KextFile, *PlugInFile;
   cpu_type_t        archCpuType=CPU_TYPE_X86_64;
@@ -299,17 +302,17 @@ LoadKexts (
               continue;   // skip this
             }
 
-            UnicodeSPrint(FileName, 512, L"%s\\%s", Entry->KernelAndKextPatches->ForceKexts[i], PlugInFile->FileName);
+            UnicodeSPrint(FileName, ARRAY_SIZE(FileName), L"%s\\%s", Entry->KernelAndKextPatches->ForceKexts[i], PlugInFile->FileName);
             MsgLog("  Force kext: %s\n", FileName);
             AddKext(Entry, Entry->Volume->RootDir, FileName, archCpuType);
-            UnicodeSPrint(PlugIns, 512, L"%s\\%s", FileName, L"Contents\\PlugIns");
+            UnicodeSPrint(PlugIns, ARRAY_SIZE(PlugIns), L"%s\\%s", FileName, L"Contents\\PlugIns");
             LoadPlugInKexts(Entry, Entry->Volume->RootDir, PlugIns, archCpuType, TRUE);
           }
           DirIterClose(&PlugInIter);
         } else {
           AddKext(Entry, Entry->Volume->RootDir, Entry->KernelAndKextPatches->ForceKexts[i], archCpuType);
 
-          UnicodeSPrint(PlugIns, 512, L"%s\\%s", Entry->KernelAndKextPatches->ForceKexts[i], L"Contents\\PlugIns");
+          UnicodeSPrint(PlugIns, ARRAY_SIZE(PlugIns), L"%s\\%s", Entry->KernelAndKextPatches->ForceKexts[i], L"Contents\\PlugIns");
           LoadPlugInKexts(Entry, Entry->Volume->RootDir, PlugIns, archCpuType, TRUE);
         }
       }
@@ -333,11 +336,11 @@ LoadKexts (
 
       i++;
 
-      UnicodeSPrint(FileName, 512, L"%s\\%s", SrcDir, KextFile->FileName);
+      UnicodeSPrint(FileName, ARRAY_SIZE(FileName), L"%s\\%s", SrcDir, KextFile->FileName);
       MsgLog(" - [%02d]: %s\n", i, KextFile->FileName);
       AddKext(Entry, SelfVolume->RootDir, FileName, archCpuType);
 
-      UnicodeSPrint(PlugIns, 512, L"%s\\%s", FileName, L"Contents\\PlugIns");
+      UnicodeSPrint(PlugIns, ARRAY_SIZE(PlugIns), L"%s\\%s", FileName, L"Contents\\PlugIns");
       LoadPlugInKexts(Entry, SelfVolume->RootDir, PlugIns, archCpuType, FALSE);
     }
 
@@ -360,11 +363,11 @@ LoadKexts (
 
       i++;
 
-      UnicodeSPrint(FileName, 512, L"%s\\%s", SrcDir, KextFile->FileName);
+      UnicodeSPrint(FileName, ARRAY_SIZE(FileName), L"%s\\%s", SrcDir, KextFile->FileName);
       MsgLog(" - [%02d]: %s\n", i, KextFile->FileName);
       AddKext(Entry, SelfVolume->RootDir, FileName, archCpuType);
 
-      UnicodeSPrint(PlugIns, 512, L"%s\\%s", FileName, L"Contents\\PlugIns");
+      UnicodeSPrint(PlugIns, ARRAY_SIZE(PlugIns), L"%s\\%s", FileName, L"Contents\\PlugIns");
       LoadPlugInKexts(Entry, SelfVolume->RootDir, PlugIns, archCpuType, FALSE);
     }
 

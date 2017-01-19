@@ -5,19 +5,18 @@
 
 #include <Library/Platform/Platform.h>
 
-#ifndef DEBUG_GMA
 #ifndef DEBUG_ALL
-#define DEBUG_GMA 1
+#ifndef DEBUG_GMA
+#define DEBUG_GMA -1
+#endif
 #else
+#ifdef DEBUG_GMA
+#undef DEBUG_GMA
+#endif
 #define DEBUG_GMA DEBUG_ALL
 #endif
-#endif
 
-#if DEBUG_GMA == 0
-#define DBG(...)
-#else
 #define DBG(...) DebugLog(DEBUG_GMA, __VA_ARGS__)
-#endif
 
 #define S_INTELMODEL "INTEL Graphics"
 
@@ -54,7 +53,6 @@ UINT8 INTELDEF_vals[28][4] = {
 };
 // 5 - 32Mb 6 - 48Mb 9 - 64Mb, 0 - 96Mb
 
-UINT8 FakeID_126[] = {0x26, 0x01, 0x00, 0x00 };
 extern CHAR8 ClassFix[];
 
 UINT8 reg_TRUE[]  = { 0x01, 0x00, 0x00, 0x00 };
@@ -80,8 +78,8 @@ setup_gma_devprop (
 
   model = (CHAR8*)AllocateCopyPool(AsciiStrSize(S_INTELMODEL), S_INTELMODEL);
 
-  DBG(" - %a [%04x:%04x] | %a\n",
-      model, gma_dev->vendor_id, gma_dev->device_id, devicepath);
+  MsgLog(" - %a [%04x:%04x] | %a\n",
+    model, gma_dev->vendor_id, gma_dev->device_id, devicepath);
 
   if (!string) {
     string = devprop_create_string();
@@ -139,7 +137,7 @@ setup_gma_devprop (
       4
     );
 
-    DBG(" - %a-platform-id: 0x%08lx\n", (gma_dev->device_id < 0x130) ? "snb" : "ig", gSettings.IgPlatform);
+    MsgLog(" - %a-platform-id: 0x%08lx\n", (gma_dev->device_id < 0x130) ? "snb" : "ig", gSettings.IgPlatform);
 
     SetIgPlatform = TRUE;
   }
@@ -149,7 +147,7 @@ setup_gma_devprop (
   }
 
   if (gSettings.NoDefaultProperties) {
-    DBG(" - no default properties\n");
+    //MsgLog(" - no default properties\n");
     return TRUE;
   }
 

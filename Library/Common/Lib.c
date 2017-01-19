@@ -37,16 +37,17 @@
 #include <Library/Platform/Platform.h>
 
 #ifndef DEBUG_ALL
-#define DEBUG_LIB 1
+#ifndef DEBUG_LIB
+#define DEBUG_LIB -1
+#endif
 #else
+#ifdef DEBUG_LIB
+#undef DEBUG_LIB
+#endif
 #define DEBUG_LIB DEBUG_ALL
 #endif
 
-#if DEBUG_LIB == 0
-#define DBG(...)
-#else
 #define DBG(...) DebugLog(DEBUG_LIB, __VA_ARGS__)
-#endif
 
 // variables
 
@@ -63,7 +64,6 @@ EFI_DEVICE_PATH         *SelfFullDevicePath;
 EFI_FILE                *ThemeDir = NULL;
 CHAR16                  *ThemePath;
 BOOLEAN                 gThemeChanged = FALSE;
-//BOOLEAN               gBootArgsChanged = FALSE;
 BOOLEAN                 gBootChanged = FALSE;
 BOOLEAN                 gThemeOptionsChanged = FALSE;
 BOOLEAN                 gTextOnly = FALSE; // Temporary hold GlobalConfig.TextOnly. Switch (Text <-> Graphic) style after ESC.
@@ -417,7 +417,7 @@ ScanVolumeBootcode (
       tmp[i+1] = 0;
 
       //  if (*p != 0) {
-      AsciiStrToUnicodeStr((CHAR8*)&tmp[0], volumeName);
+      AsciiStrToUnicodeStrS((CHAR8*)&tmp[0], volumeName, ARRAY_SIZE(volumeName));
       //  }
 
       DBG("Detected name %s\n", volumeName);
@@ -551,7 +551,7 @@ ScanVolumeBootcode (
     //  need to fix AddLegacyEntry in main.c.
 
 #if REFIT_DEBUG > 0
-    DBG("        Result of bootcode detection: %s %s (%s)\n",
+    DBG("         Result of bootcode detection: %s %s (%s)\n",
         Volume->HasBootCode ? L"bootable" : L"non-bootable",
         Volume->LegacyOS->Name ? Volume->LegacyOS->Name: L"unknown",
         Volume->LegacyOS->IconName ? Volume->LegacyOS->IconName: L"legacy");
@@ -593,16 +593,16 @@ ScanVolume (
   Volume->DevicePathString = FileDevicePathToStr(Volume->DevicePath);
 
   //Volume->DevicePath = DuplicateDevicePath(DevicePathFromHandle(Volume->DeviceHandle));
-#if REFIT_DEBUG > 0
+//#if REFIT_DEBUG > 0
   if (Volume->DevicePath != NULL) {
-    DBG(" %s\n", FileDevicePathToStr(Volume->DevicePath));
+    MsgLog(" %s\n", FileDevicePathToStr(Volume->DevicePath));
 //#if REFIT_DEBUG >= 2
     //       DumpHex(1, 0, GetDevicePathSize(Volume->DevicePath), Volume->DevicePath);
 //#endif
   }
-#else
-  DBG("\n");
-#endif
+//#else
+//  DBG("\n");
+//#endif
 
   Volume->DiskKind = DISK_KIND_INTERNAL;  // default
 
@@ -615,7 +615,7 @@ ScanVolume (
 
   if (EFI_ERROR(Status)) {
     Volume->BlockIO = NULL;
-    DBG("        Warning: Can't get BlockIO protocol.\n");
+    DBG("         Warning: Can't get BlockIO protocol.\n");
     //WaitForSingleEvent (gST->ConIn->WaitForKey, 0);
     //gST->ConIn->ReadKeyStroke (gST->ConIn, &Key);
 
@@ -624,7 +624,7 @@ ScanVolume (
 
   Bootable = FALSE;
   if (Volume->BlockIO->Media->BlockSize == 2048){
-    DBG("        Found optical drive\n");
+    DBG("         Found optical drive\n");
     Volume->DiskKind = DISK_KIND_OPTICAL;
     Volume->BlockIOOffset = 0x10; // offset already applied for FS but not for blockio
     ScanVolumeBootcode(Volume, &Bootable);
@@ -937,7 +937,7 @@ ScanExtendedPartition (
     NextExtCurrent = 0;
     for (i = 0; i < 4; i++) {
       if (
-        (EMbrTable[i].Flags != 0x00 && EMbrTable[i].Flags != 0x80) ||
+        ((EMbrTable[i].Flags != 0x00) && (EMbrTable[i].Flags != 0x80)) ||
         (EMbrTable[i].StartLBA == 0) ||
         (EMbrTable[i].Size == 0)
       ) {
@@ -1005,7 +1005,7 @@ VOID ScanVolumes() {
     return;
   }
 
-  DBG("Found %d volumes with blockIO\n", HandleCount);
+  MsgLog("Found %d volumes with blockIO:\n", HandleCount);
 
   // first pass: collect information about all handles
   for (HandleIndex = 0; HandleIndex < HandleCount; HandleIndex++) {
@@ -1017,7 +1017,7 @@ VOID ScanVolumes() {
       SelfVolume = Volume;
     }
 
-    DBG("- [%02d]: Volume:", HandleIndex);
+    MsgLog(" - [%02d]: Volume:", HandleIndex);
 
     Volume->Hidden = FALSE; // default to not hidden
 
@@ -1030,7 +1030,7 @@ VOID ScanVolumes() {
           ((Volume->VolName != NULL) && StriStr(Volume->VolName, gSettings.HVHideStrings[HVi]))
         ) {
           Volume->Hidden = TRUE;
-          DBG("        hiding this volume\n");
+          MsgLog("         hiding this volume\n");
           break;
         }
       }
@@ -1044,11 +1044,11 @@ VOID ScanVolumes() {
       //Volume->VolName, Volume->LegacyOS->Name ? Volume->LegacyOS->Name : L"", Volume->LegacyOS->IconName, Guid);
 
       if (SelfVolume == Volume) {
-        DBG("        This is SelfVolume !!\n");
+        MsgLog("         This is SelfVolume !!\n");
       }
 
     } else {
-      DBG("        wrong volume Nr%d?!\n", HandleIndex);
+      DBG("         wrong volume Nr%d?!\n", HandleIndex);
       FreePool(Volume);
     }
   }
@@ -1069,7 +1069,7 @@ VOID ScanVolumes() {
       (Volume->BlockIOOffset == 0) &&
       (Volume->MbrPartitionTable != NULL)
     ) {
-      DBG("        Volume %d has MBR\n", VolumeIndex);
+      DBG("         Volume %d has MBR\n", VolumeIndex);
       MbrTable = Volume->MbrPartitionTable;
       for (PartitionIndex = 0; PartitionIndex < 4; PartitionIndex++) {
         if (IS_EXTENDED_PART_TYPE(MbrTable[PartitionIndex].Type)) {
@@ -1371,7 +1371,7 @@ DirNextEntry (
     }
 
     // read next directory entry
-    LastBufferSize = BufferSize = 256;
+    LastBufferSize = BufferSize = AVALUE_MAX_SIZE;
     Buffer = AllocateZeroPool (BufferSize);
 
     for (IterCount = 0; ; IterCount++) {
@@ -1775,12 +1775,16 @@ CHAR16
   return FileName;
 }
 
-VOID
-ReplaceExtension (
-  IN OUT  CHAR16    *Path,
-  IN      CHAR16    *Extension
+CHAR16
+*ReplaceExtension (
+  IN CHAR16    *Path,
+  IN CHAR16    *Extension
 ) {
-  UINTN   i, len = StrLen(Path);
+  UINTN   i,
+          len = StrSize(Path),
+          slen = len + StrSize(Extension) + 1;
+
+  Path = ReallocatePool(StrSize(Path), slen, Path);
 
   for (i = len; i >= 0; i--) {
     if (Path[i] == '.') {
@@ -1792,7 +1796,9 @@ ReplaceExtension (
       break;
   }
 
-  StrCat(Path, Extension);
+  StrCatS(Path, slen, Extension);
+
+  return Path;
 }
 
 CHAR16
@@ -1867,27 +1873,41 @@ CHAR16
 *FileDevicePathToStr (
   IN EFI_DEVICE_PATH_PROTOCOL   *DevPath
 ) {
-  CHAR16    *FilePath, *Char;
+  CHAR16    *FilePath, *Res = NULL;
+  UINTN     Len, i = 0;
+  BOOLEAN   Found = FALSE;
 
   FilePath = DevicePathToStr(DevPath);
-  // fix / into '\\'
+
   if (FilePath != NULL) {
-    for (Char = FilePath; *Char != L'\0'; Char++) {
-      if (*Char == L'/') {
-        *Char = L'\\';
+    Len = StrSize(FilePath) + 1;
+    Res = AllocatePool(Len);
+
+    while (*FilePath != L'\0') {
+      if (*FilePath == L'\\') {
+        if (Found) {
+          FilePath++;
+          continue;
+        }
+
+        Res[i++] = *FilePath;
+        Found = TRUE;
+        FilePath++;
+        continue;
       }
+
+      Found = FALSE;
+
+      Res[i++] = (*FilePath == L'/') ? L'\\' : *FilePath;
+      FilePath++;
+    }
+
+    if (i <= Len) {
+      Res[i] = '\0';
     }
   }
 
-  // "\\\\" into '\\'
-  Char = StrStr(FilePath, L"\\\\");
-
-  while (Char != NULL) {
-    StrCpy(Char, Char + 1);
-    Char = StrStr(FilePath, L"\\\\");
-  }
-
-  return FilePath;
+  return Res;
 }
 
 CHAR16
@@ -1960,7 +1980,7 @@ VOID
 DbgHeader (
   CHAR8   *str
 ) {
-  INTN    len = 60 - AsciiStrSize(str);
+  UINTN    len = 60 - AsciiStrSize(str);
 
   if (len <= 3) {
     DebugLog (1, "=== [ %a ] ===\n", str);

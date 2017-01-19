@@ -20,7 +20,6 @@ Extended by dmazar.
 
 **/
 
-
 #define SYS_CODE64_SEL 0x38
 
 #pragma pack(1)

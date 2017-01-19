@@ -12,16 +12,17 @@
 #include <Protocol/PlatformDriverOverride.h>
 
 #ifndef DEBUG_ALL
-#define DEBUG_PLO 1
+#ifndef DEBUG_PLATFORM_DRIVER
+#define DEBUG_PLATFORM_DRIVER -1
+#endif
 #else
-#define DEBUG_PLO DEBUG_ALL
+#ifdef DEBUG_PLATFORM_DRIVER
+#undef DEBUG_PLATFORM_DRIVER
+#endif
+#define DEBUG_PLATFORM_DRIVER DEBUG_ALL
 #endif
 
-#if DEBUG_PLO == 0
-#define DBG(...)
-#else
-#define DBG(...) DebugLog(DEBUG_PLO, __VA_ARGS__)
-#endif
+#define DBG(...) DebugLog(DEBUG_PLATFORM_DRIVER, __VA_ARGS__)
 
 /** NULL terminated list of driver's handles that will be served by EFI_PLATFORM_DRIVER_OVERRIDE_PROTOCOL. */
 EFI_HANDLE  *mPriorityDrivers = NULL;
@@ -29,7 +30,6 @@ EFI_HANDLE  *mPriorityDrivers = NULL;
 /** Saved original EFI_PLATFORM_DRIVER_OVERRIDE_PROTOCOL.GetDriver when doing override. */
 EFI_PLATFORM_DRIVER_OVERRIDE_GET_DRIVER mOrigPlatformGetDriver = NULL;
 EFI_PLATFORM_DRIVER_OVERRIDE_DRIVER_LOADED mOrigPlatformDriverLoaded = NULL;
-
 
 //////////////////////////////////////////////////////////////////////
 //
@@ -40,9 +40,9 @@ EFI_PLATFORM_DRIVER_OVERRIDE_DRIVER_LOADED mOrigPlatformDriverLoaded = NULL;
 EFI_STATUS
 EFIAPI
 OurPlatformGetDriver (
-  IN EFI_PLATFORM_DRIVER_OVERRIDE_PROTOCOL    *This,
-  IN     EFI_HANDLE                           ControllerHandle,
-  IN OUT EFI_HANDLE                           *DriverImageHandle
+  IN      EFI_PLATFORM_DRIVER_OVERRIDE_PROTOCOL   *This,
+  IN      EFI_HANDLE                              ControllerHandle,
+  IN OUT  EFI_HANDLE                              *DriverImageHandle
 ) {
   EFI_HANDLE     *HandlePtr;
 
@@ -77,6 +77,7 @@ OurPlatformGetDriver (
 
   return EFI_INVALID_PARAMETER;
 }
+
 ///
 // Our EFI_PLATFORM_DRIVER_OVERRIDE_PROTOCOL.GetDriverPath implementation.
 ///
@@ -154,7 +155,6 @@ EFI_PLATFORM_DRIVER_OVERRIDE_PROTOCOL mOurPlatformDriverOverrideProtocol = {
   OurPlatformDriverLoaded
 };
 
-
 //////////////////////////////////////////////////////////////////////
 //
 // Overriding EFI_PLATFORM_DRIVER_OVERRIDE_PROTOCOL if already installed
@@ -200,7 +200,6 @@ OvrPlatformGetDriver (
   // not found in our list, or was last in our list - call original
   return mOrigPlatformGetDriver(This, ControllerHandle, DriverImageHandle);
 }
-
 
 //////////////////////////////////////////////////////////////////////
 //

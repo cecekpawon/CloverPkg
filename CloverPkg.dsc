@@ -81,6 +81,7 @@
   !ifndef EMBED_FSINJECT
     CloverPkg/Modules/FSInject/FSInject.inf
   !endif
+
   !ifndef EMBED_APTIOFIX
     CloverPkg/Modules/OsxAptioFixDrv/OsxAptioFixDrv.inf
   !endif
@@ -89,16 +90,12 @@
   CloverPkg/Applications/Clover/Clover.inf
 
 [BuildOptions]
-  !ifdef DISABLE_LTO
-    DEFINE DISABLE_LTO_FLAG = -fno-lto
-  !endif
+  #!ifdef DISABLE_LTO
+  #  DEFINE DISABLE_LTO_FLAG = -fno-lto
+  #!endif
 
-  DEFINE BUILD_OPTIONS=MDEPKG_NDEBUG
+  DEFINE BUILD_OPTIONS_GEN = -DDISABLE_NEW_DEPRECATED_INTERFACES $(BUILD_OPTIONS)
 
-  #MSFT:*_*_*_CC_FLAGS  = /FAcs /FR$(@R).SBR $(BUILD_OPTIONS) -Dinline=__inline
-  #XCODE:*_*_*_CC_FLAGS = -fno-unwind-tables -Os $(BUILD_OPTIONS) -Wno-msvc-include $(DISABLE_LTO_FLAG)
-  #GCC:*_*_*_CC_FLAGS   = $(BUILD_OPTIONS)
-
-  MSFT:*_*_*_CC_FLAGS  = /D $(BUILD_OPTIONS)
-  XCODE:*_*_*_CC_FLAGS = -D$(BUILD_OPTIONS) $(DISABLE_LTO_FLAG)
-  GCC:*_*_*_CC_FLAGS   = -D$(BUILD_OPTIONS)
+  MSFT:*_*_*_CC_FLAGS  = /D MDEPKG_NDEBUG $(BUILD_OPTIONS_GEN)
+  XCODE:*_*_*_CC_FLAGS = -DMDEPKG_NDEBUG $(BUILD_OPTIONS_GEN) #$(DISABLE_LTO_FLAG)
+  GCC:*_*_*_CC_FLAGS   = -DMDEPKG_NDEBUG $(BUILD_OPTIONS_GEN)

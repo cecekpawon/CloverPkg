@@ -3,18 +3,20 @@
 #include <Library/Platform/Platform.h>
 
 #ifndef DEBUG_ALL
-#define DEBUG_EDID 1
+#ifndef DEBUG_EDID
+#define DEBUG_EDID -1
+#endif
 #else
+#ifdef DEBUG_EDID
+#undef DEBUG_EDID
+#endif
 #define DEBUG_EDID DEBUG_ALL
 #endif
 
-#if DEBUG_SET == 0
-#define DBG(...)
-#else
 #define DBG(...) DebugLog(DEBUG_EDID, __VA_ARGS__)
-#endif
 
-EFI_STATUS EFIAPI
+EFI_STATUS
+EFIAPI
 GetEdidImpl (
   IN      EFI_EDID_OVERRIDE_PROTOCOL    *This,
   IN      EFI_HANDLE                    *ChildHandle,
@@ -90,7 +92,7 @@ GetEdidDiscovered () {
   if (!EFI_ERROR (Status)) {
     N = EdidDiscovered->SizeOfEdid;
     if (!GlobalConfig.DebugLog) {
-      MsgLog("EdidDiscovered size=%d\n", N);
+      DBG("EdidDiscovered size=%d\n", N);
     }
 
     if (N == 0) {
@@ -106,11 +108,11 @@ GetEdidDiscovered () {
 
     if (!GlobalConfig.DebugLog) {
       for (i=0; i<N; i+=16) {
-        MsgLog("%03d | ", i);
+        DBG("%03d | ", i);
         for (j=0; j<16; j++) {
-          MsgLog("%02x%a", EdidDiscovered->Edid[i+j], (j<15) ? " " : "");
+          DBG("%02x%a", EdidDiscovered->Edid[i+j], (j<15) ? " " : "");
         }
-        MsgLog("\n");
+        DBG("\n");
       }
     }
   }

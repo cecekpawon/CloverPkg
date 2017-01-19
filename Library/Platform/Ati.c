@@ -9,16 +9,17 @@
 #include <Library/Platform/Ati.h>
 
 #ifndef DEBUG_ALL
-#define DEBUG_ATI 1
+#ifndef DEBUG_ATI
+#define DEBUG_ATI -1
+#endif
 #else
+#ifdef DEBUG_ATI
+#undef DEBUG_ATI
+#endif
 #define DEBUG_ATI DEBUG_ALL
 #endif
 
-#if DEBUG_ATI == 0
-#define DBG(...)
-#else
 #define DBG(...) DebugLog(DEBUG_ATI, __VA_ARGS__)
-#endif
 
 #define S_ATIMODEL "ATI/AMD Graphics"
 
@@ -776,13 +777,15 @@ get_name_pci_val (
   value_t   *val,
   INTN      index
 ) {
-  //if (!card->info->model_name || !gSettings.FakeATI) {
-  if (!gSettings.FakeATI) {
+  UINTN   Len = ARRAY_SIZE(pciName);
+
+  if (!gSettings.FakeATI) { //(!card->info->model_name || !gSettings.FakeATI)
     return FALSE;
   }
 
-  AsciiSPrint(pciName, 15, "pci1002,%x", gSettings.FakeATI >> 16);
-  AsciiStrCpy(pciName, AsciiStrToLower(pciName));
+  AsciiSPrint(pciName, Len, "pci1002,%x", gSettings.FakeATI >> 16);
+  AsciiStrCpyS(pciName, Len, AsciiStrToLower(pciName));
+
   val->type = kStr;
   val->size = 13;
   val->data = (UINT8 *)&pciName[0];
@@ -1142,7 +1145,7 @@ load_vbios_file (
   //    return FALSE;
 
 
-  UnicodeSPrint(FileName, 128, L"%s\\%04x_%04x.rom", RomPath, vendor_id, device_id);
+  UnicodeSPrint(FileName, ARRAY_SIZE(FileName), L"%s\\%04x_%04x.rom", RomPath, vendor_id, device_id);
   if (FileExists(OEMDir, FileName)){
     DBG("Found generic VBIOS ROM file (%04x_%04x.rom)\n", vendor_id, device_id);
     Status = egLoadFile(OEMDir, FileName, &buffer, &bufferLen);
@@ -1152,7 +1155,7 @@ load_vbios_file (
     FreePool(RomPath);
     RomPath = PoolPrint(DIR_ROM, DIR_CLOVER);
 
-    UnicodeSPrint(FileName, 128, L"%s\\%04x_%04x.rom", RomPath, vendor_id, device_id);
+    UnicodeSPrint(FileName, ARRAY_SIZE(FileName), L"%s\\%04x_%04x.rom", RomPath, vendor_id, device_id);
     if (FileExists(SelfRootDir, FileName)){
       DBG("Found generic VBIOS ROM file (%04x_%04x.rom)\n", vendor_id, device_id);
       Status = egLoadFile(SelfRootDir, FileName, &buffer, &bufferLen);
@@ -1496,7 +1499,7 @@ init_card (
   NameLen = StrLen(gSettings.FBName);
   if (NameLen > 2) {  //fool proof: cfg_name is 3 character or more.
     CfgName = AllocateZeroPool(NameLen);
-    UnicodeStrToAsciiStr((CHAR16*)&gSettings.FBName[0], CfgName);
+    UnicodeStrToAsciiStrS((CHAR16*)&gSettings.FBName[0], CfgName, NameLen);
     DBG("Users config name %a\n", CfgName);
     card->cfg_name = CfgName;
   } else {
@@ -1583,18 +1586,21 @@ setup_ati_devprop (
   // -------------------------------------------------
 
   if (gSettings.FakeATI) {
+    UINTN   Len = ARRAY_SIZE(compatible);
+
     card->flags &= ~FLAGNOTFAKE;
     card->flags |= FLAGOLD;
 
     FakeID = gSettings.FakeATI >> 16;
     devprop_add_value(card->device, "device-id", (UINT8*)&FakeID, 4);
     devprop_add_value(card->device, "ATY,DeviceID", (UINT8*)&FakeID, 2);
-    AsciiSPrint(compatible, 64, "pci1002,%04x", FakeID);
-    AsciiStrCpy(compatible, AsciiStrToLower(compatible));
+    AsciiSPrint(compatible, Len, "pci1002,%04x", FakeID);
+    AsciiStrCpyS(compatible, Len, AsciiStrToLower(compatible));
     devprop_add_value(card->device, "@0,compatible", (UINT8*)&compatible[0], 12);
     FakeID = gSettings.FakeATI & 0xFFFF;
     devprop_add_value(card->device, "vendor-id", (UINT8*)&FakeID, 4);
     devprop_add_value(card->device, "ATY,VendorID", (UINT8*)&FakeID, 2);
+    MsgLog(" - With FakeID: %a\n", compatible);
   }
 
   if (!gSettings.NoDefaultProperties) {
@@ -1604,9 +1610,9 @@ setup_ati_devprop (
     } else {
       devprop_add_value(card->device, "hda-gfx", (UINT8*)"onboard-1", 10);
     }
-  } else {
-    DBG("ATI: No default properties injected\n");
-  }
+  } /*else {
+    MsgLog(" - no default properties\n");
+  }*/
 
   if (gSettings.NrAddProperties != 0xFFFE) {
     for (i = 0; i < gSettings.NrAddProperties; i++) {

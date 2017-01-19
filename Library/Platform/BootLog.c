@@ -11,8 +11,6 @@
 #include <Library/Platform/Platform.h>
 #include <Library/Common/MemLogLib.h>
 
-extern  EFI_GUID  gEfiMiscSubClassGuid;
-
 // Changed MsgLog(...) it now calls this function
 //  with DebugMode == 0. - apianti
 // DebugMode==0 Prints to msg log, only output to log on SaveBooterLog
@@ -28,7 +26,7 @@ DebugLog (
    VA_LIST Marker;
 
    // Make sure the buffer is intact for writing
-   if ((FormatString == NULL) || (DebugMode < 0)) {
+   if ((FormatString == NULL) || (DebugMode < 0) || (DebugMode > 2)) {
      return;
    }
 

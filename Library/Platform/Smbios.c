@@ -22,16 +22,17 @@
 #include <Library/Platform/Platform.h>
 
 #ifndef DEBUG_ALL
-#define DEBUG_SMBIOS 1
+#ifndef DEBUG_SMBIOS
+#define DEBUG_SMBIOS -1
+#endif
 #else
+#ifdef DEBUG_SMBIOS
+#undef DEBUG_SMBIOS
+#endif
 #define DEBUG_SMBIOS DEBUG_ALL
 #endif
 
-#if DEBUG_SMBIOS == 0
-#define DBG(...)
-#else
 #define DBG(...) DebugLog(DEBUG_SMBIOS, __VA_ARGS__)
-#endif
 
 #define CPUID_EXTFEATURE_EM64T    _Bit(29)
 #define CPUID_EXTFEATURE_XD       _Bit(20)
@@ -505,6 +506,7 @@ PatchTableType0 () {
 VOID
 GetTableType1 () {
   CHAR8   *s;
+
   // System Information
   //
   SmbiosTable = GetSmbiosTableFromType (EntryPoint, EFI_SMBIOS_TYPE_SYSTEM_INFORMATION, 0);
@@ -582,6 +584,7 @@ PatchTableType1 () {
 VOID
 GetTableType2 () {
   CHAR8   *s;
+
   // System Information
   //
   SmbiosTable = GetSmbiosTableFromType (EntryPoint, EFI_SMBIOS_TYPE_BASEBOARD_INFORMATION, 0);
@@ -593,7 +596,6 @@ GetTableType2 () {
   CopyMem(gSettings.OEMBoard, s, iStrLen(s, 64) + 1);
   s = GetSmbiosString(SmbiosTable, SmbiosTable.Type2->Manufacturer);
   CopyMem(gSettings.OEMVendor, s, iStrLen(s, 64) + 1);
-
 }
 
 
@@ -688,8 +690,6 @@ GetTableType3 () {
   }
   mHandle3 = SmbiosTable.Type3->Hdr.Handle;
   gMobile = ((SmbiosTable.Type3->Type) >= 8) && (SmbiosTable.Type3->Type != 0x0D); //iMac is desktop!
-
-  //return;
 }
 
 VOID
@@ -1076,8 +1076,6 @@ PatchTableType9 () {
       LogSmbiosTable(newSmbiosTable);
     }
   }
-
-  //return;
 }
 
 VOID
@@ -1100,7 +1098,6 @@ PatchTableType11 () {
   UpdateSmbiosString(newSmbiosTable, &newSmbiosTable.Type11->StringCount, OEMString);
 
   LogSmbiosTable(newSmbiosTable);
-  //return;
 }
 
 VOID
@@ -1144,7 +1141,7 @@ GetTableType16 () {
     TotalCount = MAX_RAM_SLOTS;
   }
 
-  DBG("Total Memory Slots Count = %d\n", TotalCount);
+  MsgLog("Total Memory Slots Count = %d\n", TotalCount);
 }
 
 
@@ -1187,11 +1184,11 @@ GetTableType17 () {
   for (Index = 0; Index < TotalCount; Index++) {  //how many tables there may be?
     SmbiosTable = GetSmbiosTableFromType (EntryPoint, EFI_SMBIOS_TYPE_MEMORY_DEVICE, Index);
     if (SmbiosTable.Raw == NULL) {
-      //      DBG("SmbiosTable: Type 17 (Memory Device number %d) not found!\n", Index);
+      //DBG("SmbiosTable: Type 17 (Memory Device number %d) not found!\n", Index);
       continue;
     }
 
-    DBG("Type 17 Index = %d\n", Index);
+    MsgLog("Type 17 Index = %d\n", Index);
 
     //gDMI->CntMemorySlots++;
     if (SmbiosTable.Type17->MemoryErrorInformationHandle < 0xFFFE) {
@@ -1202,6 +1199,7 @@ GetTableType17 () {
       //  to just skip all entries that have an error - apianti
       // will try
       Found = FALSE;
+
       for (Index2 = 0; Index2 < 24; Index2++) {
         newSmbiosTable = GetSmbiosTableFromType (EntryPoint, EFI_SMBIOS_TYPE_32BIT_MEMORY_ERROR_INFORMATION, Index2);
         if (newSmbiosTable.Raw == NULL) {
@@ -1210,7 +1208,7 @@ GetTableType17 () {
 
         if (newSmbiosTable.Type18->Hdr.Handle == SmbiosTable.Type17->MemoryErrorInformationHandle) {
           Found = TRUE;
-          DBG("Found memory information in table 18/%d, type=0x%x, operation=0x%x syndrome=0x%x\n",
+          DBG(" - Found memory information in table 18/%d, type=0x%x, operation=0x%x syndrome=0x%x\n",
               Index2,
               newSmbiosTable.Type18->ErrorType,
               newSmbiosTable.Type18->ErrorOperation,
@@ -1218,19 +1216,19 @@ GetTableType17 () {
 
           switch (newSmbiosTable.Type18->ErrorType) {
             case MemoryErrorOk:
-              DBG("...memory OK\n");
+              DBG("  - ...memory OK\n");
               break;
 
             case MemoryErrorCorrected:
-              DBG("...memory errors corrected\n");
+              DBG("  - ...memory errors corrected\n");
               break;
 
             case MemoryErrorChecksum:
-              DBG("...error type: Checksum\n");
+              DBG("  - ...error type: Checksum\n");
               break;
 
             default:
-              DBG("...error type not shown\n");
+              DBG("  - ...error type not shown\n");
               break;
           }
 
@@ -1241,7 +1239,7 @@ GetTableType17 () {
       if (Found) {
         if ((newSmbiosTable.Type18->ErrorType != MemoryErrorOk) &&
             (newSmbiosTable.Type18->ErrorType != MemoryErrorCorrected)) {
-          DBG("skipping wrong module\n");
+          DBG("  - skipping wrong module\n");
           continue;
         }
       }
@@ -1258,7 +1256,7 @@ GetTableType17 () {
       gRAM.SMBIOS[Index].InUse = TRUE;
       gRAM.SMBIOS[Index].Frequency = SmbiosTable.Type17->Speed;
     } else {
-      DBG("Ignoring insane frequency value %dMHz\n", SmbiosTable.Type17->Speed);
+      MsgLog(" - Ignoring insane frequency value %dMHz\n", SmbiosTable.Type17->Speed);
     }
 
     // Fill rest of information if in use
@@ -1270,21 +1268,30 @@ GetTableType17 () {
 
       //DBG("CntMemorySlots = %d\n", gDMI->CntMemorySlots)
       //DBG("gDMI->MemoryModules = %d\n", gDMI->MemoryModules)
-      DBG("SmbiosTable.Type17->Speed = %dMHz\n", gRAM.SMBIOS[Index].Frequency);
-      DBG("SmbiosTable.Type17->Size = %dMB\n", gRAM.SMBIOS[Index].ModuleSize);
-      DBG("SmbiosTable.Type17->Bank/Device = %a %a\n",
-          GetSmbiosString(SmbiosTable, SmbiosTable.Type17->BankLocator),
-          GetSmbiosString(SmbiosTable, SmbiosTable.Type17->DeviceLocator));
-      DBG("SmbiosTable.Type17->Vendor = %a\n", gRAM.SMBIOS[Index].Vendor);
-      DBG("SmbiosTable.Type17->SerialNumber = %a\n", gRAM.SMBIOS[Index].SerialNo);
-      DBG("SmbiosTable.Type17->PartNumber = %a\n", gRAM.SMBIOS[Index].PartNo);
+      //DBG("SmbiosTable.Type17->Speed = %dMHz\n", gRAM.SMBIOS[Index].Frequency);
+      //DBG("SmbiosTable.Type17->Size = %dMB\n", gRAM.SMBIOS[Index].ModuleSize);
+      //DBG("SmbiosTable.Type17->Bank/Device = %a %a\n",
+      //    GetSmbiosString(SmbiosTable, SmbiosTable.Type17->BankLocator),
+      //    GetSmbiosString(SmbiosTable, SmbiosTable.Type17->DeviceLocator));
+      //DBG("SmbiosTable.Type17->Vendor = %a\n", gRAM.SMBIOS[Index].Vendor);
+      //DBG("SmbiosTable.Type17->SerialNumber = %a\n", gRAM.SMBIOS[Index].SerialNo);
+      //DBG("SmbiosTable.Type17->PartNumber = %a\n", gRAM.SMBIOS[Index].PartNo);
+      MsgLog(" - Speed = %dMHz, Size = %dMB, Bank/Device = %a/%a, Vendor = %a, SerialNumber = %a, PartNumber = %a\n",
+        gRAM.SMBIOS[Index].Frequency,
+        gRAM.SMBIOS[Index].ModuleSize,
+        GetSmbiosString(SmbiosTable, SmbiosTable.Type17->BankLocator),
+        GetSmbiosString(SmbiosTable, SmbiosTable.Type17->DeviceLocator),
+        gRAM.SMBIOS[Index].Vendor,
+        gRAM.SMBIOS[Index].SerialNo,
+        gRAM.SMBIOS[Index].PartNo
+      );
 
       /*
-       if ((SmbiosTable.Type17->Size & 0x8000) == 0) {
-       mTotalSystemMemory += SmbiosTable.Type17->Size; //Mb
-       mMemory17[Index] = (UINT16)(SmbiosTable.Type17->Size > 0 ? mTotalSystemMemory : 0);
-       }
-       DBG("mTotalSystemMemory = %d\n", mTotalSystemMemory);
+        if ((SmbiosTable.Type17->Size & 0x8000) == 0) {
+          mTotalSystemMemory += SmbiosTable.Type17->Size; //Mb
+          mMemory17[Index] = (UINT16)(SmbiosTable.Type17->Size > 0 ? mTotalSystemMemory : 0);
+        }
+        DBG("mTotalSystemMemory = %d\n", mTotalSystemMemory);
       */
     }
   }
@@ -1328,7 +1335,8 @@ PatchTableType17 () {
 
     // Setup interleaved channel map
     if (channels >= 2) {
-       UINT8 doubleChannels = (UINT8)gRAM.UserChannels << 1;
+       UINT8  doubleChannels = (UINT8)gRAM.UserChannels << 1;
+
        for (Index = 0; Index < MAX_RAM_SLOTS; ++Index) {
           channelMap[Index] = (UINT8)(((Index / doubleChannels) * doubleChannels) +
              ((Index / gRAM.UserChannels) % 2) + ((Index % gRAM.UserChannels) << 1));
@@ -1342,7 +1350,7 @@ PatchTableType17 () {
     DBG("Interleave:");
 
     for (Index = 0; Index < MAX_RAM_SLOTS; ++Index) {
-       DBG(" %d", channelMap[Index]);
+      DBG(" %d", channelMap[Index]);
     }
 
     DBG("\n");
@@ -1352,8 +1360,9 @@ PatchTableType17 () {
     gRAMCount = 0;
     // Inject tables
     for (Index = 0; Index < gRAM.UserInUse; Index++) {
-      UINTN UserIndex = channelMap[Index];
-      UINT8 bank = (UINT8)Index / gRAM.UserChannels;
+      UINTN   UserIndex = channelMap[Index];
+      UINT8   bank = (UINT8)Index / gRAM.UserChannels;
+
       ZeroMem((VOID*)newSmbiosTable.Type17, MAX_TABLE_SIZE);
       newSmbiosTable.Type17->Hdr.Type = EFI_SMBIOS_TYPE_MEMORY_DEVICE;
       newSmbiosTable.Type17->Hdr.Length = sizeof(SMBIOS_TABLE_TYPE17);
@@ -1366,11 +1375,11 @@ PatchTableType17 () {
       newSmbiosTable.Type17->MemoryArrayHandle = mHandle16;
 
       if (isMacPro) {
-         AsciiSPrint(deviceLocator, 10, "DIMM%d", gRAMCount + 1);
+        AsciiSPrint(deviceLocator, 10, "DIMM%d", gRAMCount + 1);
       } else {
-         AsciiSPrint(deviceLocator, 10, "DIMM%d", bank);
-         AsciiSPrint(bankLocator, 10, "BANK%d", Index % channels);
-         UpdateSmbiosString(newSmbiosTable, &newSmbiosTable.Type17->BankLocator, (CHAR8*)&bankLocator[0]);
+        AsciiSPrint(deviceLocator, 10, "DIMM%d", bank);
+        AsciiSPrint(bankLocator, 10, "BANK%d", Index % channels);
+        UpdateSmbiosString(newSmbiosTable, &newSmbiosTable.Type17->BankLocator, (CHAR8*)&bankLocator[0]);
       }
 
       UpdateSmbiosString(newSmbiosTable, &newSmbiosTable.Type17->DeviceLocator, (CHAR8*)&deviceLocator[0]);
@@ -1420,7 +1429,7 @@ PatchTableType17 () {
     }
 
     if (mTotalSystemMemory > 0) {
-      DBG("mTotalSystemMemory = %dMB\n", mTotalSystemMemory);
+      DBG("mTotalSystemMemory = %dMB, %d in use\n", mTotalSystemMemory, gRAMCount);
     }
 
     return;
@@ -1605,7 +1614,7 @@ PatchTableType17 () {
     --expectedCount;
   }
 
-  DBG("Channels: %d\n", channels);
+  MsgLog("Channels: %d\n", channels);
 
   // Setup interleaved channel map
   if (channels >= 2) {
@@ -1758,14 +1767,14 @@ PatchTableType17 () {
       UpdateSmbiosString(newSmbiosTable, &newSmbiosTable.Type17->BankLocator, (CHAR8*)&bankLocator[0]);
     }
 
-    DBG("SMBIOS Type 17 Index = %d => %d %d:\n", gRAMCount, SMBIOSIndex, SPDIndex);
+    MsgLog("SMBIOS Type 17 Index = %d => %d %d:", gRAMCount, SMBIOSIndex, SPDIndex);
 
     if (newSmbiosTable.Type17->Size == 0) {
-      DBG("%a %a EMPTY\n", bankLocator, deviceLocator);
+      MsgLog("%a %a EMPTY\n", bankLocator, deviceLocator);
       newSmbiosTable.Type17->MemoryType = 0; //MemoryTypeUnknown;
     } else {
       insertingEmpty = FALSE;
-      DBG("%a %a %dMHz %dMB\n", bankLocator, deviceLocator, newSmbiosTable.Type17->Speed, newSmbiosTable.Type17->Size);
+      MsgLog("%a %a %dMHz %dMB\n", bankLocator, deviceLocator, newSmbiosTable.Type17->Speed, newSmbiosTable.Type17->Size);
       mTotalSystemMemory += newSmbiosTable.Type17->Size; //Mb
       mMemory17[gRAMCount] = (UINT16)mTotalSystemMemory;
       //DBG("mTotalSystemMemory = %d\n", mTotalSystemMemory);
@@ -1776,7 +1785,7 @@ PatchTableType17 () {
   }
 
   if (mTotalSystemMemory > 0) {
-    DBG("mTotalSystemMemory = %dMB\n", mTotalSystemMemory);
+    MsgLog("mTotalSystemMemory = %dMB\n", mTotalSystemMemory);
   }
 }
 
@@ -2126,7 +2135,7 @@ PrepatchSmbios () {
   GetTableType16();
   GetTableType17();
   GetTableType32(); //get BootStatus here to decide what to do
-  MsgLog("Boot status=%x\n", gBootStatus);
+  DBG("Boot status=%x\n", gBootStatus);
 
   //for example the bootloader may go to Recovery is BootStatus is Fail
   return  Status;

@@ -50,19 +50,18 @@
 #include <Library/Platform/Platform.h>
 #include <Library/Platform/Nvidia.h>
 
-#ifndef DEBUG_NVIDIA
 #ifndef DEBUG_ALL
-#define DEBUG_NVIDIA 1
+#ifndef DEBUG_NVIDIA
+#define DEBUG_NVIDIA -1
+#endif
 #else
+#ifdef DEBUG_NVIDIA
+#undef DEBUG_NVIDIA
+#endif
 #define DEBUG_NVIDIA DEBUG_ALL
 #endif
-#endif
 
-#if DEBUG_NVIDIA == 0
-#define DBG(...)
-#else
 #define DBG(...) DebugLog(DEBUG_NVIDIA, __VA_ARGS__)
-#endif
 
 CHAR8 generic_name[128];
 
@@ -336,7 +335,7 @@ patch_nvidia_rom (
   } else if (dcbtable_version >= 0x14) { /* some NV15/16, and NV11+ */
     CHAR8   sig[8]; // = { 0 };
 
-    AsciiStrnCpy(sig, (CHAR8 *)&dcbtable[-7], 7);
+    AsciiStrnCpyS(sig, ARRAY_SIZE(sig), (CHAR8 *)&dcbtable[-7], 7);
     sig[7] = 0;
     recordlength = 10;
 
@@ -636,7 +635,7 @@ setup_nvidia_devprop (
 
   if (load_vbios) {
     UnicodeSPrint (
-      FileName, 128, L"%s\\10de_%04x_%04x_%04x.rom",
+      FileName, ARRAY_SIZE(FileName), L"%s\\10de_%04x_%04x_%04x.rom",
       RomPath, nvda_dev->device_id, nvda_dev->subsys_id.subsys.vendor_id, nvda_dev->subsys_id.subsys.device_id
     );
 
@@ -647,7 +646,7 @@ setup_nvidia_devprop (
 
       Status = egLoadFile(OEMDir, FileName, &buffer, &bufferLen);
     } else {
-      UnicodeSPrint(FileName, 128, L"%s\\10de_%04x.rom", RomPath, nvda_dev->device_id);
+      UnicodeSPrint(FileName, ARRAY_SIZE(FileName), L"%s\\10de_%04x.rom", RomPath, nvda_dev->device_id);
       if (FileExists(OEMDir, FileName)) {
         DBG(" - Found generic VBIOS ROM file (10de_%04x.rom)\n", nvda_dev->device_id);
 
@@ -659,7 +658,7 @@ setup_nvidia_devprop (
       FreePool(RomPath);
       RomPath = PoolPrint(DIR_ROM, DIR_CLOVER);
 
-      UnicodeSPrint(FileName, 128, L"%s\\10de_%04x_%04x_%04x.rom",
+      UnicodeSPrint(FileName, ARRAY_SIZE(FileName), L"%s\\10de_%04x_%04x_%04x.rom",
         RomPath, nvda_dev->device_id, nvda_dev->subsys_id.subsys.vendor_id, nvda_dev->subsys_id.subsys.device_id
       );
 
@@ -670,7 +669,7 @@ setup_nvidia_devprop (
 
         Status = egLoadFile(SelfRootDir, FileName, &buffer, &bufferLen);
       } else {
-        UnicodeSPrint(FileName, 128, L"%s\\10de_%04x.rom", RomPath, nvda_dev->device_id);
+        UnicodeSPrint(FileName, ARRAY_SIZE(FileName), L"%s\\10de_%04x.rom", RomPath, nvda_dev->device_id);
 
         if (FileExists(SelfRootDir, FileName)) {
           DBG(" - Found generic VBIOS ROM file (10de_%04x.rom)\n", nvda_dev->device_id);
@@ -793,7 +792,7 @@ setup_nvidia_devprop (
     model = (CHAR8*)AllocateCopyPool(AsciiStrSize(S_NVIDIAMODEL), S_NVIDIAMODEL);
   }
 
-  DBG(" - %a | %dMB NV%02x [%04x:%04x] | %a => device #%d\n",
+  MsgLog(" - %a | %dMB NV%02x [%04x:%04x] | %a => device #%d\n",
       model, (UINT32)(RShiftU64(videoRam, 20)),
       nvCardType, nvda_dev->vendor_id, nvda_dev->device_id,
       devicepath, devices_number);
@@ -846,7 +845,7 @@ setup_nvidia_devprop (
   if (gSettings.FakeNVidia) {
     UINT32    FakeID = gSettings.FakeNVidia >> 16;
 
-    DBG(" - FakeID: %x:%x\n",gSettings.FakeNVidia & 0xFFFF, FakeID);
+    MsgLog(" - With FakeID: %x:%x\n",gSettings.FakeNVidia & 0xFFFF, FakeID);
     devprop_add_value(device, "device-id", (UINT8*)&FakeID, 4);
     FakeID = gSettings.FakeNVidia & 0xFFFF;
     devprop_add_value(device, "vendor-id", (UINT8*)&FakeID, 4);
@@ -896,7 +895,7 @@ setup_nvidia_devprop (
 
   //there are default or calculated properties, can be skipped
   if (gSettings.NoDefaultProperties) {
-    DBG(" - no default properties\n");
+    //MsgLog(" - no default properties\n");
     goto done;
   }
 

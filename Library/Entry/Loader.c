@@ -36,16 +36,17 @@
 #include <Library/Platform/Platform.h>
 
 #ifndef DEBUG_ALL
-#define DEBUG_SCAN_LOADER 1
+#ifndef DEBUG_SCAN_LOADER
+#define DEBUG_SCAN_LOADER -1
+#endif
 #else
+#ifdef DEBUG_SCAN_LOADER
+#undef DEBUG_SCAN_LOADER
+#endif
 #define DEBUG_SCAN_LOADER DEBUG_ALL
 #endif
 
-#if DEBUG_SCAN_LOADER == 0
-#define DBG(...)
-#else
 #define DBG(...) DebugLog(DEBUG_SCAN_LOADER, __VA_ARGS__)
-#endif
 
 //#define DUMP_KERNEL_KEXT_PATCHES 1
 
@@ -324,26 +325,24 @@ GetOSXVolumeName (
   EFI_STATUS    Status = EFI_NOT_FOUND;
   CHAR16        *targetNameFile = L"\\System\\Library\\CoreServices\\.disk_label.contentDetails";
   CHAR8         *fileBuffer, *targetString;
-  UINTN         fileLen = 0;
+  UINTN         fileLen = 0, Len;
 
   if (FileExists(Entry->Volume->RootDir, targetNameFile)) {
     Status = egLoadFile(Entry->Volume->RootDir, targetNameFile, (UINT8 **)&fileBuffer, &fileLen);
     if (!EFI_ERROR(Status)) {
-      CHAR16    *tmpName;
+      Len = fileLen + 1;
 
       //Create null terminated string
-      targetString = (CHAR8*) AllocateZeroPool(fileLen+1);
-      CopyMem( (VOID*)targetString, (VOID*)fileBuffer, fileLen);
+      targetString = AllocateZeroPool(Len);
+      CopyMem((VOID*)targetString, (VOID*)fileBuffer, fileLen);
       DBG(" - found disk_label with contents:%a\n", targetString);
 
       //Convert to Unicode
-      tmpName = (CHAR16*)AllocateZeroPool((fileLen+1)*2);
-      AsciiStrToUnicodeStr(targetString, tmpName);
+      Entry->VolName = AllocateZeroPool(Len);
+      AsciiStrToUnicodeStrS(targetString, Entry->VolName, Len);
 
-      Entry->VolName = EfiStrDuplicate(tmpName);
       DBG(" - created name: %s\n", Entry->VolName);
 
-      FreePool(tmpName);
       FreePool(fileBuffer);
       FreePool(targetString);
     }
@@ -719,8 +718,7 @@ AddDefaultMenu (
   REFIT_VOLUME        *Volume;
   UINT64              VolumeSize;
   EFI_GUID            *Guid = NULL;
-  //BOOLEAN             KernelIs64BitOnly;
-  CHAR16              *FileName; //, *TempOptions
+  CHAR16              *FileName;
 
   if (Entry == NULL) {
     return;
@@ -731,9 +729,6 @@ AddDefaultMenu (
   if (Volume == NULL) {
     return;
   }
-
-  // Only kernels up to 10.7 have 32-bit mode
-  //KernelIs64BitOnly = IsKernelIs64BitOnly(Entry);
 
   FileName = Basename(Entry->LoaderPath);
 
@@ -747,7 +742,6 @@ AddDefaultMenu (
   VolumeSize = RShiftU64(MultU64x32(Volume->BlockIO->Media->LastBlock, Volume->BlockIO->Media->BlockSize), 20);
 
   AddMenuInfoLine(SubScreen, PoolPrint(L"Volume size: %dMb", VolumeSize));
-  //AddMenuInfoLine(SubScreen, FileDevicePathToStr(Entry->DevicePath));
   SplitMenuInfo(SubScreen, PoolPrint(L"Path: %s", FileDevicePathToStr(Entry->DevicePath)), AddMenuInfoLine);
 
   Guid = FindGPTPartitionGuidInDevicePath(Volume->DevicePath);
@@ -759,7 +753,6 @@ AddDefaultMenu (
     FreePool(GuidStr);
   }
 
-  //AddMenuInfoLine(SubScreen, PoolPrint(L"Options: %s", Entry->LoadOptions));
   SplitMenuInfo(SubScreen, PoolPrint(L"Options: %s", Entry->LoadOptions), AddMenuInfoLine);
 
   SubEntry = DuplicateLoaderEntry(Entry);
@@ -798,7 +791,8 @@ AddLoaderEntry (
     return FALSE;
   }
 
-  DBG("        AddLoaderEntry for Volume Name=%s\n", Volume->VolName);
+  MsgLog("        - %s\n", LoaderPath);
+  //DBG("        AddLoaderEntry for Volume Name=%s\n", Volume->VolName);
 
   //don't add hided entries
   for (HVi = 0; HVi < gSettings.HVCount; HVi++) {
@@ -819,9 +813,6 @@ AddLoaderEntry (
             OSType,
             Flags,
             0,
-            //NULL,
-            //CUSTOM_BOOT_DISABLED,
-            //NULL,
             NULL,
             FALSE
           );
@@ -866,7 +857,7 @@ ScanLoader() {
       continue;
     }
 
-    DBG("- [%02d]: '%s'", VolumeIndex, Volume->VolName);
+    MsgLog("- [%02d]: '%s'", VolumeIndex, Volume->VolName);
 
     if (Volume->VolName == NULL) {
       Volume->VolName = L"Unknown";
@@ -874,16 +865,16 @@ ScanLoader() {
 
     // skip volume if its kind is configured as disabled
     if (MEDIA_VALID(Volume->DiskKind, GlobalConfig.DisableFlags)) {
-      DBG(", hidden\n");
+      MsgLog(", hidden\n");
       continue;
     }
 
     if (Volume->Hidden) {
-      DBG(", hidden\n");
+      MsgLog(", hidden\n");
       continue;
     }
 
-    DBG("\n");
+    MsgLog("\n");
 
     // Use standard location for boot.efi, unless the file /.IAPhysicalMedia is present
     // That file indentifies a 2nd-stage Install Media, so when present, skip standard path to avoid entry duplication
@@ -955,7 +946,7 @@ ScanLoader() {
 
         ZeroMem(&PreviousTime, sizeof(EFI_TIME));
         UnicodeSPrint(PartUUID, sizeof(PartUUID), L"%g", PartGUID);
-        //PartUUID = (CHAR16**)StrToLower(PartUUID);
+
         // open the /boot directory (or whatever directory path)
         DirIterOpen(Volume->RootDir, LINUX_BOOT_PATH, &Iter);
         // Check which kernel scan to use
@@ -1008,7 +999,7 @@ ScanLoader() {
       }
     } //if linux scan
 
-    //     DBG("search for  optical UEFI\n");
+    //DBG("search for  optical UEFI\n");
     if (Volume->DiskKind == DISK_KIND_OPTICAL) {
       AddLoaderEntry(BOOT_LOADER_PATH, L"", L"UEFI optical", Volume, NULL, OSTYPE_OTHER, 0);
     }
@@ -1156,7 +1147,6 @@ AddCustomEntry (
       }
 
       UnicodeSPrint(PartUUID, sizeof(PartUUID), L"%g", Guid);
-      //PartUUID = StrToLower(PartUUID);
 
       // open the /boot directory (or whatever directory path)
       DirIterOpen(Volume->RootDir, LINUX_BOOT_PATH, Iter);
@@ -1170,9 +1160,11 @@ AddCustomEntry (
     // Change to custom image if needed
     Image = Custom->Image;
     if ((Image == NULL) && Custom->ImagePath) {
-      ImageHoverPath = EfiStrDuplicate(Custom->ImagePath);
-      ReplaceExtension(ImageHoverPath, L"");
-      ImageHoverPath = PoolPrint(L"%s_hover.%s", ImageHoverPath, egFindExtension(Custom->ImagePath));
+      ImageHoverPath = PoolPrint(
+                          L"%s_hover.%s",
+                          ReplaceExtension(Custom->ImagePath, L""),
+                          egFindExtension(Custom->ImagePath)
+                        );
       Image = egLoadImage(Volume->RootDir, Custom->ImagePath, TRUE);
 
       if (Image == NULL) {
@@ -1385,10 +1377,7 @@ AddCustomEntry (
         Custom->Type,
         Custom->Flags,
         Custom->Hotkey,
-        //Custom->BootBgColor,
-        //Custom->CustomBoot,
-        //Custom->CustomLogo,
-        /*(KERNEL_AND_KEXT_PATCHES *)(((UINTN)Custom) + OFFSET_OF(CUSTOM_LOADER_ENTRY, KernelAndKextPatches))*/ NULL,
+        NULL,
         TRUE
       );
 
@@ -1420,7 +1409,6 @@ AddCustomEntry (
             VolumeSize = RShiftU64(MultU64x32(Volume->BlockIO->Media->LastBlock, Volume->BlockIO->Media->BlockSize), 20);
 
             AddMenuInfoLine(SubScreen, PoolPrint(L"Volume size: %dMb", VolumeSize));
-            //AddMenuInfoLine(SubScreen, FileDevicePathToStr(Entry->DevicePath));
             SplitMenuInfo(SubScreen, PoolPrint(L"Path: %s", FileDevicePathToStr(Entry->DevicePath)), AddMenuInfoLine);
 
             if (Guid) {
@@ -1431,7 +1419,6 @@ AddCustomEntry (
               FreePool(GuidStr);
             }
 
-            //AddMenuInfoLine(SubScreen, PoolPrint(L"Options: %s", Entry->LoadOptions));
             SplitMenuInfo(SubScreen, PoolPrint(L"Options: %s", Entry->LoadOptions), AddMenuInfoLine);
             //DBG("Create sub entries\n");
             for (CustomSubEntry = Custom->SubEntries; CustomSubEntry; CustomSubEntry = CustomSubEntry->Next) {

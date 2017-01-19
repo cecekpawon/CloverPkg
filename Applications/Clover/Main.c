@@ -37,16 +37,17 @@
 #include <Library/Platform/Platform.h>
 
 #ifndef DEBUG_ALL
-#define DEBUG_MAIN 1
+#ifndef DEBUG_MAIN
+#define DEBUG_MAIN -1
+#endif
 #else
+#ifdef DEBUG_MAIN
+#undef DEBUG_MAIN
+#endif
 #define DEBUG_MAIN DEBUG_ALL
 #endif
 
-#if DEBUG_MAIN == 0
-#define DBG(...)
-#else
 #define DBG(...) DebugLog(DEBUG_MAIN, __VA_ARGS__)
-#endif
 
 // variables
 
@@ -64,15 +65,15 @@ DRIVERS_FLAGS           gDriversFlags = {FALSE, FALSE, FALSE, FALSE};  //the ini
 STATIC
 EFI_STATUS
 LoadEFIImageList (
-  IN EFI_DEVICE_PATH    **DevicePaths,
-  IN CHAR16             *ImageTitle,
+  IN  EFI_DEVICE_PATH   **DevicePaths,
+  IN  CHAR16            *ImageTitle,
   OUT UINTN             *ErrorInStep,
   OUT EFI_HANDLE        *NewImageHandle
 ) {
   EFI_STATUS      Status, ReturnStatus;
   EFI_HANDLE      ChildImageHandle = 0;
   UINTN           DevicePathIndex;
-  CHAR16          ErrorInfo[256];
+  CHAR16          ErrorInfo[AVALUE_MAX_SIZE];
 
   DBG("Loading %s", ImageTitle);
 
@@ -104,7 +105,7 @@ LoadEFIImageList (
     }
   }
 
-  UnicodeSPrint(ErrorInfo, 512, L"while loading %s", ImageTitle);
+  UnicodeSPrint(ErrorInfo, ARRAY_SIZE(ErrorInfo), L"while loading %s", ImageTitle);
 
   if (CheckError(Status, ErrorInfo)) {
     if (ErrorInStep != NULL) {
@@ -135,16 +136,15 @@ bailout:
 STATIC
 EFI_STATUS
 StartEFILoadedImage (
-  IN EFI_HANDLE   ChildImageHandle,
-  IN CHAR16       *LoadOptions,
-  IN CHAR16       *LoadOptionsPrefix,
-  IN CHAR16       *ImageTitle,
-  OUT UINTN       *ErrorInStep
+  IN  EFI_HANDLE    ChildImageHandle,
+  IN  CHAR16        *LoadOptions,
+  IN  CHAR16        *LoadOptionsPrefix,
+  IN  CHAR16        *ImageTitle,
+  OUT UINTN         *ErrorInStep
 ) {
-  EFI_STATUS              Status, ReturnStatus;
-  EFI_LOADED_IMAGE        *ChildLoadedImage;
-  CHAR16                  ErrorInfo[256];
-  CHAR16                  *FullLoadOptions = NULL;
+  EFI_STATUS          Status, ReturnStatus;
+  EFI_LOADED_IMAGE    *ChildLoadedImage;
+  CHAR16              ErrorInfo[AVALUE_MAX_SIZE], *FullLoadOptions = NULL;
 
   //DBG("Starting %s\n", ImageTitle);
 
@@ -202,18 +202,18 @@ StartEFILoadedImage (
   // Before calling the image, enable the Watchdog Timer for
   // the 5 Minute period - Slice - NO! For slow driver and slow disk we need more
   //
-  gBS->SetWatchdogTimer (5 * 60, 0x0000, 0x00, NULL);
+  //gBS->SetWatchdogTimer (5 * 60, 0x0000, 0x00, NULL);
 
   ReturnStatus = Status = gBS->StartImage(ChildImageHandle, NULL, NULL);
 
   //
   // Clear the Watchdog Timer after the image returns
   //
-  gBS->SetWatchdogTimer (0x0000, 0x0000, 0x0000, NULL);
+  //gBS->SetWatchdogTimer (0x0000, 0x0000, 0x0000, NULL);
 
   // control returns here when the child image calls Exit()
   if (ImageTitle) {
-    UnicodeSPrint(ErrorInfo, 512, L"returned from %s", ImageTitle);
+    UnicodeSPrint(ErrorInfo, ARRAY_SIZE(ErrorInfo), L"returned from %s", ImageTitle);
   }
 
   if (CheckError(Status, ErrorInfo)) {
@@ -244,8 +244,8 @@ bailout:
 STATIC
 EFI_STATUS
 LoadEFIImage (
-  IN EFI_DEVICE_PATH    *DevicePath,
-  IN CHAR16             *ImageTitle,
+  IN  EFI_DEVICE_PATH   *DevicePath,
+  IN  CHAR16            *ImageTitle,
   OUT UINTN             *ErrorInStep,
   OUT EFI_HANDLE        *NewImageHandle
 ) {
@@ -261,12 +261,12 @@ LoadEFIImage (
 STATIC
 EFI_STATUS
 StartEFIImage (
-  IN EFI_DEVICE_PATH  *DevicePath,
-  IN CHAR16           *LoadOptions,
-  IN CHAR16           *LoadOptionsPrefix,
-  IN CHAR16           *ImageTitle,
-  OUT UINTN           *ErrorInStep,
-  OUT EFI_HANDLE      *NewImageHandle
+  IN  EFI_DEVICE_PATH   *DevicePath,
+  IN  CHAR16            *LoadOptions,
+  IN  CHAR16            *LoadOptionsPrefix,
+  IN  CHAR16            *ImageTitle,
+  OUT UINTN             *ErrorInStep,
+  OUT EFI_HANDLE        *NewImageHandle
 ) {
   EFI_STATUS    Status;
   EFI_HANDLE    ChildImageHandle = NULL;
@@ -301,7 +301,7 @@ FilterKextPatches (
   ) {
     INTN    i = 0;
 
-    DBG("Filtering KextPatches:\n");
+    MsgLog("Filtering KextPatches:\n");
 
     for (; i < Entry->KernelAndKextPatches->NrKexts; ++i) {
       BOOLEAN   NeedBuildVersion = (
@@ -311,14 +311,23 @@ FilterKextPatches (
 
       // If dot exist in the patch name, store string after last dot to Filename for FSInject to load kext
       if (countOccurrences(Entry->KernelAndKextPatches->KextPatches[i].Name, '.') >= 2) {
-        Entry->KernelAndKextPatches->KextPatches[i].Filename = AllocateZeroPool(AVALUE_MAX_SIZE);
-        UnicodeStrToAsciiStr (
-          egFindExtension (PoolPrint(L"%a", Entry->KernelAndKextPatches->KextPatches[i].Name)),
-          Entry->KernelAndKextPatches->KextPatches[i].Filename
+        CHAR16  *Str = AllocateZeroPool(SVALUE_MAX_SIZE);
+        UINTN   Len;
+
+        Str = egFindExtension (PoolPrint(L"%a", Entry->KernelAndKextPatches->KextPatches[i].Name));
+        Len = StrLen(Str) + 1;
+        Entry->KernelAndKextPatches->KextPatches[i].Filename = AllocateZeroPool(Len);
+
+        UnicodeStrToAsciiStrS (
+          Str,
+          Entry->KernelAndKextPatches->KextPatches[i].Filename,
+          Len
         );
+
+        FreePool(Str);
       }
 
-      DBG(" - [%02d]: %a | %a | [OS: %a %s| MatchOS: %a | MatchBuild: %a]",
+      MsgLog(" - [%02d]: %a | %a | [OS: %a %s| MatchOS: %a | MatchBuild: %a]",
         i,
         Entry->KernelAndKextPatches->KextPatches[i].Label,
         Entry->KernelAndKextPatches->KextPatches[i].IsPlistPatch ? "PlistPatch" : "BinPatch",
@@ -336,7 +345,7 @@ FilterKextPatches (
         Entry->KernelAndKextPatches->KextPatches[i].Disabled = !IsPatchEnabled (
           Entry->KernelAndKextPatches->KextPatches[i].MatchBuild, Entry->BuildVersion);
 
-        DBG(" ==> %a\n", Entry->KernelAndKextPatches->KextPatches[i].Disabled ? "not allowed" : "allowed");
+        MsgLog(" ==> %a\n", Entry->KernelAndKextPatches->KextPatches[i].Disabled ? "not allowed" : "allowed");
 
         //if (!Entry->KernelAndKextPatches->KextPatches[i].Disabled) {
           continue; // If user give MatchOS, should we ignore MatchOS / keep reading 'em?
@@ -346,7 +355,7 @@ FilterKextPatches (
       Entry->KernelAndKextPatches->KextPatches[i].Disabled = !IsPatchEnabled (
         Entry->KernelAndKextPatches->KextPatches[i].MatchOS, Entry->OSVersion);
 
-      DBG(" ==> %a\n", Entry->KernelAndKextPatches->KextPatches[i].Disabled ? "not allowed" : "allowed");
+      MsgLog(" ==> %a\n", Entry->KernelAndKextPatches->KextPatches[i].Disabled ? "not allowed" : "allowed");
     }
   }
 }
@@ -362,7 +371,7 @@ FilterKernelPatches (
   ) {
     INTN    i = 0;
 
-    DBG("Filtering KernelPatches:\n");
+    MsgLog("Filtering KernelPatches:\n");
 
     for (; i < Entry->KernelAndKextPatches->NrKernels; ++i) {
       BOOLEAN   NeedBuildVersion = (
@@ -370,7 +379,7 @@ FilterKernelPatches (
                   (Entry->KernelAndKextPatches->KernelPatches[i].MatchBuild != NULL)
                 );
 
-      DBG(" - [%02d]: %a | [OS: %a %s| MatchOS: %a | MatchBuild: %a]",
+      MsgLog(" - [%02d]: %a | [OS: %a %s| MatchOS: %a | MatchBuild: %a]",
         i,
         Entry->KernelAndKextPatches->KernelPatches[i].Label,
         Entry->OSVersion,
@@ -387,7 +396,7 @@ FilterKernelPatches (
         Entry->KernelAndKextPatches->KernelPatches[i].Disabled = !IsPatchEnabled (
           Entry->KernelAndKextPatches->KernelPatches[i].MatchBuild, Entry->BuildVersion);
 
-        DBG(" ==> %a\n", Entry->KernelAndKextPatches->KernelPatches[i].Disabled ? "not allowed" : "allowed");
+        MsgLog(" ==> %a\n", Entry->KernelAndKextPatches->KernelPatches[i].Disabled ? "not allowed" : "allowed");
 
         //if (!Entry->KernelAndKextPatches->KernelPatches[i].Disabled) {
           continue; // If user give MatchOS, should we ignore MatchOS / keep reading 'em?
@@ -397,7 +406,7 @@ FilterKernelPatches (
       Entry->KernelAndKextPatches->KernelPatches[i].Disabled = !IsPatchEnabled (
         Entry->KernelAndKextPatches->KernelPatches[i].MatchOS, Entry->OSVersion);
 
-      DBG(" ==> %a\n", Entry->KernelAndKextPatches->KernelPatches[i].Disabled ? "not allowed" : "allowed");
+      MsgLog(" ==> %a\n", Entry->KernelAndKextPatches->KernelPatches[i].Disabled ? "not allowed" : "allowed");
     }
   }
 }
@@ -408,23 +417,23 @@ ReadSIPCfg () {
   CHAR16    *csrLog = AllocateZeroPool(SVALUE_MAX_SIZE);
 
   if (csrCfg & CSR_ALLOW_UNTRUSTED_KEXTS)
-    StrCat(csrLog, L"CSR_ALLOW_UNTRUSTED_KEXTS");
+    StrCatS(csrLog, SVALUE_MAX_SIZE, L"CSR_ALLOW_UNTRUSTED_KEXTS");
   if (csrCfg & CSR_ALLOW_UNRESTRICTED_FS)
-    StrCat(csrLog, PoolPrint(L"%a%a", StrLen(csrLog) ? " | " : "", "CSR_ALLOW_UNRESTRICTED_FS"));
+    StrCatS(csrLog, SVALUE_MAX_SIZE, PoolPrint(L"%a%a", StrLen(csrLog) ? " | " : "", "CSR_ALLOW_UNRESTRICTED_FS"));
   if (csrCfg & CSR_ALLOW_TASK_FOR_PID)
-    StrCat(csrLog, PoolPrint(L"%a%a", StrLen(csrLog) ? " | " : "", "CSR_ALLOW_TASK_FOR_PID"));
+    StrCatS(csrLog, SVALUE_MAX_SIZE, PoolPrint(L"%a%a", StrLen(csrLog) ? " | " : "", "CSR_ALLOW_TASK_FOR_PID"));
   if (csrCfg & CSR_ALLOW_KERNEL_DEBUGGER)
-    StrCat(csrLog, PoolPrint(L"%a%a", StrLen(csrLog) ? " | " : "", "CSR_ALLOW_KERNEL_DEBUGGER"));
+    StrCatS(csrLog, SVALUE_MAX_SIZE, PoolPrint(L"%a%a", StrLen(csrLog) ? " | " : "", "CSR_ALLOW_KERNEL_DEBUGGER"));
   if (csrCfg & CSR_ALLOW_APPLE_INTERNAL)
-    StrCat(csrLog, PoolPrint(L"%a%a", StrLen(csrLog) ? " | " : "", "CSR_ALLOW_APPLE_INTERNAL"));
+    StrCatS(csrLog, SVALUE_MAX_SIZE, PoolPrint(L"%a%a", StrLen(csrLog) ? " | " : "", "CSR_ALLOW_APPLE_INTERNAL"));
   if (csrCfg & CSR_ALLOW_UNRESTRICTED_DTRACE)
-    StrCat(csrLog, PoolPrint(L"%a%a", StrLen(csrLog) ? " | " : "", "CSR_ALLOW_UNRESTRICTED_DTRACE"));
+    StrCatS(csrLog, SVALUE_MAX_SIZE, PoolPrint(L"%a%a", StrLen(csrLog) ? " | " : "", "CSR_ALLOW_UNRESTRICTED_DTRACE"));
   if (csrCfg & CSR_ALLOW_UNRESTRICTED_NVRAM)
-    StrCat(csrLog, PoolPrint(L"%a%a", StrLen(csrLog) ? " | " : "", "CSR_ALLOW_UNRESTRICTED_NVRAM"));
+    StrCatS(csrLog, SVALUE_MAX_SIZE, PoolPrint(L"%a%a", StrLen(csrLog) ? " | " : "", "CSR_ALLOW_UNRESTRICTED_NVRAM"));
   if (csrCfg & CSR_ALLOW_DEVICE_CONFIGURATION)
-    StrCat(csrLog, PoolPrint(L"%a%a", StrLen(csrLog) ? " | " : "", "CSR_ALLOW_DEVICE_CONFIGURATION"));
+    StrCatS(csrLog, SVALUE_MAX_SIZE, PoolPrint(L"%a%a", StrLen(csrLog) ? " | " : "", "CSR_ALLOW_DEVICE_CONFIGURATION"));
 
-  if (StrLen(csrLog)) DBG("CSR_CFG: %s\n", csrLog);
+  if (StrLen(csrLog)) MsgLog("CSR_CFG: %s\n", csrLog);
 
   FreePool(csrLog);
 }
@@ -451,7 +460,7 @@ ClosingEventAndLog (
   EFI_STATUS    Status;
   BOOLEAN       CloseBootServiceEvent = TRUE;
 
-  DBG("Closing Event & Log\n");
+  MsgLog("Closing Event & Log\n");
 
   if (OSTYPE_IS_OSX_GLOB(Entry->LoaderType)) {
     if (DoHibernateWake) {
@@ -495,12 +504,12 @@ VOID
 StartLoader (
   IN LOADER_ENTRY   *Entry
 ) {
-  EFI_STATUS              Status;
-  EFI_TEXT_STRING         ConOutOutputString = 0;
-  EFI_HANDLE              ImageHandle = NULL;
-  EFI_LOADED_IMAGE        *LoadedImage;
-  CHAR8                   *InstallerVersion;
-  TagPtr                  dict = NULL;
+  EFI_STATUS          Status;
+  EFI_TEXT_STRING     ConOutOutputString = 0;
+  EFI_HANDLE          ImageHandle = NULL;
+  EFI_LOADED_IMAGE    *LoadedImage;
+  CHAR8               *InstallerVersion;
+  TagPtr              dict = NULL;
 
   DbgHeader("StartLoader");
 
@@ -551,7 +560,7 @@ StartLoader (
   egClearScreen(&DarkBackgroundPixel);
 
   if (OSTYPE_IS_OSX_GLOB(Entry->LoaderType)) {
-    DBG("GetOSVersion:");
+    MsgLog("GetOSVersion:");
 
     // Correct OSVersion if it was not found
     // This should happen only for 10.7-10.9 OSTYPE_OSX_INSTALLER
@@ -602,9 +611,9 @@ StartLoader (
     }
 
     if (Entry->BuildVersion != NULL) {
-      DBG(" %a (%a)\n", Entry->OSVersion, Entry->BuildVersion);
+      MsgLog(" %a (%a)\n", Entry->OSVersion, Entry->BuildVersion);
     } else {
-      DBG(" %a\n", Entry->OSVersion);
+      MsgLog(" %a\n", Entry->OSVersion);
     }
 
     if (OSX_GT(Entry->OSVersion, "10.11")) {
@@ -625,14 +634,11 @@ StartLoader (
       OSFLAG_ISSET(Entry->Flags, OSFLAG_NOCACHES) &&
       !BootArgsExists(Entry->LoadOptions, L"Kernel=")
     ) {
-      CHAR16    *KernelLocation = NULL, *TempOptions;
-
-      if (OSX_LE(Entry->OSVersion, "10.9")) {
-        KernelLocation = L"\"Kernel=/mach_kernel\"";
-      } else {
-        // used for 10.10, 10.11, and new version.
-        KernelLocation = L"\"Kernel=/System/Library/Kernels/kernel\"";
-      }
+      CHAR16  *TempOptions,
+              *KernelLocation = OSX_LE(Entry->OSVersion, "10.9")
+                                  ? L"\"Kernel=/mach_kernel\""
+                                  // used for 10.10, 10.11, and new version.
+                                  : L"\"Kernel=/System/Library/Kernels/kernel\"";
 
       TempOptions = AddLoadOption(Entry->LoadOptions, KernelLocation);
       FreePool(Entry->LoadOptions);
@@ -643,7 +649,6 @@ StartLoader (
     // but before ACPI patch we need smbios patch
     PatchSmbios();
 
-    //DBG("PatchACPI\n");
     PatchACPI(Entry->Volume, Entry->OSVersion);
 
     // If KPDebug is true boot in verbose mode to see the debug messages
@@ -664,7 +669,7 @@ StartLoader (
     }
 
     if (OSFLAG_ISSET(gSettings.OptionsBits, OPT_VERBOSE)) {
-      CHAR16    *TempOptions = AddLoadOption(Entry->LoadOptions, L"-v");
+      CHAR16  *TempOptions = AddLoadOption(Entry->LoadOptions, L"-v");
 
       FreePool(Entry->LoadOptions);
       Entry->LoadOptions = TempOptions;
@@ -673,26 +678,21 @@ StartLoader (
       Entry->Flags = OSFLAG_SET(Entry->Flags, OSFLAG_USEGRAPHICS);
     }
 
-    DbgHeader("RestSetupOSX");
+    //DbgHeader("RestSetupOSX");
 
     GetEdidDiscovered ();
 
-    //DBG("SetDevices\n");
     SetDevices(Entry);
 
-    //DBG("SetFSInjection\n");
     SetFSInjection(Entry);
     //PauseForKey(L"SetFSInjection");
 
-    //DBG("SetVariablesForOSX\n");
     SetVariablesForOSX();
 
     EventsInitialize(Entry);
 
-    //DBG("FinalizeSmbios\n");
     FinalizeSmbios();
 
-    //DBG("SetupDataForOSX\n");
     SetupDataForOSX();
 
     SetCPUProperties();
@@ -704,11 +704,10 @@ StartLoader (
     if (
       gDriversFlags.AptioFixLoaded &&
       !DoHibernateWake &&
-      //(StrStr(Entry->LoadOptions, L"slide=") == NULL)
       !BootArgsExists(Entry->LoadOptions, L"slide=")
     ) {
       // Add slide=0 argument for ML+ if not present
-      CHAR16    *TempOptions = AddLoadOption(Entry->LoadOptions, L"slide=0");
+      CHAR16  *TempOptions = AddLoadOption(Entry->LoadOptions, L"slide=0");
 
       FreePool(Entry->LoadOptions);
       Entry->LoadOptions = TempOptions;
@@ -722,7 +721,7 @@ StartLoader (
     }
 
     if (!Entry->LoadOptions) {
-      CHAR16    *TempOptions = AddLoadOption(Entry->LoadOptions, L" ");
+      CHAR16  *TempOptions = AddLoadOption(Entry->LoadOptions, L" ");
 
       FreePool(Entry->LoadOptions);
       Entry->LoadOptions = TempOptions;
@@ -823,9 +822,9 @@ ScanDriverDir (
   EFI_FILE_INFO                   *DirEntry;
   EFI_HANDLE                      DriverHandle, *DriversArr = NULL;
   EFI_DRIVER_BINDING_PROTOCOL     *DriverBinding;
-  CHAR16                          FileName[256];
+  CHAR16                          FileName[AVALUE_MAX_SIZE];
   UINTN                           DriversArrSize = 0, DriversArrNum = 0, NumLoad = 0;
-  INTN                            i;
+  INTN                            i = 0, y;
   BOOLEAN                         Skip;
 
   // look through contents of the directory
@@ -834,9 +833,12 @@ ScanDriverDir (
   while (DirIterNext(&DirIter, 2, L"*.EFI", &DirEntry)) {
     Skip = (DirEntry->FileName[0] == L'.');
 
-    for (i = 0; i < gSettings.BlackListCount; i++) {
-      if (StrStr(DirEntry->FileName, gSettings.BlackList[i]) != NULL) {
+    MsgLog("- [%02d]: %s\n", i++, DirEntry->FileName);
+
+    for (y = 0; y < gSettings.BlackListCount; y++) {
+      if (StrStr(DirEntry->FileName, gSettings.BlackList[y]) != NULL) {
         Skip = TRUE; // skip this
+        MsgLog(" - in blacklist, skip\n");
         break;
       }
     }
@@ -845,7 +847,7 @@ ScanDriverDir (
       continue;
     }
 
-    UnicodeSPrint(FileName, 512, L"%s\\%s", Path, DirEntry->FileName);
+    UnicodeSPrint(FileName, ARRAY_SIZE(FileName), L"%s\\%s", Path, DirEntry->FileName);
 
     if (
       (
@@ -917,7 +919,7 @@ ScanDriverDir (
   Status = DirIterClose(&DirIter);
 
   if (Status != EFI_NOT_FOUND) {
-    UnicodeSPrint(FileName, SVALUE_MAX_SIZE, L"while scanning the %s directory", Path);
+    UnicodeSPrint(FileName, ARRAY_SIZE(FileName), L"while scanning the %s directory", Path);
     CheckError(Status, FileName);
   }
 
@@ -946,7 +948,7 @@ DisconnectSomeDevices () {
   UINTN                             HandleCount, Index, Index2, ControllerHandleCount;
 
   if (gDriversFlags.HFSLoaded) {
-    DBG(" - HFS+ driver loaded\n");
+    DBG("- HFS+ driver loaded\n");
 
     // get all FileSystem handles
     ControllerHandleCount = 0;
@@ -1045,7 +1047,7 @@ LoadDrivers () {
   if (NumLoad) {
     Status = EfiLibLocateProtocol(&gAptioProtocolGuid, (VOID **)&AptioFix);
     if (!EFI_ERROR (Status) && (AptioFix->Signature == APTIOFIX_SIGNATURE)) {
-      DBG (" - AptioFix driver loaded\n");
+      DBG ("- AptioFix driver loaded\n");
       gDriversFlags.AptioFixLoaded = TRUE;
     }
   }
@@ -1300,7 +1302,6 @@ RefitMain (
 
   MsgLog("Starting %a on %a\n", CLOVER_REVISION_STR, CLOVER_BUILDDATE);
   MsgLog(" - %a\n", CLOVER_BASED_INFO);
-  //MsgLog(" - %a\n", CLOVER_BUILDDATE);
   MsgLog(" - EDK II (rev %a)\n", EDK2_REVISION);
   MsgLog(" - [%a]\n", CLOVER_BUILDINFOS_STR);
   MsgLog(" - UEFI Revision %d.%02d\n",
@@ -1349,7 +1350,7 @@ RefitMain (
     }
   }
 
-  DBG("Running on: '%a' with board '%a'\n", gSettings.OEMProduct, gSettings.OEMBoard);
+  MsgLog("Running on: '%a' with board '%a'\n", gSettings.OEMProduct, gSettings.OEMBoard);
 
   GetCPUProperties();
   GetDevices();
@@ -1361,7 +1362,7 @@ RefitMain (
   SetOEMPath(gSettings.ConfigName);
 
   Status = LoadUserSettings(SelfRootDir, gSettings.ConfigName, &gConfigDict);
-  DBG("Load Settings: config.plist: %r\n", Status);
+  MsgLog("Load Settings: %s.plist: %r\n", CONFIG_FILENAME, Status);
 
   if (!GlobalConfig.FastBoot) {
     GetListOfConfigs();
@@ -1415,7 +1416,7 @@ RefitMain (
 
   GetAcpiTablesList();
 
-  DBG("Calibrated TSC frequency = %ld = %ldMHz\n", gCPUStructure.TSCCalibr, DivU64x32(gCPUStructure.TSCCalibr, Mega));
+  MsgLog("Calibrated TSC frequency = %ld = %ldMHz\n", gCPUStructure.TSCCalibr, DivU64x32(gCPUStructure.TSCCalibr, Mega));
 
   if (gCPUStructure.TSCCalibr > 200000000ULL) {  //200MHz
     gCPUStructure.TSCFrequency = gCPUStructure.TSCCalibr;
@@ -1494,7 +1495,7 @@ RefitMain (
       }
 
       gThemeChanged = FALSE;
-      DBG("Choosing theme: %s\n", GlobalConfig.Theme);
+      MsgLog("Choosing theme: %s\n", GlobalConfig.Theme);
 
       //now it is a time to set RtVariables
       //SetVariablesFromNvram();
@@ -1603,17 +1604,6 @@ RefitMain (
         continue;
       }
 
-      // EjectVolume
-      if (MenuExit == MENU_EXIT_EJECT) {
-        if (ChosenEntry->Tag == TAG_LOADER) {
-          Status = EjectVolume(((LOADER_ENTRY *)ChosenEntry)->Volume);
-          if (!EFI_ERROR(Status)) {
-            break; //main loop is broken so Reinit all
-          }
-        }
-        continue;
-      }
-
       // Hide toggle
       if (MenuExit == MENU_EXIT_HIDE_TOGGLE) {
         gSettings.ShowHiddenEntries = !gSettings.ShowHiddenEntries;
@@ -1671,13 +1661,11 @@ RefitMain (
           break;
 
         case TAG_LOADER:   // Boot OS via .EFI loader
-          //SetBootCurrent(ChosenEntry);
           StartLoader((LOADER_ENTRY *)ChosenEntry);
           break;
 
         case TAG_TOOL:     // Start a EFI tool
           StartTool((LOADER_ENTRY *)ChosenEntry);
-          //TerminateScreen(); //does not happen
           MainLoopRunning = FALSE;
           AfterTool = TRUE;
           break;

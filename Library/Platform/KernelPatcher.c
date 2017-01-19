@@ -8,18 +8,21 @@
 
 #include <Library/Platform/KernelPatcher.h>
 
-//#define KERNEL_DEBUG 0
-
-//#if KERNEL_DEBUG
-//#define DBG(...)    AsciiPrint(__VA_ARGS__);
-//#else
-//#define DBG(...)
-//#endif
+#ifndef DEBUG_ALL
+#ifndef DEBUG_KERNEL
+#define DEBUG_KERNEL 0
+#endif
+#else
+#ifdef DEBUG_KERNEL
+#undef DEBUG_KERNEL
+#endif
+#define DEBUG_KERNEL DEBUG_ALL
+#endif
 
 // runtime debug
 #define DBG_ON(entry) \
   ((entry != NULL) && (entry->KernelAndKextPatches != NULL) && \
-  (OSFLAG_ISSET(gSettings.FlagsBits, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
+  ((DEBUG_KERNEL != 0) || OSFLAG_ISSET(gSettings.FlagsBits, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
   /*entry->KernelAndKextPatches->KPDebug && \*/
 #define DBG_RT(entry, ...) \
   if (DBG_ON(entry)) AsciiPrint(__VA_ARGS__)
@@ -30,7 +33,6 @@ BootArgs2     *bootArgs2 = NULL;
 CHAR8         *dtRoot = NULL;
 
 KERNEL_INFO   *KernelInfo;
-
 
 VOID
 SetKernelRelocBase() {

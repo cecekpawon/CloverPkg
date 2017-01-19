@@ -37,16 +37,17 @@
 #include <Library/Platform/Platform.h>
 
 #ifndef DEBUG_ALL
-#define DEBUG_MENU 1
+#ifndef DEBUG_MENU
+#define DEBUG_MENU -1
+#endif
 #else
+#ifdef DEBUG_MENU
+#undef DEBUG_MENU
+#endif
 #define DEBUG_MENU DEBUG_ALL
 #endif
 
-#if DEBUG_MENU == 0
-#define DBG(...)
-#else
 #define DBG(...) DebugLog(DEBUG_MENU, __VA_ARGS__)
-#endif
 
 // scrolling definitions
 STATIC INTN               MaxItemOnScreen = -1;
@@ -731,10 +732,10 @@ VOID
 SplitMenuInfo (
   IN REFIT_MENU_SCREEN  *SubScreen,
   IN CHAR16             *Str,
-  ADD_MENU_INFO         MenuInfo
+  IN ADD_MENU_INFO      MenuInfo
 ) {
   CHAR16    *TmpStr;
-  INTN      currentLen = 0,
+  UINTN     currentLen = 0,
             stringLen = StrLen(Str),
             maxWidth = LAYOUT_TEXT_WIDTH/*(UGAWidth >> 1)*/ / GlobalConfig.CharWidth;
             //maxWidth = (644 - (TEXT_XMARGIN*2)) / GlobalConfig.CharWidth;
@@ -744,16 +745,18 @@ SplitMenuInfo (
   //DBG("### CharWidth: %d | maxWidth: %d | %s\n", GlobalConfig.CharWidth, maxWidth, Str);
 
   while (stringLen > currentLen) {
-    INTN    TmpLen = maxWidth;
+    UINTN    TmpLen = maxWidth, TmpStrLen;
 
     CONSTRAIN_MAX(TmpLen, (stringLen - currentLen));
 
-    if (!TmpLen) break;
+    if (!TmpLen) {
+      break;
+    }
 
-    TmpStr = AllocateZeroPool(TmpLen);
-    *TmpStr = '\0';
-    StrnCat(TmpStr, Str + currentLen, TmpLen);
-    //DBG("### %d: %s | Start -> %d | End -> %d\n", i++, TmpStr, currentLen, TmpLen);
+    TmpStrLen = TmpLen + 1;
+    TmpStr = AllocateZeroPool(TmpStrLen);
+    StrnCpyS(TmpStr, TmpStrLen, Str + currentLen, TmpLen);
+    //DBG("### %s | Start -> %d | End -> %d\n", TmpStr, currentLen, TmpLen);
     MenuInfo(SubScreen, PoolPrint(L"%a%s", currentLen ? "  " : "", TmpStr));
 
     FreePool(TmpStr);
@@ -1521,7 +1524,7 @@ RunGenericMenu (
 
     if (!mGuiReady) {
       mGuiReady = TRUE;
-      DBG("GUI ready\n");
+      MsgLog("GUI ready\n");
     }
 
     Status = WaitForInputEventPoll(Screen, 1); //wait for 1 seconds.
@@ -1662,10 +1665,10 @@ RunGenericMenu (
         egScreenShot();
         break;
 
-      case SCAN_F12:
-        MenuExit = MENU_EXIT_EJECT;
-        State.PaintAll = TRUE;
-        break;
+      //case SCAN_F12:
+      //  MenuExit = MENU_EXIT_EJECT;
+      //  State.PaintAll = TRUE;
+      //  break;
     }
 
     CurrentSelectionTag = (Screen->Entries[State.CurrentSelection])->Tag;
@@ -1739,7 +1742,7 @@ TextMenuStyle (
   static UINTN        MenuPosY = 0;
   UINTN               TextMenuWidth = 0, ItemWidth = 0, MenuHeight = 0, iSwitch;
   CHAR16              *TimeoutMessage,
-                      *ResultString = AllocateZeroPool(AVALUE_MAX_SIZE);
+                      *ResultString = AllocateZeroPool(SVALUE_MAX_SIZE);
 
   switch (Function) {
     case MENU_FUNCTION_INIT:
@@ -2188,7 +2191,7 @@ GraphicsMenuStyle (
   INTN        i, j = 0, ItemWidth = 0, X, t1, t2, VisibleHeight = 0; //assume vertical layout
   UINTN       TitleLen, iSwitch;
   BOOLEAN     NeedMarginLeft;
-  CHAR16      *ResultString = AllocateZeroPool(AVALUE_MAX_SIZE);
+  CHAR16      *ResultString = AllocateZeroPool(SVALUE_MAX_SIZE);
 
   switch (Function) {
 
@@ -2329,7 +2332,7 @@ GraphicsMenuStyle (
                 ButtonsImg[((REFIT_INPUT_DIALOG*)(Entry))->Item->BValue ? kCheckboxCheckedImage : kCheckboxImage].Image
               );
             } else { //text input
-              StrCat(ResultString, PoolPrint(L": %s ", ((REFIT_INPUT_DIALOG*)(Entry))->Item->SValue));
+              StrCatS(ResultString, SVALUE_MAX_SIZE, PoolPrint(L": %s ", ((REFIT_INPUT_DIALOG*)(Entry))->Item->SValue));
               Entry->Place.Width = StrLen(ResultString) * GlobalConfig.CharWidth;
               // Slice - suppose to use Row as Cursor in text
               DrawMenuText (
@@ -2424,10 +2427,10 @@ GraphicsMenuStyle (
               ButtonsImg[((REFIT_INPUT_DIALOG*)EntryL)->Item->BValue ? kCheckboxCheckedImage : kCheckboxImage].Image
             );
           } else {
-            StrCat(ResultString, L": ");
-            StrCat(ResultString, ((REFIT_INPUT_DIALOG*)(EntryL))->Item->SValue +
+            StrCatS(ResultString, SVALUE_MAX_SIZE, L": ");
+            StrCatS(ResultString, SVALUE_MAX_SIZE, ((REFIT_INPUT_DIALOG*)(EntryL))->Item->SValue +
                    ((REFIT_INPUT_DIALOG*)(EntryL))->Item->LineShift);
-            StrCat(ResultString, L" ");
+            StrCatS(ResultString, SVALUE_MAX_SIZE, L" ");
             DrawMenuText (
               ResultString,
               0,
@@ -2508,10 +2511,10 @@ GraphicsMenuStyle (
               ButtonsImg[((REFIT_INPUT_DIALOG*)EntryC)->Item->BValue ? kCheckboxCheckedImage : kCheckboxImage].Image
             );
           } else {
-            StrCat(ResultString, L": ");
-            StrCat(ResultString, ((REFIT_INPUT_DIALOG*)EntryC)->Item->SValue +
+            StrCatS(ResultString, SVALUE_MAX_SIZE, L": ");
+            StrCatS(ResultString, SVALUE_MAX_SIZE, ((REFIT_INPUT_DIALOG*)EntryC)->Item->SValue +
                                  ((REFIT_INPUT_DIALOG*)EntryC)->Item->LineShift);
-            StrCat(ResultString, L" ");
+            StrCatS(ResultString, SVALUE_MAX_SIZE, L" ");
             DrawMenuText (
               ResultString,
               MenuWidth,
@@ -2791,7 +2794,7 @@ DrawTextCorner (
   UINT8   Align
 ) {
   INTN      Xpos;
-  CHAR16    *Text = AllocateZeroPool(256);
+  CHAR16    *Text = AllocateZeroPool(AVALUE_MAX_SIZE);
 
   if (
     // HIDEUI_ALL - included
@@ -3411,11 +3414,9 @@ AboutRefit () {
 
   if (AboutMenu.EntryCount == 0) {
     AddMenuInfo(&AboutMenu, PoolPrint(L"%a on %a", CLOVER_REVISION_STR, CLOVER_BUILDDATE));
-    AddMenuInfo(&AboutMenu, PoolPrint(L" %a", CLOVER_BASED_INFO));
-    //AddMenuInfo(&AboutMenu, PoolPrint(L" %a", CLOVER_BUILDDATE));
-    AddMenuInfo(&AboutMenu, PoolPrint(L" EDK II (rev %a)", EDK2_REVISION));
-    //AddMenuInfo(&AboutMenu, PoolPrint(L" - Build with: [%a]", CLOVER_BUILDINFOS_STR));
-    SplitMenuInfo(&AboutMenu, PoolPrint(L" [%a]", CLOVER_BUILDINFOS_STR), AddMenuInfo);
+    AddMenuInfo(&AboutMenu, PoolPrint(L"  %a", CLOVER_BASED_INFO));
+    AddMenuInfo(&AboutMenu, PoolPrint(L"  EDK II (rev %a)", EDK2_REVISION));
+    SplitMenuInfo(&AboutMenu, PoolPrint(L"  [%a]", CLOVER_BUILDINFOS_STR), AddMenuInfo);
 
     AddSeparator(&AboutMenu, NULL);
 
@@ -3434,22 +3435,22 @@ AboutRefit () {
     AddSeparator(&AboutMenu, NULL);
 
     AddMenuInfo(&AboutMenu, L"Running on:");
-    AddMenuInfo(&AboutMenu, PoolPrint(L" UEFI Revision %d.%02d",
+    AddMenuInfo(&AboutMenu, PoolPrint(L"  UEFI Revision %d.%02d",
                               gST->Hdr.Revision >> 16,
                               gST->Hdr.Revision & ((1 << 16) - 1)
                             ));
-    AddMenuInfo(&AboutMenu, L" Platform: x86_64 (64 bit)");
-    AddMenuInfo(&AboutMenu, PoolPrint(L" Firmware: %s rev %d.%d",
+    AddMenuInfo(&AboutMenu, L"  Platform: x86_64 (64 bit)");
+    AddMenuInfo(&AboutMenu, PoolPrint(L"  Firmware: %s rev %d.%d",
                               gST->FirmwareVendor,
                               gST->FirmwareRevision >> 16,
                               gST->FirmwareRevision & ((1 << 16) - 1)
                             ));
-    AddMenuInfo(&AboutMenu, PoolPrint(L" Screen Output: %s", egScreenDescription()));
+    AddMenuInfo(&AboutMenu, PoolPrint(L"  Screen Output: %s", egScreenDescription()));
     AboutMenu.AnimeRun = GetAnime(&AboutMenu);
     //AddMenuEntry(&AboutMenu, &MenuEntryReturn);
   } else if (AboutMenu.EntryCount >= 2) {
     FreePool(AboutMenu.Entries[AboutMenu.EntryCount-2]->Title);
-    AboutMenu.Entries[AboutMenu.EntryCount-2]->Title = PoolPrint(L" Screen Output: %s", egScreenDescription());
+    AboutMenu.Entries[AboutMenu.EntryCount-2]->Title = PoolPrint(L"  Screen Output: %s", egScreenDescription());
   }
 
   RunMenu(&AboutMenu, NULL);
@@ -3478,7 +3479,7 @@ HelpRefit () {
         AddMenuInfo(&HelpMenu, PoolPrint(L"F6  - Save VideoBios into '%s'", DIR_MISC));
         AddMenuInfo(&HelpMenu, L"F9  - Switch screen mode");
         AddMenuInfo(&HelpMenu, PoolPrint(L"F10 - Save screenshot into '%s'", DIR_MISC));
-        AddMenuInfo(&HelpMenu, L"F12 - Eject selected volume (DVD)");
+        //AddMenuInfo(&HelpMenu, L"F12 - Eject selected volume (DVD)");
         AddMenuInfo(&HelpMenu, L"Space - Details about selected menu entry");
         AddMenuInfo(&HelpMenu, L"Digits [1-9] - Shortcut to menu entry");
         AddMenuInfo(&HelpMenu, L"I - About");

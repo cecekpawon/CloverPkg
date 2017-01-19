@@ -10,6 +10,8 @@ Headers collection for procedures
 // Comment to use source debug options
 //#define DEBUG_ALL 2
 
+#include "Version.h"
+
 #include <Guid/Acpi.h>
 
 #include <Library/BaseLib.h>
@@ -22,7 +24,6 @@ Headers collection for procedures
 #include <Library/PcdLib.h>
 #include <Library/UefiLib.h>
 
-#include <Library/Common/UsbMass.h>
 #include <Library/Common/MemLogLib.h>
 #include <Library/Common/CommonLib.h>
 #include <Library/Common/Lib.h>
@@ -38,7 +39,6 @@ Headers collection for procedures
 #include <Protocol/efiConsoleControl.h>
 #include <Protocol/AptioFixProtocol.h>
 
-#include "Version.h"
 #include <Library/Platform/DeviceInject.h>
 #include <Library/Platform/KextInject.h>
 
@@ -88,25 +88,7 @@ typedef enum {
 #define EFI_SYSTEM_TABLE_MAX_ADDRESS    0xFFFFFFFF
 #define ROUND_PAGE(x)                   ((((unsigned)(x)) + EFI_PAGE_SIZE - 1) & ~(EFI_PAGE_SIZE - 1))
 
-//
-// Max bytes needed to represent ID of a SCSI device
-//
-//#define EFI_SCSI_TARGET_MAX_BYTES (0x10)
-
-//
-// bit5..7 are for Logical unit number
-// 11100000b (0xe0)
-//
-//#define EFI_SCSI_LOGICAL_UNIT_NUMBER_MASK 0xe0
-
-//
-// Scsi Command Length
-//
-#define EFI_SCSI_OP_LENGTH_SIX        0x6
-#define EFI_SCSI_OP_LENGTH_TEN        0xa
-#define EFI_SCSI_OP_LENGTH_SIXTEEN    0x10
-
-#define DIR_CLOVER          L"EFI\\CLOVER"
+#define DIR_CLOVER          L"\\EFI\\CLOVER"
 
 #define DIR_DRIVERS         PoolPrint(L"%s\\drivers", DIR_CLOVER)
 #define DIR_DRIVERS64       PoolPrint(L"%s\\drivers64UEFI", DIR_CLOVER)
@@ -131,8 +113,6 @@ typedef enum {
 
 #define VBIOS_BIN           PoolPrint(L"%s\\c0000.bin", DIR_MISC)
 
-//#define SAFE_LOG_SIZE 80
-
 #define MSG_LOG_SIZE        (256 * 1024)
 
 #define PREBOOT_LOG         PoolPrint(L"%s\\%s", DIR_MISC, L"preboot.log")
@@ -154,7 +134,7 @@ typedef enum {
 #endif
 
 #define CLOVER_REVISION_STR "Clover " CLOVER_VERSION " (rev " CLOVER_REVISION ")"
-#define CLOVER_BASED_INFO "Based on official 3884 revision"
+#define CLOVER_BASED_INFO "Based on official rev 3884"
 
 #ifndef CLOVER_BUILDDATE
   #define CLOVER_BUILDDATE "Unknown"
@@ -510,6 +490,7 @@ typedef enum {
 #define FIX_INTELGFX    bit(5)
 #define FIX_PNLF        bit(6)
 #define FIX_HDMI        bit(7)
+#define FIX_IMEI        bit(8)
 
 //devices
 #define DEV_ATI         bit(0)
@@ -601,7 +582,7 @@ typedef struct _DRIVERS_FLAGS {
 struct Symbol {
   UINTN         refCount;
   struct Symbol *next;
-  CHAR8         string[1];
+  CHAR8         *string;
 };
 
 typedef struct Symbol Symbol, *SymbolPtr;
@@ -673,14 +654,14 @@ struct DEV_PROPERTY {
           ((kind == DISK_KIND_FIREWIRE) && ((type & VOLTYPE_FIREWIRE) == 0))\
         )
 
-extern REFIT_MENU_ENTRY MenuEntryReturn;
-extern REFIT_MENU_ENTRY MenuEntryOptions;
-extern REFIT_MENU_ENTRY MenuEntryAbout;
-extern REFIT_MENU_ENTRY MenuEntryReset;
-extern REFIT_MENU_ENTRY MenuEntryShutdown;
-extern REFIT_MENU_ENTRY MenuEntryHelp;
-extern REFIT_MENU_ENTRY MenuEntryExit;
-extern REFIT_MENU_SCREEN MainMenu;
+extern REFIT_MENU_ENTRY   MenuEntryReturn;
+extern REFIT_MENU_ENTRY   MenuEntryOptions;
+extern REFIT_MENU_ENTRY   MenuEntryAbout;
+extern REFIT_MENU_ENTRY   MenuEntryReset;
+extern REFIT_MENU_ENTRY   MenuEntryShutdown;
+extern REFIT_MENU_ENTRY   MenuEntryHelp;
+extern REFIT_MENU_ENTRY   MenuEntryExit;
+extern REFIT_MENU_SCREEN  MainMenu;
 
 // common
 //CHAR16 *AddLoadOption(IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
@@ -698,25 +679,25 @@ VOID AddCustomTool();
 
 typedef struct CUSTOM_LOADER_ENTRY CUSTOM_LOADER_ENTRY;
 struct CUSTOM_LOADER_ENTRY {
-  CUSTOM_LOADER_ENTRY     *Next;
-  CUSTOM_LOADER_ENTRY     *SubEntries;
-  EG_IMAGE                *Image;
-  EG_IMAGE                *DriveImage;
-  CHAR16                  *ImagePath;
-  CHAR16                  *DriveImagePath;
-  CHAR16                  *Volume;
-  CHAR16                  *Path;
-  CHAR16                  *Options;
-  CHAR16                  *FullTitle;
-  CHAR16                  *Title;
-  CHAR16                  *Settings;
-  CHAR16                  Hotkey;
-  BOOLEAN                 CommonSettings;
-  UINT8                   Flags;
-  UINT8                   Type;
-  UINT8                   VolumeType;
-  UINT8                   KernelScan;
-  KERNEL_AND_KEXT_PATCHES KernelAndKextPatches;
+  CUSTOM_LOADER_ENTRY       *Next;
+  CUSTOM_LOADER_ENTRY       *SubEntries;
+  EG_IMAGE                  *Image;
+  EG_IMAGE                  *DriveImage;
+  CHAR16                    *ImagePath;
+  CHAR16                    *DriveImagePath;
+  CHAR16                    *Volume;
+  CHAR16                    *Path;
+  CHAR16                    *Options;
+  CHAR16                    *FullTitle;
+  CHAR16                    *Title;
+  CHAR16                    *Settings;
+  CHAR16                    Hotkey;
+  BOOLEAN                   CommonSettings;
+  UINT8                     Flags;
+  UINT8                     Type;
+  UINT8                     VolumeType;
+  UINT8                     KernelScan;
+  KERNEL_AND_KEXT_PATCHES   KernelAndKextPatches;
 };
 
 typedef struct CUSTOM_TOOL_ENTRY CUSTOM_TOOL_ENTRY;
@@ -873,6 +854,7 @@ typedef struct {
   UINT32                    FakeIntel;
   UINT32                    FakeLAN;
   UINT32                    FakeWIFI;
+  UINT32                    FakeIMEI;
 
   //Graphics
   UINT16                    PCIRootUID;
@@ -1624,11 +1606,6 @@ EventsInitialize (
   IN LOADER_ENTRY *Entry
 );
 
-EFI_STATUS
-EjectVolume (
-  IN REFIT_VOLUME *Volume
-);
-
 CHAR8*
 XMLDecode (
   CHAR8 *src
@@ -1812,8 +1789,7 @@ countOccurrences (
   CHAR8   c
 );
 
-//#include <CommonLib/CommonLib.h>
-UINT64 AsciiStrVersionToUint64(const CHAR8 *Version, UINT8 MaxDigitByPart, UINT8 MaxParts);
+//UINT64 AsciiStrVersionToUint64(CONST CHAR8 *Version, UINT8 MaxDigitByPart, UINT8 MaxParts);
 /* Macro to use the AsciiStrVersionToUint64 for OSX Version strings */
 #define AsciiOSVersionToUint64(version) AsciiStrVersionToUint64(version, 2, 3)
 

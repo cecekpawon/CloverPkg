@@ -15,11 +15,11 @@ Module Name:
 #ifndef __FSInjectProtocol_H__
 #define __FSInjectProtocol_H__
 
-
 /** String list entry. */
 typedef struct {
   LIST_ENTRY  List;   // must be first in struct
-  CHAR16    String[1];
+  //CHAR16    String[1];
+  CHAR16    *String;
 } FSI_STRING_LIST_ENTRY;
 
 typedef FSI_STRING_LIST_ENTRY FSI_STRING_LIST;

@@ -38,24 +38,18 @@
 #include <Library/Platform/Platform.h>
 #include <Library/UI/EmbeddedFont.h>
 
-//#define FONT_CELL_WIDTH (7)
-//#define FONT_CELL_HEIGHT (12)
-
 #ifndef DEBUG_ALL
 #ifndef DEBUG_TEXT
-#define DEBUG_TEXT 0
-#else
-#define DEBUG_TEXT 1
+#define DEBUG_TEXT -1
 #endif
 #else
+#ifdef DEBUG_TEXT
+#undef DEBUG_TEXT
+#endif
 #define DEBUG_TEXT DEBUG_ALL
 #endif
 
-#if DEBUG_TEXT == 0
-#define DBG(...)
-#else
 #define DBG(...) DebugLog(DEBUG_TEXT, __VA_ARGS__)
-#endif
 
 EG_IMAGE *FontImage = NULL;
 EG_IMAGE *FontImageHover = NULL;

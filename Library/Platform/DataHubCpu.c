@@ -25,23 +25,21 @@
 //
 
 #ifndef DEBUG_ALL
-#define DEBUG_DH 1
+#ifndef DEBUG_DATAHUB
+#define DEBUG_DATAHUB -1
+#endif
 #else
-#define DEBUG_DH DEBUG_ALL
+#ifdef DEBUG_DATAHUB
+#undef DEBUG_DATAHUB
+#endif
+#define DEBUG_DATAHUB DEBUG_ALL
 #endif
 
-#if DEBUG_DH == 0
-#define DBG(...)
-#else
-#define DBG(...) DebugLog(DEBUG_DH, __VA_ARGS__)
-#endif
-
+#define DBG(...) DebugLog(DEBUG_DATAHUB, __VA_ARGS__)
 
 #include <Library/Platform/Platform.h>
 
-#include <Guid/DataHubRecords.h>
-
-#define EFI_CPU_DATA_MAXIMUM_LENGTH 0x100
+#define EFI_CPU_DATA_MAXIMUM_LENGTH   0x100
 
 // gDataHub
 /// A pointer to the DataHubProtocol
@@ -55,27 +53,19 @@ EFI_SUBCLASS_TYPE1_HEADER mCpuDataRecordHeader = {
   0                                     // RecordType (initialize later)
 };
 
-// gDataHubPlatformGuid
-/// The GUID of the DataHubProtocol
-//EFI_GUID gDataHubPlatformGuid = {
-//  0x64517cc8, 0x6561, 0x4051, { 0xb0, 0x3c, 0x59, 0x64, 0xb6, 0x0f, 0x4c, 0x7a }
-//};
-
-//extern EFI_GUID gDataHubPlatformGuid;
-
 typedef union {
-  EFI_CPU_DATA_RECORD *DataRecord;
-  UINT8               *Raw;
+  EFI_CPU_DATA_RECORD   *DataRecord;
+  UINT8                 *Raw;
 } EFI_CPU_DATA_RECORD_BUFFER;
 
 // PLATFORM_DATA
 /// The struct passed to "LogDataHub" holing key and value to be added
 #pragma pack(1)
 typedef struct {
-  EFI_SUBCLASS_TYPE1_HEADER Hdr;     /// 0x48
-  UINT32                    NameLen; /// 0x58 (in bytes)
-  UINT32                    ValLen;  /// 0x5c
-  UINT8                     Data[1]; /// 0x60 Name Value
+  EFI_SUBCLASS_TYPE1_HEADER   Hdr;     /// 0x48
+  UINT32                      NameLen; /// 0x58 (in bytes)
+  UINT32                      ValLen;  /// 0x5c
+  UINT8                       Data[1]; /// 0x60 Name Value
 } PLATFORM_DATA;
 #pragma pack()
 
@@ -143,12 +133,6 @@ EFI_STATUS EFIAPI
 SetVariablesForOSX () {
   // The variable names used should be made global constants to prevent them being allocated multiple times
   UINT32    Attributes, FwFeaturesMask; //, Color
-  //CHAR8     *None;
-
-  //CHAR16  *KbdPrevLang;
-  //UINTN   LangLen;
-  //CHAR8   *VariablePtr;
-  //VOID    *OldData;
 
   //
   // firmware Variables
@@ -289,13 +273,6 @@ SetupDataForOSX () {
   UINT32      DevPathSupportedVal;
   UINT64      FrontSideBus, CpuSpeed, TscFrequency, ARTFrequency;
   CHAR16      *ProductName, *SerialNumber;
-  //UINTN       Revision;
-
-// #ifdef CLOVER_REVISION
-//   Revision = StrDecimalToUintn(PoolPrint(L"%s", CLOVER_REVISION));
-// #else
-//   Revision = gST->FirmwareRevision;
-// #endif
 
   // fool proof
   FrontSideBus = gCPUStructure.FSBFrequency;
@@ -327,11 +304,15 @@ SetupDataForOSX () {
   // Locate DataHub Protocol
   Status = gBS->LocateProtocol(&gEfiDataHubProtocolGuid, NULL, (VOID**)&gDataHub);
   if (!EFI_ERROR(Status)) {
-    ProductName = AllocateZeroPool(64);
-    AsciiStrToUnicodeStr(gSettings.ProductName, ProductName);
+    UINTN   Len;
 
-    SerialNumber = AllocateZeroPool(64);
-    AsciiStrToUnicodeStr(gSettings.SerialNr, SerialNumber);
+    Len = ARRAY_SIZE(gSettings.ProductName);
+    ProductName = AllocateZeroPool(Len);
+    AsciiStrToUnicodeStrS(gSettings.ProductName, ProductName, Len);
+
+    Len = ARRAY_SIZE(gSettings.SerialNr);
+    SerialNumber = AllocateZeroPool(Len);
+    AsciiStrToUnicodeStrS(gSettings.SerialNr, SerialNumber, Len);
 
     LogDataHub(&gEfiProcessorSubClassGuid,    L"FSBFrequency",          &FrontSideBus,          sizeof(UINT64));
 

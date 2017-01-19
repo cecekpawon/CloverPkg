@@ -12,20 +12,6 @@
 
 #include <Library/Platform/Platform.h>
 
-#ifndef DEBUG_AML
-#ifndef DEBUG_ALL
-#define DEBUG_AML 1
-#else
-#define DEBUG_AML DEBUG_ALL
-#endif
-#endif
-
-#if DEBUG_AML==0
-#define DBG(...)
-#else
-#define DBG(...) DebugLog(DEBUG_AML, __VA_ARGS__)
-#endif
-
 BOOLEAN     aml_add_to_parent(AML_CHUNK* parent, AML_CHUNK* node);
 AML_CHUNK   *aml_create_node(AML_CHUNK* parent);
 VOID        aml_destroy_node(AML_CHUNK* node);

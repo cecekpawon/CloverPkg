@@ -37,16 +37,17 @@
 #include <Library/Platform/Platform.h>
 
 #ifndef DEBUG_ALL
-#define DEBUG_IMG 1
+#ifndef DEBUG_IMG
+#define DEBUG_IMG -1
+#endif
 #else
+#ifdef DEBUG_IMG
+#undef DEBUG_IMG
+#endif
 #define DEBUG_IMG DEBUG_ALL
 #endif
 
-#if DEBUG_IMG == 0
-#define DBG(...)
-#else
 #define DBG(...) DebugLog(DEBUG_IMG, __VA_ARGS__)
-#endif
 
 //
 // Basic image handling

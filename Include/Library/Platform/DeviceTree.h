@@ -140,7 +140,7 @@ typedef struct _DeviceTreeBuffer {
 
 /* Used to initalize the device tree functions. */
 /* base is the base address of the flatened device tree */
-VOID DTInit(VOID *base);
+VOID EFIAPI DTInit(VOID *base);
 
 /*
 -------------------------------------------------------------------------------
@@ -171,7 +171,7 @@ INTN DTFindEntry(const CHAR8 *propName, const CHAR8 *propValue, DTEntry *entryH)
  searchPoint pointer is NULL, the path name is assumed to be an absolute path
  name rooted to the root of the device tree.
 */
-INTN DTLookupEntry(const DTEntry searchPoint, const CHAR8 *pathName, DTEntry *foundEntry);
+INTN EFIAPI DTLookupEntry(const DTEntry searchPoint, const CHAR8 *pathName, DTEntry *foundEntry);
 
 /*
 -------------------------------------------------------------------------------
@@ -243,7 +243,7 @@ INTN DTRestartEntryIteration(DTEntryIterator iterator);
 
  Get Property
 */
-INTN DTGetProperty(const DTEntry entry, const CHAR8 *propertyName, void **propertyValue, UINT32 *propertySize);
+INTN EFIAPI DTGetProperty(const DTEntry entry, const CHAR8 *propertyName, void **propertyValue, UINT32 *propertySize);
 
 /*
 -------------------------------------------------------------------------------
@@ -255,13 +255,13 @@ INTN DTGetProperty(const DTEntry entry, const CHAR8 *propertyName, void **proper
  Create the property iterator structure. The target entry is defined by entry.
 */
 
-INTN DTCreatePropertyIterator(const DTEntry entry, DTPropertyIterator *iterator);
+INTN EFIAPI DTCreatePropertyIterator(const DTEntry entry, DTPropertyIterator *iterator);
 
 /*
  dmazar: version without mem alloc which can be used during or after ExitBootServices.
  caller should not call DTDisposePropertyIterator when using this version.
  */
-INTN DTCreatePropertyIteratorNoAlloc(CONST DTEntry entry, DTPropertyIterator iterator);
+INTN EFIAPI DTCreatePropertyIteratorNoAlloc(CONST DTEntry entry, DTPropertyIterator iterator);
 
 /* Dispose Property Iterator*/
 INTN DTDisposePropertyIterator(DTPropertyIterator iterator);
@@ -272,7 +272,7 @@ INTN DTDisposePropertyIterator(DTPropertyIterator iterator);
  WhenINTN== kIterationDone, all properties have been exhausted.
 */
 
-INTN DTIterateProperties(DTPropertyIterator iterator, CHAR8 **foundProperty);
+INTN EFIAPI DTIterateProperties(DTPropertyIterator iterator, CHAR8 **foundProperty);
 
 /*
  Restart Property Iteration

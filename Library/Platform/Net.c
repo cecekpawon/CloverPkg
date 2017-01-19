@@ -3,19 +3,18 @@
 #include <Library/Platform/Platform.h>
 #include <Library/NetLib.h>
 
-#ifndef DEBUG_MAC
 #ifndef DEBUG_ALL
-#define DEBUG_MAC 1
-#else
-#define DEBUG_MAC DEBUG_ALL
+#ifndef DEBUG_MAC_ADDRESS
+#define DEBUG_MAC_ADDRESS -1
 #endif
+#else
+#ifdef DEBUG_MAC_ADDRESS
+#undef DEBUG_MAC_ADDRESS
+#endif
+#define DEBUG_MAC_ADDRESS DEBUG_ALL
 #endif
 
-#if DEBUG_MAC == 0
-#define DBG(...)
-#else
-#define DBG(...) DebugLog(DEBUG_MAC, __VA_ARGS__)
-#endif
+#define DBG(...) DebugLog(DEBUG_MAC_ADDRESS, __VA_ARGS__)
 
 extern UINTN                            nLanCards;     // number of LAN cards
 extern UINTN                            nLanPaths;     // number of UEFI LAN
@@ -111,14 +110,14 @@ GetMacAddress() {
         //  HwAddressSize = 6;
         //}
         CopyMem(&MacAddr, &MacAddressNode->MacAddress.Addr[0], HwAddressSize);
-        DBG("MAC address of LAN #%d= ", nLanPaths);
+        MsgLog("MAC address of LAN #%d = ", nLanPaths);
         HwAddress = &MacAddressNode->MacAddress.Addr[0];
 
         for (Index2 = 0; Index2 < HwAddressSize; Index2++) {
-          DBG("%a%02x", !Index2 ? "" : ":", *HwAddress++);
+          MsgLog("%a%02x", !Index2 ? "" : ":", *HwAddress++);
         }
 
-        DBG("\n");
+        MsgLog("\n");
         Found = TRUE;
         CopyMem(&gLanMac[nLanPaths++], &MacAddressNode->MacAddress.Addr[0], HwAddressSize);
         break;
@@ -142,7 +141,7 @@ GetMacAddress() {
     //  Legacy boot. Get MAC-address from hardwaredirectly
     //
     ////
-    DBG(" get legacy LAN MAC, %d card found\n", nLanCards);
+    DBG("Legacy LAN MAC, %d card found\n", nLanCards);
     for (Index = 0; Index < nLanCards; Index++) {
       if (!gLanMmio[Index]) {  //security
         continue;
@@ -214,13 +213,13 @@ GetMacAddress() {
 
     done:
       PreviousVendor = gLanVendor[Index];
-      DBG("Legacy MAC address of LAN #%d= ", Index);
+      MsgLog("Legacy MAC address of LAN #%d = ", Index);
       HwAddress = &gLanMac[Index][0];
       for (Index2 = 0; Index2 < HwAddressSize; Index2++) {
-        DBG("%a%02x", !Index2 ? "" : ":", *HwAddress++);
+        MsgLog("%a%02x", !Index2 ? "" : ":", *HwAddress++);
       }
 
-      DBG("\n");
+      MsgLog("\n");
     }
   }
 }

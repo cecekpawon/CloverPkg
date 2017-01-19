@@ -37,18 +37,17 @@
 #include <Library/Platform/Platform.h>
 
 #ifndef DEBUG_ALL
-#define DEBUG_CPU 1
-//#define DEBUG_PCI 1
+#ifndef DEBUG_CPU
+#define DEBUG_CPU -1
+#endif
 #else
+#ifdef DEBUG_CPU
+#undef DEBUG_CPU
+#endif
 #define DEBUG_CPU DEBUG_ALL
-//#define DEBUG_PCI DEBUG_ALL
 #endif
 
-#if DEBUG_CPU == 0
-#define DBG(...)
-#else
 #define DBG(...) DebugLog(DEBUG_CPU, __VA_ARGS__)
-#endif
 
 #define VIRTUAL 0
 #if VIRTUAL == 1
@@ -79,10 +78,6 @@ VOID DoCpuid (
 //
 VOID
 GetCPUProperties () {
-  //  UINTN         ArrayCount;
-  //  UINTN         ProtocolIndex;
-  //  EFI_GUID          **ProtocolGuidArray;
-
   EFI_STATUS            Status;
   EFI_HANDLE            *HandleBuffer;
   EFI_PCI_IO_PROTOCOL   *PciIo;
@@ -204,7 +199,7 @@ GetCPUProperties () {
     DoCpuid(6, gCPUStructure.CPUID[CPUID_6]);
     gCPUStructure.Turbo = ((gCPUStructure.CPUID[CPUID_6][EAX] & (1 << 1)) != 0);
 
-    DBG("The CPU%a supported turbo\n", gCPUStructure.Turbo?"":" not");
+    MsgLog("CPU with turbo supported: %a\n", gCPUStructure.Turbo ? "Yes" : "No");
 
     //get cores and threads
     switch (gCPUStructure.Model) {
@@ -273,7 +268,8 @@ GetCPUProperties () {
 
   /* get BrandString (if supported) */
   if (gCPUStructure.CPUID[CPUID_80][EAX] >= 0x80000004) {
-    CHAR8         *s;
+    CHAR8   *s;
+    UINTN   Len;
 
     ZeroMem(str, 128);
 
@@ -292,20 +288,21 @@ GetCPUProperties () {
       if (*s != ' ') break; //remove leading spaces
     }
 
-    AsciiStrnCpy(gCPUStructure.BrandString, s, 48);
+    Len = ARRAY_SIZE(gCPUStructure.BrandString); //48
+    AsciiStrnCpyS(gCPUStructure.BrandString, Len, s, Len);
 
     if (
       !AsciiStrnCmp (
         (const CHAR8*)gCPUStructure.BrandString,
         (const CHAR8*)CPU_STRING_UNKNOWN,
-        iStrLen((gCPUStructure.BrandString) + 1, 48)
+        iStrLen((gCPUStructure.BrandString) + 1, Len)
       )
     ) {
       gCPUStructure.BrandString[0] = '\0';
     }
 
     gCPUStructure.BrandString[47] = '\0';
-    DBG("BrandString = %a\n", gCPUStructure.BrandString);
+    MsgLog("BrandString = %a\n", gCPUStructure.BrandString);
   }
 
   //workaround for N270. I don't know why it detected wrong
@@ -371,13 +368,13 @@ GetCPUProperties () {
 
            if ((RShiftU64(msr, 16) & 0x01) != 0) {
              UINT8 flex_ratio = RShiftU64(msr, 8) & 0xff;
-             MsgLog("non-usable FLEX_RATIO = %x\n", msr);
+             DBG("non-usable FLEX_RATIO = %x\n", msr);
 
              if (flex_ratio == 0) {
                AsmWriteMsr64(MSR_FLEX_RATIO, (msr & 0xFFFFFFFFFFFEFFFFULL));
                gBS->Stall(10);
                msr = AsmReadMsr64(MSR_FLEX_RATIO);
-               MsgLog("corrected FLEX_RATIO = %x\n", msr);
+               DBG("corrected FLEX_RATIO = %x\n", msr);
              }
            }
 
@@ -428,12 +425,11 @@ GetCPUProperties () {
           gCPUStructure.TSCFrequency = MultU64x32(gCPUStructure.CurrentSpeed, Mega); //MHz -> Hz
           gCPUStructure.CPUFrequency = gCPUStructure.TSCFrequency;
 
-
           //----test C3 patch
           msr = AsmReadMsr64(MSR_PKG_CST_CONFIG_CONTROL); //0xE2
-          MsgLog("MSR 0xE2 before patch %08x\n", msr);
+          MsgLog("MSR 0xE2: %08x (before patch)\n", msr);
           if (msr & 0x8000) {
-            MsgLog("MSR 0xE2 is locked, PM patches will be turned on\n");
+            MsgLog(" - is locked, PM patches will be turned on\n");
             NeedPMfix = TRUE;
           }
 
@@ -441,10 +437,10 @@ GetCPUProperties () {
           //        msr = AsmReadMsr64(MSR_PKG_CST_CONFIG_CONTROL);
           //        MsgLog("MSR 0xE2 after  patch %08x\n", msr);
           msr = AsmReadMsr64(MSR_PMG_IO_CAPTURE_BASE);
-          MsgLog("MSR 0xE4              %08x\n", msr);
+          MsgLog("MSR 0xE4: %08x\n", msr);
           //------------
           msr = AsmReadMsr64(MSR_PLATFORM_INFO);       //0xCE
-          MsgLog("MSR 0xCE              %08x_%08x\n", (msr>>32), msr);
+          MsgLog("MSR 0xCE: %08x_%08x\n", (msr>>32), msr);
           gCPUStructure.MaxRatio = (UINT8)RShiftU64(msr, 8) & 0xff;
           gCPUStructure.MinRatio = (UINT8)MultU64x32(RShiftU64(msr, 40) & 0xff, 10);
           msr = AsmReadMsr64(MSR_FLEX_RATIO);   //0x194
@@ -452,13 +448,13 @@ GetCPUProperties () {
           if ((RShiftU64(msr, 16) & 0x01) != 0) {
             // bcc9 patch
             UINT8 flex_ratio = RShiftU64(msr, 8) & 0xff;
-            MsgLog("non-usable FLEX_RATIO = %x\n", msr);
+            DBG("non-usable FLEX_RATIO = %x\n", msr);
 
             if (flex_ratio == 0) {
               AsmWriteMsr64(MSR_FLEX_RATIO, (msr & 0xFFFFFFFFFFFEFFFFULL));
               gBS->Stall(10);
               msr = AsmReadMsr64(MSR_FLEX_RATIO);
-              MsgLog("corrected FLEX_RATIO = %x\n", msr);
+              DBG("corrected FLEX_RATIO = %x\n", msr);
             }
             /*else {
              if (gCPUStructure.BusRatioMax > flex_ratio)
@@ -614,20 +610,23 @@ GetCPUProperties () {
   DBG("Vendor/Model/Stepping: 0x%x/0x%x/0x%x\n", gCPUStructure.Vendor, gCPUStructure.Model, gCPUStructure.Stepping);
   DBG("Family/ExtFamily: 0x%x/0x%x\n", gCPUStructure.Family, gCPUStructure.Extfamily);
   DBG("MaxDiv/MinDiv: %d.%d/%d\n", gCPUStructure.MaxRatio/10, gCPUStructure.MaxRatio%10 , gCPUStructure.MinRatio/10);
-  DBG("Turbo: %d/%d/%d/%d\n", gCPUStructure.Turbo4/10, gCPUStructure.Turbo3/10, gCPUStructure.Turbo2/10, gCPUStructure.Turbo1/10);
-  DBG("Features: 0x%08x\n",gCPUStructure.Features);
-  DBG("Threads: %d\n",gCPUStructure.Threads);
-  DBG("Cores: %d\n",gCPUStructure.Cores);
-  DBG("FSB: %d MHz\n", (INT32)(DivU64x32(gCPUStructure.ExternalClock, kilo)));
-  DBG("CPU: %d MHz\n", (INT32)(DivU64x32(gCPUStructure.CPUFrequency, Mega)));
-  DBG("TSC: %d MHz\n", (INT32)(DivU64x32(gCPUStructure.TSCFrequency, Mega)));
-  DBG("PIS: %d MHz\n", (INT32)gCPUStructure.ProcessorInterconnectSpeed);
-  //#if DEBUG_PCI
+  if (gCPUStructure.Turbo) {
+    DBG("Turbo: %d/%d/%d/%d\n", gCPUStructure.Turbo4/10, gCPUStructure.Turbo3/10, gCPUStructure.Turbo2/10, gCPUStructure.Turbo1/10);
+  }
+  DBG("Features: 0x%08x\n", gCPUStructure.Features);
 
+  MsgLog("Threads: %d, Cores: %d, FSB: %d MHz, CPU: %d MHz, TSC: %d MHz, PIS: %d MHz\n",
+    gCPUStructure.Threads,
+    gCPUStructure.Cores,
+    (INT32)(DivU64x32(gCPUStructure.ExternalClock, kilo)),
+    (INT32)(DivU64x32(gCPUStructure.CPUFrequency, Mega)),
+    (INT32)(DivU64x32(gCPUStructure.TSCFrequency, Mega)),
+    (INT32)gCPUStructure.ProcessorInterconnectSpeed
+  );
+
+  //#if DEBUG_PCI
   //  WaitForKeyPress("waiting for key press...\n");
   //#endif
-
-  //  return;
 }
 
 VOID

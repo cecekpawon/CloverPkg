@@ -26,7 +26,6 @@
   ../../Library/Entry/Loader.c
   ../../Library/Entry/Tool.c
 
-  ../../Library/UI/Icns.c
   ../../Library/UI/Image.c
   ../../Library/UI/LoadBmp.c
   ../../Library/UI/LoadIcns.c
@@ -78,7 +77,7 @@
 
 [LibraryClasses]
   BaseLib
-  #BaseMemoryLib
+  BaseMemoryLib
   CommonLib
   DeviceTreeLib
   DxeServicesLib
@@ -125,8 +124,3 @@
   gAptioProtocolGuid
   gFSInjectProtocolGuid
   gMsgLogProtocolGuid
-
-[BuildOptions]
-  XCODE:*_*_*_CC_FLAGS = -Os
-  GCC:*_*_*_CC_FLAGS = -Os
-  MSFT:*_*_*_CC_FLAGS = /Os

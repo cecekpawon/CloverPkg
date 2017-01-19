@@ -59,9 +59,6 @@
 #include <Protocol/SimpleTextIn.h>
 #include <Protocol/SimpleTextOut.h>
 #include <Protocol/Smbios.h>
-#if UGASUPPORT
-#include <Protocol/UgaDraw.h>
-#endif
 #include <Protocol/UnicodeCollation.h>
 
 // Guid Includes

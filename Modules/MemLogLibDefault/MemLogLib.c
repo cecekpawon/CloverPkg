@@ -33,7 +33,6 @@ typedef struct {
   UINT64            TscFreqSec;
 } MEM_LOG;
 
-
 //
 // Guid for internal protocol for publishing mem log buffer.
 //
