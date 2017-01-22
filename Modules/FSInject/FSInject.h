@@ -13,6 +13,26 @@ Module Name:
 #ifndef __FSInject_H__
 #define __FSInject_H__
 
+// DBG_TO: 0=no debug, 1=serial, 2=console
+// serial requires
+// [PcdsFixedAtBuild]
+//  gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|0x07
+//  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0xFFFFFFFF
+// in package DSC file
+#define DBG_TO 4
+
+#if DBG_TO == 4
+#define DBG(...) MemLog(TRUE, 1, __VA_ARGS__)
+#elif DBG_TO == 3
+#define DBG(...) MemLog(FALSE, 0, __VA_ARGS__)
+#elif DBG_TO == 2
+#define DBG(...) AsciiPrint(__VA_ARGS__)
+#elif DBG_TO == 1
+#define DBG(...) DebugPrint(1, __VA_ARGS__)
+#else
+#define DBG(...)
+#endif
+
 /**
  * FSInjection EFI_SIMPLE_FILE_SYSTEM_PROTOCOL private structure
  */

@@ -51,7 +51,7 @@
 #define R600_SCK_PRESCALE_CRYSTAL_CLK_SHIFT       28
 #define R600_SCK_PRESCALE_CRYSTAL_CLK_MASK        (0xf << 28)
 
-/*Typedefs ENUMS*/
+/* Typedefs ENUMS */
 typedef enum {
   kNul,
   kStr,
@@ -125,7 +125,7 @@ typedef enum {
 } ati_chip_family_t;
 
 typedef struct {
-  const CHAR8   *name;
+  CONST CHAR8   *name;
   UINT8 ports;
 } card_config_t;
 
@@ -222,7 +222,7 @@ typedef struct {
   UINT16                device_id;
   //UINT32              subsys_id;
   ati_chip_family_t     chip_family;
-  //const CHAR8         *model_name;
+  //CONST CHAR8         *model_name;
   config_name_t         cfg_name;
 } radeon_card_info_t;
 
@@ -236,7 +236,7 @@ typedef struct {
   UINT8                 *rom;
   UINT32                rom_size;
   UINT64                vram_size;
-  const CHAR8           *cfg_name;
+  CONST CHAR8           *cfg_name;
   UINT8                 ports;
   UINT32                flags;
   BOOLEAN               posted;
@@ -259,32 +259,32 @@ typedef struct {
   UINT32    flags;
   BOOLEAN   all_ports;
   CHAR8   *name;
-  BOOLEAN   (*get_value)(value_t *val, INTN index);
+  BOOLEAN   (*get_value) (value_t *val, INTN index);
   value_t   default_val;
 } AtiDevProp;
 
-BOOLEAN get_bootdisplay_val(value_t *val, INTN index);
-BOOLEAN get_vrammemory_val(value_t *val, INTN index);
-BOOLEAN get_edid_val(value_t *val, INTN index);
-BOOLEAN get_display_type(value_t *val, INTN index);
-BOOLEAN get_name_val(value_t *val, INTN index);
-BOOLEAN get_nameparent_val(value_t *val, INTN index);
-BOOLEAN get_model_val(value_t *val, INTN index);
-BOOLEAN get_conntype_val(value_t *val, INTN index);
-BOOLEAN get_vrammemsize_val(value_t *val, INTN index);
-BOOLEAN get_binimage_val(value_t *val, INTN index);
-BOOLEAN get_binimage_owr(value_t *val, INTN index);
-BOOLEAN get_romrevision_val(value_t *val, INTN index);
-BOOLEAN get_deviceid_val(value_t *val, INTN index);
-BOOLEAN get_mclk_val(value_t *val, INTN index);
-BOOLEAN get_sclk_val(value_t *val, INTN index);
-BOOLEAN get_refclk_val(value_t *val, INTN index);
-BOOLEAN get_platforminfo_val(value_t *val, INTN index);
-BOOLEAN get_vramtotalsize_val(value_t *val, INTN index);
-BOOLEAN get_dual_link_val(value_t *val, INTN index);
-BOOLEAN get_name_pci_val(value_t *val, INTN index);
+BOOLEAN GetBootDisplayVal     (value_t *val, INTN index);
+BOOLEAN GetVramVal            (value_t *val, INTN index);
+BOOLEAN GetEdidVal            (value_t *val, INTN index);
+BOOLEAN GetDisplayType        (value_t *val, INTN index);
+BOOLEAN GetNameVal            (value_t *val, INTN index);
+BOOLEAN GetNameParentVal      (value_t *val, INTN index);
+BOOLEAN GetModelVal           (value_t *val, INTN index);
+BOOLEAN GetConnTypeVal        (value_t *val, INTN index);
+BOOLEAN GetVramSizeVal        (value_t *val, INTN index);
+BOOLEAN GetBinImageVal        (value_t *val, INTN index);
+BOOLEAN GetBinImageOwr        (value_t *val, INTN index);
+BOOLEAN GetRomRevisionVal     (value_t *val, INTN index);
+BOOLEAN GetDeviceIdVal        (value_t *val, INTN index);
+BOOLEAN GetMclkVal            (value_t *val, INTN index);
+BOOLEAN GetSclkVal            (value_t *val, INTN index);
+BOOLEAN GetRefclkVal          (value_t *val, INTN index);
+BOOLEAN GetPlatformInfoVal    (value_t *val, INTN index);
+BOOLEAN GetVramTotalSizeVal   (value_t *val, INTN index);
+BOOLEAN GetDualLinkVal        (value_t *val, INTN index);
+BOOLEAN GetNamePciVal         (value_t *val, INTN index);
 
 extern card_config_t card_configs[];
 extern radeon_card_info_t radeon_cards[];
 extern AtiDevProp ati_devprop_list[];
-extern const CHAR8 *chip_family_name[];
+extern CONST CHAR8 *chip_family_name[];

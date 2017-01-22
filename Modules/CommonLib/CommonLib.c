@@ -53,7 +53,7 @@
 #define DEBUG_COMMON DEBUG_ALL
 #endif
 
-#define DBG(...) DebugLog(DEBUG_COMMON, __VA_ARGS__)
+#define DBG(...) DebugLog (DEBUG_COMMON, __VA_ARGS__)
 
 CONST CHAR16 *OsxPathLCaches[] = {
    L"\\System\\Library\\Caches\\com.apple.kext.caches\\Startup\\kernelcache",
@@ -64,145 +64,150 @@ CONST CHAR16 *OsxPathLCaches[] = {
    L"\\.IABootFiles\\kernelcache"
 };
 
-CONST   UINTN OsxPathLCachesCount = ARRAY_SIZE(OsxPathLCaches);
+CONST   UINTN OsxPathLCachesCount = ARRAY_SIZE (OsxPathLCaches);
 CHAR8   *OsVerUndetected = "10.10.10";  //longer string
-
-//extern BOOLEAN CopyKernelAndKextPatches(IN OUT KERNEL_AND_KEXT_PATCHES *Dst, IN KERNEL_AND_KEXT_PATCHES *Src);
 
 //--> Base64
 
 typedef enum {
-  step_a, step_b, step_c, step_d
-} base64_decodestep;
+  StepA, StepB, StepC, StepD
+} Base64DecodeStep;
 
 typedef struct {
-  base64_decodestep   step;
-  CHAR8                plainchar;
-} base64_decodestate;
+  Base64DecodeStep   Step;
+  CHAR8              PlainChar;
+} Base64DecodeState;
 
-INT32 base64_decode_value(CHAR8 value_in) {
-  STATIC CONST INT8 decoding[] = {
-    62,-1,-1,-1,63,52,53,54,55,56,57,58,59,60,61,-1,-1,-1,-2,-1,-1,-1,0,1,2,3,4,5,6,
-    7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,-1,-1,-1,-1,-1,-1,26,27,28,
-    29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51
+INT32
+Base64DecodeValue (
+  CHAR8   Value
+) {
+  STATIC CONST INT8   Decoding[] = {
+    62, -1, -1, -1, 63, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1, -1, -2, -1, -1, -1,  0,  1,  2,  3,  4,  5, 6,
+     7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, -1, -1, -1, -1, -1, -1, 26, 27, 28, 29,
+    30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51
   };
 
-  INT32 value_in_i = (UINT8) value_in;
-  value_in_i -= 43;
-  if (value_in_i < 0 || (UINT32) value_in_i >= sizeof (decoding)) return -1;
-  return decoding[value_in_i];
+  INT32   NewValue = (UINT8) Value;
+
+  NewValue -= 43;
+  if (NewValue < 0 || ((UINT32) NewValue >= sizeof (Decoding))) {
+    return -1;
+  }
+
+  return Decoding[NewValue];
 }
 
 VOID
-base64_init_decodestate (
-  base64_decodestate    *state_in
+Base64InitDecodeState (
+  Base64DecodeState    *State
 ) {
-  state_in->step = step_a;
-  state_in->plainchar = 0;
+  State->Step = StepA;
+  State->PlainChar = 0;
 }
 
 INT32
-base64_decode_block (
-  CONST CHAR8                *code_in,
-  CONST INT32                length_in,
-        CHAR8                *plaintext_out,
-        base64_decodestate  *state_in
+Base64DecodeBlock (
+  CONST CHAR8               *Code,
+  CONST INT32               Length,
+        CHAR8               *PlainText,
+        Base64DecodeState   *State
 ) {
-  CONST CHAR8  *codechar = code_in;
-  CHAR8        *plainchar = plaintext_out;
-  INT32        fragment;
+  CONST CHAR8  *CodeChar = Code;
+  CHAR8        *PlainChar = PlainText;
+  INT32        Fragment;
 
-  *plainchar = state_in->plainchar;
+  *PlainChar = State->PlainChar;
 
-  switch (state_in->step) {
+  switch (State->Step) {
     while (1) {
-      case step_a:
+      case StepA:
         do {
-          if (codechar == code_in+length_in) {
-            state_in->step = step_a;
-            state_in->plainchar = *plainchar;
-            return (INT32)(plainchar - plaintext_out);
+          if (CodeChar == Code + Length) {
+            State->Step = StepA;
+            State->PlainChar = *PlainChar;
+            return (INT32)(PlainChar - PlainText);
           }
-          fragment = base64_decode_value(*codechar++);
-        } while (fragment < 0);
+          Fragment = Base64DecodeValue (*CodeChar++);
+        } while (Fragment < 0);
 
-        *plainchar = (CHAR8) ((fragment & 0x03f) << 2);
+        *PlainChar = (CHAR8)((Fragment & 0x03f) << 2);
 
-      case step_b:
+      case StepB:
         do {
-          if (codechar == code_in+length_in) {
-            state_in->step = step_b;
-            state_in->plainchar = *plainchar;
-            return (INT32)(plainchar - plaintext_out);
+          if (CodeChar == Code+Length) {
+            State->Step = StepB;
+            State->PlainChar = *PlainChar;
+            return (INT32)(PlainChar - PlainText);
           }
 
-          fragment = base64_decode_value(*codechar++);
-        } while (fragment < 0);
+          Fragment = Base64DecodeValue (*CodeChar++);
+        } while (Fragment < 0);
 
-        *plainchar++ |= (CHAR8) ((fragment & 0x030) >> 4);
-        *plainchar    = (CHAR8) ((fragment & 0x00f) << 4);
+        *PlainChar++ |= (CHAR8)((Fragment & 0x030) >> 4);
+        *PlainChar    = (CHAR8)((Fragment & 0x00f) << 4);
 
-      case step_c:
+      case StepC:
         do {
-          if (codechar == code_in+length_in) {
-            state_in->step = step_c;
-            state_in->plainchar = *plainchar;
-            return (INT32)(plainchar - plaintext_out);
+          if (CodeChar == Code + Length) {
+            State->Step = StepC;
+            State->PlainChar = *PlainChar;
+            return (INT32)(PlainChar - PlainText);
           }
-          fragment = base64_decode_value(*codechar++);
-        } while (fragment < 0);
+          Fragment = Base64DecodeValue (*CodeChar++);
+        } while (Fragment < 0);
 
-        *plainchar++ |= (CHAR8) ((fragment & 0x03c) >> 2);
-        *plainchar    = (CHAR8) ((fragment & 0x003) << 6);
+        *PlainChar++ |= (CHAR8)((Fragment & 0x03c) >> 2);
+        *PlainChar    = (CHAR8)((Fragment & 0x003) << 6);
 
-      case step_d:
+      case StepD:
         do {
-          if (codechar == code_in+length_in)
+          if (CodeChar == Code+Length)
           {
-            state_in->step = step_d;
-            state_in->plainchar = *plainchar;
-            return (INT32)(plainchar - plaintext_out);
+            State->Step = StepD;
+            State->PlainChar = *PlainChar;
+            return (INT32)(PlainChar - PlainText);
           }
-          fragment = base64_decode_value(*codechar++);
-        } while (fragment < 0);
+          Fragment = Base64DecodeValue (*CodeChar++);
+        } while (Fragment < 0);
 
-        *plainchar++ |= (CHAR8) ((fragment & 0x03f));
+        *PlainChar++ |= (CHAR8)((Fragment & 0x03f));
     }
   }
 
   /* control should not reach here */
-  return (INT32)(plainchar - plaintext_out);
+  return (INT32)(PlainChar - PlainText);
 }
 
 /** UEFI interface to base54 decode.
- * Decodes EncodedData into a new allocated buffer and returns it. Caller is responsible to FreePool() it.
+ * Decodes EncodedData into a new allocated buffer and returns it. Caller is responsible to FreePool () it.
  * If DecodedSize != NULL, then size od decoded data is put there.
  */
-UINT8
-*Base64Decode (
+UINT8 *
+Base64Decode (
   IN  CHAR8     *EncodedData,
   OUT UINTN     *DecodedSize
 ) {
   UINTN                 EncodedSize;
   INT32                 DecodedSizeInternal;
   UINT8                 *DecodedData;
-  base64_decodestate    state_in;
+  Base64DecodeState     State;
 
   if (EncodedData == NULL) {
     return NULL;
   }
 
-  EncodedSize = AsciiStrLen(EncodedData);
+  EncodedSize = AsciiStrLen (EncodedData);
 
   if (EncodedSize == 0) {
     return NULL;
   }
 
   // to simplify, we'll allocate the same size, although smaller size is needed
-  DecodedData = AllocateZeroPool(EncodedSize);
+  DecodedData = AllocateZeroPool (EncodedSize);
 
-  base64_init_decodestate(&state_in);
-  DecodedSizeInternal = base64_decode_block(EncodedData, (CONST INT32)EncodedSize, (CHAR8*) DecodedData, &state_in);
+  Base64InitDecodeState (&State);
+  DecodedSizeInternal = Base64DecodeBlock (EncodedData, (CONST INT32)EncodedSize, (CHAR8 *) DecodedData, &State);
 
   if (DecodedSize != NULL) {
     *DecodedSize = (UINTN)DecodedSizeInternal;
@@ -264,8 +269,8 @@ StrniCmp (
   }
 
   do {
-    Ch1 = TO_LOWER(*Str1);
-    Ch2 = TO_LOWER(*Str2);
+    Ch1 = TO_LOWER (*Str1);
+    Ch2 = TO_LOWER (*Str2);
 
     Str1++;
     Str2++;
@@ -295,12 +300,12 @@ StriStr (
     return NULL;
   }
 
-  Length = StrLen(Str);
+  Length = StrLen (Str);
   if (Length == 0) {
     return NULL;
   }
 
-  SearchLength = StrLen(SearchFor);
+  SearchLength = StrLen (SearchFor);
 
   if (SearchLength > Length) {
     return NULL;
@@ -309,7 +314,7 @@ StriStr (
   End = Str + (Length - SearchLength) + 1;
 
   while (Str < End) {
-    if (StrniCmp(Str, SearchFor, SearchLength) == 0) {
+    if (StrniCmp (Str, SearchFor, SearchLength) == 0) {
       return Str;
     }
     ++Str;
@@ -323,11 +328,11 @@ EFIAPI
 StrToLower (
   IN CHAR16   *Str
 ) {
-  CHAR16    *Tmp = EfiStrDuplicate(Str);
+  CHAR16    *Tmp = EfiStrDuplicate (Str);
   INTN      i;
 
-  for(i = 0; Tmp[i]; i++) {
-    Tmp[i] = TO_LOWER(Tmp[i]);
+  for (i = 0; Tmp[i]; i++) {
+    Tmp[i] = TO_LOWER (Tmp[i]);
   }
 
   return Tmp;
@@ -338,11 +343,11 @@ EFIAPI
 StrToUpper (
   IN CHAR16   *Str
 ) {
-  CHAR16    *Tmp = EfiStrDuplicate(Str);
+  CHAR16    *Tmp = EfiStrDuplicate (Str);
   INTN      i;
 
-  for(i = 0; Tmp[i]; i++) {
-    Tmp[i] = TO_UPPER(Tmp[i]);
+  for (i = 0; Tmp[i]; i++) {
+    Tmp[i] = TO_UPPER (Tmp[i]);
   }
 
   return Tmp;
@@ -353,17 +358,17 @@ EFIAPI
 StrToTitle (
   IN CHAR16   *Str
 ) {
-  CHAR16    *Tmp = EfiStrDuplicate(Str);
+  CHAR16    *Tmp = EfiStrDuplicate (Str);
   INTN      i;
   BOOLEAN   First = TRUE;
 
-  for(i = 0; Tmp[i]; i++) {
+  for (i = 0; Tmp[i]; i++) {
     if (First) {
-      Tmp[i] = TO_UPPER(Tmp[i]);
+      Tmp[i] = TO_UPPER (Tmp[i]);
       First = FALSE;
     } else {
       if (Tmp[i] != 0x20) {
-        Tmp[i] = TO_LOWER(Tmp[i]);
+        Tmp[i] = TO_LOWER (Tmp[i]);
       } else {
         First = TRUE;
       }
@@ -382,7 +387,7 @@ StriCmp (
 ) {
   if (
     (FirstS == NULL) || (SecondS == NULL) ||
-    (StrLen(FirstS) != StrLen(SecondS))
+    (StrLen (FirstS) != StrLen (SecondS))
   ) {
     return 1;
   }
@@ -462,7 +467,7 @@ AsciiStrVersionToUint64 (
       }
     }
     else if (*Version == '.') {
-      result = MultU64x64(result, part_mult) + part_value;
+      result = MultU64x64 (result, part_mult) + part_value;
       part_value = 0;
       MaxParts--;
     }
@@ -471,7 +476,7 @@ AsciiStrVersionToUint64 (
   }
 
   while (MaxParts--) {
-    result = MultU64x64(result, part_mult) + part_value;
+    result = MultU64x64 (result, part_mult) + part_value;
     part_value = 0; // part_value is only used at first pass
   }
 
@@ -483,11 +488,11 @@ EFIAPI
 AsciiStrToLower (
   IN CHAR8   *Str
 ) {
-  CHAR8   *Tmp = AllocateCopyPool(AsciiStrSize(Str), Str);
+  CHAR8   *Tmp = AllocateCopyPool (AsciiStrSize (Str), Str);
   INTN      i;
 
-  for(i = 0; Tmp[i]; i++) {
-    Tmp[i] = TO_ALOWER(Tmp[i]);
+  for (i = 0; Tmp[i]; i++) {
+    Tmp[i] = TO_ALOWER (Tmp[i]);
   }
 
   return Tmp;
@@ -499,7 +504,7 @@ AsciiStriStr (
   IN CHAR8    *String,
   IN CHAR8    *SearchString
 ) {
-  return AsciiStrStr(AsciiStrToLower(String), AsciiStrToLower(SearchString));
+  return AsciiStrStr (AsciiStrToLower (String), AsciiStrToLower (SearchString));
 }
 
 
@@ -508,6 +513,7 @@ AsciiStriStr (
   Trim leading trailing spaces
 */
 EFI_STATUS
+EFIAPI
 AsciiTrimSpaces (
   IN CHAR8 **String
 ) {
@@ -519,7 +525,7 @@ AsciiTrimSpaces (
   // Remove any spaces and tabs at the beginning of the (*String).
   //
   while (((*String)[0] == ' ') || ((*String)[0] == '\t')) {
-    CopyMem((*String), (*String)+1, AsciiStrSize((*String)) - sizeof((*String)[0]));
+    CopyMem ((*String), (*String)+1, AsciiStrSize ((*String)) - sizeof ((*String)[0]));
   }
 
   //
@@ -528,11 +534,11 @@ AsciiTrimSpaces (
   while (
     (AsciiStrLen (*String) > 0) &&
     (
-      ((*String)[AsciiStrLen((*String))-1] == ' ') ||
-      ((*String)[AsciiStrLen((*String))-1] == '\t')
+      ((*String)[AsciiStrLen ((*String))-1] == ' ') ||
+      ((*String)[AsciiStrLen ((*String))-1] == '\t')
     )
   ) {
-    (*String)[AsciiStrLen((*String))-1] = '\0';
+    (*String)[AsciiStrLen ((*String))-1] = '\0';
   }
 
   return (EFI_SUCCESS);
@@ -573,7 +579,7 @@ AsciiStrStriN (
 
   if (sWhatSize > sWhereSize) return FALSE;
   for (; i && !Found; i--) {
-    Found = AsciiStriNCmp(WhatString, WhereString, sWhatSize);
+    Found = AsciiStriNCmp (WhatString, WhereString, sWhatSize);
     WhereString++;
   }
 
@@ -587,20 +593,20 @@ hexstrtouint8 (
 ) {
   INT8  i = 0;
 
-  if (IS_DIGIT(buf[0])) {
+  if (IS_DIGIT (buf[0])) {
     i = buf[0]-'0';
-  } else if (IS_HEX(buf[0])) {
+  } else if (IS_HEX (buf[0])) {
     i = (buf[0] | 0x20) - 'a' + 10;
   }
 
-  if (AsciiStrLen(buf) == 1) {
+  if (AsciiStrLen (buf) == 1) {
     return i;
   }
 
   i <<= 4;
-  if (IS_DIGIT(buf[1])) {
+  if (IS_DIGIT (buf[1])) {
     i += buf[1]-'0';
-  } else if (IS_HEX(buf[1])) {
+  } else if (IS_HEX (buf[1])) {
     i += (buf[1] | 0x20) - 'a' + 10;
   }
 
@@ -611,7 +617,7 @@ BOOLEAN
 IsHexDigit (
   CHAR8   c
 ) {
-  return (IS_DIGIT(c) || (IS_HEX(c))) ? TRUE : FALSE;
+  return (IS_DIGIT (c) || (IS_HEX (c))) ? TRUE : FALSE;
 }
 
 //out value is a number of byte. If len is even then out = len/2
@@ -626,8 +632,8 @@ hex2bin (
   CHAR8   *p, buf[3];
   UINT32  i, outlen = 0;
 
-  if (hex == NULL || bin == NULL || len <= 0 || AsciiStrLen(hex) < len * 2) {
-    //DBG("[ERROR] bin2hex input error\n"); //this is not error, this is empty value
+  if ((hex == NULL) || (bin == NULL) || (len <= 0 )|| (AsciiStrLen (hex) < len * 2)) {
+    //DBG ("[ERROR] bin2hex input error\n"); //this is not error, this is empty value
     return FALSE;
   }
 
@@ -643,14 +649,14 @@ hex2bin (
       break;
     }
 
-    if (!IsHexDigit(p[0]) || !IsHexDigit(p[1])) {
-      //MsgLog("[ERROR] bin2hex '%a' syntax error\n", hex);
+    if (!IsHexDigit (p[0]) || !IsHexDigit (p[1])) {
+      //MsgLog ("[ERROR] bin2hex '%a' syntax error\n", hex);
       return 0;
     }
 
     buf[0] = *p++;
     buf[1] = *p++;
-    bin[i] = hexstrtouint8(buf);
+    bin[i] = hexstrtouint8 (buf);
     outlen++;
   }
 
@@ -662,22 +668,21 @@ hex2bin (
 CHAR8 *
 EFIAPI
 Bytes2HexStr (
-  UINT8   *data,
-  UINTN   len
+  UINT8   *Bytes,
+  UINTN   Len
 ) {
-  UINTN   i, j, b = 0;
-  CHAR8   *result = AllocateZeroPool((len*2)+1);
+  INT32   i,  y;
+  CHAR8   *Nib = "0123456789ABCDEF",
+          *Res = AllocatePool ((Len * 2) + 1);
 
-  for (i = j = 0; i < len; i++) {
-    b = data[i] >> 4;
-    result[j++] = (CHAR8) (87 + b + (((b - 10) >> 31) & -39));
-    b = data[i] & 0xf;
-    result[j++] = (CHAR8) (87 + b + (((b - 10) >> 31) & -39));
+  for (i = 0, y = 0; i < Len; i++) {
+    Res[y++] = Nib[(Bytes[i] >> 4) & 0x0F];
+    Res[y++] = Nib[Bytes[i] & 0x0F];
   }
 
-  result[j] = '\0';
+  Res[y] = '\0';
 
-  return result;
+  return Res;
 }
 
 /** Returns pointer to last Char in String or NULL. */
@@ -742,7 +747,7 @@ StriStartsWith (
   CHAR16    Chr1, Chr2;
   BOOLEAN   Result;
 
-  //DBG("StriStarts('%s', '%s') ", String1, String2);
+  //DBG ("StriStarts ('%s', '%s') ", String1, String2);
 
   if ((String1 == NULL) || (String2 == NULL)) {
     return FALSE;
@@ -756,20 +761,62 @@ StriStartsWith (
     return FALSE;
   }
 
-  Chr1 = TO_UPPER(*String1);
-  Chr2 = TO_UPPER(*String2);
+  Chr1 = TO_UPPER (*String1);
+  Chr2 = TO_UPPER (*String2);
 
   while ((Chr1 != L'\0') && (Chr2 != L'\0') && (Chr1 == Chr2)) {
     String1++;
     String2++;
-    Chr1 = TO_UPPER(*String1);
-    Chr2 = TO_UPPER(*String2);
+    Chr1 = TO_UPPER (*String1);
+    Chr2 = TO_UPPER (*String2);
   }
 
   Result = ((Chr1 == L'\0') && (Chr2 == L'\0')) ||
            ((Chr1 != L'\0') && (Chr2 == L'\0'));
 
-  //DBG("=%s \n", Result ? L"TRUE" : L"FALSE");
+  //DBG ("=%s \n", Result ? L"TRUE" : L"FALSE");
 
   return Result;
+}
+
+// This function determines ascii string length ending by space.
+// search restricted to MaxLen, for example
+// iStrLen ("ABC    ", 20) == 3
+// if MaxLen=0 then as usual strlen but bugless
+UINTN
+EFIAPI
+iStrLen (
+  CHAR8   *String,
+  UINTN   MaxLen
+) {
+  UINTN   Len = 0;
+  CHAR8   *BA;
+
+  if (MaxLen > 0) {
+    for (Len=0; Len<MaxLen; Len++) {
+      if (String[Len] == 0) {
+        break;
+      }
+    }
+    BA = &String[Len - 1];
+    while ((Len != 0) && ((*BA == ' ') || (*BA == 0))) {
+      BA--; Len--;
+    }
+  } else {
+    BA = String;
+    while (*BA){BA++; Len++;}
+  }
+
+  return Len;
+}
+
+INTN
+EFIAPI
+CountOccurrences (
+  CHAR8   *s,
+  CHAR8   c
+) {
+  return (*s == '\0')
+    ? 0
+    : CountOccurrences ( s + 1, c ) + (*s == c);
 }

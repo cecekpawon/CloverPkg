@@ -55,7 +55,7 @@ CHAR8   *AppleFirmwareVersion[] =
   "MP61.88Z.0116.B21.1610201524",
 };
 
-CHAR8* AppleBoardID[] =    //Lion DR1 compatible
+CHAR8 *AppleBoardID[] =    //Lion DR1 compatible
 {
   "Mac-F4208CC8",          // MB11   - yonah
   "Mac-F4208CA9",          // MB21   - merom 05/07
@@ -90,10 +90,10 @@ CHAR8* AppleBoardID[] =    //Lion DR1 compatible
   "Mac-F42C88C8",          // MP31   - F2268DC8 xeon quad 02/09 conroe,
   "Mac-F4238CC8",          // MP41   - xeon wolfdale
   "Mac-F221BEC8",          // MP51   - Xeon Nehalem 4 cores
-  "Mac-F60DEB81FF30ACF6",  // MP61   - Intel(R) Xeon(R) CPU E5-1620 v2 @ 3.70GHz Model 0x3E
+  "Mac-F60DEB81FF30ACF6",  // MP61   - Intel (R) Xeon (R) CPU E5-1620 v2 @ 3.70GHz Model 0x3E
 };
 
-CHAR8* AppleReleaseDate[] =
+CHAR8 *AppleReleaseDate[] =
 {
   "09/22/08",    // Mb11
   "06/27/07",
@@ -131,7 +131,7 @@ CHAR8* AppleReleaseDate[] =
   "20/10/2016",  // MacPro6,1
 };
 
-CHAR8* AppleProductName[] =
+CHAR8 *AppleProductName[] =
 {
   "MacBook1,1",
   "MacBook2,1",
@@ -169,7 +169,7 @@ CHAR8* AppleProductName[] =
   "MacPro6,1",
 };
 
-CHAR8* AppleFamilies[] =
+CHAR8 *AppleFamilies[] =
 {
   "MacBook",
   "MacBook",
@@ -179,14 +179,14 @@ CHAR8* AppleFamilies[] =
   "MacBookPro",
   "MacBookPro",
   "MacBookPro",
-  "MacBook Pro",
-  "MacBook Pro",
+  "MacBookPro",
+  "MacBookPro",
   "Mac",
   "MacBookAir",
-  "MacBook Air",
-  "MacBook Air",
+  "MacBookAir",
+  "MacBookAir",
   "Macmini",
-  "Mac mini",
+  "Macmini",
   "Macmini",
   "iMac",
   "iMac",
@@ -208,7 +208,7 @@ CHAR8* AppleFamilies[] =
 };
 
 
-CHAR8* AppleSystemVersion[] =
+CHAR8 *AppleSystemVersion[] =
 {
   "1.1",
   "1.2",
@@ -246,7 +246,7 @@ CHAR8* AppleSystemVersion[] =
   "1.0",
 };
 
-CHAR8* AppleSerialNumber[] = //random generated
+CHAR8 *AppleSerialNumber[] = //random generated
 {
   "W80A041AU9B",  // MB11
   "W88A041AWGP",  // MB21  - merom 05/07
@@ -285,7 +285,7 @@ CHAR8* AppleSerialNumber[] = //random generated
 };
 
 //no! ChassisVersion == BoardID
-CHAR8* AppleChassisAsset[] =
+CHAR8 *AppleChassisAsset[] =
 {
   "MacBook-White",
   "MacBook-White",
@@ -324,7 +324,7 @@ CHAR8* AppleChassisAsset[] =
 };
 
 //TODO - find more information and correct all SMC arrays
-CHAR8* SmcPlatform[] =
+CHAR8 *SmcPlatform[] =
 {
   "m70",  // MacBook1,1,
   "m75",  // MacBook2,1,
@@ -441,8 +441,8 @@ UINT32 SmcConfig[] =
 };
 
 
-CHAR8 *AppleBoardSN       = "C02140302D5DMT31M";
-CHAR8 *AppleBoardLocation = "Part Component";
+CHAR8   *AppleBoardSN       = "C02140302D5DMT31M";
+CHAR8   *AppleBoardLocation = "Part Component";
 
 VOID
 SetDMISettingsForModel (
@@ -451,25 +451,25 @@ SetDMISettingsForModel (
 ) {
   UINTN   Len = 0;
 
-  AsciiStrCpyS (gSettings.VendorName,             ARRAY_SIZE(gSettings.VendorName), BiosVendor);
-  AsciiStrCpyS (gSettings.RomVersion,             ARRAY_SIZE(gSettings.RomVersion), AppleFirmwareVersion[Model]);
-  AsciiStrCpyS (gSettings.ReleaseDate,            ARRAY_SIZE(gSettings.ReleaseDate), AppleReleaseDate[Model]);
-  AsciiStrCpyS (gSettings.ManufactureName,        ARRAY_SIZE(gSettings.ManufactureName), BiosVendor);
+  AsciiStrCpyS (gSettings.VendorName,             ARRAY_SIZE (gSettings.VendorName), BiosVendor);
+  AsciiStrCpyS (gSettings.RomVersion,             ARRAY_SIZE (gSettings.RomVersion), AppleFirmwareVersion[Model]);
+  AsciiStrCpyS (gSettings.ReleaseDate,            ARRAY_SIZE (gSettings.ReleaseDate), AppleReleaseDate[Model]);
+  AsciiStrCpyS (gSettings.ManufactureName,        ARRAY_SIZE (gSettings.ManufactureName), BiosVendor);
 
   if (Redefine) {
-    AsciiStrCpyS (gSettings.ProductName,          ARRAY_SIZE(gSettings.ProductName), AppleProductName[Model]);
+    AsciiStrCpyS (gSettings.ProductName,          ARRAY_SIZE (gSettings.ProductName), AppleProductName[Model]);
   }
 
-  AsciiStrCpyS (gSettings.VersionNr,              ARRAY_SIZE(gSettings.VersionNr), AppleSystemVersion[Model]);
-  AsciiStrCpyS (gSettings.SerialNr,               ARRAY_SIZE(gSettings.SerialNr), AppleSerialNumber[Model]);
-  AsciiStrCpyS (gSettings.FamilyName,             ARRAY_SIZE(gSettings.FamilyName), AppleFamilies[Model]);
-  AsciiStrCpyS (gSettings.BoardManufactureName,   ARRAY_SIZE(gSettings.BoardManufactureName), BiosVendor);
-  AsciiStrCpyS (gSettings.BoardSerialNumber,      ARRAY_SIZE(gSettings.BoardSerialNumber), AppleBoardSN);
-  AsciiStrCpyS (gSettings.BoardNumber,            ARRAY_SIZE(gSettings.BoardNumber), AppleBoardID[Model]);
-  AsciiStrCpyS (gSettings.BoardVersion,           ARRAY_SIZE(gSettings.BoardVersion), AppleProductName[Model]);
-  AsciiStrCpyS (gSettings.LocationInChassis,      ARRAY_SIZE(gSettings.LocationInChassis), AppleBoardLocation);
-  AsciiStrCpyS (gSettings.ChassisManufacturer,    ARRAY_SIZE(gSettings.ChassisManufacturer), BiosVendor);
-  AsciiStrCpyS (gSettings.ChassisAssetTag,        ARRAY_SIZE(gSettings.ChassisAssetTag), AppleChassisAsset[Model]);
+  AsciiStrCpyS (gSettings.VersionNr,              ARRAY_SIZE (gSettings.VersionNr), AppleSystemVersion[Model]);
+  AsciiStrCpyS (gSettings.SerialNr,               ARRAY_SIZE (gSettings.SerialNr), AppleSerialNumber[Model]);
+  AsciiStrCpyS (gSettings.FamilyName,             ARRAY_SIZE (gSettings.FamilyName), AppleFamilies[Model]);
+  AsciiStrCpyS (gSettings.BoardManufactureName,   ARRAY_SIZE (gSettings.BoardManufactureName), BiosVendor);
+  AsciiStrCpyS (gSettings.BoardSerialNumber,      ARRAY_SIZE (gSettings.BoardSerialNumber), AppleBoardSN);
+  AsciiStrCpyS (gSettings.BoardNumber,            ARRAY_SIZE (gSettings.BoardNumber), AppleBoardID[Model]);
+  AsciiStrCpyS (gSettings.BoardVersion,           ARRAY_SIZE (gSettings.BoardVersion), AppleProductName[Model]);
+  AsciiStrCpyS (gSettings.LocationInChassis,      ARRAY_SIZE (gSettings.LocationInChassis), AppleBoardLocation);
+  AsciiStrCpyS (gSettings.ChassisManufacturer,    ARRAY_SIZE (gSettings.ChassisManufacturer), BiosVendor);
+  AsciiStrCpyS (gSettings.ChassisAssetTag,        ARRAY_SIZE (gSettings.ChassisAssetTag), AppleChassisAsset[Model]);
 
   if (Model >= MacPro31) {
     gSettings.BoardType = BaseBoardTypeProcessorMemoryModule; //11;
@@ -547,7 +547,7 @@ SetDMISettingsForModel (
       break;
   }
 
-  Len = ARRAY_SIZE(gSettings.RPlt);
+  Len = ARRAY_SIZE (gSettings.RPlt);
 
   //smc helper
   if (SmcPlatform[Model][0] != 'N') {
@@ -585,7 +585,7 @@ SetDMISettingsForModel (
   }
 
   CopyMem (gSettings.REV,  SmcRevision[Model], 6);
-  AsciiStrCpyS (gSettings.RBr, ARRAY_SIZE(gSettings.RBr),  gSettings.RPlt); //SmcBranch[Model]); // as no other ideas
+  AsciiStrCpyS (gSettings.RBr, ARRAY_SIZE (gSettings.RBr),  gSettings.RPlt); //SmcBranch[Model]); // as no other ideas
   CopyMem (gSettings.EPCI, &SmcConfig[Model],  4);
 }
 

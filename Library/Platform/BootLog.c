@@ -11,7 +11,7 @@
 #include <Library/Platform/Platform.h>
 #include <Library/Common/MemLogLib.h>
 
-// Changed MsgLog(...) it now calls this function
+// Changed MsgLog (...) it now calls this function
 //  with DebugMode == 0. - apianti
 // DebugMode==0 Prints to msg log, only output to log on SaveBooterLog
 // DebugMode==1 Prints to msg log and DEBUG_LOG
@@ -31,9 +31,9 @@ DebugLog (
    }
 
    // Print message to log buffer
-   VA_START(Marker, FormatString);
-   MemLogVA(TRUE, DebugMode, FormatString, Marker);
-   VA_END(Marker);
+   VA_START (Marker, FormatString);
+   MemLogVA (TRUE, DebugMode, FormatString, Marker);
+   VA_END (Marker);
 }
 
 
@@ -48,26 +48,26 @@ PrintBytesRow (
 
   // print hex vals
   for (Index = 0; Index < Number; Index++) {
-    DebugLog(1, "%02x ", Bytes[Index]);
+    DebugLog (1, "%02x ", Bytes[Index]);
   }
 
   // pad to MaxNumber if needed
   for (; Index < MaxNumber; Index++) {
-    DebugLog(1, "   ");
+    DebugLog (1, "   ");
   }
 
-  DebugLog(1, "| ");
+  DebugLog (1, "| ");
 
   // print ASCII
   for (Index = 0; Index < Number; Index++) {
     if (Bytes[Index] >= 0x20 && Bytes[Index] <= 0x7e) {
-      DebugLog(1, "%c", (CHAR16)Bytes[Index]);
+      DebugLog (1, "%c", (CHAR16)Bytes[Index]);
     } else {
-      DebugLog(1, "%c", L'.');
+      DebugLog (1, "%c", L'.');
     }
   }
 
-  DebugLog(1, "\n");
+  DebugLog (1, "\n");
 }
 
 /** Prints series of bytes. */
@@ -79,7 +79,7 @@ PrintBytes (
   UINTN   Index;
 
   for (Index = 0; Index < Number; Index += 16) {
-    PrintBytesRow((UINT8*)Bytes + Index, ((Index + 16 < Number) ? 16 : (Number - Index)), 16);
+    PrintBytesRow ((UINT8 *)Bytes + Index, ((Index + 16 < Number) ? 16 : (Number - Index)), 16);
   }
 }
 
@@ -90,18 +90,18 @@ EFI_FILE_PROTOCOL
   EFI_FILE_PROTOCOL     *RootDir, *LogFile;
 
   // get RootDir from device we are loaded from
-  Status = gBS->HandleProtocol(gImageHandle, &gEfiLoadedImageProtocolGuid, (VOID **) &LoadedImage);
-  if (EFI_ERROR(Status)) {
+  Status = gBS->HandleProtocol (gImageHandle, &gEfiLoadedImageProtocolGuid, (VOID **) &LoadedImage);
+  if (EFI_ERROR (Status)) {
     return NULL;
   }
 
-  RootDir = EfiLibOpenRoot(LoadedImage->DeviceHandle);
+  RootDir = EfiLibOpenRoot (LoadedImage->DeviceHandle);
   if (RootDir == NULL) {
     return NULL;
   }
 
   // Open log file from current root
-  Status = RootDir->Open(RootDir, &LogFile, DEBUG_LOG,
+  Status = RootDir->Open (RootDir, &LogFile, DEBUG_LOG,
                          EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE, 0);
 
   // If the log file is not found try to create it
@@ -112,14 +112,14 @@ EFI_FILE_PROTOCOL
                       );
   }
 
-  RootDir->Close(RootDir);
+  RootDir->Close (RootDir);
   RootDir = NULL;
 
-  if (EFI_ERROR(Status)) {
+  if (EFI_ERROR (Status)) {
     // try on first EFI partition
-    Status = egFindESP(&RootDir);
-    if (!EFI_ERROR(Status)) {
-      Status = RootDir->Open(RootDir, &LogFile, DEBUG_LOG,
+    Status = FindESP (&RootDir);
+    if (!EFI_ERROR (Status)) {
+      Status = RootDir->Open (RootDir, &LogFile, DEBUG_LOG,
                              EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE, 0);
 
       // If the log file is not found try to create it
@@ -130,12 +130,12 @@ EFI_FILE_PROTOCOL
                           );
       }
 
-      RootDir->Close(RootDir);
+      RootDir->Close (RootDir);
       RootDir = NULL;
     }
   }
 
-  if (EFI_ERROR(Status)) {
+  if (EFI_ERROR (Status)) {
     LogFile = NULL;
   }
 
@@ -151,20 +151,20 @@ SaveMessageToDebugLogFile (
   UINTN               MemLogLen, TextLen;
   EFI_FILE_HANDLE     LogFile;
 
-  MemLogBuffer = GetMemLogBuffer();
-  MemLogLen = GetMemLogLen();
+  MemLogBuffer = GetMemLogBuffer ();
+  MemLogLen = GetMemLogLen ();
   Text = LastMessage;
-  TextLen = AsciiStrLen(LastMessage);
+  TextLen = AsciiStrLen (LastMessage);
 
-  LogFile = GetDebugLogFile();
+  LogFile = GetDebugLogFile ();
 
   // Write to the log file
   if (LogFile != NULL) {
     // Advance to the EOF so we append
-    EFI_FILE_INFO *Info = EfiLibFileInfo(LogFile);
+    EFI_FILE_INFO *Info = EfiLibFileInfo (LogFile);
 
     if (Info) {
-      LogFile->SetPosition(LogFile, Info->FileSize);
+      LogFile->SetPosition (LogFile, Info->FileSize);
 
       // If we haven't had root before this write out whole log
       if (FirstTimeSave) {
@@ -174,10 +174,10 @@ SaveMessageToDebugLogFile (
       }
 
       // Write out this message
-      LogFile->Write(LogFile, &TextLen, Text);
+      LogFile->Write (LogFile, &TextLen, Text);
     }
 
-    LogFile->Close(LogFile);
+    LogFile->Close (LogFile);
   }
 }
 
@@ -189,17 +189,17 @@ MemLogCallback (
 ) {
   // Print message to console
   if (DebugMode >= 2) {
-    AsciiPrint(LastMessage);
+    AsciiPrint (LastMessage);
   }
 
   if ((DebugMode >= 1) && GlobalConfig.DebugLog) {
-    SaveMessageToDebugLogFile(LastMessage);
+    SaveMessageToDebugLogFile (LastMessage);
   }
 }
 
 VOID
 InitBooterLog () {
-  SetMemLogCallback(MemLogCallback);
+  SetMemLogCallback (MemLogCallback);
 }
 
 EFI_STATUS
@@ -210,8 +210,8 @@ SetupBooterLog (
   CHAR8         *MemLogBuffer;
   UINTN         MemLogLen;
 
-  MemLogBuffer = GetMemLogBuffer();
-  MemLogLen = GetMemLogLen();
+  MemLogBuffer = GetMemLogBuffer ();
+  MemLogLen = GetMemLogLen ();
 
   if ((MemLogBuffer == NULL) || (MemLogLen == 0)) {
     return EFI_NOT_FOUND;
@@ -221,10 +221,10 @@ SetupBooterLog (
     CHAR8   PrevChar = MemLogBuffer[MEM_LOG_INITIAL_SIZE-1];
 
     MemLogBuffer[MEM_LOG_INITIAL_SIZE-1] = '\0';
-    Status = LogDataHub(&gEfiMiscSubClassGuid, L"boot-log", MemLogBuffer, MEM_LOG_INITIAL_SIZE);
+    Status = LogDataHub (&gEfiMiscSubClassGuid, L"boot-log", MemLogBuffer, MEM_LOG_INITIAL_SIZE);
     MemLogBuffer[MEM_LOG_INITIAL_SIZE-1] = PrevChar;
   } else {
-    Status = LogDataHub(&gEfiMiscSubClassGuid, L"boot-log", MemLogBuffer, (UINT32)MemLogLen);
+    Status = LogDataHub (&gEfiMiscSubClassGuid, L"boot-log", MemLogBuffer, (UINT32)MemLogLen);
   }
 
   return Status;
@@ -240,13 +240,12 @@ SaveBooterLog (
   CHAR8     *MemLogBuffer;
   UINTN     MemLogLen;
 
-  MemLogBuffer = GetMemLogBuffer();
-  MemLogLen = GetMemLogLen();
+  MemLogBuffer = GetMemLogBuffer ();
+  MemLogLen = GetMemLogLen ();
 
   if ((MemLogBuffer == NULL) || (MemLogLen == 0)) {
     return EFI_NOT_FOUND;
   }
 
-  return egSaveFile(BaseDir, FileName, (UINT8*)MemLogBuffer, MemLogLen);
+  return SaveFile (BaseDir, FileName, (UINT8 *)MemLogBuffer, MemLogLen);
 }
-

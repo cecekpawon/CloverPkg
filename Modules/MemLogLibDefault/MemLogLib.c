@@ -54,22 +54,22 @@ CHAR8     mTimingTxt[32];
   @retval EFI_SUCCESS   The constructor always returns EFI_SUCCESS.
 
 **/
-CHAR8
-*GetTiming () {
+CHAR8 *
+GetTiming () {
   UINT64    dTStartSec, dTStartMs, dTLastSec, dTLastMs, CurrentTsc;
 
   mTimingTxt[0] = '\0';
 
   if (mMemLog != NULL && mMemLog->TscFreqSec != 0) {
-    CurrentTsc = AsmReadTsc();
+    CurrentTsc = AsmReadTsc ();
 
-    dTStartMs = DivU64x64Remainder(MultU64x32(CurrentTsc - mMemLog->TscStart, 1000), mMemLog->TscFreqSec, NULL);
-    dTStartSec = DivU64x64Remainder(dTStartMs, 1000, &dTStartMs);
+    dTStartMs = DivU64x64Remainder (MultU64x32 (CurrentTsc - mMemLog->TscStart, 1000), mMemLog->TscFreqSec, NULL);
+    dTStartSec = DivU64x64Remainder (dTStartMs, 1000, &dTStartMs);
 
-    dTLastMs = DivU64x64Remainder(MultU64x32(CurrentTsc - mMemLog->TscLast, 1000), mMemLog->TscFreqSec, NULL);
-    dTLastSec = DivU64x64Remainder(dTLastMs, 1000, &dTLastMs);
+    dTLastMs = DivU64x64Remainder (MultU64x32 (CurrentTsc - mMemLog->TscLast, 1000), mMemLog->TscFreqSec, NULL);
+    dTLastSec = DivU64x64Remainder (dTLastMs, 1000, &dTLastMs);
 
-    AsciiSPrint(mTimingTxt, sizeof(mTimingTxt),
+    AsciiSPrint (mTimingTxt, sizeof (mTimingTxt),
                 "%ld:%03ld  %ld:%03ld", dTStartSec, dTStartMs, dTLastSec, dTLastMs);
     mMemLog->TscLast = CurrentTsc;
   }
@@ -128,28 +128,28 @@ MemLogInit () {
   // We will try to calibrate TSC frequency according to the ACPI Power Management Timer.
   // The ACPI PM Timer is running at a universal known frequency of 3579545Hz.
   // So, we wait 357954 clocks of the ACPI timer (100ms), and compare with how much TSC advanced.
-  // This seems to provide a much more accurate calibration than using gBS->Stall(), especially on UEFI machines, and is important as this value is used later to calculate FSBFrequency.
+  // This seems to provide a much more accurate calibration than using gBS->Stall (), especially on UEFI machines, and is important as this value is used later to calculate FSBFrequency.
 
   // Check if we can use the timer - we need to be on Intel ICH, get ACPI PM Timer Address from PCI, and check that it's sane
   if ((PciRead16 (PCI_ICH_LPC_ADDRESS (0))) != 0x8086) { // Intel ICH device was not found
-    AsciiSPrint(InitError, sizeof(InitError), "Intel ICH device was not found.");
+    AsciiSPrint (InitError, sizeof (InitError), "Intel ICH device was not found.");
   } else if ((PciRead8 (PCI_ICH_LPC_ADDRESS (R_ICH_LPC_ACPI_CNT)) & B_ICH_LPC_ACPI_CNT_ACPI_EN) == 0) { // Check for TSC at LPC (default location)
     /*if ((PciRead8 (PCI_ICH_SMBUS_ADDRESS (R_ICH_SMBUS_ACPI_CNT)) & B_ICH_SMBUS_ACPI_CNT_ACPI_EN) != 0) { // Check for TSC at SMBUS (Skylake specific)
       TimerAddr = (PciRead16 (PCI_ICH_SMBUS_ADDRESS (R_ICH_SMBUS_ACPI_BASE)) & B_ICH_SMBUS_ACPI_BASE_BAR) + R_ACPI_PM1_TMR;
     } else { */
-      AsciiSPrint(InitError, sizeof(InitError), "ACPI I/O space is not enabled.");
+      AsciiSPrint (InitError, sizeof (InitError), "ACPI I/O space is not enabled.");
    // }
   } else if ((TimerAddr = ((PciRead16 (PCI_ICH_LPC_ADDRESS (R_ICH_LPC_ACPI_BASE))) & B_ICH_LPC_ACPI_BASE_BAR) + R_ACPI_PM1_TMR) == 0) { // Timer address can't be obtained
-    AsciiSPrint(InitError, sizeof(InitError), "Timer address can't be obtained.");
+    AsciiSPrint (InitError, sizeof (InitError), "Timer address can't be obtained.");
   } else {
     // Check that Timer is advancing
     AcpiTick0 = IoRead32 (TimerAddr);
-    gBS->Stall(1000); // 1ms
-    AcpiTick1 = IoRead32(TimerAddr);
+    gBS->Stall (1000); // 1ms
+    AcpiTick1 = IoRead32 (TimerAddr);
 
     if (AcpiTick0 == AcpiTick1) { // Timer is not advancing
       TimerAddr = 0; // Flag it as not working
-      AsciiSPrint(InitError, sizeof(InitError), "Timer is not advancing.");
+      AsciiSPrint (InitError, sizeof (InitError), "Timer is not advancing.");
     }
   }
 
@@ -162,10 +162,10 @@ MemLogInit () {
     AcpiTicksTarget = V_ACPI_TMR_FREQUENCY/10; // 357954 clocks of ACPI timer (100ms)
 
     AcpiTick0 = IoRead32 (TimerAddr); // read ACPI tick
-    Tsc0 = AsmReadTsc(); // read TSC
+    Tsc0 = AsmReadTsc (); // read TSC
 
     do {
-      CpuPause();
+      CpuPause ();
 
       // check how many AcpiTicks passed since we started
       AcpiTick1 = IoRead32 (TimerAddr);
@@ -179,14 +179,14 @@ MemLogInit () {
       }
     } while (AcpiTicksDelta < AcpiTicksTarget); // keep checking Acpi ticks until target is reached
 
-    Tsc1 = AsmReadTsc(); // we're done, get another TSC
-    mMemLog->TscFreqSec = DivU64x32(MultU64x32((Tsc1 - Tsc0), V_ACPI_TMR_FREQUENCY), AcpiTicksDelta);
+    Tsc1 = AsmReadTsc (); // we're done, get another TSC
+    mMemLog->TscFreqSec = DivU64x32 (MultU64x32 ((Tsc1 - Tsc0), V_ACPI_TMR_FREQUENCY), AcpiTicksDelta);
   } else {
     // ACPI PM Timer is not working, fallback to old method
-    Tsc0 = AsmReadTsc();
-    gBS->Stall(100000); // 100ms
-    Tsc1 = AsmReadTsc();
-    mMemLog->TscFreqSec = MultU64x32((Tsc1 - Tsc0), 10);
+    Tsc0 = AsmReadTsc ();
+    gBS->Stall (100000); // 100ms
+    Tsc1 = AsmReadTsc ();
+    mMemLog->TscFreqSec = MultU64x32 ((Tsc1 - Tsc0), 10);
   }
 
   mMemLog->TscStart = Tsc0;
@@ -202,10 +202,10 @@ MemLogInit () {
                    NULL
                  );
 
-  MemLog(TRUE, 1, "MemLog inited, TSC freq: %ld\n", mMemLog->TscFreqSec);
+  MemLog (TRUE, 1, "MemLog inited, TSC freq: %ld\n", mMemLog->TscFreqSec);
 
   if (InitError[0] != '\0') {
-    MemLog(TRUE, 1, "MemLog was calibrated without ACPI PM Timer: %a\n", InitError);
+    MemLog (TRUE, 1, "MemLog was calibrated without ACPI PM Timer: %a\n", InitError);
   }
 
   return Status;
@@ -218,8 +218,8 @@ MemLogInit () {
   @param  DebugMode   DebugMode will be passed to Callback function if it is set.
   @param  Format      The format string for the debug message to print.
   @param  Marker      VA_LIST with variable arguments for Format.
-
 **/
+
 VOID
 EFIAPI
 MemLogVA (
@@ -258,7 +258,7 @@ MemLogVA (
       }
 
       Offset = mMemLog->Cursor - mMemLog->Buffer;
-      mMemLog->Buffer = ReallocatePool(mMemLog->BufferSize, mMemLog->BufferSize + MEM_LOG_INITIAL_SIZE, mMemLog->Buffer);
+      mMemLog->Buffer = ReallocatePool (mMemLog->BufferSize, mMemLog->BufferSize + MEM_LOG_INITIAL_SIZE, mMemLog->Buffer);
       mMemLog->BufferSize += MEM_LOG_INITIAL_SIZE;
       mMemLog->Cursor = mMemLog->Buffer + Offset;
     }
@@ -300,13 +300,13 @@ MemLogVA (
   // Pass this last message to callback if defined
   //
   if (mMemLog->Callback != NULL) {
-    mMemLog->Callback(DebugMode, LastMessage);
+    mMemLog->Callback (DebugMode, LastMessage);
   }
 
   //
   // Write to standard debug device also
   //
-  DebugPrint(DEBUG_INFO, LastMessage);
+  DebugPrint (DEBUG_INFO, LastMessage);
 }
 
 /**
@@ -343,7 +343,7 @@ MemLog (
 /**
  Returns pointer to MemLog buffer.
  **/
-CHAR8*
+CHAR8 *
 EFIAPI
 GetMemLogBuffer () {
   EFI_STATUS    Status;
@@ -355,7 +355,7 @@ GetMemLogBuffer () {
     }
   }
 
-  return mMemLog != NULL ? mMemLog->Buffer : NULL;
+  return (mMemLog != NULL) ? mMemLog->Buffer : NULL;
 }
 
 
@@ -374,7 +374,7 @@ GetMemLogLen () {
     }
   }
 
-  return mMemLog != NULL ? mMemLog->Cursor - mMemLog->Buffer : 0;
+  return (mMemLog != NULL) ? mMemLog->Cursor - mMemLog->Buffer : 0;
 }
 
 /**

@@ -46,15 +46,14 @@
 #define DEBUG_SCAN_TOOL DEBUG_ALL
 #endif
 
-#define DBG(...) DebugLog(DEBUG_SCAN_TOOL, __VA_ARGS__)
+#define DBG(...) DebugLog (DEBUG_SCAN_TOOL, __VA_ARGS__)
 
 STATIC CHAR16 *ShellPath[] = {
-  L"Shell64U.efi",
   L"Shell64.efi",
   L"Shell.efi"
 };
 
-STATIC CONST INTN ShellPathCount = ARRAY_SIZE(ShellPath);
+STATIC CONST INTN ShellPathCount = ARRAY_SIZE (ShellPath);
 
 STATIC
 BOOLEAN
@@ -75,22 +74,22 @@ AddToolEntry (
     (LoaderPath == NULL) ||
     (Volume == NULL) ||
     (Volume->RootDir == NULL) ||
-    !FileExists(Volume->RootDir, LoaderPath)
+    !FileExists (Volume->RootDir, LoaderPath)
   ) {
     return FALSE;
   }
 
   // Allocate the entry
-  Entry = AllocateZeroPool(sizeof(LOADER_ENTRY));
+  Entry = AllocateZeroPool (sizeof (LOADER_ENTRY));
 
   if (Entry == NULL) {
     return FALSE;
   }
 
   if (FullTitle) {
-    Entry->me.Title = EfiStrDuplicate(FullTitle);
+    Entry->me.Title = EfiStrDuplicate (FullTitle);
   } else {
-    Entry->me.Title = PoolPrint(L"Start %s", LoaderTitle);
+    Entry->me.Title = PoolPrint (L"Start %s", LoaderTitle);
   }
 
   Entry->me.Tag             = TAG_TOOL;
@@ -98,14 +97,14 @@ AddToolEntry (
   Entry->me.ShortcutLetter  = ShortcutLetter;
   Entry->me.Image           = Image;
   Entry->me.ImageHover      = ImageHover;
-  Entry->LoaderPath         = EfiStrDuplicate(LoaderPath);
-  Entry->DevicePath         = FileDevicePath(Volume->DeviceHandle, Entry->LoaderPath);
-  Entry->DevicePathString   = FileDevicePathToStr(Entry->DevicePath);
+  Entry->LoaderPath         = EfiStrDuplicate (LoaderPath);
+  Entry->DevicePath         = FileDevicePath (Volume->DeviceHandle, Entry->LoaderPath);
+  Entry->DevicePathString   = FileDevicePathToStr (Entry->DevicePath);
   Entry->LoadOptions        = NULL;
   Entry->ToolOptions        = Options ? Options : NULL;
 
-  MsgLog("- %s\n", LoaderPath);
-  AddMenuEntry(&MainMenu, (REFIT_MENU_ENTRY *)Entry);
+  MsgLog ("- %s\n", LoaderPath);
+  AddMenuEntry (&MainMenu, (REFIT_MENU_ENTRY *)Entry);
 
   return TRUE;
 }
@@ -114,23 +113,23 @@ VOID
 ScanTool () {
   INTN    i;
 
-  //Print(L"Scanning for tools...\n");
+  //Print (L"Scanning for tools...\n");
 
   // look for the EFI shell
   if (!(GlobalConfig.DisableFlags & HIDEUI_FLAG_SHELL)) {
     for (i = 0; i < ShellPathCount; ++i) {
       if (AddToolEntry (
-            PoolPrint(L"%s\\%s", DIR_TOOLS, ShellPath[i]),
+            PoolPrint (L"%s\\%s", DIR_TOOLS, ShellPath[i]),
             NULL,
             L"UEFI Shell 64",
             SelfVolume,
-            BuiltinIcon(BUILTIN_ICON_TOOL_SHELL),
-            GetSmallHover(BUILTIN_ICON_TOOL_SHELL),
+            BuiltinIcon (BUILTIN_ICON_TOOL_SHELL),
+            GetSmallHover (BUILTIN_ICON_TOOL_SHELL),
             'S',
             NULL
           )
       ) {
-        //MsgLog("- %s\n", ShellPath[i]);
+        //MsgLog ("- %s\n", ShellPath[i]);
         break;
       }
     }
@@ -146,108 +145,109 @@ AddCustomTool () {
   EG_IMAGE            *Image, *ImageHover = NULL;
   CHAR16              *ImageHoverPath;
 
-  //DBG("Custom tool start\n");
-  DbgHeader("AddCustomTool");
+  //DBG ("Custom tool start\n");
+  DbgHeader ("AddCustomTool");
 
   // Traverse the custom entries
   for (Custom = gSettings.CustomTool; Custom; ++i, Custom = Custom->Next) {
-    if (OSFLAG_ISSET(Custom->Flags, OSFLAG_DISABLED)) {
-      DBG("Custom tool %d skipped because it is disabled.\n", i);
+    if (OSFLAG_ISSET (Custom->Flags, OSFLAG_DISABLED)) {
+      DBG ("Custom tool %d skipped because it is disabled.\n", i);
       continue;
     }
 
-    if (!gSettings.ShowHiddenEntries && OSFLAG_ISSET(Custom->Flags, OSFLAG_HIDDEN)) {
-      DBG("Custom tool %d skipped because it is hidden.\n", i);
+    if (!gSettings.ShowHiddenEntries && OSFLAG_ISSET (Custom->Flags, OSFLAG_HIDDEN)) {
+      DBG ("Custom tool %d skipped because it is hidden.\n", i);
       continue;
     }
 
     if (Custom->Volume) {
-      DBG("Custom tool %d matching \"%s\" ...\n", i, Custom->Volume);
+      DBG ("Custom tool %d matching \"%s\" ...\n", i, Custom->Volume);
     }
 
     for (VolumeIndex = 0; VolumeIndex < VolumesCount; ++VolumeIndex) {
       Volume = Volumes[VolumeIndex];
 
-      DBG("   Checking volume \"%s\" (%s) ... ", Volume->VolName, Volume->DevicePathString);
+      DBG ("   Checking volume \"%s\" (%s) ... ", Volume->VolName, Volume->DevicePathString);
 
       // Skip Whole Disc Boot
       if (Volume->RootDir == NULL) {
-        DBG("skipped because volume is not readable\n");
+        DBG ("skipped because volume is not readable\n");
         continue;
       }
 
       // skip volume if its kind is configured as disabled
-      if (MEDIA_VALID(Volume->DiskKind, GlobalConfig.DisableFlags)) {
-        DBG("skipped because media is disabled\n");
+      if (MEDIA_VALID (Volume->DiskKind, GlobalConfig.DisableFlags)) {
+        DBG ("skipped because media is disabled\n");
         continue;
       }
 
       if (Custom->VolumeType != 0) {
-        if (MEDIA_INVALID(Volume->DiskKind, Custom->VolumeType)) {
-          DBG("skipped because media is ignored\n");
+        if (MEDIA_INVALID (Volume->DiskKind, Custom->VolumeType)) {
+          DBG ("skipped because media is ignored\n");
           continue;
         }
       }
 
       if (Volume->Hidden) {
-        DBG("skipped because volume is hidden\n");
+        DBG ("skipped because volume is hidden\n");
         continue;
       }
 
       // Check for exact volume matches
       if (Custom->Volume) {
         if (
-          (StrStr(Volume->DevicePathString, Custom->Volume) == NULL) &&
-          ((Volume->VolName == NULL) || (StrStr(Volume->VolName, Custom->Volume) == NULL))
+          (StrStr (Volume->DevicePathString, Custom->Volume) == NULL) &&
+          ((Volume->VolName == NULL) || (StrStr (Volume->VolName, Custom->Volume) == NULL))
         ) {
-          DBG("skipped\n");
+          DBG ("skipped\n");
           continue;
         }
       }
 
       // Check the tool exists on the volume
-      if (!FileExists(Volume->RootDir, Custom->Path)) {
-        DBG("skipped because path does not exist\n");
+      if (!FileExists (Volume->RootDir, Custom->Path)) {
+        DBG ("skipped because path does not exist\n");
         continue;
       }
 
-      MsgLog("- [%02d]: %s\n", Basename(Custom->Path));
+      MsgLog ("- [%02d]: %s\n", Basename (Custom->Path));
 
       // Change to custom image if needed
       Image = Custom->Image;
       if ((Image == NULL) && Custom->ImagePath) {
-        ImageHoverPath = PoolPrint(
+        ImageHoverPath = PoolPrint (
                             L"%s_hover.%s",
-                            ReplaceExtension(Custom->ImagePath, L""),
-                            egFindExtension(Custom->ImagePath)
+                            ReplaceExtension (Custom->ImagePath, L""),
+                            FindExtension (Custom->ImagePath)
                           );
-        Image = egLoadImage(Volume->RootDir, Custom->ImagePath, TRUE);
+
+        Image = LoadImage (Volume->RootDir, Custom->ImagePath, TRUE);
         if (Image == NULL) {
-          Image = egLoadImage(ThemeDir, Custom->ImagePath, TRUE);
+          Image = LoadImage (ThemeDir, Custom->ImagePath, TRUE);
           if (Image == NULL) {
-            Image = egLoadImage(SelfDir, Custom->ImagePath, TRUE);
+            Image = LoadImage (SelfDir, Custom->ImagePath, TRUE);
             if (Image == NULL) {
-              Image = egLoadImage(SelfRootDir, Custom->ImagePath, TRUE);
+              Image = LoadImage (SelfRootDir, Custom->ImagePath, TRUE);
               if (Image != NULL) {
-                ImageHover = egLoadIcon(SelfRootDir, ImageHoverPath, 32);
+                ImageHover = LoadIcon (SelfRootDir, ImageHoverPath, 32);
               }
             } else {
-              ImageHover = egLoadIcon(SelfDir, ImageHoverPath, 32);
+              ImageHover = LoadIcon (SelfDir, ImageHoverPath, 32);
             }
           } else {
-            ImageHover = egLoadIcon(ThemeDir, ImageHoverPath, 32);
+            ImageHover = LoadIcon (ThemeDir, ImageHoverPath, 32);
           }
         } else {
-          ImageHover = egLoadIcon(Volume->RootDir, ImageHoverPath, 32);
+          ImageHover = LoadIcon (Volume->RootDir, ImageHoverPath, 32);
         }
-        FreePool(ImageHoverPath);
+        FreePool (ImageHoverPath);
       } else {
         // Image base64 data
       }
 
       if (Image == NULL) {
-        Image = BuiltinIcon(BUILTIN_ICON_TOOL_SHELL);
-        ImageHover = GetSmallHover(BUILTIN_ICON_TOOL_SHELL);
+        Image = BuiltinIcon (BUILTIN_ICON_TOOL_SHELL);
+        ImageHover = GetSmallHover (BUILTIN_ICON_TOOL_SHELL);
       }
 
       // Create a legacy entry for this volume
@@ -262,9 +262,9 @@ AddCustomTool () {
         Custom->Options
       );
 
-      DBG("match!\n");
+      DBG ("match!\n");
       break; // break scan volumes, continue scan entries
     }
   }
-  //DBG("Custom tool end\n");
+  //DBG ("Custom tool end\n");
 }

@@ -20,14 +20,14 @@ PUBLIC SavedGDTR
 PUBLIC SavedIDTR
 
 
-; addresses of relocated MyAsmCopyAndJumpToKernel code - filled by PrepareJumpFromKernel()
+; addresses of relocated MyAsmCopyAndJumpToKernel code - filled by PrepareJumpFromKernel ()
 PUBLIC MyAsmCopyAndJumpToKernel32Addr
 PUBLIC MyAsmCopyAndJumpToKernel64Addr
 
-; kernel entry address - filled by KernelEntryPatchJump()
+; kernel entry address - filled by KernelEntryPatchJump ()
 PUBLIC AsmKernelEntry
 
-; params for kernel image relocation - filled by KernelEntryPatchJumpBack()
+; params for kernel image relocation - filled by KernelEntryPatchJumpBack ()
 PUBLIC AsmKernelImageStartReloc
 PUBLIC AsmKernelImageStart
 PUBLIC AsmKernelImageSize
@@ -218,7 +218,7 @@ MyAsmPrepareJumpFromKernel   ENDP
 ;
 ; This code is patched with address of MyAsmJumpFromKernel
 ; (into MyAsmEntryPatchCodeJumpFromKernelPlaceholder)
-; and then copied to kernel entry address by KernelEntryPatchJump()
+; and then copied to kernel entry address by KernelEntryPatchJump ()
 ;------------------------------------------------------------------------------
 MyAsmEntryPatchCode   PROC
 ; .code32
@@ -553,7 +553,7 @@ MyAsmJumpFromKernel64   ENDP
 ; This is the last part of the code - it will copy kernel image from reloc
 ; block to proper mem place and jump to kernel.
 ; There are separate versions for 32 and 64 bit.
-; This code will be relocated (copied) to higher mem by PrepareJumpFromKernel().
+; This code will be relocated (copied) to higher mem by PrepareJumpFromKernel ().
 ;------------------------------------------------------------------------------
     align 08h
 MyAsmCopyAndJumpToKernel:

@@ -117,8 +117,8 @@ typedef struct {
 } EG_PIXEL;
 
 typedef struct {
-  INTN      Width;
-  INTN      Height;
+  INTN        Width;
+  INTN        Height;
   EG_PIXEL    *PixelData;
   BOOLEAN     HasAlpha;   //moved here to avoid alignment issue
 } EG_IMAGE;
@@ -129,7 +129,6 @@ typedef struct {
   INTN     Width;
   INTN     Height;
 } EG_RECT;
-
 
 #define TEXT_YMARGIN (2)
 #define TEXT_XMARGIN (8)
@@ -146,12 +145,12 @@ typedef struct {
 #define EG_EICOMPMODE_EFICOMPRESS   (2)
 
 typedef struct {
-  INTN          Width;
-  INTN          Height;
-  UINTN         PixelMode;
-  UINTN         CompressMode;
-  const UINT8   *Data;
-  UINTN         DataLength;
+        INTN          Width;
+        INTN          Height;
+        UINTN         PixelMode;
+        UINTN         CompressMode;
+  CONST UINT8         *Data;
+        UINTN         DataLength;
 } EG_EMBEDDED_IMAGE;
 
 typedef struct {
@@ -164,80 +163,80 @@ typedef struct {
 
 /* functions */
 
-VOID
-egInitScreen (
-  IN BOOLEAN    SetMaxResolution
-);
+//VOID
+//egInitScreen (
+//  IN BOOLEAN    SetMaxResolution
+//);
 
 VOID
-egDumpGOPVideoModes();
+DumpGOPVideoModes ();
 
 EFI_STATUS
-egSetMaxResolution();
+SetMaxResolution ();
 
 EFI_STATUS
-egSetScreenResolution (
+SetScreenResolution (
   IN CHAR16     *WidthHeight
 );
 
 EFI_STATUS
-egSetMode (
+SetMode (
   INT32     Next
 );
 
 VOID
-egGetScreenSize (
+GetScreenSize (
   OUT INTN    *ScreenWidth,
   OUT INTN    *ScreenHeight
 );
 
-CHAR16
-*egScreenDescription();
+CHAR16 *
+ScreenDescription ();
 
 BOOLEAN
-egHasGraphicsMode();
+HasGraphicsMode ();
 
 BOOLEAN
-egIsGraphicsModeEnabled();
+IsGraphicsModeEnabled ();
 
 VOID
-egSetGraphicsModeEnabled (
+SetGraphicsModeEnabled (
   IN BOOLEAN    Enable
 );
 
-// NOTE: Even when egHasGraphicsMode() returns FALSE, you should
-//  call egSetGraphicsModeEnabled(FALSE) to ensure the system
-//  is running in text mode. egHasGraphicsMode() only determines
+// NOTE: Even when HasGraphicsMode () returns FALSE, you should
+//  call SetGraphicsModeEnabled (FALSE) to ensure the system
+//  is running in text mode. HasGraphicsMode () only determines
 //  if libeg can draw to the screen in graphics mode.
 
-EG_IMAGE
-*egCreateImage (
+EG_IMAGE *
+CreateImage (
   IN INTN       Width,
   IN INTN       Height,
   IN BOOLEAN    HasAlpha
 );
 
-EG_IMAGE
-*egCreateFilledImage (
+EG_IMAGE *
+CreateFilledImage (
   IN INTN       Width,
   IN INTN       Height,
   IN BOOLEAN    HasAlpha,
   IN EG_PIXEL   *Color
 );
 
-EG_IMAGE
-*egCopyImage (
+EG_IMAGE *
+CopyImage (
   IN EG_IMAGE   *Image
 );
 
-EG_IMAGE
-*egCopyScaledImage (
+EG_IMAGE *
+CopyScaledImage (
   IN EG_IMAGE   *OldImage,
   IN INTN       Ratio
 );
 
 VOID
-egFreeImage (
+FreeImage (
   IN EG_IMAGE   *Image
 );
 
@@ -247,34 +246,34 @@ ScaleImage (
   IN EG_IMAGE     *OldImage
 );
 
-EG_IMAGE
-*egLoadImage (
+EG_IMAGE *
+LoadImage (
   IN EFI_FILE_HANDLE    BaseDir,
   IN CHAR16             *FileName,
   IN BOOLEAN            WantAlpha
 );
 
-EG_IMAGE
-*egLoadIcon (
+EG_IMAGE *
+LoadIcon (
   IN EFI_FILE_HANDLE  BaseDir,
   IN CHAR16           *FileName,
   IN UINTN            IconSize
 );
 
-EG_IMAGE
-*egPrepareEmbeddedImage (
+EG_IMAGE *
+PrepareEmbeddedImage (
   IN EG_EMBEDDED_IMAGE    *EmbeddedImage,
   IN BOOLEAN              WantAlpha
 );
 
 VOID
-egFillImage (
+FillImage (
   IN OUT EG_IMAGE     *CompImage,
   IN EG_PIXEL         *Color
 );
 
 VOID
-egFillImageArea (
+FillImageArea (
   IN OUT EG_IMAGE   *CompImage,
   IN INTN           AreaPosX,
   IN INTN           AreaPosY,
@@ -284,7 +283,7 @@ egFillImageArea (
 );
 
 VOID
-egComposeImage (
+ComposeImage (
   IN OUT EG_IMAGE   *CompImage,
   IN EG_IMAGE       *TopImage,
   IN INTN           PosX,
@@ -292,17 +291,17 @@ egComposeImage (
 );
 
 VOID
-PrepareFont();
+PrepareFont ();
 
 VOID
-egMeasureText (
+MeasureText (
   IN  CHAR16    *Text,
   OUT INTN      *Width,
   OUT INTN      *Height
 );
 
 INTN
-egRenderText (
+RenderText (
   IN CHAR16         *Text,
   IN OUT EG_IMAGE   *CompImage,
   IN INTN           PosX,
@@ -312,12 +311,12 @@ egRenderText (
 );
 
 VOID
-egClearScreen (
+ClearScreen (
   IN EG_PIXEL     *Color
 );
 
 VOID
-egDrawImageArea (
+DrawImageArea (
   IN EG_IMAGE   *Image,
   IN INTN       AreaPosX,
   IN INTN       AreaPosY,
@@ -328,7 +327,7 @@ egDrawImageArea (
 );
 
 VOID
-egTakeImage (
+TakeImage (
   IN  EG_IMAGE    *Image,
       INTN        ScreenPosX,
       INTN        ScreenPosY,
@@ -337,7 +336,7 @@ egTakeImage (
 );
 
 EFI_STATUS
-egScreenShot();
+ScreenShot ();
 
 #endif /* __LIBEG_LIBEG_H__ */
 

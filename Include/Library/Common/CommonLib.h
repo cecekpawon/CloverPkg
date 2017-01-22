@@ -51,9 +51,9 @@ AsciiTrimSpaces (
 UINT64
 EFIAPI
 AsciiStrVersionToUint64 (
-  CONST   CHAR8 *Version,
-  UINT8   MaxDigitByPart,
-  UINT8   MaxParts
+  CONST CHAR8   *Version,
+        UINT8   MaxDigitByPart,
+        UINT8   MaxParts
 );
 
 UINT32
@@ -72,9 +72,16 @@ hexstrtouint8 (
 
 CHAR8 *
 EFIAPI
-Bytes2HexStr (
+Bytes2Hex (
   UINT8   *data,
   UINTN   len
+);
+
+CHAR8 *
+EFIAPI
+Bytes2HexStr (
+  UINT8   *Bytes,
+  UINTN   Len
 );
 
 CHAR16 *
@@ -95,6 +102,13 @@ EFIAPI
 StriStartsWith (
   IN CHAR16   *String1,
   IN CHAR16   *String2
+);
+
+UINTN
+EFIAPI
+iStrLen (
+  CHAR8   *String,
+  UINTN   MaxLen
 );
 
 //
@@ -199,6 +213,13 @@ CHAR16 *
 EFIAPI
 GuidStr (
   IN EFI_GUID   *Guid
+);
+
+INTN
+EFIAPI
+CountOccurrences (
+  CHAR8   *s,
+  CHAR8   c
 );
 
 #endif  // _GENERIC_ICH_H_

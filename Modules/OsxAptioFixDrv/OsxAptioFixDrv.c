@@ -23,22 +23,6 @@
 #include "VMem.h"
 #include "Lib.h"
 
-// DBG_TO: 0=no debug, 1=serial, 2=console
-// serial requires
-// [PcdsFixedAtBuild]
-//  gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|0x07
-//  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0xFFFFFFFF
-// in package DSC file
-#define DBG_TO 0
-
-#if DBG_TO == 2
-  #define DBG(...) AsciiPrint(__VA_ARGS__);
-#elif DBG_TO == 1
-  #define DBG(...) DebugPrint(1, __VA_ARGS__);
-#else
-  #define DBG(...)
-#endif
-
 // defines the size of block that will be allocated for kernel image relocation,
 //   without RT and MMIO regions
 // rehabman - Increase the size for ElCapitan to 128Mb 0x8000
@@ -75,7 +59,7 @@ UINT32                    gLastDescriptorVersion = 0;
 
 EFI_GUID  gAptioFixProtocolGuid = {0xB79DCC2E, 0x61BE, 0x453F, {0xBC, 0xAC, 0xC2, 0x60, 0xFA, 0xAE, 0xCC, 0xDA}};
 
-/** Helper function that calls GetMemoryMap() and returns new MapKey.
+/** Helper function that calls GetMemoryMap () and returns new MapKey.
  * Uses gStoredGetMemoryMap, so can be called only after gStoredGetMemoryMap is set.
  */
 EFI_STATUS
@@ -89,6 +73,7 @@ GetMemoryMapKey (
   UINT32                  DescriptorVersion;
 
   Status = GetMemoryMapAlloc (gStoredGetMemoryMap, &MemoryMapSize, &MemoryMap, MapKey, &DescriptorSize, &DescriptorVersion);
+
   return Status;
 }
 
@@ -143,8 +128,8 @@ CalculateRelocBlockSize () {
   // Sum pages needed for RT and MMIO areas
   Status = GetNumberOfRTPages (&NumPagesRT);
   if (EFI_ERROR (Status)) {
-    //DBG ("OsxAptioFixDrv: CalculateRelocBlockSize(): GetNumberOfRTPages: %r\n", Status);
-    //Print (L"OsxAptioFixDrv: CalculateRelocBlockSize(): GetNumberOfRTPages: %r\n", Status);
+    //DBG ("OsxAptioFixDrv: CalculateRelocBlockSize (): GetNumberOfRTPages: %r\n", Status);
+    //Print (L"OsxAptioFixDrv: CalculateRelocBlockSize (): GetNumberOfRTPages: %r\n", Status);
     return Status;
   }
 
@@ -166,18 +151,18 @@ AllocateRelocBlock () {
   Addr = 0x100000000; // max address
   Status = AllocatePagesFromTop (EfiBootServicesData, gRelocSizePages, &Addr);
   if (Status != EFI_SUCCESS) {
-    //DBG ("OsxAptioFixDrv: AllocateRelocBlock(): can not allocate relocation block (0x%x pages below 0x%lx): %r\n",
+    //DBG ("OsxAptioFixDrv: AllocateRelocBlock (): can not allocate relocation block (0x%x pages below 0x%lx): %r\n",
     //  gRelocSizePages, Addr, Status);
-    //Print (L"OsxAptioFixDrv: AllocateRelocBlock(): can not allocate relocation block (0x%x pages below 0x%lx): %r\n",
+    //Print (L"OsxAptioFixDrv: AllocateRelocBlock (): can not allocate relocation block (0x%x pages below 0x%lx): %r\n",
     //  gRelocSizePages, Addr, Status);
     return Status;
   } else {
     gRelocBase = Addr;
-    //DBG ("OsxAptioFixDrv: AllocateRelocBlock(): gRelocBase set to %lx - %lx\n", gRelocBase, gRelocBase + EFI_PAGES_TO_SIZE(gRelocSizePages) - 1);
+    //DBG ("OsxAptioFixDrv: AllocateRelocBlock (): gRelocBase set to %lx - %lx\n", gRelocBase, gRelocBase + EFI_PAGES_TO_SIZE (gRelocSizePages) - 1);
   }
 
   // set reloc addr in runtime vars for boot manager
-  //Print (L"OsxAptioFixDrv: AllocateRelocBlock(): gRelocBase set to %lx - %lx\n", gRelocBase, gRelocBase + EFI_PAGES_TO_SIZE(gRelocSizePages) - 1);
+  //Print (L"OsxAptioFixDrv: AllocateRelocBlock (): gRelocBase set to %lx - %lx\n", gRelocBase, gRelocBase + EFI_PAGES_TO_SIZE (gRelocSizePages) - 1);
   /*Status = */gRT->SetVariable (L"OsxAptioFixDrv-RelocBase", &gEfiGlobalVariableGuid,
                 /*   EFI_VARIABLE_NON_VOLATILE |*/ EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS,
                 sizeof (gRelocBase) ,&gRelocBase);
@@ -197,7 +182,8 @@ FreeRelocBlock () {
   * If this is the case, we'll intercept that call and return EfiGraphicsOutputProtocol
   * from that other handle.
   */
-EFI_STATUS EFIAPI
+EFI_STATUS
+EFIAPI
 MOHandleProtocol (
   IN  EFI_HANDLE    Handle,
   IN  EFI_GUID      *Protocol,
@@ -211,11 +197,11 @@ MOHandleProtocol (
     res = gHandleProtocol (Handle, Protocol, Interface);
     if (res != EFI_SUCCESS) {
       // let's find it on some other handle
-      res = gBS->LocateProtocol (&gEfiGraphicsOutputProtocolGuid, NULL, (VOID**)&GraphicsOutput);
+      res = gBS->LocateProtocol (&gEfiGraphicsOutputProtocolGuid, NULL, (VOID **)&GraphicsOutput);
       if (res == EFI_SUCCESS) {
         // return it
         *Interface = GraphicsOutput;
-        //DBG ("->HandleProtocol(%p, %s, %p) = %r (returning from other handle)\n", Handle, GuidStr(Protocol), *Interface, res);
+        //DBG ("->HandleProtocol (%p, %s, %p) = %r (returning from other handle)\n", Handle, GuidStr (Protocol), *Interface, res);
 
         return res;
       }
@@ -224,7 +210,7 @@ MOHandleProtocol (
     res = gHandleProtocol (Handle, Protocol, Interface);
   }
 
-  //DBG ("->HandleProtocol(%p, %s, %p) = %r\n", Handle, GuidStr(Protocol), *Interface, res);
+  //DBG ("->HandleProtocol (%p, %s, %p) = %r\n", Handle, GuidStr (Protocol), *Interface, res);
 
   return res;
 }
@@ -262,11 +248,11 @@ MOAllocatePages (
       Print (L"OsxAptipFixDrv: Error - requested memory exceeds our allocated relocation block\n");
       //Print (L"Requested mem: %lx - %lx, Pages: %x, Size: %lx\n",
       //    *Memory, UpperAddr - 1,
-      //    NumberOfPages, EFI_PAGES_TO_SIZE(NumberOfPages)
+      //    NumberOfPages, EFI_PAGES_TO_SIZE (NumberOfPages)
       //    );
       //Print (L"Reloc block: %lx - %lx, Pages: %x, Size: %lx\n",
-      //    gRelocBase, gRelocBase + EFI_PAGES_TO_SIZE(gRelocSizePages) - 1,
-      //    gRelocSizePages, EFI_PAGES_TO_SIZE(gRelocSizePages)
+      //    gRelocBase, gRelocBase + EFI_PAGES_TO_SIZE (gRelocSizePages) - 1,
+      //    gRelocSizePages, EFI_PAGES_TO_SIZE (gRelocSizePages)
       //    );
       //Print (L"Reloc block can handle mem requests: %lx - %lx\n",
       //    0, EFI_PAGES_TO_SIZE (gRelocSizePages) - 1
@@ -297,7 +283,7 @@ MOAllocatePages (
     Status = gStoredAllocatePages (Type, MemoryType, NumberOfPages, Memory);
   }
 
-  //DBG ("AllocatePages(%s, %s, %x, %lx/%lx) = %r %c\n",
+  //DBG ("AllocatePages (%s, %s, %x, %lx/%lx) = %r %c\n",
   //  EfiAllocateTypeDesc[Type], EfiMemoryTypeDesc[MemoryType], NumberOfPages, MemoryIn, *Memory, Status, FromRelocBlock ? L'+' : L' ');
   return Status;
 }
@@ -335,7 +321,7 @@ MOGetMemoryMap (
 }
 
 /** gBS->ExitBootServices override:
-  * Patches kernel entry point with jump to our KernelEntryPatchJumpBack().
+  * Patches kernel entry point with jump to our KernelEntryPatchJumpBack ().
   */
 EFI_STATUS
 EFIAPI
@@ -349,7 +335,7 @@ MOExitBootServices (
 
   // for  tests: we can just return EFI_SUCCESS and continue using Print for debug.
   //Status = EFI_SUCCESS;
-  //Print (L"ExitBootServices()\n");
+  //Print (L"ExitBootServices ()\n");
   Status = gStoredExitBootServices (ImageHandle, MapKey);
 
   if (EFI_ERROR (Status)) {
@@ -368,22 +354,22 @@ MOExitBootServices (
       Status = gStoredExitBootServices (ImageHandle, NewMapKey);
       //if (EFI_ERROR (Status)) {
       //  // Error!
-      //  Print (L"OsxAptioFixDrv: Error ExitBootServices() 2nd try = Status: %r\n", Status);
+      //  Print (L"OsxAptioFixDrv: Error ExitBootServices () 2nd try = Status: %r\n", Status);
       //}
     } else {
-      //Print (L"OsxAptioFixDrv: Error ExitBootServices(), GetMemoryMapKey() = Status: %r\n", Status);
+      //Print (L"OsxAptioFixDrv: Error ExitBootServices (), GetMemoryMapKey () = Status: %r\n", Status);
       Status = EFI_INVALID_PARAMETER;
     }
   }
 
   if (EFI_ERROR (Status)) {
     Print (L"... waiting 10 secs ...\n");
-    gBS->Stall (10*1000000);
+    gBS->Stall (10 * 1000000);
     return Status;
   }
 
   //DBG ("ExitBootServices: gMinAllocatedAddr: %lx, gMaxAllocatedAddr: %lx\n", gMinAllocatedAddr, gMaxAllocatedAddr);
-  MachOImage = (VOID*)(UINTN)(gRelocBase + 0x200000);
+  MachOImage = (VOID *)(UINTN)(gRelocBase + 0x200000);
   KernelEntryFromMachOPatchJump (MachOImage, SlideAddr);
 
   return Status;
@@ -401,9 +387,9 @@ KernelEntryPatchJumpBack (
 
   // debug for jumping back to kernel
   // put HLT to kernel entry point to stop there
-  //SetMem ((VOID*)(UINTN)(AsmKernelEntry + gRelocBase), 1, 0xF4);
+  //SetMem ((VOID *)(UINTN)(AsmKernelEntry + gRelocBase), 1, 0xF4);
   // put 0 to kernel entry point to restart
-  //SetMem64((VOID*)(UINTN)(AsmKernelEntry + gRelocBase), 1, 0);
+  //SetMem64 ((VOID *)(UINTN)(AsmKernelEntry + gRelocBase), 1, 0);
 
   return bootArgs;
 }
@@ -414,7 +400,7 @@ KernelEntryPatchJumpBack (
   * Allocates kernel image reloc block, installs UEFI overrides and starts given image.
   * If image returns, then deinstalls overrides and releases kernel image reloc block.
   *
-  * If started with ImgContext->JumpBuffer, then it will return with LongJump().
+  * If started with ImgContext->JumpBuffer, then it will return with LongJump ().
   */
 EFI_STATUS
 RunImageWithOverrides (
@@ -461,7 +447,7 @@ RunImageWithOverrides (
   gBS->HandleProtocol = MOHandleProtocol;
 
   gBS->Hdr.CRC32 = 0;
-  gBS->CalculateCrc32(gBS, gBS->Hdr.HeaderSize, &gBS->Hdr.CRC32);
+  gBS->CalculateCrc32 (gBS, gBS->Hdr.HeaderSize, &gBS->Hdr.CRC32);
 
   // run image
   Status = gStartImage (ImageHandle, ExitDataSize, ExitData);
@@ -476,7 +462,7 @@ RunImageWithOverrides (
   gBS->HandleProtocol = gHandleProtocol;
 
   gBS->Hdr.CRC32 = 0;
-  gBS->CalculateCrc32(gBS, gBS->Hdr.HeaderSize, &gBS->Hdr.CRC32);
+  gBS->CalculateCrc32 (gBS, gBS->Hdr.HeaderSize, &gBS->Hdr.CRC32);
 
   // release reloc block
   FreeRelocBlock ();
@@ -501,12 +487,12 @@ MOStartImage (
   CHAR16                      *FilePathText = NULL;
   UINTN                       Size = 0;
 
-  //DBG ("StartImage(%lx)\n", ImageHandle);
+  //DBG ("StartImage (%lx)\n", ImageHandle);
 
   // find out image name from EfiLoadedImageProtocol
-  Status = gBS->OpenProtocol(ImageHandle, &gEfiLoadedImageProtocolGuid, (VOID **) &Image, gImageHandle, NULL, EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+  Status = gBS->OpenProtocol (ImageHandle, &gEfiLoadedImageProtocolGuid, (VOID **) &Image, gImageHandle, NULL, EFI_OPEN_PROTOCOL_GET_PROTOCOL);
   if (Status != EFI_SUCCESS) {
-    //DBG("ERROR: MOStartImage: OpenProtocol(gEfiLoadedImageProtocolGuid) = %r\n", Status);
+    //DBG ("ERROR: MOStartImage: OpenProtocol (gEfiLoadedImageProtocolGuid) = %r\n", Status);
     return EFI_INVALID_PARAMETER;
   }
 
@@ -565,24 +551,23 @@ OsxAptioFixDrvEntrypoint (
   gStartImage = gBS->StartImage;
   gBS->StartImage = MOStartImage;
   gBS->Hdr.CRC32 = 0;
-  gBS->CalculateCrc32(gBS, gBS->Hdr.HeaderSize, &gBS->Hdr.CRC32);
+  gBS->CalculateCrc32 (gBS, gBS->Hdr.HeaderSize, &gBS->Hdr.CRC32);
 
   // install APTIOFIX_PROTOCOL to new handle
-  AptioFix = AllocateZeroPool(sizeof(APTIOFIX_PROTOCOL));
+  AptioFix = AllocateZeroPool (sizeof (APTIOFIX_PROTOCOL));
 
   if (AptioFix == NULL)   {
-    DBG("%a: Can not allocate memory for APTIOFIX_PROTOCOL\n", __FUNCTION__);
+    DBG ("%a: Can not allocate memory for APTIOFIX_PROTOCOL\n", __FUNCTION__);
     return EFI_OUT_OF_RESOURCES;
   }
 
   AptioFix->Signature = APTIOFIX_SIGNATURE;
   AptioFixIHandle = NULL; // install to new handle
-  Status = gBS->InstallMultipleProtocolInterfaces(&AptioFixIHandle, &gAptioFixProtocolGuid, AptioFix, NULL);
+  Status = gBS->InstallMultipleProtocolInterfaces (&AptioFixIHandle, &gAptioFixProtocolGuid, AptioFix, NULL);
 
-  if (EFI_ERROR(Status)) {
-    DBG("%a: error installing APTIOFIX_PROTOCOL, Status = %r\n", __FUNCTION__, Status);
+  if (EFI_ERROR (Status)) {
+    DBG ("%a: error installing APTIOFIX_PROTOCOL, Status = %r\n", __FUNCTION__, Status);
   }
 
   return EFI_SUCCESS;
 }
-

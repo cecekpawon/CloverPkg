@@ -30,7 +30,7 @@ OnExitBootServices (
   /*
   if (DoHibernateWake) {
     gST->ConOut->OutputString (gST->ConOut, L"wake!!!");
-    gBS->Stall(5000000);     // 5 seconds delay
+    gBS->Stall (5000000);     // 5 seconds delay
     return;
   }
   */
@@ -41,7 +41,7 @@ OnExitBootServices (
   // Patch kernel and kexts if needed
   //
 
-  KernelAndKextsPatcherStart((LOADER_ENTRY *)Context);
+  KernelAndKextsPatcherStart ((LOADER_ENTRY *)Context);
 }
 
 #if 0
@@ -74,11 +74,11 @@ OnSimpleFileSystem (
 
   OldTpl = gBS->RaiseTPL (TPL_NOTIFY);
   gEvent = 1;
-  //ReinitRefitLib();
-  //ScanVolumes();
+  //ReinitRefitLib ();
+  //ScanVolumes ();
   //enter GUI
-  // DrawMenuText(L"OnSimpleFileSystem", 0, 0, UGAHeight-40, 1);
-  // MsgLog("OnSimpleFileSystem occured\n");
+  // DrawMenuText (L"OnSimpleFileSystem", 0, 0, UGAHeight-40, 1);
+  // MsgLog ("OnSimpleFileSystem occured\n");
 
   gBS->RestoreTPL (OldTpl);
 }
@@ -98,7 +98,7 @@ GuiEventsInitialize () {
                  &Event
                 );
 
-  if (!EFI_ERROR(Status)) {
+  if (!EFI_ERROR (Status)) {
     Status = gBS->RegisterProtocolNotify (
                     &gEfiSimpleFileSystemProtocolGuid,
                     Event,
@@ -121,7 +121,7 @@ EventsInitialize (
   //
   // Register the event to reclaim variable for OS usage.
   //
-  //EfiCreateEventReadyToBoot(&OnReadyToBootEvent);
+  //EfiCreateEventReadyToBoot (&OnReadyToBootEvent);
   /*
   EfiCreateEventReadyToBootEx (
    TPL_NOTIFY,
@@ -142,7 +142,7 @@ EventsInitialize (
                   &ExitBootServiceEvent
                 );
 
-  if (!EFI_ERROR(Status)) {
+  if (!EFI_ERROR (Status)) {
     /*Status = */gBS->RegisterProtocolNotify (
                        &gEfiStatusCodeRuntimeProtocolGuid,
                        ExitBootServiceEvent,

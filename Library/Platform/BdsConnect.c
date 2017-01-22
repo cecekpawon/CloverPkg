@@ -17,12 +17,12 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 /**
   This function will connect all current system handles recursively.
 
-  gBS->ConnectController() service is invoked for each handle exist in system handler buffer.
+  gBS->ConnectController () service is invoked for each handle exist in system handler buffer.
   If the handle is bus type handler, all childrens also will be connected recursively
-  by gBS->ConnectController().
+  by gBS->ConnectController ().
 
   @retval EFI_SUCCESS           All handles and it's child handle have been connected
-  @retval EFI_STATUS            Error status returned by of gBS->LocateHandleBuffer().
+  @retval EFI_STATUS            Error status returned by of gBS->LocateHandleBuffer ().
 
 **/
 EFI_STATUS
@@ -205,7 +205,7 @@ BdsLibConnectMostlyAllEfi () {
   }
 
   for (Index = 0; Index < AllHandleCount; Index++) {
-    Status = ScanDeviceHandles(AllHandleBuffer[Index], &HandleCount, &HandleBuffer, &HandleType);
+    Status = ScanDeviceHandles (AllHandleBuffer[Index], &HandleCount, &HandleBuffer, &HandleType);
 
     if (EFI_ERROR (Status)) {
       goto Done;
@@ -232,17 +232,17 @@ BdsLibConnectMostlyAllEfi () {
 
       if (!Parent) {
         if (HandleType[Index] & EFI_HANDLE_TYPE_DEVICE_HANDLE) {
-          Status = gBS->HandleProtocol (AllHandleBuffer[Index], &gEfiPciIoProtocolGuid, (VOID*)&PciIo);
+          Status = gBS->HandleProtocol (AllHandleBuffer[Index], &gEfiPciIoProtocolGuid, (VOID *)&PciIo);
           if (!EFI_ERROR (Status)) {
             Status = PciIo->Pci.Read (PciIo,EfiPciIoWidthUint32, 0, sizeof (Pci) / sizeof (UINT32), &Pci);
             if (!EFI_ERROR (Status)) {
-              if(IS_PCI_VGA(&Pci) == TRUE) {
-                gBS->DisconnectController(AllHandleBuffer[Index], NULL, NULL);
+              if (IS_PCI_VGA (&Pci) == TRUE) {
+                gBS->DisconnectController (AllHandleBuffer[Index], NULL, NULL);
               }
             }
           }
 
-          Status = gBS->ConnectController(AllHandleBuffer[Index], NULL, NULL, TRUE);
+          Status = gBS->ConnectController (AllHandleBuffer[Index], NULL, NULL, TRUE);
         }
       }
     }

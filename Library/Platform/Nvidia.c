@@ -61,19 +61,19 @@
 #define DEBUG_NVIDIA DEBUG_ALL
 #endif
 
-#define DBG(...) DebugLog(DEBUG_NVIDIA, __VA_ARGS__)
+#define DBG(...) DebugLog (DEBUG_NVIDIA, __VA_ARGS__)
 
-CHAR8 generic_name[128];
+CHAR8   generic_name[128];
 
-const CHAR8 *nvidia_compatible_0[]        = { "@0,compatible",  "NVDA,NVMac"     };
-const CHAR8 *nvidia_compatible_1[]        = { "@1,compatible",  "NVDA,NVMac"     };
-const CHAR8 *nvidia_device_type_0[]       = { "@0,device_type", "display"        };
-const CHAR8 *nvidia_device_type_1[]       = { "@1,device_type", "display"        };
-const CHAR8 *nvidia_device_type_parent[]  = { "device_type",    "NVDA,Parent"    };
-const CHAR8 *nvidia_device_type_child[]   = { "device_type",    "NVDA,Child"     };
-const CHAR8 *nvidia_name_0[]              = { "@0,name",        "NVDA,Display-A" };
-const CHAR8 *nvidia_name_1[]              = { "@1,name",        "NVDA,Display-B" };
-//const CHAR8 *nvidia_slot_name[]           = { "AAPL,slot-name", "Slot-1"        };
+CONST CHAR8 *nvidia_compatible_0[]        = { "@0,compatible",  "NVDA,NVMac"     };
+CONST CHAR8 *nvidia_compatible_1[]        = { "@1,compatible",  "NVDA,NVMac"     };
+CONST CHAR8 *nvidia_device_type_0[]       = { "@0,device_type", "display"        };
+CONST CHAR8 *nvidia_device_type_1[]       = { "@1,device_type", "display"        };
+CONST CHAR8 *nvidia_device_type_parent[]  = { "device_type",    "NVDA,Parent"    };
+CONST CHAR8 *nvidia_device_type_child[]   = { "device_type",    "NVDA,Child"     };
+CONST CHAR8 *nvidia_name_0[]              = { "@0,name",        "NVDA,Display-A" };
+CONST CHAR8 *nvidia_name_1[]              = { "@1,name",        "NVDA,Display-B" };
+//CONST CHAR8 *nvidia_slot_name[]           = { "AAPL,slot-name", "Slot-1"        };
 
 UINT8 default_NVCAP[]= {
   0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00,
@@ -81,13 +81,13 @@ UINT8 default_NVCAP[]= {
   0x00, 0x00, 0x00, 0x00
 };
 
-#define NVCAP_LEN ( sizeof(default_NVCAP) / sizeof(UINT8) )
+#define NVCAP_LEN (sizeof(default_NVCAP) / sizeof(UINT8))
 
 //UINT8 default_dcfg_0[]= {0x03, 0x01, 0x03, 0x00};
 //UINT8 default_dcfg_1[]= {0xff, 0xff, 0x00, 0x01};
 //
-//#define DCFG0_LEN ( sizeof(default_dcfg_0) / sizeof(UINT8) )
-//#define DCFG1_LEN ( sizeof(default_dcfg_1) / sizeof(UINT8) )
+//#define DCFG0_LEN ( sizeof (default_dcfg_0) / sizeof (UINT8) )
+//#define DCFG1_LEN ( sizeof (default_dcfg_1) / sizeof (UINT8) )
 //
 //UINT8 default_NVPM[]= {
 //  0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -96,17 +96,17 @@ UINT8 default_NVCAP[]= {
 //  0x00, 0x00, 0x00, 0x00
 //};
 //
-//#define NVPM_LEN ( sizeof(default_NVPM) / sizeof(UINT8) )
+//#define NVPM_LEN ( sizeof (default_NVPM) / sizeof (UINT8) )
 
 
-#define S_NVIDIAMODEL "NVIDIA Graphics"
+#define S_NVIDIAMODEL "Nvidia Graphics"
 
-//static nvidia_pci_info_t nvidia_card_generic[] = {
-//  { 0x10DE0000, "NVIDIA Graphics" }
+//STATIC nvidia_pci_info_t nvidia_card_generic[] = {
+//  { 0x10DE0000, "Nvidia Graphics" }
 //};
 
 EFI_STATUS
-read_nVidia_PRAMIN (
+ReadNvidiaPRAMIN (
   pci_dt_t    *nvda_dev,
   VOID        *rom,
   UINT16      arch
@@ -116,18 +116,18 @@ read_nVidia_PRAMIN (
   PCI_TYPE00            Pci;
   UINT32                vbios_vram = 0, old_bar0_pramin = 0;
 
-  DBG("read_nVidia_ROM\n");
+  DBG ("read_nVidia_ROM\n");
 
   Status = gBS->OpenProtocol (
                   nvda_dev->DeviceHandle,
                   &gEfiPciIoProtocolGuid,
-                  (VOID**)&PciIo,
+                  (VOID **)&PciIo,
                   gImageHandle,
                   NULL,
                   EFI_OPEN_PROTOCOL_GET_PROTOCOL
                 );
 
-  if (EFI_ERROR(Status)) {
+  if (EFI_ERROR (Status)) {
     return EFI_NOT_FOUND;
   }
 
@@ -135,16 +135,16 @@ read_nVidia_PRAMIN (
                         PciIo,
                         EfiPciIoWidthUint32,
                         0,
-                        sizeof(Pci) / sizeof(UINT32),
+                        sizeof (Pci) / sizeof (UINT32),
                         &Pci
                       );
 
-  if (EFI_ERROR(Status)) {
+  if (EFI_ERROR (Status)) {
     return EFI_NOT_FOUND;
   }
 
   if (arch >= 0x50) {
-    DBG("Using PRAMIN fixups\n");
+    DBG ("Using PRAMIN fixups\n");
     /*Status = */PciIo->Mem.Read (
                               PciIo,
                               EfiPciIoWidthUint32,
@@ -200,8 +200,8 @@ read_nVidia_PRAMIN (
                             );
   }
 
-  if (EFI_ERROR(Status)) {
-    DBG("read_nVidia_ROM failed\n");
+  if (EFI_ERROR (Status)) {
+    DBG ("read_nVidia_ROM failed\n");
     return Status;
   }
 
@@ -210,7 +210,7 @@ read_nVidia_PRAMIN (
 
 
 EFI_STATUS
-read_nVidia_PROM (
+ReadNvidiaPROM (
   pci_dt_t    *nvda_dev,
   VOID        *rom
 ) {
@@ -219,28 +219,28 @@ read_nVidia_PROM (
   PCI_TYPE00              Pci;
   UINT32                  value;
 
-  DBG("PROM\n");
+  DBG ("PROM\n");
   Status = gBS->OpenProtocol (
                   nvda_dev->DeviceHandle,
                   &gEfiPciIoProtocolGuid,
-                  (VOID**)&PciIo,
+                  (VOID **)&PciIo,
                   gImageHandle,
                   NULL,
                   EFI_OPEN_PROTOCOL_GET_PROTOCOL
                 );
 
-  if (EFI_ERROR(Status)) {
+  if (EFI_ERROR (Status)) {
     return EFI_NOT_FOUND;
   }
 
-  Status = PciIo->Pci.Read(PciIo,
+  Status = PciIo->Pci.Read (PciIo,
                         EfiPciIoWidthUint32,
                         0,
-                        sizeof(Pci) / sizeof(UINT32),
+                        sizeof (Pci) / sizeof (UINT32),
                         &Pci
                       );
 
-  if (EFI_ERROR(Status)) {
+  if (EFI_ERROR (Status)) {
     return EFI_NOT_FOUND;
   }
 
@@ -249,7 +249,7 @@ read_nVidia_PROM (
                             PciIo,
                             EfiPciIoWidthUint32,
                             0,
-                            NV_PBUS_PCI_NV_20*4,
+                            NV_PBUS_PCI_NV_20 * 4,
                             1,
                             &value
                           );
@@ -268,22 +268,22 @@ read_nVidia_PROM (
                             PciIo,
                             EfiPciIoWidthUint32,
                             0,
-                            NV_PBUS_PCI_NV_20*4,
+                            NV_PBUS_PCI_NV_20 * 4,
                             1,
                             &value
                           );
 
-  if (EFI_ERROR(Status)) {
-    DBG("read_nVidia_ROM failed\n");
+  if (EFI_ERROR (Status)) {
+    DBG ("read_nVidia_ROM failed\n");
     return Status;
   }
 
   return EFI_SUCCESS;
 }
 
-static
+STATIC
 INT32
-patch_nvidia_rom (
+PatchNvidiaROM (
   UINT8   *rom
 ) {
   UINT8   num_outputs = 0, i = 0, dcbtable_version, headerlength = 0, numentries = 0,
@@ -297,20 +297,20 @@ patch_nvidia_rom (
     UINT8   *heads;
   } entries[MAX_NUM_DCB_ENTRIES];
 
-//  DBG("patch_nvidia_rom\n");
+  //DBG ("PatchNvidiaROM\n");
   if (!rom || ((rom[0] != 0x55) && (rom[1] != 0xaa))) {
-    DBG("FALSE ROM signature: 0x%02x%02x\n", rom[0], rom[1]);
+    DBG ("FALSE ROM signature: 0x%02x%02x\n", rom[0], rom[1]);
     return PATCH_ROM_FAILED;
   }
 
-  //  dcbptr = SwapBytes16(read16(rom, 0x36)); //double swap !!!
-  dcbptr = *(UINT16*)&rom[0x36];
-  if(!dcbptr) {
-    DBG("no dcb table found\n");
+  //  dcbptr = SwapBytes16 (read16 (rom, 0x36)); //double swap !!!
+  dcbptr = *(UINT16 *)&rom[0x36];
+  if (!dcbptr) {
+    DBG ("no dcb table found\n");
     return PATCH_ROM_FAILED;
   }
   //  else
-  //    DBG("dcb table at offset 0x%04x\n", dcbptr);
+  //    DBG ("dcb table at offset 0x%04x\n", dcbptr);
 
   dcbtable = &rom[dcbptr];
   dcbtable_version  = dcbtable[0];
@@ -329,22 +329,22 @@ patch_nvidia_rom (
     }
 
     if (sig != 0x4edcbdcb) {
-      DBG("Bad display config block signature (0x%8x)\n", sig); //Azi: issue #48
+      DBG ("Bad display config block signature (0x%8x)\n", sig); //Azi: issue #48
       return PATCH_ROM_FAILED;
     }
   } else if (dcbtable_version >= 0x14) { /* some NV15/16, and NV11+ */
     CHAR8   sig[8]; // = { 0 };
 
-    AsciiStrnCpyS(sig, ARRAY_SIZE(sig), (CHAR8 *)&dcbtable[-7], 7);
+    AsciiStrnCpyS (sig, ARRAY_SIZE (sig), (CHAR8 *)&dcbtable[-7], 7);
     sig[7] = 0;
     recordlength = 10;
 
-    if (AsciiStrCmp(sig, "DEV_REC")) {
-      DBG("Bad Display Configuration Block signature (%a)\n", sig);
+    if (AsciiStrCmp (sig, "DEV_REC")) {
+      DBG ("Bad Display Configuration Block signature (%a)\n", sig);
       return PATCH_ROM_FAILED;
     }
   } else {
-    DBG("ERROR: dcbtable_version is 0x%X\n", dcbtable_version);
+    DBG ("ERROR: dcbtable_version is 0x%X\n", dcbtable_version);
     return PATCH_ROM_FAILED;
   }
 
@@ -370,13 +370,13 @@ patch_nvidia_rom (
 
     entries[num_outputs].type = connection & 0xf;
     entries[num_outputs].index = num_outputs;
-    entries[num_outputs++].heads = (UINT8*)&(dcbtable[(headerlength + recordlength * i) + 1]);
+    entries[num_outputs++].heads = (UINT8 *)&(dcbtable[(headerlength + recordlength * i) + 1]);
   }
 
   for (i = 0; i < num_outputs; i++) {
     if (entries[i].type == 3) {
       has_lvds =TRUE;
-      //DBG("found LVDS\n");
+      //DBG ("found LVDS\n");
       channel1 |= (0x1 << entries[i].index);
       entries[i].type = TYPE_GROUPED;
     }
@@ -406,7 +406,7 @@ patch_nvidia_rom (
         if (i && entries[i].type == 0x2) {
           switch (x) {
             case 0:
-              //DBG("group channel 1\n");
+              //DBG ("group channel 1\n");
               channel1 |= (0x1 << entries[i].index);
               entries[i].type = TYPE_GROUPED;
 
@@ -417,14 +417,14 @@ patch_nvidia_rom (
 
               // group TV as well if there is one
               if (((i+1) < num_outputs) && (entries[i+1].type == 0x1)) {
-                //  DBG("group tv1\n");
+                //  DBG ("group tv1\n");
                 channel1 |= (0x1 << entries[i+1].index);
                 entries[i+1].type = TYPE_GROUPED;
               }
               break;
 
             case 1:
-              //DBG("group channel 2 : %d\n", i);
+              //DBG ("group channel 2 : %d\n", i);
               channel2 |= ( 0x1 << entries[i].index);
               entries[i].type = TYPE_GROUPED;
 
@@ -434,7 +434,7 @@ patch_nvidia_rom (
               }
               // group TV as well if there is one
               if (((i+1) < num_outputs) && (entries[i+1].type == 0x1)) {
-                //  DBG("group tv2\n");
+                //  DBG ("group tv2\n");
                 channel2 |= ( 0x1 << entries[i+1].index);
                 entries[i+1].type = TYPE_GROUPED;
               }
@@ -455,7 +455,7 @@ patch_nvidia_rom (
 
   for (i = 0; i < num_outputs; i++) {
     if (entries[i].type != TYPE_GROUPED) {
-      //DBG("%d not grouped\n", i);
+      //DBG ("%d not grouped\n", i);
       if (togroup) {
         *togroup |= (0x1 << entries[i].index);
       }
@@ -478,7 +478,7 @@ patch_nvidia_rom (
   for (i = 0; i < num_outputs; i++) {
     if (channel1 & (1 << i)) {
       *entries[i].heads = 1;
-    } else if(channel2 & (1 << i)) {
+    } else if (channel2 & (1 << i)) {
       *entries[i].heads = 2;
     }
   }
@@ -487,35 +487,35 @@ patch_nvidia_rom (
 }
 
 UINT64
-mem_detect (
+MemDetect (
   UINT16      nvCardType,
   pci_dt_t    *nvda_dev
 ) {
   UINT64    vram_size = 0;
 
   if (nvCardType < NV_ARCH_50) {
-    vram_size  = (UINT64)(REG32(nvda_dev->regs, NV04_PFB_FIFO_DATA));
+    vram_size  = (UINT64)(REG32 (nvda_dev->regs, NV04_PFB_FIFO_DATA));
     vram_size &= NV10_PFB_FIFO_DATA_RAM_AMOUNT_MB_MASK;
   } else if (nvCardType < NV_ARCH_C0) {
-    vram_size = (UINT64)(REG32(nvda_dev->regs, NV04_PFB_FIFO_DATA));
-    vram_size |= LShiftU64(vram_size & 0xff, 32);
+    vram_size = (UINT64)(REG32 (nvda_dev->regs, NV04_PFB_FIFO_DATA));
+    vram_size |= LShiftU64 (vram_size & 0xff, 32);
     vram_size &= 0xffffffff00ll;
   } else { // >= NV_ARCH_C0
-    vram_size = LShiftU64(REG32(nvda_dev->regs, NVC0_MEM_CTRLR_RAM_AMOUNT), 20);
-    //    vram_size *= REG32(nvda_dev->regs, NVC0_MEM_CTRLR_COUNT);
-    vram_size = MultU64x32(vram_size, REG32(nvda_dev->regs, NVC0_MEM_CTRLR_COUNT));
+    vram_size = LShiftU64 (REG32 (nvda_dev->regs, NVC0_MEM_CTRLR_RAM_AMOUNT), 20);
+    //    vram_size *= REG32 (nvda_dev->regs, NVC0_MEM_CTRLR_COUNT);
+    vram_size = MultU64x32 (vram_size, REG32 (nvda_dev->regs, NVC0_MEM_CTRLR_COUNT));
   }
 
   // Then, Workaround for 9600M GT, GT 210/420/430/440/525M/540M & GTX 560M
   switch (nvda_dev->device_id) {
     case 0x0647: // 9600M GT 0647
-      vram_size = 512*1024*1024;
+      vram_size = 512 * 1024 * 1024;
       break;
 
     case 0x0649:  // 9600M GT 0649
       // 10DE06491043202D 1GB VRAM
       if (((nvda_dev->subsys_id.subsys.vendor_id << 16) | nvda_dev->subsys_id.subsys.device_id) == 0x1043202D) {
-        vram_size = 1024*1024*1024;
+        vram_size = 1024 * 1024 * 1024;
       }
       break;
 
@@ -526,65 +526,65 @@ mem_detect (
     case 0x0DEC: // GT 525M 0DEC
     case 0x0DF4: // GT 540M
     case 0x0DF5: // GT 525M 0DF5
-      vram_size = 1024*1024*1024;
+      vram_size = 1024 * 1024 * 1024;
       break;
 
     case 0x1251: // GTX 560M
-      vram_size = 1536*1024*1024;
+      vram_size = 1536 * 1024 * 1024;
       break;
 
     default:
       break;
   }
 
-  DBG("mem_detected %ld\n", vram_size);
+  DBG ("MemDetected %ld\n", vram_size);
   return vram_size;
 }
 
 VOID
-devprop_add_nvidia_template (
+DevpropAddNvidiaTemplate (
   DevPropDevice   *device,
   INTN            n_ports
 ) {
   INTN    pnum;
   CHAR8   nkey[24], nval[24];
 
-  //DBG("devprop_add_nvidia_template\n");
+  //DBG ("DevpropAddNvidiaTemplate\n");
 
   if (!device) {
     return;
   }
 
   for (pnum = 0; pnum < n_ports; pnum++) {
-    AsciiSPrint(nkey, 24, "@%d,name", pnum);
-    AsciiSPrint(nval, 24, "NVDA,Display-%c", (65+pnum));
-    devprop_add_value(device, nkey, (UINT8*)nval, 14);
+    AsciiSPrint (nkey, 24, "@%d,name", pnum);
+    AsciiSPrint (nval, 24, "NVDA,Display-%c", (65+pnum));
+    DevpropAddValue (device, nkey, (UINT8 *)nval, 14);
 
-    AsciiSPrint(nkey, 24, "@%d,compatible", pnum);
-    devprop_add_value(device, nkey, (UINT8*)"NVDA,NVMac", 10);
+    AsciiSPrint (nkey, 24, "@%d,compatible", pnum);
+    DevpropAddValue (device, nkey, (UINT8 *)"NVDA,NVMac", 10);
 
-    AsciiSPrint(nkey, 24, "@%d,device_type", pnum);
-    devprop_add_value(device, nkey, (UINT8*)"display", 7);
+    AsciiSPrint (nkey, 24, "@%d,device_type", pnum);
+    DevpropAddValue (device, nkey, (UINT8 *)"display", 7);
 
     //if (!gSettings.NoDefaultProperties) {
-    //  AsciiSPrint(nkey, 24, "@%d,display-cfg", pnum);
+    //  AsciiSPrint (nkey, 24, "@%d,display-cfg", pnum);
     //  if (pnum == 0) {
-    //    devprop_add_value(device, nkey, (gSettings.Dcfg[0] != 0) ? &gSettings.Dcfg[0] : default_dcfg_0, DCFG0_LEN);
+    //    DevpropAddValue (device, nkey, (gSettings.Dcfg[0] != 0) ? &gSettings.Dcfg[0] : default_dcfg_0, DCFG0_LEN);
     //  } else {
-    //    devprop_add_value(device, nkey, (gSettings.Dcfg[1] != 0) ? &gSettings.Dcfg[4] : default_dcfg_1, DCFG1_LEN);
+    //    DevpropAddValue (device, nkey, (gSettings.Dcfg[1] != 0) ? &gSettings.Dcfg[4] : default_dcfg_1, DCFG1_LEN);
     //  }
     //}
   }
 
   if (devices_number == 1) {
-    devprop_add_value(device, "device_type", (UINT8*)"NVDA,Parent", 11);
+    DevpropAddValue (device, "device_type", (UINT8 *)"NVDA,Parent", 11);
   } else {
-    devprop_add_value(device, "device_type", (UINT8*)"NVDA,Child", 10);
+    DevpropAddValue (device, "device_type", (UINT8 *)"NVDA,Child", 10);
   }
 }
 
 BOOLEAN
-setup_nvidia_devprop (
+SetupNvidiaDevprop (
   pci_dt_t    *nvda_dev
 ) {
   EFI_STATUS                Status = EFI_NOT_FOUND;
@@ -594,108 +594,108 @@ setup_nvidia_devprop (
   UINT16                    nvCardType = 0;
   UINT32                    bar[7], device_id, subsys_id,  boot_display = 1;
   UINT64                    videoRam = 0;
-  CHAR16                    FileName[64], *RomPath = Basename(PoolPrint(DIR_ROM, L""));
+  CHAR16                    FileName[64], *RomPath = Basename (PoolPrint (DIR_ROM, L""));
   UINTN                     bufferLen, j, n_ports = 0;
-  const INT32               MAX_BIOS_VERSION_LENGTH = 32;
+  CONST INT32               MAX_BIOS_VERSION_LENGTH = 32;
   INT32                     i, version_start, crlf_count = 0, nvPatch = 0;
   option_rom_pci_header_t   *rom_pci_header;
   CHAR8                     *model = NULL, *devicepath, *s, *s1,
-                            *version_str = (CHAR8*)AllocateZeroPool(MAX_BIOS_VERSION_LENGTH);
+                            *version_str = (CHAR8 *)AllocateZeroPool (MAX_BIOS_VERSION_LENGTH);
   CARDLIST                  *nvcard;
 
-  devicepath = get_pci_dev_path(nvda_dev);
-  bar[0] = pci_config_read32(nvda_dev, PCI_BASE_ADDRESS_0);
+  devicepath = GetPciDevPath (nvda_dev);
+  bar[0] = PciConfigRead32 (nvda_dev, PCI_BASE_ADDRESS_0);
   nvda_dev->regs = (UINT8 *)(UINTN)(bar[0] & ~0x0f);
   device_id = ((nvda_dev->vendor_id << 16) | nvda_dev->device_id);
   subsys_id = ((nvda_dev->subsys_id.subsys.vendor_id << 16) | nvda_dev->subsys_id.subsys.device_id);
 
   // get card type
-  nvCardType = (REG32(nvda_dev->regs, 0) >> 20) & 0x1ff;
+  nvCardType = (REG32 (nvda_dev->regs, 0) >> 20) & 0x1ff;
 
   // First check if any value exist in the plist
-  nvcard = FindCardWithIds(device_id, subsys_id);
+  nvcard = FindCardWithIds (device_id, subsys_id);
 
   if (nvcard) {
     if (nvcard->VideoRam > 0) {
       //VideoRam * 1024 * 1024 == VideoRam << 20
-      //videoRam = LShiftU64(nvcard->VideoRam, 20);
+      //videoRam = LShiftU64 (nvcard->VideoRam, 20);
       videoRam = nvcard->VideoRam;
-      model = (CHAR8*)AllocateCopyPool(AsciiStrSize(nvcard->Model), nvcard->Model);
+      model = (CHAR8 *)AllocateCopyPool (AsciiStrSize (nvcard->Model), nvcard->Model);
       n_ports = nvcard->VideoPorts;
       load_vbios = nvcard->LoadVBios;
     }
   } else {
     // Amount of VRAM in kilobytes (?) no, it is already in bytes!!!
     if (gSettings.VRAM != 0) {
-      videoRam = gSettings.VRAM/* << 20*/;
+      videoRam = gSettings.VRAM/* << 20 */;
     } else {
-      videoRam = mem_detect(nvCardType, nvda_dev);
+      videoRam = MemDetect (nvCardType, nvda_dev);
     }
   }
 
   if (load_vbios) {
     UnicodeSPrint (
-      FileName, ARRAY_SIZE(FileName), L"%s\\10de_%04x_%04x_%04x.rom",
+      FileName, ARRAY_SIZE (FileName), L"%s\\10de_%04x_%04x_%04x.rom",
       RomPath, nvda_dev->device_id, nvda_dev->subsys_id.subsys.vendor_id, nvda_dev->subsys_id.subsys.device_id
     );
 
-    if (FileExists(OEMDir, FileName)) {
-      DBG(" - Found specific VBIOS ROM file (10de_%04x_%04x_%04x.rom)\n",
+    if (FileExists (OEMDir, FileName)) {
+      DBG (" - Found specific VBIOS ROM file (10de_%04x_%04x_%04x.rom)\n",
         nvda_dev->device_id, nvda_dev->subsys_id.subsys.vendor_id, nvda_dev->subsys_id.subsys.device_id
       );
 
-      Status = egLoadFile(OEMDir, FileName, &buffer, &bufferLen);
+      Status = LoadFile (OEMDir, FileName, &buffer, &bufferLen);
     } else {
-      UnicodeSPrint(FileName, ARRAY_SIZE(FileName), L"%s\\10de_%04x.rom", RomPath, nvda_dev->device_id);
-      if (FileExists(OEMDir, FileName)) {
-        DBG(" - Found generic VBIOS ROM file (10de_%04x.rom)\n", nvda_dev->device_id);
+      UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s\\10de_%04x.rom", RomPath, nvda_dev->device_id);
+      if (FileExists (OEMDir, FileName)) {
+        DBG (" - Found generic VBIOS ROM file (10de_%04x.rom)\n", nvda_dev->device_id);
 
-        Status = egLoadFile(OEMDir, FileName, &buffer, &bufferLen);
+        Status = LoadFile (OEMDir, FileName, &buffer, &bufferLen);
       }
     }
 
-    if (EFI_ERROR(Status)) {
-      FreePool(RomPath);
-      RomPath = PoolPrint(DIR_ROM, DIR_CLOVER);
+    if (EFI_ERROR (Status)) {
+      FreePool (RomPath);
+      RomPath = PoolPrint (DIR_ROM, DIR_CLOVER);
 
-      UnicodeSPrint(FileName, ARRAY_SIZE(FileName), L"%s\\10de_%04x_%04x_%04x.rom",
+      UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s\\10de_%04x_%04x_%04x.rom",
         RomPath, nvda_dev->device_id, nvda_dev->subsys_id.subsys.vendor_id, nvda_dev->subsys_id.subsys.device_id
       );
 
-      if (FileExists(SelfRootDir, FileName)) {
-        DBG(" - Found specific VBIOS ROM file (10de_%04x_%04x_%04x.rom)\n",
+      if (FileExists (SelfRootDir, FileName)) {
+        DBG (" - Found specific VBIOS ROM file (10de_%04x_%04x_%04x.rom)\n",
           nvda_dev->device_id, nvda_dev->subsys_id.subsys.vendor_id, nvda_dev->subsys_id.subsys.device_id
         );
 
-        Status = egLoadFile(SelfRootDir, FileName, &buffer, &bufferLen);
+        Status = LoadFile (SelfRootDir, FileName, &buffer, &bufferLen);
       } else {
-        UnicodeSPrint(FileName, ARRAY_SIZE(FileName), L"%s\\10de_%04x.rom", RomPath, nvda_dev->device_id);
+        UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s\\10de_%04x.rom", RomPath, nvda_dev->device_id);
 
-        if (FileExists(SelfRootDir, FileName)) {
-          DBG(" - Found generic VBIOS ROM file (10de_%04x.rom)\n", nvda_dev->device_id);
+        if (FileExists (SelfRootDir, FileName)) {
+          DBG (" - Found generic VBIOS ROM file (10de_%04x.rom)\n", nvda_dev->device_id);
 
-          Status = egLoadFile(SelfRootDir, FileName, &buffer, &bufferLen);
+          Status = LoadFile (SelfRootDir, FileName, &buffer, &bufferLen);
         }
       }
     }
   }
 
-  FreePool(RomPath);
+  FreePool (RomPath);
 
-  if (EFI_ERROR(Status)) {
-    rom = AllocateZeroPool(NVIDIA_ROM_SIZE+1);
+  if (EFI_ERROR (Status)) {
+    rom = AllocateZeroPool (NVIDIA_ROM_SIZE+1);
     // PRAMIN first
-    read_nVidia_PRAMIN(nvda_dev, rom, nvCardType);
+    ReadNvidiaPRAMIN (nvda_dev, rom, nvCardType);
 
-    //DBG("%x%x\n", rom[0], rom[1]);
+    //DBG ("%x%x\n", rom[0], rom[1]);
     rom_pci_header = NULL;
 
     if ((rom[0] != 0x55) || (rom[1] != 0xaa)) {
-      read_nVidia_PROM(nvda_dev, rom);
+      ReadNvidiaPROM (nvda_dev, rom);
 
       if ((rom[0] != 0x55) || (rom[1] != 0xaa)) {
-        DBG(" - ERROR: Unable to locate nVidia Video BIOS\n");
-        FreePool(rom);
+        DBG (" - ERROR: Unable to locate nVidia Video BIOS\n");
+        FreePool (rom);
         rom = NULL;
       }
     }
@@ -704,11 +704,11 @@ setup_nvidia_devprop (
       i = 0;
 
       while (i < bufferLen) {
-        //DBG("%x%x\n", buffer[i], buffer[i+1]);
+        //DBG ("%x%x\n", buffer[i], buffer[i+1]);
         if ((buffer[i] == 0x55) && (buffer[i+1] == 0xaa)) {
-          DBG(" - header found at: %d\n", i);
+          DBG (" - header found at: %d\n", i);
           bufferLen -= i;
-          rom = AllocateZeroPool(bufferLen);
+          rom = AllocateZeroPool (bufferLen);
 
           for (j = 0; j < bufferLen; j++) {
             rom[j] = buffer[i+j];
@@ -725,23 +725,23 @@ setup_nvidia_devprop (
       rom = buffer;
     }
 
-    DBG(" - using loaded ROM image\n");
+    DBG (" - using loaded ROM image\n");
   }
 
   if (!rom || !buffer) {
-    DBG(" - there are no ROM loaded / no VBIOS read from hardware\n");
+    DBG (" - there are no ROM loaded / no VBIOS read from hardware\n");
   }
 
   if (rom) {
-    if ((nvPatch = patch_nvidia_rom(rom)) == PATCH_ROM_FAILED) {
-      DBG(" - ERROR: ROM Patching Failed!\n");
+    if ((nvPatch = PatchNvidiaROM (rom)) == PATCH_ROM_FAILED) {
+      DBG (" - ERROR: ROM Patching Failed!\n");
     }
 
-    rom_pci_header = (option_rom_pci_header_t*)(rom + *(UINT16 *)&rom[24]);
+    rom_pci_header = (option_rom_pci_header_t *)(rom + *(UINT16 *)&rom[24]);
 
     // check for 'PCIR' sig
     if (rom_pci_header->signature != 0x52494350) {
-      DBG(" - incorrect PCI ROM signature: 0x%x\n", rom_pci_header->signature);
+      DBG (" - incorrect PCI ROM signature: 0x%x\n", rom_pci_header->signature);
     }
 
     // get bios version
@@ -762,11 +762,11 @@ setup_nvidia_devprop (
               version_start++;
 
               // strip "Version "
-              if (AsciiStrnCmp((const CHAR8*)rom + version_start, "Version ", 8) == 0) {
+              if (AsciiStrnCmp ((CONST CHAR8 *)rom + version_start, "Version ", 8) == 0) {
                 version_start += 8;
               }
 
-              s = (CHAR8*)(rom + version_start);
+              s = (CHAR8 *)(rom + version_start);
               s1 = version_str;
 
               while ((*s > ' ') && (*s < 'z') && ((INTN)(s1 - version_str) < MAX_BIOS_VERSION_LENGTH)) {
@@ -783,41 +783,41 @@ setup_nvidia_devprop (
       }
     }
   } else {
-    AsciiSPrint(version_str, sizeof(version_str), "1.0");
+    AsciiSPrint (version_str, sizeof (version_str), "1.0");
   }
 
-  DBG(" - Version: %a\n", version_str);
+  DBG (" - Version: %a\n", version_str);
 
   if (!model) {
-    model = (CHAR8*)AllocateCopyPool(AsciiStrSize(S_NVIDIAMODEL), S_NVIDIAMODEL);
+    model = (CHAR8 *)AllocateCopyPool (AsciiStrSize (S_NVIDIAMODEL), S_NVIDIAMODEL);
   }
 
-  MsgLog(" - %a | %dMB NV%02x [%04x:%04x] | %a => device #%d\n",
-      model, (UINT32)(RShiftU64(videoRam, 20)),
+  MsgLog (" - %a | %dMB NV%02x [%04x:%04x] | %a => device #%d\n",
+      model, (UINT32)(RShiftU64 (videoRam, 20)),
       nvCardType, nvda_dev->vendor_id, nvda_dev->device_id,
       devicepath, devices_number);
 
   if (!string) {
-    string = devprop_create_string();
+    string = DevpropCreateString ();
   }
 
-  device = devprop_add_device_pci(string, nvda_dev);
+  device = DevpropAddDevicePci (string, nvda_dev);
 
-  DBG(" - VideoPorts:");
+  DBG (" - VideoPorts:");
 
   if (n_ports > 0) {
-    DBG(" user defined (GUI-menu): %d\n", n_ports);
+    DBG (" user defined (GUI-menu): %d\n", n_ports);
   } else if (gSettings.VideoPorts > 0) {
     n_ports = gSettings.VideoPorts;
-    DBG(" user defined from config.plist: %d\n", n_ports);
+    DBG (" user defined from config.plist: %d\n", n_ports);
   } else {
     n_ports = 2; //default
-    DBG(" undefined, default to: %d\n", n_ports);
+    DBG (" undefined, default to: %d\n", n_ports);
   }
 
   //There are custom properties, injected if set by user
   if (gSettings.NvidiaSingle && (devices_number >= 1)) {
-    DBG(" - NvidiaSingle: skip injecting other then first card\n");
+    DBG (" - NvidiaSingle: skip injecting other then first card\n");
     goto done;
   }
 
@@ -829,30 +829,30 @@ setup_nvidia_devprop (
 
       Injected = TRUE;
 
-      devprop_add_value (
+      DevpropAddValue (
         device,
         gSettings.AddProperties[i].Key,
-        (UINT8*)gSettings.AddProperties[i].Value,
+        (UINT8 *)gSettings.AddProperties[i].Value,
         gSettings.AddProperties[i].ValueLen
       );
     }
 
     if (Injected) {
-      DBG(" - custom properties injected\n");
+      DBG (" - custom properties injected\n");
     }
   }
 
   if (gSettings.FakeNVidia) {
     UINT32    FakeID = gSettings.FakeNVidia >> 16;
 
-    MsgLog(" - With FakeID: %x:%x\n",gSettings.FakeNVidia & 0xFFFF, FakeID);
-    devprop_add_value(device, "device-id", (UINT8*)&FakeID, 4);
+    MsgLog (" - With FakeID: %x:%x\n",gSettings.FakeNVidia & 0xFFFF, FakeID);
+    DevpropAddValue (device, "device-id", (UINT8 *)&FakeID, 4);
     FakeID = gSettings.FakeNVidia & 0xFFFF;
-    devprop_add_value(device, "vendor-id", (UINT8*)&FakeID, 4);
+    DevpropAddValue (device, "vendor-id", (UINT8 *)&FakeID, 4);
   }
 
   if (gSettings.InjectEDID && gSettings.CustomEDID) {
-    devprop_add_value(device, "AAPL00,override-no-connect", gSettings.CustomEDID, 128);
+    DevpropAddValue (device, "AAPL00,override-no-connect", gSettings.CustomEDID, 128);
   }
 
   if (
@@ -861,89 +861,77 @@ setup_nvidia_devprop (
   ) {
     CHAR8   nkey[24];
 
-    AsciiSPrint(nkey, 24, "@%d,AAPL,boot-display", gSettings.BootDisplay);
-    devprop_add_value(device, nkey, (UINT8*)&boot_display, 4);
-    DBG(" - BootDisplay: %d\n", gSettings.BootDisplay);
+    AsciiSPrint (nkey, 24, "@%d,AAPL,boot-display", gSettings.BootDisplay);
+    DevpropAddValue (device, nkey, (UINT8 *)&boot_display, 4);
+    DBG (" - BootDisplay: %d\n", gSettings.BootDisplay);
   }
 
-  devprop_add_value(device, "model", (UINT8*)model, (UINT32)AsciiStrLen(model));
-  devprop_add_value(device, "rom-revision", (UINT8*)version_str, (UINT32)AsciiStrLen(version_str));
+  DevpropAddValue (device, "model", (UINT8 *)model, (UINT32)AsciiStrLen (model));
+  DevpropAddValue (device, "rom-revision", (UINT8 *)version_str, (UINT32)AsciiStrLen (version_str));
 
   if (gSettings.NVCAP[0] != 0) {
-    devprop_add_value(device, "NVCAP", &gSettings.NVCAP[0], NVCAP_LEN);
-    DBG (
-      " - NVCAP: %02x%02x%02x%02x-%02x%02x%02x%02x-%02x%02x%02x%02x-%02x%02x%02x%02x-%02x%02x%02x%02x\n",
-      gSettings.NVCAP[0], gSettings.NVCAP[1], gSettings.NVCAP[2], gSettings.NVCAP[3],
-      gSettings.NVCAP[4], gSettings.NVCAP[5], gSettings.NVCAP[6], gSettings.NVCAP[7],
-      gSettings.NVCAP[8], gSettings.NVCAP[9], gSettings.NVCAP[10], gSettings.NVCAP[11],
-      gSettings.NVCAP[12], gSettings.NVCAP[13], gSettings.NVCAP[14], gSettings.NVCAP[15],
-      gSettings.NVCAP[16], gSettings.NVCAP[17], gSettings.NVCAP[18], gSettings.NVCAP[19]
-    );
+    DevpropAddValue (device, "NVCAP", &gSettings.NVCAP[0], NVCAP_LEN);
+    DBG (" - NVCAP: %a\n", Bytes2HexStr (gSettings.NVCAP, sizeof (gSettings.NVCAP)));
   }
 
   if (gSettings.UseIntelHDMI) {
-    devprop_add_value(device, "hda-gfx", (UINT8*)"onboard-2", 10);
+    DevpropAddValue (device, "hda-gfx", (UINT8 *)"onboard-2", 10);
   }
 
   if (videoRam != 0) {
-    devprop_add_value(device, "VRAM,totalsize", (UINT8*)&videoRam, 8);
+    DevpropAddValue (device, "VRAM,totalsize", (UINT8 *)&videoRam, 8);
   } else {
-    DBG("- [!] Warning: VideoRAM is not detected and not set\n");
+    DBG ("- [!] Warning: VideoRAM is not detected and not set\n");
   }
 
-  devprop_add_nvidia_template(device, n_ports);
+  DevpropAddNvidiaTemplate (device, n_ports);
 
   //there are default or calculated properties, can be skipped
   if (gSettings.NoDefaultProperties) {
-    //MsgLog(" - no default properties\n");
+    //MsgLog (" - no default properties\n");
     goto done;
   }
 
   if (!gSettings.UseIntelHDMI) {
-    devprop_add_value(device, "hda-gfx", (UINT8*)"onboard-1", 10);
+    DevpropAddValue (device, "hda-gfx", (UINT8 *)"onboard-1", 10);
   }
 
   if (gSettings.BootDisplay < 0) {
     // if not set this is default property
-    devprop_add_value(device, "@0,AAPL,boot-display", (UINT8*)&boot_display, 4);
+    DevpropAddValue (device, "@0,AAPL,boot-display", (UINT8 *)&boot_display, 4);
   }
 
   if (nvPatch == PATCH_ROM_SUCCESS_HAS_LVDS) {
     UINT8 built_in = 0x01;
-    devprop_add_value(device, "@0,built-in", &built_in, 1);
+    DevpropAddValue (device, "@0,built-in", &built_in, 1);
     // HDMI is not LVDS
-    devprop_add_value(device, "@1,connector-type", connector_type_1, 4);
+    DevpropAddValue (device, "@1,connector-type", connector_type_1, 4);
   } else {
-    devprop_add_value(device, "@0,connector-type", connector_type_1, 4);
+    DevpropAddValue (device, "@0,connector-type", connector_type_1, 4);
   }
 
-  //devprop_add_value(device, "NVPM", default_NVPM, NVPM_LEN);
+  //DevpropAddValue (device, "NVPM", default_NVPM, NVPM_LEN);
 
   if (gSettings.NVCAP[0] == 0) {
-    devprop_add_value(device, "NVCAP", default_NVCAP, NVCAP_LEN);
-    DBG(" - NVCAP: %02x%02x%02x%02x-%02x%02x%02x%02x-%02x%02x%02x%02x-%02x%02x%02x%02x-%02x%02x%02x%02x\n",
-        default_NVCAP[0], default_NVCAP[1], default_NVCAP[2], default_NVCAP[3],
-        default_NVCAP[4], default_NVCAP[5], default_NVCAP[6], default_NVCAP[7],
-        default_NVCAP[8], default_NVCAP[9], default_NVCAP[10], default_NVCAP[11],
-        default_NVCAP[12], default_NVCAP[13], default_NVCAP[14], default_NVCAP[15],
-        default_NVCAP[16], default_NVCAP[17], default_NVCAP[18], default_NVCAP[19]);
+    DevpropAddValue (device, "NVCAP", default_NVCAP, NVCAP_LEN);
+    DBG (" - NVCAP: %a\n", Bytes2HexStr (default_NVCAP, sizeof (default_NVCAP)));
   }
 
 done:
 
   devices_number++;
-  FreePool(version_str);
+  FreePool (version_str);
 
   if (model != NULL) {
-    FreePool(model);
+    FreePool (model);
   }
 
   if (buffer != NULL) {
-    FreePool(buffer);
+    FreePool (buffer);
   }
 
   if (rom != NULL) {
-    FreePool(rom);
+    FreePool (rom);
   }
 
   return TRUE;

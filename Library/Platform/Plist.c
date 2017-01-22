@@ -41,7 +41,7 @@
 #define DEBUG_PLIST DEBUG_ALL
 #endif
 
-#define DBG(...) DebugLog(DEBUG_PLIST, __VA_ARGS__)
+#define DBG(...) DebugLog (DEBUG_PLIST, __VA_ARGS__)
 
 #define USE_REF 1
 #define DUMP_PLIST 1
@@ -60,7 +60,7 @@ sREF        *ref_strings = NULL, *ref_integer = NULL;
 
 // intended to look for two versions of the tag; now just for sizeof
 #define MATCHTAG(parsedTag, keyTag) \
-    (!AsciiStrnCmp(parsedTag, keyTag, sizeof(keyTag)-1))
+    (!AsciiStrnCmp (parsedTag, keyTag, sizeof (keyTag)-1))
 
 #if DEBUG_PLIST
 // for debugging parsing failures
@@ -70,17 +70,17 @@ CHAR8   *gLastTag;
 
 /* Function for basic XML character entities parsing */
 typedef struct XMLEntity {
-  const CHAR8 *name;
-  UINTN nameLen;
-  CHAR8 value;
+  CONST CHAR8   *name;
+        UINTN   nameLen;
+        CHAR8   value;
 } XMLEntity;
 
 /* This is ugly, but better than specifying the lengths by hand */
-#define _e(str,c) {str,sizeof(str)-1,c}
+#define _e(str,c) {str,sizeof (str)-1,c}
 CONST XMLEntity ents[] = {
-  _e("quot;",'"'), _e("apos;",'\''),
-  _e("lt;",  '<'), _e("gt;",  '>'),
-  _e("amp;", '&')
+  _e ("quot;",'"'), _e ("apos;",'\''),
+  _e ("lt;",  '<'), _e ("gt;",  '>'),
+  _e ("amp;", '&')
 };
 
 VOID
@@ -89,20 +89,20 @@ DbgOnce (
   CHAR8   *str
 ) {
   INT32   i = 10;
-  CHAR8   *subbuff = AllocateZeroPool(i);
+  CHAR8   *subbuff = AllocateZeroPool (i);
 
   if (dbgCount) {
     return;
   }
 
-  CopyMem( subbuff, str, i-1 );
+  CopyMem ( subbuff, str, i-1 );
   subbuff[i-1] = '\0';
-  MsgLog("#----- %a: '%a'\n", lbl, subbuff);
-  FreePool(subbuff);
+  MsgLog ("#----- %a: '%a'\n", lbl, subbuff);
+  FreePool (subbuff);
 }
 
-CHAR8
-*XMLDecode (
+CHAR8 *
+XMLDecode (
   CHAR8   *src
 ) {
   UINTN len;
@@ -113,12 +113,12 @@ CHAR8
     return 0;
   }
 
-  AsciiTrimSpaces(&src);
+  AsciiTrimSpaces (&src);
 
-  len = AsciiStrLen(src);
+  len = AsciiStrLen (src);
 
 #if 0
-  out = AllocateZeroPool(len+1);
+  out = AllocateZeroPool (len+1);
   if (!out)
     return 0;
 #else // unsafe
@@ -132,11 +132,11 @@ CHAR8
   while (s <= src+len) { /* Make sure the terminator is also copied */
      if ( *s == '&' ) {
       BOOLEAN   entFound = FALSE;
-      UINTN     i, aSize = ARRAY_SIZE(ents);
+      UINTN     i, aSize = ARRAY_SIZE (ents);
 
       s++;
       for ( i = 0; i < aSize; i++) {
-        if (AsciiStrnCmp(s, ents[i].name, ents[i].nameLen) == 0) {
+        if (AsciiStrnCmp (s, ents[i].name, ents[i].nameLen) == 0) {
           entFound = TRUE;
           break;
         }
@@ -175,19 +175,19 @@ GetPropInt (
 //
 
 #if USE_REF
-CHAR8
-*GetAttr (
+CHAR8 *
+GetAttr (
   CHAR8   *Haystack,
   CHAR8   *Needle
 ) {
-  CHAR8   *Str = AsciiStrStr(Haystack, Needle);
+  CHAR8   *Str = AsciiStrStr (Haystack, Needle);
 
   if (Str != NULL) {
     INT32   i = 0;
     CHAR8   *Prop;
 
-    Str += AsciiStrLen(Needle) + 1;
-    Prop = AllocateZeroPool(AsciiStrSize(Str));
+    Str += AsciiStrLen (Needle) + 1;
+    Prop = AllocateZeroPool (AsciiStrSize (Str));
 
     while (Str[i] != '"') {
       Prop[i] = Str[i];
@@ -205,13 +205,13 @@ GetAttrID (
   CHAR8     *Str,
   CHAR8     *Attr
 ) {
-  CHAR8     *vAttr = GetAttr(Str, Attr);
+  CHAR8     *vAttr = GetAttr (Str, Attr);
 
   if (vAttr == NULL) {
     return -1;
   }
 
-  return (INT32)GetPropInt(vAttr);
+  return (INT32)GetPropInt (vAttr);
 }
 
 //
@@ -228,7 +228,7 @@ SaveRefString (
 
   while (tmp) {
     if (tmp->id == id) {
-      tmp->string = AllocateCopyPool(AsciiStrSize(val), val);
+      tmp->string = AllocateCopyPool (AsciiStrSize (val), val);
       tmp->size = size;
       return;
     }
@@ -236,8 +236,8 @@ SaveRefString (
     tmp = tmp->next;
   }
 
-  new_ref = AllocatePool(sizeof(sREF));
-  new_ref->string = AllocateCopyPool(AsciiStrSize(val), val);
+  new_ref = AllocatePool (sizeof (sREF));
+  new_ref->string = AllocateCopyPool (AsciiStrSize (val), val);
   new_ref->size = size;
   new_ref->id = id;
   new_ref->next = ref_strings;
@@ -256,7 +256,7 @@ SaveRefInteger (
 
   while (tmp) {
     if (tmp->id == id) {
-      tmp->string = AllocateCopyPool(AsciiStrSize(val), val);
+      tmp->string = AllocateCopyPool (AsciiStrSize (val), val);
       tmp->integer = decval;
       tmp->size = size;
       return;
@@ -265,8 +265,8 @@ SaveRefInteger (
     tmp = tmp->next;
   }
 
-  new_ref = AllocatePool(sizeof(sREF));
-  new_ref->string = AllocateCopyPool(AsciiStrSize(val), val);
+  new_ref = AllocatePool (sizeof (sREF));
+  new_ref->string = AllocateCopyPool (AsciiStrSize (val), val);
   new_ref->integer = decval;
   new_ref->size = size;
   new_ref->id = id;
@@ -291,7 +291,7 @@ GetRefString (
 
   while (tmp) {
     if (tmp->id == id) {
-      *val = AllocateCopyPool(AsciiStrSize(tmp->string), tmp->string);
+      *val = AllocateCopyPool (AsciiStrSize (tmp->string), tmp->string);
       *size = tmp->size;
       return EFI_SUCCESS;
     }
@@ -320,7 +320,7 @@ GetRefInteger (
 
   while (tmp) {
     if (tmp->id == id) {
-      *val = AllocateCopyPool(AsciiStrSize(tmp->string), tmp->string);
+      *val = AllocateCopyPool (AsciiStrSize (tmp->string), tmp->string);
       *decval = tmp->integer;
       *size = tmp->size;
       return EFI_SUCCESS;
@@ -346,7 +346,7 @@ FindSymbol (
   SymbolPtr   symbol = gSymbolsHead, prev = 0;
 
   while (symbol != 0) {
-    if (!AsciiStrCmp(symbol->string, string)) {
+    if (!AsciiStrCmp (symbol->string, string)) {
       break;
     }
 
@@ -361,24 +361,24 @@ FindSymbol (
   return symbol;
 }
 
-CHAR8
-*NewSymbol (
+CHAR8 *
+NewSymbol (
   CHAR8   *string
 ) {
   SymbolPtr   symbol;
 
   // Look for string in the list of symbols.
-  symbol = FindSymbol(string, 0);
+  symbol = FindSymbol (string, 0);
 
   // Add the new symbol.
   if (symbol == 0) {
-    symbol = AllocateZeroPool(sizeof(Symbol)/* + AsciiStrLen(string)*/);
+    symbol = AllocateZeroPool (sizeof (Symbol)/* + AsciiStrLen (string)*/);
     if (symbol == 0) return 0;
 
     // Set the symbol's data.
     symbol->refCount = 0;
-    //AsciiStrCpy(symbol->string, string);
-    symbol->string = AllocateCopyPool(AsciiStrSize(string), string);
+    //AsciiStrCpy (symbol->string, string);
+    symbol->string = AllocateCopyPool (AsciiStrSize (string), string);
 
     // Add the symbol to the list.
     symbol->next = gSymbolsHead;
@@ -398,7 +398,7 @@ FreeSymbol (
   SymbolPtr symbol, prev;
 
   // Look for string in the list of symbols.
-  symbol = FindSymbol(string, &prev);
+  symbol = FindSymbol (string, &prev);
   if (symbol == 0) return;
 
   // Update the refCount.
@@ -411,7 +411,7 @@ FreeSymbol (
   else gSymbolsHead = symbol->next;
 
   // Free the symbol's memory.
-  FreePool(symbol);
+  FreePool (symbol);
 }
 
 //
@@ -474,12 +474,12 @@ FixDataMatchingTag (
   CHAR8   *endTag;
 
   while (1) {
-    length = GetNextTag(buffer + start, &endTag, &stop, NULL);
+    length = GetNextTag (buffer + start, &endTag, &stop, NULL);
     if (length == -1) {
       return -1;
     }
 
-    if ((*endTag == '/') && !AsciiStrCmp(endTag + 1, tag)) {
+    if ((*endTag == '/') && !AsciiStrCmp (endTag + 1, tag)) {
       break;
     }
 
@@ -497,7 +497,7 @@ NewTag () {
   TagPtr    tag;
 
   if (gTagsFree == 0) {
-    tag = (TagPtr)AllocateZeroPool(kTagsPerBlock * sizeof(TagStruct));
+    tag = (TagPtr)AllocateZeroPool (kTagsPerBlock * sizeof (TagStruct));
     if (tag == 0) {
       return 0;
     }
@@ -534,15 +534,15 @@ FreeTag (
   }
 
   if (tag->string) {
-    FreeSymbol(tag->string);
+    FreeSymbol (tag->string);
   }
 
   if (tag->data) {
-    FreePool(tag->data);
+    FreePool (tag->data);
   }
 
-  FreeTag(tag->tag);
-  FreeTag(tag->tagNext);
+  FreeTag (tag->tag);
+  FreeTag (tag->tagNext);
 
   // Clear and free the tag.
   tag->type = kTagTypeNone;
@@ -565,12 +565,12 @@ ParseTagKey (
   CHAR8   *string;
   TagPtr  tmpTag, subTag = (TagPtr) - 1;  // eliminate possible stale tag
 
-  length = FixDataMatchingTag(buffer, kXMLTagKey);
+  length = FixDataMatchingTag (buffer, kXMLTagKey);
   if (length == -1) {
     return -1;
   }
 
-  length2 = ParseNextTag(buffer + length, &subTag);
+  length2 = ParseNextTag (buffer + length, &subTag);
   if (length2 == -1) {
     return -1;
   }
@@ -579,16 +579,16 @@ ParseTagKey (
     subTag = NULL;
   }
 
-  tmpTag = NewTag();
+  tmpTag = NewTag ();
   if (tmpTag == 0) {
-    FreeTag(subTag);
+    FreeTag (subTag);
     return -1;
   }
 
-  string = NewSymbol(buffer);
+  string = NewSymbol (buffer);
   if (string == 0) {
-    FreeTag(subTag);
-    FreeTag(tmpTag);
+    FreeTag (subTag);
+    FreeTag (tmpTag);
     return -1;
   }
 
@@ -616,20 +616,20 @@ ParseTagString (
   CHAR8   *string;
   TagPtr  tmpTag;
 
-  length = FixDataMatchingTag(buffer, kXMLTagString);
+  length = FixDataMatchingTag (buffer, kXMLTagString);
   if (length == -1) {
     return -1;
   }
 
-  tmpTag = NewTag();
+  tmpTag = NewTag ();
   if (tmpTag == 0) {
     return -1;
   }
 
-  string = XMLDecode(buffer);
-  string = NewSymbol(string);
+  string = XMLDecode (buffer);
+  string = NewSymbol (string);
   if (string == 0) {
-    FreeTag(tmpTag);
+    FreeTag (tmpTag);
     return -1;
   }
 
@@ -660,27 +660,27 @@ ParseTagInteger (
   CHAR8   *string;
   TagPtr  tmpTag;
 
-  length = FixDataMatchingTag(buffer, kXMLTagInteger);
+  length = FixDataMatchingTag (buffer, kXMLTagInteger);
   if (length == -1) {
     return -1;
   }
 
-  tmpTag = NewTag();
+  tmpTag = NewTag ();
   if (tmpTag == 0) {
     return -1;
   }
 
-  string = NewSymbol(buffer);
+  string = NewSymbol (buffer);
 
   if (string == 0) {
-    FreeTag(tmpTag);
+    FreeTag (tmpTag);
     return -1;
   }
 
   tmpTag->type = kTagTypeInteger;
   tmpTag->string = 0;
   //tmpTag->string = string;
-  tmpTag->integer = GetPropInt(string);
+  tmpTag->integer = GetPropInt (string);
   tmpTag->data = 0;
   tmpTag->size = attrSize;
   tmpTag->tag = 0;
@@ -703,21 +703,21 @@ ParseTagData (
   TagPtr  tmpTag;
   CHAR8   *string;
 
-  length = FixDataMatchingTag(buffer, kXMLTagData);
+  length = FixDataMatchingTag (buffer, kXMLTagData);
   if (length == -1) {
     return -1;
   }
 
-  tmpTag = NewTag();
+  tmpTag = NewTag ();
   if (tmpTag == 0) {
     return -1;
   }
 
-  string = NewSymbol(buffer);
+  string = NewSymbol (buffer);
   tmpTag->type = kTagTypeData;
   tmpTag->string = 0;
   tmpTag->integer = 0;
-  tmpTag->data = (UINT8 *)Base64Decode(string, &tmpTag->size);
+  tmpTag->data = (UINT8 *)Base64Decode (string, &tmpTag->size);
   tmpTag->tag = 0;
   tmpTag->tagNext = 0;
 
@@ -734,12 +734,12 @@ ParseTagDate (
   INT32   length;
   TagPtr  tmpTag;
 
-  length = FixDataMatchingTag(buffer, kXMLTagDate);
+  length = FixDataMatchingTag (buffer, kXMLTagDate);
   if (length == -1) {
     return -1;
   }
 
-  tmpTag = NewTag();
+  tmpTag = NewTag ();
   if (tmpTag == 0) {
     return -1;
   }
@@ -765,7 +765,7 @@ ParseTagBoolean (
 ) {
   TagPtr  tmpTag;
 
-  tmpTag = NewTag();
+  tmpTag = NewTag ();
   if (tmpTag == 0) {
     return -1;
   }
@@ -794,7 +794,7 @@ ParseNextTag (
   //TagPtr  refTag;
   BOOLEAN   isTagFalse, isTagTrue;
 
-  length = GetNextTag(buffer, &tagName, 0, &empty);
+  length = GetNextTag (buffer, &tagName, 0, &empty);
   if (length == -1) {
     return -1;
   }
@@ -806,52 +806,52 @@ ParseNextTag (
 
   pos = length;
 
-  tLen = AsciiStrLen(tagName);
+  tLen = AsciiStrLen (tagName);
 
-  isTagFalse =  (!AsciiStrCmp(tagName, kXMLTagFalse) || !AsciiStrCmp(tagName, kXMLTagFalse2));
-  isTagTrue =   (!AsciiStrCmp(tagName, kXMLTagTrue)  || !AsciiStrCmp(tagName, kXMLTagTrue2));
+  isTagFalse =  (!AsciiStrCmp (tagName, kXMLTagFalse) || !AsciiStrCmp (tagName, kXMLTagFalse2));
+  isTagTrue =   (!AsciiStrCmp (tagName, kXMLTagTrue)  || !AsciiStrCmp (tagName, kXMLTagTrue2));
 
 #ifndef USE_REF
   if (
     tLen && (tagName[tLen - 1] == '/') &&
     !isTagFalse && !isTagTrue
   ) {
-    //MsgLog("tagName: %a\n", tagName);
+    //MsgLog ("tagName: %a\n", tagName);
     return pos;
   }
 #endif
 
-  if (MATCHTAG(tagName, kXMLTagPList)) {
+  if (MATCHTAG (tagName, kXMLTagPList)) {
     length = 0;  // just a header; nothing to parse
     // return-via-reference tag should be left alone
 
-  } else if (MATCHTAG(tagName, kXMLTagDict)) {
-    length = ParseTagList(buffer + pos, tag, kTagTypeDict, empty);
+  } else if (MATCHTAG (tagName, kXMLTagDict)) {
+    length = ParseTagList (buffer + pos, tag, kTagTypeDict, empty);
 
-  } else if (!AsciiStrCmp(tagName, kXMLTagKey)) {
-    length = ParseTagKey(buffer + pos, tag);
+  } else if (!AsciiStrCmp (tagName, kXMLTagKey)) {
+    length = ParseTagKey (buffer + pos, tag);
   }
 
-  /* else if (MATCHTAG(tagName, kXMLTagReference) &&
-  (refTag = TagFromRef(tagName, sizeof(kXMLTagReference)-1))) {
+  /* else if (MATCHTAG (tagName, kXMLTagReference) &&
+  (refTag = TagFromRef (tagName, sizeof (kXMLTagReference)-1))) {
       *tag = refTag;
       length = 0;
 
-  }*/ else if (MATCHTAG(tagName, kXMLTagString)) {
+  }*/ else if (MATCHTAG (tagName, kXMLTagString)) {
     INT32   attrID = -1, attrSize = 0;
 #if USE_REF
     INT32   attrIDRef = -1;
 
-    if (MATCHTAG(tagName, kXMLTagString " ")) {
-      attrSize = GetAttrID(tagName, kXMLTagSIZE);
+    if (MATCHTAG (tagName, kXMLTagString " ")) {
+      attrSize = GetAttrID (tagName, kXMLTagSIZE);
       if (attrSize == -1) {
         attrSize = 0;
       }
 
-      attrIDRef = GetAttrID(tagName, kXMLTagIDREF);
+      attrIDRef = GetAttrID (tagName, kXMLTagIDREF);
 
       if (attrIDRef != -1) {
-        TagPtr tmpTag = NewTag();
+        TagPtr tmpTag = NewTag ();
         if (tmpTag == 0) {
           return -1;
         }
@@ -870,34 +870,34 @@ ParseNextTag (
 
         length = 0;
       } else {
-        attrID = GetAttrID(tagName, kXMLTagID);
-        length = ParseTagString(buffer + pos, tag, attrID, attrSize);
+        attrID = GetAttrID (tagName, kXMLTagID);
+        length = ParseTagString (buffer + pos, tag, attrID, attrSize);
         if (attrID != -1) {
-          SaveRefString(buffer + pos, attrID, attrSize);
+          SaveRefString (buffer + pos, attrID, attrSize);
         }
       }
     } else {
 #endif
-      length = ParseTagString(buffer + pos, tag, attrID, attrSize);
+      length = ParseTagString (buffer + pos, tag, attrID, attrSize);
 #if USE_REF
     }
 #endif
 
-  } else if (MATCHTAG(tagName, kXMLTagInteger)) {
+  } else if (MATCHTAG (tagName, kXMLTagInteger)) {
     INT32   attrID = -1, attrSize = 0;
 #if USE_REF
     INT32   attrIDRef = -1;
 
-    if (MATCHTAG(tagName, kXMLTagInteger " ")) {
-      attrSize = GetAttrID(tagName, kXMLTagSIZE);
+    if (MATCHTAG (tagName, kXMLTagInteger " ")) {
+      attrSize = GetAttrID (tagName, kXMLTagSIZE);
       if (attrSize == -1) {
         attrSize = 0;
       }
 
-      attrIDRef = GetAttrID(tagName, kXMLTagIDREF);
+      attrIDRef = GetAttrID (tagName, kXMLTagIDREF);
 
       if (attrIDRef != -1) {
-        TagPtr tmpTag = NewTag();
+        TagPtr tmpTag = NewTag ();
         if (tmpTag == 0) {
           return -1;
         }
@@ -916,33 +916,33 @@ ParseNextTag (
 
         length = 0;
       } else {
-        attrID = GetAttrID(tagName, kXMLTagID);
-        length = ParseTagInteger(buffer + pos, tag, attrID, attrSize);
+        attrID = GetAttrID (tagName, kXMLTagID);
+        length = ParseTagInteger (buffer + pos, tag, attrID, attrSize);
         if (attrID != -1) {
-          SaveRefInteger((*tag)->string, (*tag)->integer, attrID, attrSize);
+          SaveRefInteger ((*tag)->string, (*tag)->integer, attrID, attrSize);
         }
       }
     } else {
 #endif
-      length = ParseTagInteger(buffer + pos, tag, attrID, attrSize);
+      length = ParseTagInteger (buffer + pos, tag, attrID, attrSize);
 #if USE_REF
     }
 #endif
 
-  } else if (!AsciiStrCmp(tagName, kXMLTagData)) {
-    length = ParseTagData(buffer + pos, tag);
+  } else if (!AsciiStrCmp (tagName, kXMLTagData)) {
+    length = ParseTagData (buffer + pos, tag);
 
-  } else if (!AsciiStrCmp(tagName, kXMLTagDate)) {
-    length = ParseTagDate(buffer + pos, tag);
+  } else if (!AsciiStrCmp (tagName, kXMLTagDate)) {
+    length = ParseTagDate (buffer + pos, tag);
 
-  } else if (isTagFalse/*!AsciiStrCmp(tagName, kXMLTagFalse)*/) {
-    length = ParseTagBoolean(buffer + pos, tag, kTagTypeFalse);
+  } else if (isTagFalse/*!AsciiStrCmp (tagName, kXMLTagFalse)*/) {
+    length = ParseTagBoolean (buffer + pos, tag, kTagTypeFalse);
 
-  } else if (isTagTrue/*!AsciiStrCmp(tagName, kXMLTagTrue)*/) {
-    length = ParseTagBoolean(buffer + pos, tag, kTagTypeTrue);
+  } else if (isTagTrue/*!AsciiStrCmp (tagName, kXMLTagTrue)*/) {
+    length = ParseTagBoolean (buffer + pos, tag, kTagTypeTrue);
 
-  } else if (MATCHTAG(tagName, kXMLTagArray)) {
-    length = ParseTagList(buffer + pos, tag, kTagTypeArray, empty);
+  } else if (MATCHTAG (tagName, kXMLTagArray)) {
+    length = ParseTagList (buffer + pos, tag, kTagTypeArray, empty);
 
   } else {
     // it wasn't parsed so we consumed no additional characters
@@ -951,8 +951,8 @@ ParseNextTag (
     if (tagName[0] == '/') { // was it an end tag (indicated w/*tag = 0)
       *tag = 0;
     } else {
-      //DBG("ignored plist tag: %s (*tag: %x)\n", tagName, *tag);
-      *tag = (TagPtr) - 1;  // we're *not* returning a tag
+      //DBG ("ignored plist tag: %s (*tag: %x)\n", tagName, *tag);
+      *tag = (TagPtr) - 1;  // we're * not * returning a tag
     }
   }
 
@@ -976,7 +976,7 @@ ParseTagList (
   if (!empty) {
     while (1) {
       tmpTag = (TagPtr) - 1;
-      length = ParseNextTag(buffer + pos, &tmpTag);
+      length = ParseNextTag (buffer + pos, &tmpTag);
       if (length == -1) {
         break;
       }
@@ -996,14 +996,14 @@ ParseTagList (
     }
 
     if (length == -1) {
-      FreeTag(tagList);
+      FreeTag (tagList);
       return -1;
     }
   }
 
-  tmpTag = NewTag();
+  tmpTag = NewTag ();
   if (tmpTag == 0) {
-    FreeTag(tagList);
+    FreeTag (tagList);
     return -1;
   }
 
@@ -1035,19 +1035,19 @@ ParseXML (
   if (bufSize) {
     bufferSize=bufSize;
   } else {
-    bufferSize=(UINT32)AsciiStrLen(buffer);
+    bufferSize=(UINT32)AsciiStrLen (buffer);
   }
 
   if (dict == NULL) {
     return EFI_INVALID_PARAMETER;
   }
 
-  fixedBuffer = AllocateZeroPool(bufferSize+1);
+  fixedBuffer = AllocateZeroPool (bufferSize+1);
   if (fixedBuffer == NULL) {
     return EFI_OUT_OF_RESOURCES;
   }
 
-  CopyMem(fixedBuffer, buffer, bufferSize);
+  CopyMem (fixedBuffer, buffer, bufferSize);
   buffer_start = fixedBuffer;
 
 #if DEBUG_PLIST
@@ -1062,7 +1062,7 @@ ParseXML (
 
   while (1) {
     moduleDict = (TagPtr) - 1;  // have to detect changes to by-ref parameter
-    length = ParseNextTag(fixedBuffer + pos, &moduleDict);
+    length = ParseNextTag (fixedBuffer + pos, &moduleDict);
     if (length == -1) {
       break;
     }
@@ -1082,7 +1082,7 @@ ParseXML (
         break;
       }
 
-      FreeTag(moduleDict);
+      FreeTag (moduleDict);
     }
   }
 
@@ -1090,10 +1090,10 @@ ParseXML (
   if (length != -1) {
 //#if USE_REF
     moduleDict->ref_strings = (ref_strings != NULL)
-      ? AllocateCopyPool(sizeof(ref_strings) * sizeof(sREF), ref_strings)
+      ? AllocateCopyPool (sizeof (ref_strings) * sizeof (sREF), ref_strings)
       : NULL;
     moduleDict->ref_integer = (ref_integer != NULL)
-      ? AllocateCopyPool(sizeof(ref_integer) * sizeof(sREF), ref_integer)
+      ? AllocateCopyPool (sizeof (ref_integer) * sizeof (sREF), ref_integer)
       : NULL;
 //#endif
 
@@ -1101,12 +1101,12 @@ ParseXML (
 
 #if DEBUG_PLIST
   } else {
-    DBG("ParseXML gagged (-1) after '%s' (%d tags); buf+pos: %s\n",
+    DBG ("ParseXML gagged (-1) after '%s' (%d tags); buf+pos: %s\n",
       gLastTag, gTagsParsed, buffer + pos);
 #endif
   }
 
-  FreePool(fixedBuffer);
+  FreePool (fixedBuffer);
 
   dbgCount++;
 
@@ -1140,7 +1140,7 @@ GetProperty (
       continue;
     }
 
-    if (!AsciiStrCmp(tag->string, key)) {
+    if (!AsciiStrCmp (tag->string, key)) {
       return tag->tag;
     }
   }
@@ -1175,8 +1175,8 @@ GetTagCount (
       continue;
     }
 
-    if(tag->type == kTagTypeKey) {
-      DBG("Located key %s\n", tag->string);
+    if (tag->type == kTagTypeKey) {
+      DBG ("Located key %s\n", tag->string);
     }
 
     count++;
@@ -1215,12 +1215,12 @@ GetElement (
 //
 
 #if DUMP_PLIST
-CHAR8
-*DumpSpaces (
+CHAR8 *
+DumpSpaces (
   INT32   depth
 ) {
   INT32   cnt = 0, total = (depth * 2);
-  CHAR8*  spaces = AllocateZeroPool(total);
+  CHAR8   *spaces = AllocateZeroPool (total);
 
   while (cnt < total) {
     spaces[cnt] = ' ';
@@ -1237,7 +1237,7 @@ Dump (
   CHAR16  *str,
   INT32   depth
 ) {
-  MsgLog("%a%s\n", DumpSpaces(depth), str);
+  MsgLog ("%a%s\n", DumpSpaces (depth), str);
 }
 
 VOID
@@ -1248,17 +1248,17 @@ DumpTagDict (
   TagPtr  tagList;
 
   if (tag->tag == 0) {
-    Dump(PoolPrint(L"<%a/>", kXMLTagDict), depth);
+    Dump (PoolPrint (L"<%a/>", kXMLTagDict), depth);
   } else {
-    Dump(PoolPrint(L"<%a>", kXMLTagDict), depth);
+    Dump (PoolPrint (L"<%a>", kXMLTagDict), depth);
 
     tagList = tag->tag;
     while (tagList) {
-      DumpTag(tagList, depth + 1);
+      DumpTag (tagList, depth + 1);
       tagList = tagList->tagNext;
     }
 
-    Dump(PoolPrint(L"</%a>", kXMLTagDict), depth);
+    Dump (PoolPrint (L"</%a>", kXMLTagDict), depth);
   }
 }
 
@@ -1267,9 +1267,9 @@ DumpTagKey (
   TagPtr  tag,
   INT32   depth
 ) {
-  Dump(PoolPrint(L"<%a>%a</%a>", kXMLTagKey, tag->string, kXMLTagKey), depth);
+  Dump (PoolPrint (L"<%a>%a</%a>", kXMLTagKey, tag->string, kXMLTagKey), depth);
 
-  DumpTag(tag->tag, depth);
+  DumpTag (tag->tag, depth);
 }
 
 VOID
@@ -1277,16 +1277,16 @@ DumpTagString (
   TagPtr  tag,
   INT32   depth
 ) {
-  Dump(PoolPrint(L"<%a>%a</%a>", kXMLTagString, tag->string, kXMLTagString), depth);
+  Dump (PoolPrint (L"<%a>%a</%a>", kXMLTagString, tag->string, kXMLTagString), depth);
 }
 
-/* integers used to live as char*s but we need 64 bit ints */
+/* integers used to live as char * s but we need 64 bit ints */
 VOID
 DumpTagInteger (
   TagPtr  tag,
   INT32   depth
 ) {
-  Dump(PoolPrint(L"<%a>%d</%a>", kXMLTagInteger, tag->integer, kXMLTagInteger), depth);
+  Dump (PoolPrint (L"<%a>%d</%a>", kXMLTagInteger, tag->integer, kXMLTagInteger), depth);
 }
 
 VOID
@@ -1294,7 +1294,7 @@ DumpTagData (
   TagPtr  tag,
   INT32   depth
 ) {
-  Dump(PoolPrint(L"<%a>%x</%a>", kXMLTagData, tag->data, kXMLTagData), depth);
+  Dump (PoolPrint (L"<%a>%x</%a>", kXMLTagData, tag->data, kXMLTagData), depth);
 }
 
 VOID
@@ -1302,7 +1302,7 @@ DumpTagDate (
   TagPtr  tag,
   INT32   depth
 ) {
-  Dump(PoolPrint(L"<%a>%x</%a>", kXMLTagDate, tag->string, kXMLTagDate), depth);
+  Dump (PoolPrint (L"<%a>%x</%a>", kXMLTagDate, tag->string, kXMLTagDate), depth);
 }
 
 VOID
@@ -1310,7 +1310,7 @@ DumpTagBoolean (
   TagPtr  tag,
   INT32   depth
 ) {
-  Dump(PoolPrint(L"<%a>", (tag->type == kTagTypeTrue) ? kXMLTagTrue : kXMLTagFalse), depth);
+  Dump (PoolPrint (L"<%a>", (tag->type == kTagTypeTrue) ? kXMLTagTrue : kXMLTagFalse), depth);
 }
 
 VOID
@@ -1321,17 +1321,17 @@ DumpTagArray (
   TagPtr  tagList;
 
   if (tag->tag == 0) {
-    Dump(PoolPrint(L"<%a/>", kXMLTagArray), depth);
+    Dump (PoolPrint (L"<%a/>", kXMLTagArray), depth);
   } else {
-    Dump(PoolPrint(L"<%a>", kXMLTagArray), depth);
+    Dump (PoolPrint (L"<%a>", kXMLTagArray), depth);
 
     tagList = tag->tag;
     while (tagList) {
-      DumpTag(tagList, depth + 1);
+      DumpTag (tagList, depth + 1);
       tagList = tagList->tagNext;
     }
 
-    Dump(PoolPrint(L"</%a>", kXMLTagArray), depth);
+    Dump (PoolPrint (L"</%a>", kXMLTagArray), depth);
   }
 }
 
@@ -1346,36 +1346,36 @@ DumpTag (
 
   switch (tag->type) {
     case kTagTypeDict :
-      DumpTagDict(tag, depth);
+      DumpTagDict (tag, depth);
       break;
 
     case kTagTypeKey :
-      DumpTagKey(tag, depth);
+      DumpTagKey (tag, depth);
       break;
 
     case kTagTypeString :
-      DumpTagString(tag, depth);
+      DumpTagString (tag, depth);
       break;
 
     case kTagTypeInteger :
-      DumpTagInteger(tag, depth);
+      DumpTagInteger (tag, depth);
       break;
 
     case kTagTypeData :
-      DumpTagData(tag, depth);
+      DumpTagData (tag, depth);
       break;
 
     case kTagTypeDate :
-      DumpTagDate(tag, depth);
+      DumpTagDate (tag, depth);
       break;
 
     case kTagTypeFalse :
     case kTagTypeTrue :
-      DumpTagBoolean(tag, depth);
+      DumpTagBoolean (tag, depth);
       break;
 
     case kTagTypeArray :
-      DumpTagArray(tag, depth);
+      DumpTagArray (tag, depth);
       break;
 
     default :

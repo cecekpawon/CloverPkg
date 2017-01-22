@@ -15,10 +15,10 @@
 #define BOOTER_LOG_SIZE (4 * 1024)
 #define MESSAGE_LOG_PROTOCOL_GUID \
 { \
-0x511CE018, 0x0018, 0x4002, {0x20, 0x12, 0x17, 0x38, 0x05, 0x01, 0x02, 0x03} \
+  0x511CE018, 0x0018, 0x4002, {0x20, 0x12, 0x17, 0x38, 0x05, 0x01, 0x02, 0x03} \
 }
 
-#define BootLog(...) if(msgCursor){AsciiSPrint(msgCursor, BOOTER_LOG_SIZE, __VA_ARGS__); while(*msgCursor){msgCursor++;} Msg->Cursor = msgCursor;}
+#define BootLog(...) if (msgCursor){AsciiSPrint (msgCursor, BOOTER_LOG_SIZE, __VA_ARGS__); while (*msgCursor){msgCursor++;} Msg->Cursor = msgCursor;}
 
 /* sample using
 #include <Protocol/MsgLog.h>
@@ -28,8 +28,8 @@ CHAR8 *msgCursor;
 MESSAGE_LOG_PROTOCOL *Msg;
 
  Msg = NULL;
- Status = gBS->LocateProtocol(&gMsgLogProtocolGuid, NULL, (VOID **) &Msg);
- if (!EFI_ERROR(Status) && (Msg != NULL)) {
+ Status = gBS->LocateProtocol (&gMsgLogProtocolGuid, NULL, (VOID **) &Msg);
+ if (!EFI_ERROR (Status) && (Msg != NULL)) {
    msgCursor = Msg->Cursor;
  }
 */

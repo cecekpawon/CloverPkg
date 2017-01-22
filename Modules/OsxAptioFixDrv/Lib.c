@@ -20,23 +20,6 @@
 
 #include "Lib.h"
 
-// DBG_TO: 0=no debug, 1=serial, 2=console
-// serial requires
-// [PcdsFixedAtBuild]
-//  gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|0x07
-//  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0xFFFFFFFF
-// in package DSC file
-#define DBG_TO 0
-
-#if DBG_TO == 2
-  #define DBG(...) AsciiPrint(__VA_ARGS__);
-#elif DBG_TO == 1
-  #define DBG(...) DebugPrint(1, __VA_ARGS__);
-#else
-  #define DBG(...)
-#endif
-
-
 CHAR16 *EfiMemoryTypeDesc[EfiMaxMemoryType] = {
   L"reserved",
   L"LoaderCode",
@@ -66,7 +49,8 @@ CHAR16 *EfiLocateSearchType[] = {
   L"ByProtocol"
 };
 
-VOID EFIAPI
+VOID
+EFIAPI
 FixMemMap (
   IN UINTN                  MemoryMapSize,
   IN EFI_MEMORY_DESCRIPTOR  *MemoryMap,
@@ -111,7 +95,6 @@ FixMemMap (
       Desc->Attribute = 0;
     }
 
-
 #if 0//DBG_TO
     //
     // Also do some checking
@@ -143,8 +126,8 @@ FixMemMap (
         DBG (" %s without RT flag: %lx (0x%x) - ???\n", EfiMemoryTypeDesc[Desc->Type], Desc->PhysicalStart, Desc->NumberOfPages);
       }
     }
-
 #endif
+
     Desc = NEXT_MEMORY_DESCRIPTOR (Desc, DescriptorSize);
   }
 }
@@ -231,8 +214,8 @@ PrintMemMap (
   NumEntries = MemoryMapSize / DescriptorSize;
   DBG ("MEMMAP: Size=%d, Addr=%p, DescSize=%d, DescVersion: 0x%x\n", MemoryMapSize, MemoryMap, DescriptorSize, DescriptorVersion);
   DBG ("Type       Start            End       VStart               # Pages          Attributes\n");
-  for (Index = 0; Index < NumEntries; Index++) {
 
+  for (Index = 0; Index < NumEntries; Index++) {
     Bytes = (((UINTN) Desc->NumberOfPages) * EFI_PAGE_SIZE);
 
     DBG ("%-12s %lX-%lX %lX  %lX %lX\n",
@@ -309,7 +292,7 @@ FileDevicePathToText (
   FilePathText[0] = L'\0';
   i = 4;
   SizeAll = 0;
-  Len = ARRAY_SIZE(FilePathText);
+  Len = ARRAY_SIZE (FilePathText);
 
   //DBG ("FilePathProto->Type: %d, SubType: %d, Length: %d\n", FilePathProto->Type, FilePathProto->SubType, DevicePathNodeLength (FilePathProto));
 
@@ -341,7 +324,7 @@ FileDevicePathToText (
   Size = StrSize (FilePathText);
   if (Size > 2) {
     // we are allocating mem here - should be released by caller
-    Status = gBS->AllocatePool (EfiBootServicesData, Size, (VOID*)&OutFilePathText);
+    Status = gBS->AllocatePool (EfiBootServicesData, Size, (VOID *)&OutFilePathText);
     if (Status == EFI_SUCCESS) {
       StrCpyS (OutFilePathText, Size, FilePathText);
     } else {

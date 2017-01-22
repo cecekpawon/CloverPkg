@@ -276,9 +276,9 @@ _PoolCatPrint (
   ps.Context  = spc;
   ps.fmt.u.pw = fmt;
   //ps.args     = args;
-  VA_COPY(ps.args, args);
+  VA_COPY (ps.args, args);
   _PPrint (&ps);
-  VA_END(ps.args);
+  VA_END (ps.args);
 }
 
 CHAR16
@@ -311,7 +311,7 @@ CHAR16
   ZeroMem (&spc, sizeof (spc));
   VA_START (args, fmt);
   _PoolCatPrint (fmt, args, &spc, _PoolPrint);
-  VA_END(args);
+  VA_END (args);
 
   return spc.Str;
 }
@@ -346,7 +346,7 @@ PrintAt (
 
   VA_START (args, fmt);
   ret = _IPrint (Column, Row, gST->ConOut, fmt, NULL, args);
-  VA_END(args);
+  VA_END (args);
 
   return ret;
 }
@@ -413,14 +413,14 @@ _IPrint (
   }
 
   //ps.args = args;
-  VA_COPY(ps.args, args);
+  VA_COPY (ps.args, args);
 
   if (Column != (UINTN) -1) {
     Out->SetCursorPosition (Out, Column, Row);
   }
 
   back = _PPrint (&ps);
-  VA_END(ps.args);
+  VA_END (ps.args);
 
   return back;
 }
@@ -454,7 +454,7 @@ IPrint (
 
   VA_START (args, fmt);
   ret = _IPrint ((UINTN) -1, (UINTN) -1, Out, fmt, NULL, args);
-  VA_END(args);
+  VA_END (args);
 
   return ret;
 }
@@ -493,7 +493,7 @@ IPrintAt (
 
   VA_START (args, fmt);
   ret = _IPrint (Column, Row, gST->ConOut, fmt, NULL, args);
-  VA_END(args);
+  VA_END (args);
 
   return ret;
 }
@@ -882,7 +882,7 @@ _PPrint (
 
         case 'x':
           Item.Item.u.pw = Item.Scratch;
-          //SPrint(Buffer, 64, L"EFI Error №%r", (UINTN)Status);
+          //SPrint (Buffer, 64, L"EFI Error №%r", (UINTN)Status);
           //ValueToHex (
           UnicodeSPrint (
             Item.Item.u.pw, 64, L"%x",
@@ -920,7 +920,7 @@ _PPrint (
         case 'r':
           Item.Item.u.pw = Item.Scratch;
           //StatusToString
-          UnicodeSPrint(Item.Item.u.pw, 64, L"%r", VA_ARG (ps->args, EFI_STATUS));
+          UnicodeSPrint (Item.Item.u.pw, 64, L"%r", VA_ARG (ps->args, EFI_STATUS));
           break;
 
         case 'n':
@@ -1022,13 +1022,13 @@ WaitForSingleEvent (
     //
     // Create a timer event
     //
-    Status = gBS->CreateEvent(EVT_TIMER, 0, NULL, NULL, &TimerEvent);
+    Status = gBS->CreateEvent (EVT_TIMER, 0, NULL, NULL, &TimerEvent);
 
     if (!EFI_ERROR (Status)) {
       //
       // Set the timer event
       //
-      gBS->SetTimer(TimerEvent, TimerRelative, Timeout);
+      gBS->SetTimer (TimerEvent, TimerRelative, Timeout);
 
       //
       // Wait for the original event or the timer
@@ -1036,7 +1036,7 @@ WaitForSingleEvent (
       WaitList[0] = Event;
       WaitList[1] = TimerEvent;
 
-      Status = gBS->WaitForEvent(2, WaitList, &Index);
+      Status = gBS->WaitForEvent (2, WaitList, &Index);
       gBS->CloseEvent (TimerEvent);
       if (!EFI_ERROR (Status) && Index == 1)
       {
@@ -1063,26 +1063,26 @@ WaitFor2EventWithTsc (
   UINTN           Index;
   EFI_EVENT       WaitList[2];
   UINT64          t0, t1,
-                  Delta = DivU64x64Remainder(MultU64x64(Timeout, gCPUStructure.TSCFrequency), 1000, NULL);
+                  Delta = DivU64x64Remainder (MultU64x64 (Timeout, gCPUStructure.TSCFrequency), 1000, NULL);
 
   if (Timeout != 0) {
-    t0 = AsmReadTsc();
+    t0 = AsmReadTsc ();
 
     do {
-      Status = gBS->CheckEvent(Event1);
-      if (!EFI_ERROR(Status)) {
+      Status = gBS->CheckEvent (Event1);
+      if (!EFI_ERROR (Status)) {
         break;
       }
       if (Event2) {
-        Status = gBS->CheckEvent(Event2);
-        if (!EFI_ERROR(Status)) {
+        Status = gBS->CheckEvent (Event2);
+        if (!EFI_ERROR (Status)) {
           break;
         }
       }
       // Let's try to relax processor a bit
-      CpuPause();
+      CpuPause ();
       Status = EFI_TIMEOUT;
-      t1 = AsmReadTsc();
+      t1 = AsmReadTsc ();
     } while ((t1 - t0) < Delta);
   } else {
     WaitList[0] = Event1;
@@ -1514,10 +1514,10 @@ IInput (
   //SetMem (InStr, StrLength * sizeof (CHAR16), 0);
 
   //prepare default string
-  Len = StrLen(InStr);
+  Len = StrLen (InStr);
   StrPos = 0;
   OutputLength = Len;
-  Print(L"%s", InStr);
+  Print (L"%s", InStr);
   Done = FALSE;
   ConOut->SetCursorPosition (ConOut, Column, Row);
 
@@ -1830,7 +1830,7 @@ TimeDiff (
   UINT64  t0,
   UINT64  t1
 ) {
-  return DivU64x64Remainder((t1 - t0), DivU64x32(gCPUStructure.TSCFrequency, 1000), 0);
+  return DivU64x64Remainder ((t1 - t0), DivU64x32 (gCPUStructure.TSCFrequency, 1000), 0);
 }
 
 // TimeoutDefault for a wait in seconds
@@ -1851,11 +1851,11 @@ WaitForInputEventPoll (
       break;
     }
 
-    UpdateAnime(Screen, &(Screen->FilmPlace));
+    UpdateAnime (Screen, &(Screen->FilmPlace));
 
     /*
     if ((INTN)gItemID < Screen->EntryCount) {
-      UpdateAnime(Screen->Entries[gItemID]->SubScreen, &(Screen->Entries[gItemID]->Place));
+      UpdateAnime (Screen->Entries[gItemID]->SubScreen, &(Screen->Entries[gItemID]->Place));
     } */
 
     TimeoutRemain--;

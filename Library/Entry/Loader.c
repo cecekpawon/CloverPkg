@@ -46,7 +46,7 @@
 #define DEBUG_SCAN_LOADER DEBUG_ALL
 #endif
 
-#define DBG(...) DebugLog(DEBUG_SCAN_LOADER, __VA_ARGS__)
+#define DBG(...) DebugLog (DEBUG_SCAN_LOADER, __VA_ARGS__)
 
 //#define DUMP_KERNEL_KEXT_PATCHES 1
 
@@ -89,7 +89,7 @@ STATIC LINUX_PATH_DATA LinuxEntryData[] = {
   { L"\\EFI\\SuSe\\elilo.efi",          L"OpenSuse Linux",      L"suse,linux" },
 };
 
-STATIC CONST UINTN LinuxEntryDataCount = ARRAY_SIZE(LinuxEntryData);
+STATIC CONST UINTN LinuxEntryDataCount = ARRAY_SIZE (LinuxEntryData);
 
 STATIC CHAR16 *LinuxInitImagePath[] = {
    L"initrd%s",
@@ -100,7 +100,7 @@ STATIC CHAR16 *LinuxInitImagePath[] = {
    L"initramfs%s.img",
 };
 
-STATIC CONST UINTN LinuxInitImagePathCount = ARRAY_SIZE(LinuxInitImagePath);
+STATIC CONST UINTN LinuxInitImagePathCount = ARRAY_SIZE (LinuxInitImagePath);
 
 #define ANDX86_FINDLEN 3
 
@@ -119,7 +119,7 @@ STATIC ANDX86_PATH_DATA AndroidEntryData[] = {
   { L"\\EFI\\boot\\bootx64.efi",    L"Chrome",  L"chrome,grub,linux",   { L"\\syslinux\\vmlinuz.A", L"\\syslinux\\vmlinuz.B", L"\\syslinux\\ldlinux.sys" } },
 };
 
-STATIC CONST UINTN AndroidEntryDataCount = ARRAY_SIZE(AndroidEntryData);
+STATIC CONST UINTN AndroidEntryDataCount = ARRAY_SIZE (AndroidEntryData);
 
 STATIC CHAR16 *OSXInstallerPaths[] = {
   L"\\Mac OS X Install Data\\boot.efi",
@@ -128,7 +128,7 @@ STATIC CHAR16 *OSXInstallerPaths[] = {
   L"\\.IABootFiles\\boot.efi"
 };
 
-STATIC CONST UINTN OSXInstallerPathsCount = ARRAY_SIZE(OSXInstallerPaths);
+STATIC CONST UINTN OSXInstallerPathsCount = ARRAY_SIZE (OSXInstallerPaths);
 
 STATIC CHAR16 *WINEFIPaths[] = {
   L"\\EFI\\MICROSOFT\\BOOT\\bootmgfw.efi",
@@ -137,9 +137,7 @@ STATIC CHAR16 *WINEFIPaths[] = {
   L"\\EFI\\MICROSOFT\\BOOT\\cdboot.efi"
 };
 
-STATIC CONST UINTN WINEFIPathsCount = ARRAY_SIZE(WINEFIPaths);
-
-extern BOOLEAN CopyKernelAndKextPatches(IN OUT KERNEL_AND_KEXT_PATCHES *Dst, IN KERNEL_AND_KEXT_PATCHES *Src);
+STATIC CONST UINTN WINEFIPathsCount = ARRAY_SIZE (WINEFIPaths);
 
 STATIC
 BOOLEAN
@@ -147,11 +145,11 @@ IsBootExists (
   IN CHAR16   *Path,
   IN CHAR16   **Lists
 ) {
-  INTN      Count = ARRAY_SIZE(Lists), Index = 0;
+  INTN      Count = ARRAY_SIZE (Lists), Index = 0;
   BOOLEAN   Found = FALSE;
 
   while (!Found && (Index < Count)) {
-    Found = (BOOLEAN)(StriCmp(Path, Lists[Index++]) == 0);
+    Found = (StriCmp (Path, Lists[Index++]) == 0);
   }
 
   return Found;
@@ -165,21 +163,21 @@ GetOSTypeFromPath (
     return OSTYPE_OTHER;
   }
 
-  if (StriCmp(Path, MACOSX_LOADER_PATH) == 0) {
+  if (StriCmp (Path, MACOSX_LOADER_PATH) == 0) {
     return OSTYPE_OSX;
-  } else if (IsBootExists(Path, OSXInstallerPaths)) {
+  } else if (IsBootExists (Path, OSXInstallerPaths)) {
     return OSTYPE_OSX_INSTALLER;
-  } else if (StriCmp(Path, MACOSX_RECOVERY_LOADER_PATH) == 0) {
+  } else if (StriCmp (Path, MACOSX_RECOVERY_LOADER_PATH) == 0) {
     return OSTYPE_RECOVERY;
-  } else if (IsBootExists(Path, WINEFIPaths)) {
+  } else if (IsBootExists (Path, WINEFIPaths)) {
     return OSTYPE_WINEFI;
-  } else if (StrniCmp(Path, LINUX_FULL_LOADER_PATH, StrLen(LINUX_FULL_LOADER_PATH)) == 0) {
+  } else if (StrniCmp (Path, LINUX_FULL_LOADER_PATH, StrLen (LINUX_FULL_LOADER_PATH)) == 0) {
     return OSTYPE_LINEFI;
   } else {
     UINTN   Index= 0;
 
     while (Index < AndroidEntryDataCount) {
-      if (StriCmp(Path, AndroidEntryData[Index].Path) == 0) {
+      if (StriCmp (Path, AndroidEntryData[Index].Path) == 0) {
         return OSTYPE_LIN;
       }
 
@@ -188,7 +186,7 @@ GetOSTypeFromPath (
 
     Index = 0;
     while (Index < LinuxEntryDataCount) {
-      if (StriCmp(Path, LinuxEntryData[Index].Path) == 0) {
+      if (StriCmp (Path, LinuxEntryData[Index].Path) == 0) {
         return OSTYPE_LIN;
       }
 
@@ -200,19 +198,19 @@ GetOSTypeFromPath (
 }
 
 STATIC
-CHAR16
-*LinuxIconNameFromPath (
+CHAR16 *
+LinuxIconNameFromPath (
   IN CHAR16             *Path,
   IN EFI_FILE_PROTOCOL  *RootDir
 ) {
   UINTN Index = 0;
 
-  if (GlobalConfig.TextOnly || IsEmbeddedTheme()) {
+  if (GlobalConfig.TextOnly || IsEmbeddedTheme ()) {
     goto FINISH;
   }
 
   while (Index < AndroidEntryDataCount) {
-    if (StriCmp(Path, AndroidEntryData[Index].Path) == 0) {
+    if (StriCmp (Path, AndroidEntryData[Index].Path) == 0) {
       return AndroidEntryData[Index].Icon;
     }
 
@@ -221,7 +219,7 @@ CHAR16
 
   Index = 0;
   while (Index < LinuxEntryDataCount) {
-    if (StriCmp(Path, LinuxEntryData[Index].Path) == 0) {
+    if (StriCmp (Path, LinuxEntryData[Index].Path) == 0) {
       return LinuxEntryData[Index].Icon;
     }
 
@@ -229,24 +227,24 @@ CHAR16
   }
 
   // Try to open the linux issue
-  if ((RootDir != NULL) && (StrniCmp(Path, LINUX_FULL_LOADER_PATH, StrLen(LINUX_FULL_LOADER_PATH)) == 0)) {
+  if ((RootDir != NULL) && (StrniCmp (Path, LINUX_FULL_LOADER_PATH, StrLen (LINUX_FULL_LOADER_PATH)) == 0)) {
     CHAR8   *Issue = NULL;
     UINTN   IssueLen = 0;
 
-    if (!EFI_ERROR(egLoadFile(RootDir, LINUX_ISSUE_PATH, (UINT8 **)&Issue, &IssueLen)) && (Issue != NULL)) {
+    if (!EFI_ERROR (LoadFile (RootDir, LINUX_ISSUE_PATH, (UINT8 **)&Issue, &IssueLen)) && (Issue != NULL)) {
       if (IssueLen > 0) {
         for (Index = 0; Index < LinuxEntryDataCount; ++Index) {
           if (
             (LinuxEntryData[Index].Issue != NULL) &&
-            (AsciiStrStr(Issue, LinuxEntryData[Index].Issue) != NULL)
+            (AsciiStrStr (Issue, LinuxEntryData[Index].Issue) != NULL)
           ) {
-            FreePool(Issue);
+            FreePool (Issue);
             return LinuxEntryData[Index].Icon;
           }
         }
       }
 
-      FreePool(Issue);
+      FreePool (Issue);
     }
   }
 
@@ -255,8 +253,8 @@ FINISH:
 }
 
 STATIC
-CHAR16
-*LinuxKernelOptions (
+CHAR16 *
+LinuxKernelOptions (
   IN EFI_FILE_PROTOCOL  *Dir,
   IN CHAR16             *Version,
   IN CHAR16             *PartUUID,
@@ -265,36 +263,36 @@ CHAR16
   UINTN Index = 0;
 
   if ((Dir == NULL) || (PartUUID == NULL)) {
-    return (Options == NULL) ? NULL : EfiStrDuplicate(Options);
+    return (Options == NULL) ? NULL : EfiStrDuplicate (Options);
   }
 
   while (Index < LinuxInitImagePathCount) {
-    CHAR16  *InitRd = PoolPrint(LinuxInitImagePath[Index++], (Version == NULL) ? L"" : Version);
+    CHAR16  *InitRd = PoolPrint (LinuxInitImagePath[Index++], (Version == NULL) ? L"" : Version);
 
     if (InitRd != NULL) {
-      if (FileExists(Dir, InitRd)) {
-        CHAR16 *CustomOptions = PoolPrint(L"root=/dev/disk/by-partuuid/%s initrd=%s\\%s %s %s",
+      if (FileExists (Dir, InitRd)) {
+        CHAR16 *CustomOptions = PoolPrint (L"root=/dev/disk/by-partuuid/%s initrd=%s\\%s %s %s",
                                   PartUUID, LINUX_BOOT_ALT_PATH, InitRd,
                                   LINUX_DEFAULT_OPTIONS, (Options == NULL) ? L"" : Options
                                 );
 
-        FreePool(InitRd);
+        FreePool (InitRd);
 
         return CustomOptions;
       }
 
-      FreePool(InitRd);
+      FreePool (InitRd);
     }
   }
 
-  return PoolPrint(L"root=/dev/disk/by-partuuid/%s %s %s",
+  return PoolPrint (L"root=/dev/disk/by-partuuid/%s %s %s",
             PartUUID, LINUX_DEFAULT_OPTIONS, (Options == NULL) ? L"" : Options
           );
 }
 
 STATIC
 BOOLEAN
-isFirstRootUUID (
+IsFirstRootUUID (
   REFIT_VOLUME    *Volume
 ) {
   UINTN           VolumeIndex;
@@ -307,7 +305,7 @@ isFirstRootUUID (
       return TRUE;
     }
 
-    if (CompareGuid(&scanedVolume->RootUUID, &Volume->RootUUID)) {
+    if (CompareGuid (&scanedVolume->RootUUID, &Volume->RootUUID)) {
       return FALSE;
     }
 
@@ -327,24 +325,24 @@ GetOSXVolumeName (
   CHAR8         *fileBuffer, *targetString;
   UINTN         fileLen = 0, Len;
 
-  if (FileExists(Entry->Volume->RootDir, targetNameFile)) {
-    Status = egLoadFile(Entry->Volume->RootDir, targetNameFile, (UINT8 **)&fileBuffer, &fileLen);
-    if (!EFI_ERROR(Status)) {
+  if (FileExists (Entry->Volume->RootDir, targetNameFile)) {
+    Status = LoadFile (Entry->Volume->RootDir, targetNameFile, (UINT8 **)&fileBuffer, &fileLen);
+    if (!EFI_ERROR (Status)) {
       Len = fileLen + 1;
 
       //Create null terminated string
-      targetString = AllocateZeroPool(Len);
-      CopyMem((VOID*)targetString, (VOID*)fileBuffer, fileLen);
-      DBG(" - found disk_label with contents:%a\n", targetString);
+      targetString = AllocateZeroPool (Len);
+      CopyMem ((VOID *)targetString, (VOID *)fileBuffer, fileLen);
+      DBG (" - found disk_label with contents:%a\n", targetString);
 
       //Convert to Unicode
-      Entry->VolName = AllocateZeroPool(Len);
-      AsciiStrToUnicodeStrS(targetString, Entry->VolName, Len);
+      Entry->VolName = AllocateZeroPool (Len);
+      AsciiStrToUnicodeStrS (targetString, Entry->VolName, Len);
 
-      DBG(" - created name: %s\n", Entry->VolName);
+      DBG (" - created name: %s\n", Entry->VolName);
 
-      FreePool(fileBuffer);
-      FreePool(targetString);
+      FreePool (fileBuffer);
+      FreePool (targetString);
     }
   }
 
@@ -352,8 +350,8 @@ GetOSXVolumeName (
 }
 
 STATIC
-LOADER_ENTRY
-*CreateLoaderEntry (
+LOADER_ENTRY *
+CreateLoaderEntry (
   IN CHAR16                   *LoaderPath,
   IN CHAR16                   *LoaderOptions,
   IN CHAR16                   *FullTitle,
@@ -381,28 +379,28 @@ LOADER_ENTRY
   }
 
   // Get the loader device path
-  LoaderDevicePath = FileDevicePath(Volume->DeviceHandle, (*LoaderPath == L'\\') ? (LoaderPath + 1) : LoaderPath);
+  LoaderDevicePath = FileDevicePath (Volume->DeviceHandle, (*LoaderPath == L'\\') ? (LoaderPath + 1) : LoaderPath);
 
   if (LoaderDevicePath == NULL) {
     return NULL;
   }
 
-  LoaderDevicePathString = FileDevicePathToStr(LoaderDevicePath);
+  LoaderDevicePathString = FileDevicePathToStr (LoaderDevicePath);
 
   if (LoaderDevicePathString == NULL) {
     return NULL;
   }
 
   // Ignore this loader if it's self path
-  FilePathAsString = FileDevicePathToStr(SelfFullDevicePath);
+  FilePathAsString = FileDevicePathToStr (SelfFullDevicePath);
 
   if (FilePathAsString) {
-    INTN    Comparison = StriCmp(FilePathAsString, LoaderDevicePathString);
+    INTN    Comparison = StriCmp (FilePathAsString, LoaderDevicePathString);
 
-    FreePool(FilePathAsString);
+    FreePool (FilePathAsString);
     if (Comparison == 0) {
-      DBG("%a skipped because path `%s` is self path!\n", indent, LoaderDevicePathString);
-      FreePool(LoaderDevicePathString);
+      DBG ("%a skipped because path `%s` is self path!\n", indent, LoaderDevicePathString);
+      FreePool (LoaderDevicePathString);
       return NULL;
     }
   }
@@ -420,9 +418,9 @@ LOADER_ENTRY
         if (MainEntry && (MainEntry->Tag == TAG_LOADER)) {
           LOADER_ENTRY    *Loader = (LOADER_ENTRY *)MainEntry;
 
-          if (StriCmp(Loader->DevicePathString, LoaderDevicePathString) == 0) {
-            DBG("%a skipped because path `%s` already exists for another entry!\n", indent, LoaderDevicePathString);
-            FreePool(LoaderDevicePathString);
+          if (StriCmp (Loader->DevicePathString, LoaderDevicePathString) == 0) {
+            DBG ("%a skipped because path `%s` already exists for another entry!\n", indent, LoaderDevicePathString);
+            FreePool (LoaderDevicePathString);
             return NULL;
           }
         }
@@ -435,8 +433,8 @@ LOADER_ENTRY
     while (Custom) {
       // Check if the custom entry is hidden or disabled
       if (
-        (OSFLAG_ISSET(Custom->Flags, OSFLAG_DISABLED) ||
-        (OSFLAG_ISSET(Custom->Flags, OSFLAG_HIDDEN) && !gSettings.ShowHiddenEntries))
+        (OSFLAG_ISSET (Custom->Flags, OSFLAG_DISABLED) ||
+        (OSFLAG_ISSET (Custom->Flags, OSFLAG_HIDDEN) && !gSettings.ShowHiddenEntries))
       ) {
         INTN  volume_match = 0,
               volume_type_match = 0,
@@ -447,25 +445,25 @@ LOADER_ENTRY
         if (Custom->Volume != NULL) {
           // Check if the string matches the volume
           volume_match = (
-            (StrStr(Volume->DevicePathString, Custom->Volume) != NULL) ||
-             ((Volume->VolName != NULL) && (StrStr(Volume->VolName, Custom->Volume) != NULL))
+            (StrStr (Volume->DevicePathString, Custom->Volume) != NULL) ||
+             ((Volume->VolName != NULL) && (StrStr (Volume->VolName, Custom->Volume) != NULL))
           ) ? 1 : -1;
         }
 
         // Check if the volume_type match
         if (Custom->VolumeType != 0) {
-          volume_type_match = MEDIA_VALID(Volume->DiskKind, Custom->VolumeType) ? 1 : -1;
+          volume_type_match = MEDIA_VALID (Volume->DiskKind, Custom->VolumeType) ? 1 : -1;
         }
 
         // Check if the path match
         if (Custom->Path != NULL) {
           // Check if the loader path match
-          path_match = (StriCmp(Custom->Path, LoaderPath) == 0) ? 1 : -1;
+          path_match = (StriCmp (Custom->Path, LoaderPath) == 0) ? 1 : -1;
         }
 
         // Check if the type match
         if (Custom->Type != 0) {
-          type_match = OSTYPE_COMPARE(Custom->Type, OSType) ? 1 : -1;
+          type_match = OSTYPE_COMPARE (Custom->Type, OSType) ? 1 : -1;
         }
 
         if ((volume_match == -1) || (volume_type_match == -1) || (path_match == -1) || (type_match == -1)) {
@@ -474,13 +472,13 @@ LOADER_ENTRY
           DBG ("%aNot match custom entry %d: ", indent, CustomIndex);
 
           if (volume_match != 0) {
-            DBG("Volume: %s", volume_match == 1 ? L"match" : L"not match");
+            DBG ("Volume: %s", volume_match == 1 ? L"match" : L"not match");
 
             add_comma++;
           }
 
           if (path_match != 0) {
-            DBG("%sPath: %s",
+            DBG ("%sPath: %s",
                 (add_comma ? L", " : L""),
                 path_match == 1 ? L"match" : L"not match");
 
@@ -488,7 +486,7 @@ LOADER_ENTRY
           }
 
           if (volume_type_match != 0) {
-            DBG("%sVolumeType: %s",
+            DBG ("%sVolumeType: %s",
                 (add_comma ? L", " : L""),
                 volume_type_match == 1 ? L"match" : L"not match");
 
@@ -496,16 +494,16 @@ LOADER_ENTRY
           }
 
           if (type_match != 0) {
-            DBG("%sType: %s",
+            DBG ("%sType: %s",
                 (add_comma ? L", " : L""),
                 type_match == 1 ? L"match" : L"not match");
           }
 
-          DBG("\n");
+          DBG ("\n");
         } else {
           // Custom entry match
-          DBG("%aSkipped because matching custom entry %d!\n", indent, CustomIndex);
-          FreePool(LoaderDevicePathString);
+          DBG ("%aSkipped because matching custom entry %d!\n", indent, CustomIndex);
+          FreePool (LoaderDevicePathString);
           return NULL;
         }
       }
@@ -516,30 +514,30 @@ LOADER_ENTRY
   }
 
   // prepare the menu entry
-  Entry                     = AllocateZeroPool(sizeof(LOADER_ENTRY));
+  Entry                     = AllocateZeroPool (sizeof (LOADER_ENTRY));
   Entry->me.Tag             = TAG_LOADER;
   Entry->me.Row             = 0;
   Entry->Volume             = Volume;
 
-  Entry->LoaderPath         = EfiStrDuplicate(LoaderPath);
+  Entry->LoaderPath         = EfiStrDuplicate (LoaderPath);
   Entry->VolName            = Volume->VolName;
   Entry->DevicePath         = LoaderDevicePath;
   Entry->DevicePathString   = LoaderDevicePathString;
-  Entry->Flags              = OSFLAG_SET(Flags, OSFLAG_USEGRAPHICS);
+  Entry->Flags              = OSFLAG_SET (Flags, OSFLAG_USEGRAPHICS);
 
   if (LoaderOptions) {
-    if (OSFLAG_ISSET(Flags, OSFLAG_NODEFAULTARGS)) {
-      Entry->LoadOptions    = EfiStrDuplicate(LoaderOptions);
+    if (OSFLAG_ISSET (Flags, OSFLAG_NODEFAULTARGS)) {
+      Entry->LoadOptions    = EfiStrDuplicate (LoaderOptions);
     } else {
-      Entry->LoadOptions    = PoolPrint(L"%a %s", gSettings.BootArgs, LoaderOptions);
+      Entry->LoadOptions    = PoolPrint (L"%a %s", gSettings.BootArgs, LoaderOptions);
     }
-  } else if ((AsciiStrLen(gSettings.BootArgs) > 0) && OSFLAG_ISUNSET(Flags, OSFLAG_NODEFAULTARGS)) {
-    Entry->LoadOptions      = PoolPrint(L"%a", gSettings.BootArgs);
+  } else if ((AsciiStrLen (gSettings.BootArgs) > 0) && OSFLAG_ISUNSET (Flags, OSFLAG_NODEFAULTARGS)) {
+    Entry->LoadOptions      = PoolPrint (L"%a", gSettings.BootArgs);
   }
 
   Entry->LoaderType         = OSType;
   Entry->BuildVersion       = NULL;
-  Entry->OSVersion          = GetOSVersion(Entry);
+  Entry->OSVersion          = GetOSVersion (Entry);
 
   // detect specific loaders
   OSIconName = NULL;
@@ -549,16 +547,16 @@ LOADER_ENTRY
     case OSTYPE_OSX:
     case OSTYPE_RECOVERY:
     case OSTYPE_OSX_INSTALLER:
-      OSIconName = GetOSIconName(Entry->OSVersion);// Sothor - Get OSIcon name using OSVersion
+      OSIconName = GetOSIconName (Entry->OSVersion);// Sothor - Get OSIcon name using OSVersion
 
-      if ((OSType == OSTYPE_OSX) && IsOsxHibernated(Volume)) {
-        Entry->Flags = OSFLAG_SET(Entry->Flags, OSFLAG_HIBERNATED);
+      if ((OSType == OSTYPE_OSX) && IsOsxHibernated (Volume)) {
+        Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_HIBERNATED);
       }
 
       ShortcutLetter = 'M';
-      if ((Entry->VolName == NULL) || (StrLen(Entry->VolName) == 0)) {
+      if ((Entry->VolName == NULL) || (StrLen (Entry->VolName) == 0)) {
         // else no sense to override it with dubious name
-        GetOSXVolumeName(Entry);
+        GetOSXVolumeName (Entry);
       }
       break;
 
@@ -571,7 +569,7 @@ LOADER_ENTRY
 
     case OSTYPE_LIN:
     case OSTYPE_LINEFI:
-      OSIconName = LinuxIconNameFromPath(LoaderPath, Volume->RootDir);
+      OSIconName = LinuxIconNameFromPath (LoaderPath, Volume->RootDir);
       ShortcutLetter = 'L';
       break;
 
@@ -584,83 +582,83 @@ LOADER_ENTRY
   }
 
   if (FullTitle) {
-    Entry->me.Title = EfiStrDuplicate(FullTitle);
-  } else if ((Entry->VolName == NULL) || (StrLen(Entry->VolName) == 0)) {
-    //DBG("encounter Entry->VolName ==%s and StrLen(Entry->VolName) ==%d\n",Entry->VolName, StrLen(Entry->VolName));
+    Entry->me.Title = EfiStrDuplicate (FullTitle);
+  } else if ((Entry->VolName == NULL) || (StrLen (Entry->VolName) == 0)) {
+    //DBG ("encounter Entry->VolName ==%s and StrLen (Entry->VolName) ==%d\n",Entry->VolName, StrLen (Entry->VolName));
     if (GlobalConfig.BootCampStyle) {
-      Entry->me.Title = PoolPrint(L"%s", ((LoaderTitle != NULL) ? LoaderTitle : Basename(Volume->DevicePathString)));
+      Entry->me.Title = PoolPrint (L"%s", ((LoaderTitle != NULL) ? LoaderTitle : Basename (Volume->DevicePathString)));
     } else {
-      Entry->me.Title = PoolPrint(L"Boot %s from %s", (LoaderTitle != NULL) ? LoaderTitle : Basename(LoaderPath),
-                                    Basename(Volume->DevicePathString));
+      Entry->me.Title = PoolPrint (L"Boot %s from %s", (LoaderTitle != NULL) ? LoaderTitle : Basename (LoaderPath),
+                                    Basename (Volume->DevicePathString));
     }
   } else {
-    //DBG("encounter LoaderTitle ==%s and Entry->VolName ==%s\n", LoaderTitle, Entry->VolName);
+    //DBG ("encounter LoaderTitle ==%s and Entry->VolName ==%s\n", LoaderTitle, Entry->VolName);
     if (GlobalConfig.BootCampStyle) {
-      if ((StriCmp(LoaderTitle, L"Mac OS X") == 0) || (StriCmp(LoaderTitle, L"Recovery") == 0)) {
-        Entry->me.Title = PoolPrint(L"%s", Entry->VolName);
+      if ((StriCmp (LoaderTitle, L"Mac OS X") == 0) || (StriCmp (LoaderTitle, L"Recovery") == 0)) {
+        Entry->me.Title = PoolPrint (L"%s", Entry->VolName);
       } else {
-        Entry->me.Title = PoolPrint(L"%s", (LoaderTitle != NULL) ? LoaderTitle : Basename(LoaderPath));
+        Entry->me.Title = PoolPrint (L"%s", (LoaderTitle != NULL) ? LoaderTitle : Basename (LoaderPath));
       }
     } else {
-      Entry->me.Title = PoolPrint(L"Boot %s from %s", (LoaderTitle != NULL) ? LoaderTitle : Basename(LoaderPath),
+      Entry->me.Title = PoolPrint (L"Boot %s from %s", (LoaderTitle != NULL) ? LoaderTitle : Basename (LoaderPath),
                                     Entry->VolName);
     }
   }
 
-  //DBG("Entry->me.Title =%s\n", Entry->me.Title);
+  //DBG ("Entry->me.Title =%s\n", Entry->me.Title);
   // just an example that UI can show hibernated volume to the user
   // should be better to show it on entry image
-  if (OSFLAG_ISSET(Entry->Flags, OSFLAG_HIBERNATED)) {
-    Entry->me.Title = PoolPrint(L"%s (hibernated)", Entry->me.Title);
+  if (OSFLAG_ISSET (Entry->Flags, OSFLAG_HIBERNATED)) {
+    Entry->me.Title = PoolPrint (L"%s (hibernated)", Entry->me.Title);
   }
 
   Entry->me.ShortcutLetter = (Hotkey == 0) ? ShortcutLetter : Hotkey;
 
   if (!GlobalConfig.TextOnly) {
     // Load DriveImage
-    Entry->me.DriveImage = (DriveImage != NULL) ? DriveImage : ScanVolumeDefaultIcon(Volume, Entry->LoaderType);
+    Entry->me.DriveImage = (DriveImage != NULL) ? DriveImage : ScanVolumeDefaultIcon (Volume, Entry->LoaderType);
 
-    if (IsEmbeddedTheme()) {
+    if (IsEmbeddedTheme ()) {
       goto FINISH;
     }
 
-    ImageTmp = LoadOSIcon(OSIconName, &OSIconNameHover, L"unknown", 128, FALSE, TRUE);
+    ImageTmp = LoadOSIcon (OSIconName, &OSIconNameHover, L"unknown", 128, FALSE, TRUE);
     Entry->me.Image = Image ? Image : ImageTmp;
 
-    // DBG("HideBadges=%d Volume=%s ", GlobalConfig.HideBadges, Volume->VolName);
+    // DBG ("HideBadges=%d Volume=%s ", GlobalConfig.HideBadges, Volume->VolName);
     if (GlobalConfig.HideBadges & HDBADGES_SHOW) {
       if (GlobalConfig.HideBadges & HDBADGES_SWAP) {
-        Entry->me.BadgeImage = egCopyScaledImage(Entry->me.DriveImage, GlobalConfig.BadgeScale);
-        // DBG(" Show badge as Drive.");
+        Entry->me.BadgeImage = CopyScaledImage (Entry->me.DriveImage, GlobalConfig.BadgeScale);
+        // DBG (" Show badge as Drive.");
       } else {
-        Entry->me.BadgeImage = egCopyScaledImage(Entry->me.Image, GlobalConfig.BadgeScale);
+        Entry->me.BadgeImage = CopyScaledImage (Entry->me.Image, GlobalConfig.BadgeScale);
         if (OSIconNameHover != NULL) {
-          // DBG(" Show badge as OSImage.");
-          HoverImage = AllocateZeroPool(sizeof(OSIconNameHover));
-          HoverImage = GetIconsExt(PoolPrint(L"icons\\%s", OSIconNameHover), L"icns");
-          Entry->me.ImageHover = LoadHoverIcon(HoverImage, 128);
-          FreePool(HoverImage);
+          // DBG (" Show badge as OSImage.");
+          HoverImage = AllocateZeroPool (sizeof (OSIconNameHover));
+          HoverImage = GetIconsExt (PoolPrint (L"icons\\%s", OSIconNameHover), L"icns");
+          Entry->me.ImageHover = LoadHoverIcon (HoverImage, 128);
+          FreePool (HoverImage);
         }
       }
     }
 
-    FreePool(OSIconNameHover);
+    FreePool (OSIconNameHover);
   }
 
 FINISH:
-  FreePool(OSIconName);
+  FreePool (OSIconName);
 
   Entry->KernelAndKextPatches = (
-    (Patches == NULL) ? (KERNEL_AND_KEXT_PATCHES *)(((UINTN)&gSettings) + OFFSET_OF(SETTINGS_DATA, KernelAndKextPatches)) : Patches
+    (Patches == NULL) ? (KERNEL_AND_KEXT_PATCHES *)(((UINTN)&gSettings) + OFFSET_OF (SETTINGS_DATA, KernelAndKextPatches)) : Patches
   );
 
-  //DBG("%aLoader entry created for '%s'\n", indent, Entry->DevicePathString);
+  //DBG ("%aLoader entry created for '%s'\n", indent, Entry->DevicePathString);
 
   return Entry;
 }
 
-BOOLEAN IsKernelIs64BitOnly(IN LOADER_ENTRY *Entry) {
-  return OSX_GE(Entry->OSVersion, "10.8");
+BOOLEAN IsKernelIs64BitOnly (IN LOADER_ENTRY *Entry) {
+  return OSX_GE (Entry->OSVersion, "10.8");
 }
 
 //
@@ -668,42 +666,42 @@ BOOLEAN IsKernelIs64BitOnly(IN LOADER_ENTRY *Entry) {
 //
 
 STATIC
-EG_IMAGE
-*GetIconDetail (
+EG_IMAGE *
+GetIconDetail (
   IN REFIT_MENU_ENTRY   MenuEntry
 ) {
   EG_IMAGE    *rImage,
               *TopImg = NULL,
-              *BaseImg = egCopyImage(MenuEntry.DriveImage);
+              *BaseImg = CopyImage (MenuEntry.DriveImage);
   INTN        Width, Height;
 
   if (GlobalConfig.HideBadges & HDBADGES_SHOW) {
     if (GlobalConfig.HideBadges & HDBADGES_SWAP) {
-      egFreeImage(BaseImg);
-      BaseImg = egCopyImage(MenuEntry.ImageHover ? MenuEntry.ImageHover : MenuEntry.Image);
-      TopImg = egCopyImage(MenuEntry.BadgeImage);
+      FreeImage (BaseImg);
+      BaseImg = CopyImage (MenuEntry.ImageHover ? MenuEntry.ImageHover : MenuEntry.Image);
+      TopImg = CopyImage (MenuEntry.BadgeImage);
     } else {
-      TopImg = egCopyImage(MenuEntry.ImageHover ? MenuEntry.ImageHover : MenuEntry.BadgeImage);
+      TopImg = CopyImage (MenuEntry.ImageHover ? MenuEntry.ImageHover : MenuEntry.BadgeImage);
     }
   }
 
   Width   = BaseImg->Width + 16;
   Height  = BaseImg->Height + 16;
 
-  rImage = egCreateFilledImage(Width, Height, TRUE, &MenuBackgroundPixel);
+  rImage = CreateFilledImage (Width, Height, TRUE, &MenuBackgroundPixel);
 
-  egComposeImage(rImage, BaseImg, 8, 8);
+  ComposeImage (rImage, BaseImg, 8, 8);
 
   if (TopImg != NULL) {
-    egComposeImage(rImage, TopImg,
+    ComposeImage (rImage, TopImg,
       MenuEntry.ImageHover ? 8 : ((GlobalConfig.BadgeOffsetX != 0xFFFF) ? (GlobalConfig.BadgeOffsetX + 8) : (Width - TopImg->Width)),
       MenuEntry.ImageHover ? 8 : ((GlobalConfig.BadgeOffsetY != 0xFFFF) ? (GlobalConfig.BadgeOffsetY + 8) : (Height - TopImg->Height))
     );
 
-    egFreeImage(TopImg);
+    FreeImage (TopImg);
   }
 
-  egFreeImage(BaseImg);
+  FreeImage (BaseImg);
 
   return rImage;
 }
@@ -730,42 +728,42 @@ AddDefaultMenu (
     return;
   }
 
-  FileName = Basename(Entry->LoaderPath);
+  FileName = Basename (Entry->LoaderPath);
 
   // create the submenu
-  SubScreen = AllocateZeroPool(sizeof(REFIT_MENU_SCREEN));
-  SubScreen->Title = PoolPrint(L"Boot Options for %s on %s", Entry->me.Title, Entry->VolName);
-  SubScreen->TitleImage = Entry->me.Image ? GetIconDetail(Entry->me) : Entry->me.DriveImage;
+  SubScreen = AllocateZeroPool (sizeof (REFIT_MENU_SCREEN));
+  SubScreen->Title = PoolPrint (L"Boot Options for %s on %s", Entry->me.Title, Entry->VolName);
+  SubScreen->TitleImage = Entry->me.Image ? GetIconDetail (Entry->me) : Entry->me.DriveImage;
   SubScreen->ID = Entry->LoaderType + 20;
-  //DBG("get anime for os=%d\n", SubScreen->ID);
-  SubScreen->AnimeRun = GetAnime(SubScreen);
-  VolumeSize = RShiftU64(MultU64x32(Volume->BlockIO->Media->LastBlock, Volume->BlockIO->Media->BlockSize), 20);
+  //DBG ("get anime for os=%d\n", SubScreen->ID);
+  SubScreen->AnimeRun = GetAnime (SubScreen);
+  VolumeSize = RShiftU64 (MultU64x32 (Volume->BlockIO->Media->LastBlock, Volume->BlockIO->Media->BlockSize), 20);
 
-  AddMenuInfoLine(SubScreen, PoolPrint(L"Volume size: %dMb", VolumeSize));
-  SplitMenuInfo(SubScreen, PoolPrint(L"Path: %s", FileDevicePathToStr(Entry->DevicePath)), AddMenuInfoLine);
+  AddMenuInfoLine (SubScreen, PoolPrint (L"Volume size: %dMb", VolumeSize));
+  SplitMenuInfo (SubScreen, PoolPrint (L"Path: %s", FileDevicePathToStr (Entry->DevicePath)), AddMenuInfoLine);
 
-  Guid = FindGPTPartitionGuidInDevicePath(Volume->DevicePath);
+  Guid = FindGPTPartitionGuidInDevicePath (Volume->DevicePath);
   if (Guid) {
-    CHAR8   *GuidStr = AllocateZeroPool(50);
+    CHAR8   *GuidStr = AllocateZeroPool (50);
 
-    AsciiSPrint(GuidStr, 50, "%g", Guid);
-    AddMenuInfoLine(SubScreen, PoolPrint(L"UUID: %a", GuidStr));
-    FreePool(GuidStr);
+    AsciiSPrint (GuidStr, 50, "%g", Guid);
+    AddMenuInfoLine (SubScreen, PoolPrint (L"UUID: %a", GuidStr));
+    FreePool (GuidStr);
   }
 
-  SplitMenuInfo(SubScreen, PoolPrint(L"Options: %s", Entry->LoadOptions), AddMenuInfoLine);
+  SplitMenuInfo (SubScreen, PoolPrint (L"Options: %s", Entry->LoadOptions), AddMenuInfoLine);
 
-  SubEntry = DuplicateLoaderEntry(Entry);
+  SubEntry = DuplicateLoaderEntry (Entry);
   if (SubEntry) {
-    AddOptionEntries(SubScreen, SubEntry);
+    AddOptionEntries (SubScreen, SubEntry);
     SubEntry->me.Title = L"Boot with selected options";
     SubEntry->me.ID = MENU_ENTRY_ID_BOOT;
-    AddMenuEntry(SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
+    AddMenuEntry (SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
   }
 
-  AddMenuEntry(SubScreen, &MenuEntryReturn);
+  AddMenuEntry (SubScreen, &MenuEntryReturn);
   Entry->me.SubScreen = SubScreen;
-  //DBG("    Added '%s': OSType='%d', OSVersion='%a'\n", Entry->me.Title, Entry->LoaderType, Entry->OSVersion);
+  //DBG ("    Added '%s': OSType='%d', OSVersion='%a'\n", Entry->me.Title, Entry->LoaderType, Entry->OSVersion);
 }
 
 STATIC
@@ -786,18 +784,18 @@ AddLoaderEntry (
     (LoaderPath == NULL) ||
     (Volume == NULL) ||
     (Volume->RootDir == NULL) ||
-    !FileExists(Volume->RootDir, LoaderPath)
+    !FileExists (Volume->RootDir, LoaderPath)
   ) {
     return FALSE;
   }
 
-  MsgLog("        - %s\n", LoaderPath);
-  //DBG("        AddLoaderEntry for Volume Name=%s\n", Volume->VolName);
+  MsgLog ("        - %s\n", LoaderPath);
+  //DBG ("        AddLoaderEntry for Volume Name=%s\n", Volume->VolName);
 
   //don't add hided entries
   for (HVi = 0; HVi < gSettings.HVCount; HVi++) {
-    if (StriStr(LoaderPath, gSettings.HVHideStrings[HVi])) {
-      DBG("        hiding entry: %s\n", LoaderPath);
+    if (StriStr (LoaderPath, gSettings.HVHideStrings[HVi])) {
+      DBG ("        hiding entry: %s\n", LoaderPath);
       return FALSE;
     }
   }
@@ -818,22 +816,22 @@ AddLoaderEntry (
           );
 
   if (Entry != NULL) {
-    if (OSTYPE_IS_OSX_GLOB(Entry->LoaderType)) {
+    if (OSTYPE_IS_OSX_GLOB (Entry->LoaderType)) {
       if (gSettings.WithKexts) {
-        Entry->Flags = OSFLAG_SET(Entry->Flags, OSFLAG_WITHKEXTS);
+        Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_WITHKEXTS);
       }
 
-      if (OSFLAG_ISSET(gSettings.FlagsBits, OSFLAG_DBGPATCHES) || gSettings.DebugKP) {
-        Entry->Flags = OSFLAG_SET(Entry->Flags, OSFLAG_DBGPATCHES);
+      if (OSFLAG_ISSET (gSettings.FlagsBits, OSFLAG_DBGPATCHES) || gSettings.DebugKP) {
+        Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_DBGPATCHES);
       }
 
       if (gSettings.NoCaches) {
-        Entry->Flags = OSFLAG_SET(Entry->Flags, OSFLAG_NOCACHES);
+        Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_NOCACHES);
       }
     }
 
-    AddDefaultMenu(Entry);
-    AddMenuEntry(&MainMenu, (REFIT_MENU_ENTRY *)Entry);
+    AddDefaultMenu (Entry);
+    AddMenuEntry (&MainMenu, (REFIT_MENU_ENTRY *)Entry);
     return TRUE;
   }
 
@@ -841,62 +839,62 @@ AddLoaderEntry (
 }
 
 VOID
-ScanLoader() {
+ScanLoader () {
   UINTN         VolumeIndex, Index;
   REFIT_VOLUME  *Volume;
   EFI_GUID      *PartGUID;
 
-  //DBG("Scanning loaders...\n");
-  DbgHeader("ScanLoader");
+  //DBG ("Scanning loaders...\n");
+  DbgHeader ("ScanLoader");
 
   for (VolumeIndex = 0; VolumeIndex < VolumesCount; VolumeIndex++) {
     Volume = Volumes[VolumeIndex];
 
     if (Volume->RootDir == NULL) { // || Volume->VolName == NULL)
-      //DBG(", no file system\n", VolumeIndex);
+      //DBG (", no file system\n", VolumeIndex);
       continue;
     }
 
-    MsgLog("- [%02d]: '%s'", VolumeIndex, Volume->VolName);
+    MsgLog ("- [%02d]: '%s'", VolumeIndex, Volume->VolName);
 
     if (Volume->VolName == NULL) {
       Volume->VolName = L"Unknown";
     }
 
     // skip volume if its kind is configured as disabled
-    if (MEDIA_VALID(Volume->DiskKind, GlobalConfig.DisableFlags)) {
-      MsgLog(", hidden\n");
+    if (MEDIA_VALID (Volume->DiskKind, GlobalConfig.DisableFlags)) {
+      MsgLog (", hidden\n");
       continue;
     }
 
     if (Volume->Hidden) {
-      MsgLog(", hidden\n");
+      MsgLog (", hidden\n");
       continue;
     }
 
-    MsgLog("\n");
+    MsgLog ("\n");
 
     // Use standard location for boot.efi, unless the file /.IAPhysicalMedia is present
     // That file indentifies a 2nd-stage Install Media, so when present, skip standard path to avoid entry duplication
-    if (!FileExists(Volume->RootDir, L"\\.IAPhysicalMedia")) {
-      if (EFI_ERROR(GetRootUUID(Volume)) || isFirstRootUUID(Volume)) {
-        AddLoaderEntry(MACOSX_LOADER_PATH, NULL, L"Mac OS X", Volume, NULL, OSTYPE_OSX, 0);
+    if (!FileExists (Volume->RootDir, L"\\.IAPhysicalMedia")) {
+      if (EFI_ERROR (GetRootUUID (Volume)) || IsFirstRootUUID (Volume)) {
+        AddLoaderEntry (MACOSX_LOADER_PATH, NULL, L"Mac OS X", Volume, NULL, OSTYPE_OSX, 0);
       }
     }
 
     // check for Mac OS X Install Data
     Index = 0;
     while (Index < OSXInstallerPathsCount) {
-      AddLoaderEntry(OSXInstallerPaths[Index++], NULL, L"OS X Install", Volume, NULL, OSTYPE_OSX_INSTALLER, 0);
+      AddLoaderEntry (OSXInstallerPaths[Index++], NULL, L"OS X Install", Volume, NULL, OSTYPE_OSX_INSTALLER, 0);
     }
 
     // check for Mac OS X Recovery Boot
-    AddLoaderEntry(MACOSX_RECOVERY_LOADER_PATH, NULL, L"Recovery", Volume, NULL, OSTYPE_RECOVERY, 0);
+    AddLoaderEntry (MACOSX_RECOVERY_LOADER_PATH, NULL, L"Recovery", Volume, NULL, OSTYPE_RECOVERY, 0);
 
     // check for Windows
     Index = 0;
     while (Index < WINEFIPathsCount) {
-      AddLoaderEntry(WINEFIPaths[Index++], NULL, L"Microsoft EFI", Volume, NULL, OSTYPE_WINEFI, 0);
+      AddLoaderEntry (WINEFIPaths[Index++], NULL, L"Microsoft EFI", Volume, NULL, OSTYPE_WINEFI, 0);
     }
 
     if (gSettings.AndroidScan) {
@@ -904,11 +902,11 @@ ScanLoader() {
       for (Index = 0; Index < AndroidEntryDataCount; ++Index) {
         UINTN   aIndex, aFound = 0;
 
-        if (FileExists(Volume->RootDir, AndroidEntryData[Index].Path)) {
+        if (FileExists (Volume->RootDir, AndroidEntryData[Index].Path)) {
           for (aIndex = 0; aIndex < ANDX86_FINDLEN; ++aIndex) {
             if (
               (AndroidEntryData[Index].Find[aIndex] == NULL) ||
-              FileExists(Volume->RootDir, AndroidEntryData[Index].Find[aIndex])
+              FileExists (Volume->RootDir, AndroidEntryData[Index].Find[aIndex])
             ) {
               ++aFound;
             }
@@ -917,7 +915,7 @@ ScanLoader() {
           if (aFound && (aFound == aIndex)) {
             AddLoaderEntry (
               AndroidEntryData[Index].Path, L"", AndroidEntryData[Index].Title, Volume,
-              LoadOSIcon(AndroidEntryData[Index].Icon, NULL, L"unknown", 128, FALSE, TRUE),
+              LoadOSIcon (AndroidEntryData[Index].Icon, NULL, L"unknown", 128, FALSE, TRUE),
               OSTYPE_LIN, OSFLAG_NODEFAULTARGS
             );
           }
@@ -930,13 +928,13 @@ ScanLoader() {
       for (Index = 0; Index < LinuxEntryDataCount; ++Index) {
         AddLoaderEntry (
           LinuxEntryData[Index].Path, L"", LinuxEntryData[Index].Title, Volume,
-          LoadOSIcon(LinuxEntryData[Index].Icon, NULL, L"unknown", 128, FALSE, TRUE),
+          LoadOSIcon (LinuxEntryData[Index].Icon, NULL, L"unknown", 128, FALSE, TRUE),
           OSTYPE_LIN, OSFLAG_NODEFAULTARGS
         );
       }
 
       // check for linux kernels
-      PartGUID = FindGPTPartitionGuidInDevicePath(Volume->DevicePath);
+      PartGUID = FindGPTPartitionGuidInDevicePath (Volume->DevicePath);
       if ((PartGUID != NULL) && (Volume->RootDir != NULL)) {
         REFIT_DIR_ITER  Iter;
         EFI_FILE_INFO   *FileInfo = NULL;
@@ -944,11 +942,11 @@ ScanLoader() {
         CHAR16          *Path = NULL, *Options,
                         PartUUID[40]; // Get the partition UUID and make sure it's lower case
 
-        ZeroMem(&PreviousTime, sizeof(EFI_TIME));
-        UnicodeSPrint(PartUUID, sizeof(PartUUID), L"%g", PartGUID);
+        ZeroMem (&PreviousTime, sizeof (EFI_TIME));
+        UnicodeSPrint (PartUUID, sizeof (PartUUID), L"%g", PartGUID);
 
         // open the /boot directory (or whatever directory path)
-        DirIterOpen(Volume->RootDir, LINUX_BOOT_PATH, &Iter);
+        DirIterOpen (Volume->RootDir, LINUX_BOOT_PATH, &Iter);
         // Check which kernel scan to use
 
         if (gSettings.KernelScan != KERNEL_SCAN_NONE) {
@@ -958,13 +956,13 @@ ScanLoader() {
         switch (gSettings.KernelScan) {
           case KERNEL_SCAN_ALL:
             // get all the filename matches
-            while (DirIterNext(&Iter, 2, LINUX_LOADER_SEARCH_PATH, &FileInfo)) {
+            while (DirIterNext (&Iter, 2, LINUX_LOADER_SEARCH_PATH, &FileInfo)) {
               if (FileInfo != NULL) {
                 if (FileInfo->FileSize > 0) {
                   // get the kernel file path
-                  Path = PoolPrint(L"%s\\%s", LINUX_BOOT_PATH, FileInfo->FileName);
+                  Path = PoolPrint (L"%s\\%s", LINUX_BOOT_PATH, FileInfo->FileName);
                   if (Path != NULL) {
-                    Options = LinuxKernelOptions(Iter.DirHandle, Basename(Path) + StrLen(LINUX_LOADER_PATH), StrToLower(PartUUID), NULL);
+                    Options = LinuxKernelOptions (Iter.DirHandle, Basename (Path) + StrLen (LINUX_LOADER_PATH), StrToLower (PartUUID), NULL);
 
                     // Add the entry
                     AddLoaderEntry (
@@ -974,15 +972,15 @@ ScanLoader() {
                     );
 
                     if (Options != NULL) {
-                      FreePool(Options);
+                      FreePool (Options);
                     }
 
-                    FreePool(Path);
+                    FreePool (Path);
                   }
                 }
 
                 // free the file info
-                FreePool(FileInfo);
+                FreePool (FileInfo);
                 FileInfo = NULL;
               }
             }
@@ -995,13 +993,13 @@ ScanLoader() {
         }
 
         //close the directory
-        DirIterClose(&Iter);
+        DirIterClose (&Iter);
       }
     } //if linux scan
 
-    //DBG("search for  optical UEFI\n");
+    //DBG ("search for  optical UEFI\n");
     if (Volume->DiskKind == DISK_KIND_OPTICAL) {
-      AddLoaderEntry(BOOT_LOADER_PATH, L"", L"UEFI optical", Volume, NULL, OSTYPE_OTHER, 0);
+      AddLoaderEntry (BOOT_LOADER_PATH, L"", L"UEFI optical", Volume, NULL, OSTYPE_OTHER, 0);
     }
   }
 }
@@ -1026,51 +1024,51 @@ AddCustomEntry (
 
   if (FindCustomPath && (Custom->Type != OSTYPE_LINEFI)) {
 
-    DBG("Custom %sentry %d skipped because it didn't have a ", IsSubEntry ? L"sub " : L"", CustomIndex);
+    DBG ("Custom %sentry %d skipped because it didn't have a ", IsSubEntry ? L"sub " : L"", CustomIndex);
 
     if (Custom->Type == 0) {
-      DBG("Type.\n");
+      DBG ("Type.\n");
     } else {
-      DBG("Path.\n");
+      DBG ("Path.\n");
     }
 
     return;
   }
 
-  if (OSFLAG_ISSET(Custom->Flags, OSFLAG_DISABLED)) {
-    DBG("Custom %sentry %d skipped because it is disabled.\n", IsSubEntry ? L"sub " : L"", CustomIndex);
+  if (OSFLAG_ISSET (Custom->Flags, OSFLAG_DISABLED)) {
+    DBG ("Custom %sentry %d skipped because it is disabled.\n", IsSubEntry ? L"sub " : L"", CustomIndex);
     return;
   }
 
-  if (!gSettings.ShowHiddenEntries && OSFLAG_ISSET(Custom->Flags, OSFLAG_HIDDEN)) {
-    DBG("Custom %sentry %d skipped because it is hidden.\n", IsSubEntry ? L"sub " : L"", CustomIndex);
+  if (!gSettings.ShowHiddenEntries && OSFLAG_ISSET (Custom->Flags, OSFLAG_HIDDEN)) {
+    DBG ("Custom %sentry %d skipped because it is hidden.\n", IsSubEntry ? L"sub " : L"", CustomIndex);
     return;
   }
 
-  DBG("Custom %sentry %d :\n", IsSubEntry ? L"sub " : L"", CustomIndex);
+  DBG ("Custom %sentry %d :\n", IsSubEntry ? L"sub " : L"", CustomIndex);
 
   if (Custom->Title) {
-    DBG(" - Title:\"%s\"\n", Custom->Title);
+    DBG (" - Title:\"%s\"\n", Custom->Title);
   }
 
   if (Custom->FullTitle) {
-    DBG(" - FullTitle:\"%s\"\n", Custom->FullTitle);
+    DBG (" - FullTitle:\"%s\"\n", Custom->FullTitle);
   }
 
   if (CustomPath) {
-    DBG(" - Path:\"%s\"\n", CustomPath);
+    DBG (" - Path:\"%s\"\n", CustomPath);
   }
 
   if (Custom->Options != NULL) {
-    DBG(" - Options:\"%s\"\n", Custom->Options);
+    DBG (" - Options:\"%s\"\n", Custom->Options);
   }
 
-  DBG(" - Type:%d Flags:0x%X matching ", Custom->Type, Custom->Flags);
+  DBG (" - Type:%d Flags:0x%X matching ", Custom->Type, Custom->Flags);
 
   if (Custom->Volume) {
-    DBG("Volume: \"%s\"\n", Custom->Volume);
+    DBG ("Volume: \"%s\"\n", Custom->Volume);
   } else {
-    DBG("all volumes\n");
+    DBG ("all volumes\n");
   }
 
   for (VolumeIndex = 0; VolumeIndex < VolumesCount; ++VolumeIndex) {
@@ -1091,101 +1089,101 @@ AddCustomEntry (
       Volume->VolName = L"Unknown";
     }
 
-    DBG("    Checking volume \"%s\" (%s) ... ", Volume->VolName, Volume->DevicePathString);
+    DBG ("    Checking volume \"%s\" (%s) ... ", Volume->VolName, Volume->DevicePathString);
 
     // skip volume if its kind is configured as disabled
-    if (MEDIA_VALID(Volume->DiskKind, GlobalConfig.DisableFlags)) {
-      DBG("skipped because media is disabled\n");
+    if (MEDIA_VALID (Volume->DiskKind, GlobalConfig.DisableFlags)) {
+      DBG ("skipped because media is disabled\n");
       continue;
     }
 
     if (Custom->VolumeType != 0) {
-      if (MEDIA_INVALID(Volume->DiskKind, Custom->VolumeType)) {
-        DBG("skipped because media is ignored\n");
+      if (MEDIA_INVALID (Volume->DiskKind, Custom->VolumeType)) {
+        DBG ("skipped because media is ignored\n");
         continue;
       }
     }
 
     if (Volume->Hidden) {
-      DBG("skipped because volume is hidden\n");
+      DBG ("skipped because volume is hidden\n");
       continue;
     }
 
     // Check for exact volume matches
     if (Custom->Volume) {
       if (
-        (StrStr(Volume->DevicePathString, Custom->Volume) == NULL) &&
-        ((Volume->VolName == NULL) || (StrStr(Volume->VolName, Custom->Volume) == NULL))
+        (StrStr (Volume->DevicePathString, Custom->Volume) == NULL) &&
+        ((Volume->VolName == NULL) || (StrStr (Volume->VolName, Custom->Volume) == NULL))
       ) {
-        DBG("skipped\n");
+        DBG ("skipped\n");
         continue;
       }
     }
 
     // Check the volume is readable and the entry exists on the volume
     if (Volume->RootDir == NULL) {
-      DBG("skipped because filesystem is not readable\n");
+      DBG ("skipped because filesystem is not readable\n");
       continue;
     }
 
     if (
-      (StriCmp(CustomPath, MACOSX_LOADER_PATH) == 0) &&
-      FileExists(Volume->RootDir, L"\\.IAPhysicalMedia")
+      (StriCmp (CustomPath, MACOSX_LOADER_PATH) == 0) &&
+      FileExists (Volume->RootDir, L"\\.IAPhysicalMedia")
     ) {
-      DBG("skipped standard OSX path because volume is 2nd stage Install Media\n");
+      DBG ("skipped standard OSX path because volume is 2nd stage Install Media\n");
       continue;
     }
 
-    Guid = FindGPTPartitionGuidInDevicePath(Volume->DevicePath);
+    Guid = FindGPTPartitionGuidInDevicePath (Volume->DevicePath);
 
     // Open the boot directory to search for kernels
     if (FindCustomPath) {
       // Get the partition UUID and make sure it's lower case
       if (Guid == NULL) {
-        DBG("skipped because volume does not have partition uuid\n");
+        DBG ("skipped because volume does not have partition uuid\n");
         continue;
       }
 
-      UnicodeSPrint(PartUUID, sizeof(PartUUID), L"%g", Guid);
+      UnicodeSPrint (PartUUID, sizeof (PartUUID), L"%g", Guid);
 
       // open the /boot directory (or whatever directory path)
-      DirIterOpen(Volume->RootDir, LINUX_BOOT_PATH, Iter);
+      DirIterOpen (Volume->RootDir, LINUX_BOOT_PATH, Iter);
 
       Custom->KernelScan = KERNEL_SCAN_ALL;
-    } else if (!FileExists(Volume->RootDir, CustomPath)) {
-      DBG("skipped because path does not exist\n");
+    } else if (!FileExists (Volume->RootDir, CustomPath)) {
+      DBG ("skipped because path does not exist\n");
       continue;
     }
 
     // Change to custom image if needed
     Image = Custom->Image;
     if ((Image == NULL) && Custom->ImagePath) {
-      ImageHoverPath = PoolPrint(
+      ImageHoverPath = PoolPrint (
                           L"%s_hover.%s",
-                          ReplaceExtension(Custom->ImagePath, L""),
-                          egFindExtension(Custom->ImagePath)
+                          ReplaceExtension (Custom->ImagePath, L""),
+                          FindExtension (Custom->ImagePath)
                         );
-      Image = egLoadImage(Volume->RootDir, Custom->ImagePath, TRUE);
 
+      Image = LoadImage (Volume->RootDir, Custom->ImagePath, TRUE);
       if (Image == NULL) {
-        Image = egLoadImage(ThemeDir, Custom->ImagePath, TRUE);
+        Image = LoadImage (ThemeDir, Custom->ImagePath, TRUE);
         if (Image == NULL) {
-          Image = egLoadImage(SelfDir, Custom->ImagePath, TRUE);
+          Image = LoadImage (SelfDir, Custom->ImagePath, TRUE);
           if (Image == NULL) {
-            Image = egLoadImage(SelfRootDir, Custom->ImagePath, TRUE);
+            Image = LoadImage (SelfRootDir, Custom->ImagePath, TRUE);
             if (Image != NULL) {
-              ImageHover = egLoadImage(SelfRootDir, ImageHoverPath, TRUE);
+              ImageHover = LoadImage (SelfRootDir, ImageHoverPath, TRUE);
             }
           } else {
-            ImageHover = egLoadImage(SelfDir, ImageHoverPath, TRUE);
+            ImageHover = LoadImage (SelfDir, ImageHoverPath, TRUE);
           }
         } else {
-          ImageHover = egLoadImage(ThemeDir, ImageHoverPath, TRUE);
+          ImageHover = LoadImage (ThemeDir, ImageHoverPath, TRUE);
         }
       } else {
-        ImageHover = egLoadImage(Volume->RootDir, ImageHoverPath, TRUE);
+        ImageHover = LoadImage (Volume->RootDir, ImageHoverPath, TRUE);
       }
-      FreePool(ImageHoverPath);
+      FreePool (ImageHoverPath);
     } else {
       // Image base64 data
     }
@@ -1193,15 +1191,15 @@ AddCustomEntry (
     // Change to custom drive image if needed
     DriveImage = Custom->DriveImage;
     if ((DriveImage == NULL) && Custom->DriveImagePath) {
-      DriveImage = egLoadImage(Volume->RootDir, Custom->DriveImagePath, TRUE);
+      DriveImage = LoadImage (Volume->RootDir, Custom->DriveImagePath, TRUE);
       if (DriveImage == NULL) {
-        DriveImage = egLoadImage(ThemeDir, Custom->DriveImagePath, TRUE);
+        DriveImage = LoadImage (ThemeDir, Custom->DriveImagePath, TRUE);
         if (DriveImage == NULL) {
-          DriveImage = egLoadImage(SelfDir, Custom->DriveImagePath, TRUE);
+          DriveImage = LoadImage (SelfDir, Custom->DriveImagePath, TRUE);
           if (DriveImage == NULL) {
-            DriveImage = egLoadImage(SelfRootDir, Custom->DriveImagePath, TRUE);
+            DriveImage = LoadImage (SelfRootDir, Custom->DriveImagePath, TRUE);
             if (DriveImage == NULL) {
-              DriveImage = LoadBuiltinIcon(Custom->DriveImagePath);
+              DriveImage = LoadBuiltinIcon (Custom->DriveImagePath);
             }
           }
         }
@@ -1215,32 +1213,32 @@ AddCustomEntry (
         EFI_FILE_INFO   *FileInfo = NULL;
 
         // Get the next kernel path or stop looking
-        if (!DirIterNext(Iter, 2, LINUX_LOADER_SEARCH_PATH, &FileInfo) || (FileInfo == NULL)) {
-          DBG("\n");
+        if (!DirIterNext (Iter, 2, LINUX_LOADER_SEARCH_PATH, &FileInfo) || (FileInfo == NULL)) {
+          DBG ("\n");
           break;
         }
 
         // who knows....
         if (FileInfo->FileSize == 0) {
-          FreePool(FileInfo);
+          FreePool (FileInfo);
           continue;
         }
 
         // get the kernel file path
-        CustomPath = PoolPrint(L"%s\\%s", LINUX_BOOT_PATH, FileInfo->FileName);
+        CustomPath = PoolPrint (L"%s\\%s", LINUX_BOOT_PATH, FileInfo->FileName);
         // free the file info
-        FreePool(FileInfo);
+        FreePool (FileInfo);
       }
 
       if (CustomPath == NULL) {
-        DBG("skipped\n");
+        DBG ("skipped\n");
         break;
       }
 
       // Check to make sure we should update custom options or not
-      if (FindCustomPath && OSFLAG_ISUNSET(Custom->Flags, OSFLAG_NODEFAULTARGS)) {
+      if (FindCustomPath && OSFLAG_ISUNSET (Custom->Flags, OSFLAG_NODEFAULTARGS)) {
         // Find the init ram image and select root
-        CustomOptions = LinuxKernelOptions(Iter->DirHandle, Basename(CustomPath) + StrLen(LINUX_LOADER_PATH), StrToLower(PartUUID), Custom->Options);
+        CustomOptions = LinuxKernelOptions (Iter->DirHandle, Basename (CustomPath) + StrLen (LINUX_LOADER_PATH), StrToLower (PartUUID), Custom->Options);
       }
 
       // Check to make sure that this entry is not hidden or disabled by another custom entry
@@ -1267,32 +1265,32 @@ AddCustomEntry (
               if (Custom->Path != Ptr->Path) {
                 // Better path match
                 BetterMatch = (
-                  (Ptr->Path != NULL) && (StrCmp(CustomPath, Ptr->Path) == 0) &&
+                  (Ptr->Path != NULL) && (StrCmp (CustomPath, Ptr->Path) == 0) &&
                   (
                     (Custom->VolumeType == Ptr->VolumeType) ||
-                    MEDIA_VALID(Volume->DiskKind, Custom->VolumeType)
+                    MEDIA_VALID (Volume->DiskKind, Custom->VolumeType)
                   )
                 );
               }
             } else if (
-                (StrStr(Volume->DevicePathString, Custom->Volume) == NULL) &&
-                ((Volume->VolName == NULL) || (StrStr(Volume->VolName, Custom->Volume) == NULL))
+                (StrStr (Volume->DevicePathString, Custom->Volume) == NULL) &&
+                ((Volume->VolName == NULL) || (StrStr (Volume->VolName, Custom->Volume) == NULL))
             ) {
               if (Custom->Volume == NULL) {
                 if (Custom->Path != Ptr->Path) { // More precise volume match
                   // Better path match
                   BetterMatch = (
-                    (Ptr->Path != NULL) && (StrCmp(CustomPath, Ptr->Path) == 0) &&
+                    (Ptr->Path != NULL) && (StrCmp (CustomPath, Ptr->Path) == 0) &&
                     (
                       (Custom->VolumeType == Ptr->VolumeType) ||
-                      MEDIA_VALID(Volume->DiskKind, Custom->VolumeType)
+                      MEDIA_VALID (Volume->DiskKind, Custom->VolumeType)
                     )
                   );
                 } else if (Custom->VolumeType != Ptr->VolumeType) {
                   // More precise volume type match
                   BetterMatch = (
                     (Custom->VolumeType == 0) &&
-                    MEDIA_VALID(Volume->DiskKind, Custom->VolumeType)
+                    MEDIA_VALID (Volume->DiskKind, Custom->VolumeType)
                   );
                 } else {
                   // Better match
@@ -1301,17 +1299,17 @@ AddCustomEntry (
               } else if (Custom->Path != Ptr->Path) { // Duplicate volume match
                 // Better path match
                 BetterMatch = (
-                  (Ptr->Path != NULL) && (StrCmp(CustomPath, Ptr->Path) == 0) &&
+                  (Ptr->Path != NULL) && (StrCmp (CustomPath, Ptr->Path) == 0) &&
                   (
                     (Custom->VolumeType == Ptr->VolumeType) ||
-                    MEDIA_VALID(Volume->DiskKind, Custom->VolumeType)
+                    MEDIA_VALID (Volume->DiskKind, Custom->VolumeType)
                   )
                 );
               } else if (Custom->VolumeType != Ptr->VolumeType) { // Duplicate path match
                 // More precise volume type match
                 BetterMatch = (
                   (Custom->VolumeType == 0) &&
-                  MEDIA_VALID(Volume->DiskKind, Custom->VolumeType)
+                  MEDIA_VALID (Volume->DiskKind, Custom->VolumeType)
                 );
               } else {
                 // Duplicate entry
@@ -1323,20 +1321,20 @@ AddCustomEntry (
               // Less precise path match
               BetterMatch = (
                 (Custom->VolumeType != Ptr->VolumeType) &&
-                MEDIA_VALID(Volume->DiskKind, Custom->VolumeType)
+                MEDIA_VALID (Volume->DiskKind, Custom->VolumeType)
               );
-            } else if (StrCmp(CustomPath, Ptr->Path) == 0) {
+            } else if (StrCmp (CustomPath, Ptr->Path) == 0) {
               if (Custom->Path == NULL) {
                 // More precise path and volume type match
                 BetterMatch = (
                   (Custom->VolumeType == Ptr->VolumeType) ||
-                  MEDIA_VALID(Volume->DiskKind, Custom->VolumeType)
+                  MEDIA_VALID (Volume->DiskKind, Custom->VolumeType)
                 );
               } else if (Custom->VolumeType != Ptr->VolumeType) {
                 // More precise volume type match
                 BetterMatch = (
                   (Custom->VolumeType == 0) &&
-                  MEDIA_VALID(Volume->DiskKind, Custom->VolumeType)
+                  MEDIA_VALID (Volume->DiskKind, Custom->VolumeType)
                 );
               } else {
                 // Duplicate entry
@@ -1347,7 +1345,7 @@ AddCustomEntry (
             // More precise volume type match
             BetterMatch = (
               (Custom->VolumeType == 0) &&
-              MEDIA_VALID(Volume->DiskKind, Custom->VolumeType)
+              MEDIA_VALID (Volume->DiskKind, Custom->VolumeType)
             );
           } else { // Duplicate entry
             BetterMatch = (i <= CustomIndex);
@@ -1358,12 +1356,12 @@ AddCustomEntry (
         }
 
         if (BetterMatch) {
-          DBG("skipped because custom entry %d is a better match and will produce a duplicate entry\n", i);
+          DBG ("skipped because custom entry %d is a better match and will produce a duplicate entry\n", i);
           continue;
         }
       }
 
-      DBG("match!\n");
+      DBG ("match!\n");
 
       // Create an entry for this volume
       Entry = CreateLoaderEntry (
@@ -1382,7 +1380,7 @@ AddCustomEntry (
       );
 
       if (Entry != NULL) {
-        DBG("Custom settings: %s.plist will %a be applied\n",
+        DBG ("Custom settings: %s.plist will %a be applied\n",
             Custom->Settings, Custom->CommonSettings ? "not" : "");
 
         if (!Custom->CommonSettings) {
@@ -1393,34 +1391,34 @@ AddCustomEntry (
           Entry->me.ImageHover = ImageHover;
         }
 
-        if (OSFLAG_ISUNSET(Custom->Flags, OSFLAG_NODEFAULTMENU)) {
-          AddDefaultMenu(Entry);
+        if (OSFLAG_ISUNSET (Custom->Flags, OSFLAG_NODEFAULTMENU)) {
+          AddDefaultMenu (Entry);
         } else if (Custom->SubEntries != NULL) {
           UINTN   CustomSubIndex = 0;
           // Add subscreen
-          REFIT_MENU_SCREEN   *SubScreen = AllocateZeroPool(sizeof(REFIT_MENU_SCREEN));
+          REFIT_MENU_SCREEN   *SubScreen = AllocateZeroPool (sizeof (REFIT_MENU_SCREEN));
 
           if (SubScreen) {
-            SubScreen->Title = PoolPrint(L"Boot Options for %s on %s", (Custom->Title != NULL) ? Custom->Title : CustomPath, Entry->VolName);
+            SubScreen->Title = PoolPrint (L"Boot Options for %s on %s", (Custom->Title != NULL) ? Custom->Title : CustomPath, Entry->VolName);
             //SubScreen->TitleImage = Entry->me.Image;
-            SubScreen->TitleImage = Entry->me.Image ? GetIconDetail(Entry->me) : Entry->me.DriveImage;
+            SubScreen->TitleImage = Entry->me.Image ? GetIconDetail (Entry->me) : Entry->me.DriveImage;
             SubScreen->ID = Custom->Type + 20;
-            SubScreen->AnimeRun = GetAnime(SubScreen);
-            VolumeSize = RShiftU64(MultU64x32(Volume->BlockIO->Media->LastBlock, Volume->BlockIO->Media->BlockSize), 20);
+            SubScreen->AnimeRun = GetAnime (SubScreen);
+            VolumeSize = RShiftU64 (MultU64x32 (Volume->BlockIO->Media->LastBlock, Volume->BlockIO->Media->BlockSize), 20);
 
-            AddMenuInfoLine(SubScreen, PoolPrint(L"Volume size: %dMb", VolumeSize));
-            SplitMenuInfo(SubScreen, PoolPrint(L"Path: %s", FileDevicePathToStr(Entry->DevicePath)), AddMenuInfoLine);
+            AddMenuInfoLine (SubScreen, PoolPrint (L"Volume size: %dMb", VolumeSize));
+            SplitMenuInfo (SubScreen, PoolPrint (L"Path: %s", FileDevicePathToStr (Entry->DevicePath)), AddMenuInfoLine);
 
             if (Guid) {
-              CHAR8   *GuidStr = AllocateZeroPool(50);
+              CHAR8   *GuidStr = AllocateZeroPool (50);
 
-              AsciiSPrint(GuidStr, 50, "%g", Guid);
-              AddMenuInfoLine(SubScreen, PoolPrint(L"UUID: %a", GuidStr));
-              FreePool(GuidStr);
+              AsciiSPrint (GuidStr, 50, "%g", Guid);
+              AddMenuInfoLine (SubScreen, PoolPrint (L"UUID: %a", GuidStr));
+              FreePool (GuidStr);
             }
 
-            SplitMenuInfo(SubScreen, PoolPrint(L"Options: %s", Entry->LoadOptions), AddMenuInfoLine);
-            //DBG("Create sub entries\n");
+            SplitMenuInfo (SubScreen, PoolPrint (L"Options: %s", Entry->LoadOptions), AddMenuInfoLine);
+            //DBG ("Create sub entries\n");
             for (CustomSubEntry = Custom->SubEntries; CustomSubEntry; CustomSubEntry = CustomSubEntry->Next) {
               if (!CustomSubEntry->Settings) {
                 CustomSubEntry->Settings = Custom->Settings;
@@ -1434,31 +1432,31 @@ AddCustomEntry (
               );
             }
 
-            AddMenuEntry(SubScreen, &MenuEntryReturn);
+            AddMenuEntry (SubScreen, &MenuEntryReturn);
             Entry->me.SubScreen = SubScreen;
           }
         }
 
-        AddMenuEntry(IsSubEntry ? SubMenu : &MainMenu, (REFIT_MENU_ENTRY *)Entry);
+        AddMenuEntry (IsSubEntry ? SubMenu : &MainMenu, (REFIT_MENU_ENTRY *)Entry);
       }
 
       // cleanup custom
       if (FindCustomPath) {
-        FreePool(CustomPath);
-        FreePool(CustomOptions);
+        FreePool (CustomPath);
+        FreePool (CustomOptions);
       }
     } while (FindCustomPath && (Custom->KernelScan == KERNEL_SCAN_ALL));
 
     // Close the kernel boot directory
     if (FindCustomPath) {
-      DirIterClose(Iter);
+      DirIterClose (Iter);
     }
   }
 }
 
 // Add custom entries
 VOID
-AddCustomEntries() {
+AddCustomEntries () {
   CUSTOM_LOADER_ENTRY   *Custom;
   UINTN                 Index, i = 0;
 
@@ -1466,62 +1464,62 @@ AddCustomEntries() {
     return;
   }
 
-  //DBG("Custom entries start\n");
-  DbgHeader("AddCustomEntries");
+  //DBG ("Custom entries start\n");
+  DbgHeader ("AddCustomEntries");
   // Traverse the custom entries
   for (Custom = gSettings.CustomEntries; Custom; ++i, Custom = Custom->Next) {
     if ((Custom->Path == NULL) && (Custom->Type != 0)) {
-      if (OSTYPE_IS_OSX(Custom->Type)) {
-        AddCustomEntry(i, MACOSX_LOADER_PATH, Custom, NULL);
-      } else if (OSTYPE_IS_OSX_RECOVERY(Custom->Type)) {
-        AddCustomEntry(i, MACOSX_RECOVERY_LOADER_PATH, Custom, NULL);
-      } else if (OSTYPE_IS_OSX_INSTALLER(Custom->Type)) {
+      if (OSTYPE_IS_OSX (Custom->Type)) {
+        AddCustomEntry (i, MACOSX_LOADER_PATH, Custom, NULL);
+      } else if (OSTYPE_IS_OSX_RECOVERY (Custom->Type)) {
+        AddCustomEntry (i, MACOSX_RECOVERY_LOADER_PATH, Custom, NULL);
+      } else if (OSTYPE_IS_OSX_INSTALLER (Custom->Type)) {
         Index = 0;
         while (Index < OSXInstallerPathsCount) {
-          AddCustomEntry(i, OSXInstallerPaths[Index++], Custom, NULL);
+          AddCustomEntry (i, OSXInstallerPaths[Index++], Custom, NULL);
         }
-      } else if (OSTYPE_IS_WINDOWS(Custom->Type)) {
-        AddCustomEntry(i, L"\\EFI\\Microsoft\\Boot\\bootmgfw.efi", Custom, NULL);
-      } else if (OSTYPE_IS_LINUX(Custom->Type)) {
+      } else if (OSTYPE_IS_WINDOWS (Custom->Type)) {
+        AddCustomEntry (i, L"\\EFI\\Microsoft\\Boot\\bootmgfw.efi", Custom, NULL);
+      } else if (OSTYPE_IS_LINUX (Custom->Type)) {
         Index= 0;
         while (Index < AndroidEntryDataCount) {
-          AddCustomEntry(i, AndroidEntryData[Index++].Path, Custom, NULL);
+          AddCustomEntry (i, AndroidEntryData[Index++].Path, Custom, NULL);
         }
 
         Index = 0;
         while (Index < LinuxEntryDataCount) {
-          AddCustomEntry(i, LinuxEntryData[Index++].Path, Custom, NULL);
+          AddCustomEntry (i, LinuxEntryData[Index++].Path, Custom, NULL);
         }
       } else if (Custom->Type == OSTYPE_LINEFI) {
-        AddCustomEntry(i, NULL, Custom, NULL);
+        AddCustomEntry (i, NULL, Custom, NULL);
       } else {
-        AddCustomEntry(i, BOOT_LOADER_PATH, Custom, NULL);
+        AddCustomEntry (i, BOOT_LOADER_PATH, Custom, NULL);
       }
     } else {
-      AddCustomEntry(i, Custom->Path, Custom, NULL);
+      AddCustomEntry (i, Custom->Path, Custom, NULL);
     }
   }
-  //DBG("Custom entries finish\n");
+  //DBG ("Custom entries finish\n");
 }
 
-LOADER_ENTRY
-*DuplicateLoaderEntry (
+LOADER_ENTRY *
+DuplicateLoaderEntry (
   IN LOADER_ENTRY   *Entry
 ) {
-  if(Entry == NULL) {
+  if (Entry == NULL) {
     return NULL;
   }
 
-  LOADER_ENTRY *DuplicateEntry = AllocateZeroPool(sizeof(LOADER_ENTRY));
+  LOADER_ENTRY *DuplicateEntry = AllocateZeroPool (sizeof (LOADER_ENTRY));
 
   if (DuplicateEntry) {
     DuplicateEntry->me.Tag                = Entry->me.Tag;
     //DuplicateEntry->me.AtClick          = ActionEnter;
     DuplicateEntry->Volume                = Entry->Volume;
-    DuplicateEntry->DevicePathString      = EfiStrDuplicate(Entry->DevicePathString);
-    DuplicateEntry->LoadOptions           = EfiStrDuplicate(Entry->LoadOptions);
-    DuplicateEntry->LoaderPath            = EfiStrDuplicate(Entry->LoaderPath);
-    DuplicateEntry->VolName               = EfiStrDuplicate(Entry->VolName);
+    DuplicateEntry->DevicePathString      = EfiStrDuplicate (Entry->DevicePathString);
+    DuplicateEntry->LoadOptions           = EfiStrDuplicate (Entry->LoadOptions);
+    DuplicateEntry->LoaderPath            = EfiStrDuplicate (Entry->LoaderPath);
+    DuplicateEntry->VolName               = EfiStrDuplicate (Entry->VolName);
     DuplicateEntry->DevicePath            = Entry->DevicePath;
     DuplicateEntry->Flags                 = Entry->Flags;
     DuplicateEntry->LoaderType            = Entry->LoaderType;
@@ -1533,17 +1531,17 @@ LOADER_ENTRY
   return DuplicateEntry;
 }
 
-CHAR16
-*ToggleLoadOptions (
+CHAR16 *
+ToggleLoadOptions (
       UINT32    State,
   IN  CHAR16    *LoadOptions,
   IN  CHAR16    *LoadOption
 ) {
-  return State ? AddLoadOption(LoadOptions, LoadOption) : RemoveLoadOption(LoadOptions, LoadOption);
+  return State ? AddLoadOption (LoadOptions, LoadOption) : RemoveLoadOption (LoadOptions, LoadOption);
 }
 
-CHAR16
-*AddLoadOption (
+CHAR16 *
+AddLoadOption (
   IN CHAR16   *LoadOptions,
   IN CHAR16   *LoadOption
 ) {
@@ -1554,27 +1552,27 @@ CHAR16
     }
 
     // Duplicate original options as nothing to add
-    return EfiStrDuplicate(LoadOption);
+    return EfiStrDuplicate (LoadOption);
   }
 
   // If there is no option or it is already present duplicate original
-  else if ((LoadOption == NULL) || BootArgsExists(LoadOptions, LoadOption)) {
-    return EfiStrDuplicate(LoadOptions);
+  else if ((LoadOption == NULL) || BootArgsExists (LoadOptions, LoadOption)) {
+    return EfiStrDuplicate (LoadOptions);
   }
 
   // Otherwise add option
-  return PoolPrint(L"%s %s", LoadOptions, LoadOption);
+  return PoolPrint (L"%s %s", LoadOptions, LoadOption);
 }
 
-CHAR16
-*RemoveLoadOption (
+CHAR16 *
+RemoveLoadOption (
   IN CHAR16   *LoadOptions,
   IN CHAR16   *LoadOption
 ) {
   CHAR16    *Placement, *NewLoadOptions;
   UINTN     Length, Offset, OptionLength;
 
-  //DBG("LoadOptions: '%s', remove LoadOption: '%s'\n", LoadOptions, LoadOption);
+  //DBG ("LoadOptions: '%s', remove LoadOption: '%s'\n", LoadOptions, LoadOption);
   // If there are no options then nothing to do
   if (LoadOptions == NULL) {
     return NULL;
@@ -1582,26 +1580,26 @@ CHAR16
 
   // If there is no option to remove then duplicate original
   if (LoadOption == NULL) {
-    return EfiStrDuplicate(LoadOptions);
+    return EfiStrDuplicate (LoadOptions);
   }
 
   // If not present duplicate original
-  Placement = StriStr(LoadOptions, LoadOption);
+  Placement = StriStr (LoadOptions, LoadOption);
   if (Placement == NULL) {
-    return EfiStrDuplicate(LoadOptions);
+    return EfiStrDuplicate (LoadOptions);
   }
 
   // Get placement of option in original options
   Offset = (Placement - LoadOptions);
-  Length = StrLen(LoadOptions);
-  OptionLength = StrLen(LoadOption);
+  Length = StrLen (LoadOptions);
+  OptionLength = StrLen (LoadOption);
 
   // If this is just part of some larger option (contains non-space at the beginning or end)
   if (
     ((Offset > 0) && (LoadOptions[Offset - 1] != L' ')) ||
     (((Offset + OptionLength) < Length) && (LoadOptions[Offset + OptionLength] != L' '))
   ) {
-    return EfiStrDuplicate(LoadOptions);
+    return EfiStrDuplicate (LoadOptions);
   }
 
   // Consume preceeding spaces
@@ -1622,12 +1620,12 @@ CHAR16
 
   if (Offset == 0) {
     // Simple case - we just need substring after OptionLength position
-    NewLoadOptions = EfiStrDuplicate(LoadOptions + OptionLength);
+    NewLoadOptions = EfiStrDuplicate (LoadOptions + OptionLength);
   } else {
     // The rest of LoadOptions is Length - OptionLength, but we may need additional space and ending 0
-    NewLoadOptions = AllocateZeroPool((Length - OptionLength + 2) * sizeof(CHAR16));
+    NewLoadOptions = AllocateZeroPool ((Length - OptionLength + 2) * sizeof (CHAR16));
     // Copy preceeding substring
-    CopyMem(NewLoadOptions, LoadOptions, Offset * sizeof(CHAR16));
+    CopyMem (NewLoadOptions, LoadOptions, Offset * sizeof (CHAR16));
 
     if ((Offset + OptionLength) < Length) {
       // Copy following substring, but include one space also
@@ -1636,7 +1634,7 @@ CHAR16
       CopyMem (
         NewLoadOptions + Offset,
         LoadOptions + Offset + OptionLength,
-        (Length - OptionLength - Offset) * sizeof(CHAR16)
+        (Length - OptionLength - Offset) * sizeof (CHAR16)
       );
     }
   }

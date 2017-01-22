@@ -50,7 +50,7 @@
 #ifndef __LIBSAIO_NVIDIA_H
 #define __LIBSAIO_NVIDIA_H
 
-extern CHAR8* gDeviceProperties;
+extern CHAR8  *gDeviceProperties;
 
 struct nvidia_pci_info_t;
 typedef struct {
@@ -63,11 +63,10 @@ struct bios {
   UINT8     size;       /* Size in multiples of 512 */
 };
 
-#define NVCAP_LEN ( sizeof(default_NVCAP) / sizeof(UINT8) )
-#define NVPM_LEN ( sizeof(default_NVPM) / sizeof(UINT8) )
-#define DCFG0_LEN ( sizeof(default_dcfg_0) / sizeof(UINT8) )
-#define DCFG1_LEN ( sizeof(default_dcfg_1) / sizeof(UINT8) )
-
+//#define NVCAP_LEN ARRAY_SIZE (default_NVCAP)
+//#define NVPM_LEN ARRAY_SIZE (default_NVPM)
+//#define DCFG0_LEN ARRAY_SIZE (default_dcfg_0)
+//#define DCFG1_LEN ARRAY_SIZE (default_dcfg_1)
 
 #define DCB_MAX_NUM_ENTRIES                       16
 #define DCB_MAX_NUM_I2C_ENTRIES                   16
@@ -147,9 +146,9 @@ struct bios {
 #define CHIPSET_C512                              0x03D0
 #define CHIPSET_G73_BRIDGED                       0x02E0
 
-extern UINT8 default_NVCAP[];
-extern UINT8 default_NVPM[];
-extern UINT8 default_dcfg_0[];
-extern UINT8 default_dcfg_1[];
+//extern UINT8 default_NVCAP[];
+//extern UINT8 default_NVPM[];
+//extern UINT8 default_dcfg_0[];
+//extern UINT8 default_dcfg_1[];
 
 #endif /* !__LIBSAIO_NVIDIA_H */

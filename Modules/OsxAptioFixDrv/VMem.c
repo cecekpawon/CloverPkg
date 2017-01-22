@@ -12,25 +12,6 @@
 
 #include "VMem.h"
 #include "Lib.h"
-//#include "NVRAMDebug.h"
-
-
-// DBG_TO: 0=no debug, 1=serial, 2=console
-// serial requires
-// [PcdsFixedAtBuild]
-//  gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|0x07
-//  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0xFFFFFFFF
-// in package DSC file
-#define DBG_TO 0
-
-#if DBG_TO == 2
-  #define DBG(...) AsciiPrint(__VA_ARGS__);
-#elif DBG_TO == 1
-  #define DBG(...) DebugPrint(1, __VA_ARGS__);
-#else
-  #define DBG(...)
-#endif
-
 
 /** Memory allocation for VM map pages that we will create with VmMapVirtualPage.
   * We need to have it preallocated during boot services.
@@ -45,9 +26,9 @@ GetCurrentPageTable (
 ) {
   UINTN CR3;
 
-  CR3 = AsmReadCr3();
+  CR3 = AsmReadCr3 ();
   //DBG ("GetCurrentPageTable: CR3 = 0x%lx\n", CR3);
-  *PageTable = (PAGE_MAP_AND_DIRECTORY_POINTER*)(UINTN)(CR3 & CR3_ADDR_MASK);
+  *PageTable = (PAGE_MAP_AND_DIRECTORY_POINTER *)(UINTN)(CR3 & CR3_ADDR_MASK);
   *Flags = CR3 & (CR3_FLAG_PWT | CR3_FLAG_PCD);
 }
 
@@ -307,7 +288,7 @@ VmAllocateMemoryPool () {
   if (Status != EFI_SUCCESS) {
     Print (L"VmAllocateMemoryPool: AllocatePagesFromTop (EfiBootServicesData) = %r\n", Status);
   } else {
-    VmMemoryPool = (UINT8*)Addr;
+    VmMemoryPool = (UINT8 *)Addr;
     //DBG ("VmMemoryPool = %lx - %lx\n", VmMemoryPool, VmMemoryPool + EFI_PAGES_TO_SIZE (VmMemoryPoolFreePages) - 1);
     //DBGnvr ("VmMemoryPool = %lx - %lx\n", VmMemoryPool, VmMemoryPool + EFI_PAGES_TO_SIZE (VmMemoryPoolFreePages) - 1);
   }
@@ -331,7 +312,7 @@ VmAllocatePages (
   if (EFI_ERROR (Status)) {
     Addr = 0;
   }
-  return (VOID*)Addr;
+  return (VOID *)Addr;
   */
   if (VmMemoryPoolFreePages >= (INTN)NumPages) {
     AllocatedPages = VmMemoryPool;
@@ -565,5 +546,5 @@ VmMapVirtualPages (
 VOID
 VmFlashCaches () {
   // just reload CR3
-  AsmWriteCr3(AsmReadCr3());
+  AsmWriteCr3 (AsmReadCr3 ());
 }

@@ -6,6 +6,22 @@
 
 **/
 
+// DBG_TO: 0=no debug, 1=serial, 2=console
+// serial requires
+// [PcdsFixedAtBuild]
+//  gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|0x07
+//  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0xFFFFFFFF
+// in package DSC file
+#define DBG_TO 0
+
+#if DBG_TO == 2
+  #define DBG(...) AsciiPrint(__VA_ARGS__);
+#elif DBG_TO == 1
+  #define DBG(...) DebugPrint(1, __VA_ARGS__);
+#else
+  #define DBG(...)
+#endif
+
 // MemMap reversed scan
 #define PREV_MEMORY_DESCRIPTOR(MemoryDescriptor, Size) \
   ((EFI_MEMORY_DESCRIPTOR *)((UINT8 *)(MemoryDescriptor) - (Size)))
@@ -39,7 +55,8 @@ FixMemMap (
 );
 
 /** Shrinks mem map by joining EfiBootServicesCode and EfiBootServicesData records. */
-VOID EFIAPI
+VOID
+EFIAPI
 ShrinkMemMap (
   IN UINTN                  *MemoryMapSize,
   IN EFI_MEMORY_DESCRIPTOR  *MemoryMap,
@@ -48,7 +65,8 @@ ShrinkMemMap (
 );
 
 /** Prints mem map. */
-VOID EFIAPI
+VOID
+EFIAPI
 PrintMemMap (
   IN UINTN                  MemoryMapSize,
   IN EFI_MEMORY_DESCRIPTOR  *MemoryMap,
@@ -71,7 +89,7 @@ FileDevicePathToText (
   EFI_DEVICE_PATH_PROTOCOL  *FilePathProto
 );
 
-/** Helper function that calls GetMemoryMap(), allocates space for mem map and returns it. */
+/** Helper function that calls GetMemoryMap (), allocates space for mem map and returns it. */
 EFI_STATUS
 EFIAPI
 GetMemoryMapAlloc (
@@ -93,6 +111,6 @@ AllocatePagesFromTop (
 );
 
 VOID        EFIAPI BootArgsPrint  (VOID *bootArgs);
-BootArgs*   EFIAPI GetBootArgs    (VOID *bootArgs);
+BootArgs *  EFIAPI GetBootArgs    (VOID *bootArgs);
 VOID        EFIAPI BootArgsFix    (BootArgs *BA, EFI_PHYSICAL_ADDRESS gRellocBase);
-//VOID*     EFIAPI BootArgsFind   (IN EFI_PHYSICAL_ADDRESS Start);
+//VOID *    EFIAPI BootArgsFind   (IN EFI_PHYSICAL_ADDRESS Start);

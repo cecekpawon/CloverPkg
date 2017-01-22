@@ -35,7 +35,7 @@ typedef UINTN    size_t;
 //#endif
 
 
-extern EFI_BOOT_SERVICES*      gBS;
+extern EFI_BOOT_SERVICES  *gBS;
 
 //#define LODEPNG_NO_COMPILE_DECODER
 //#define LODEPNG_NO_COMPILE_DISK
@@ -43,7 +43,7 @@ extern EFI_BOOT_SERVICES*      gBS;
 //#define LODEPNG_NO_COMPILE_ERROR_TEXT
 //#define LODEPNG_NO_COMPILE_ANCILLARY_CHUNKS
 
-//#include <string.h> /*for size_t*/
+//#include <string.h> /* for size_t */
 
 #ifdef __cplusplus
 #include <vector>

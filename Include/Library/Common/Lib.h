@@ -564,7 +564,7 @@ extern BOOLEAN            gTextOnly;
 extern REFIT_MENU_SCREEN  OptionMenu;
 
 EFI_STATUS    InitRefitLib (IN EFI_HANDLE ImageHandle);
-//EFI_STATUS    GetRootFromPath (IN EFI_DEVICE_PATH_PROTOCOL* DevicePath, OUT EFI_FILE **Root);
+//EFI_STATUS    GetRootFromPath (IN EFI_DEVICE_PATH_PROTOCOL *DevicePath, OUT EFI_FILE **Root);
 VOID          UninitRefitLib ();
 //EFI_STATUS    ReinitRefitLib ();
 EFI_STATUS    ReinitSelfLib ();
@@ -573,7 +573,7 @@ BOOLEAN       IsEmbeddedTheme ();
 
 VOID          CreateList (OUT VOID ***ListPtr, OUT UINTN *ElementCount, IN UINTN InitialElementCount);
 VOID          AddListElement (IN OUT VOID ***ListPtr, IN OUT UINTN *ElementCount, IN VOID *NewElement);
-//VOID        FreeList (IN OUT VOID ***ListPtr, IN OUT UINTN *ElementCount /*, IN Callback*/);
+//VOID        FreeList (IN OUT VOID ***ListPtr, IN OUT UINTN *ElementCount /* , IN Callback */);
 
 VOID          GetListOfThemes ();
 VOID          GetListOfACPI ();
@@ -593,7 +593,7 @@ EFI_STATUS    DirIterClose (IN OUT REFIT_DIR_ITER *DirIter);
 CHAR16        *Basename (IN CHAR16 *Path);
 CHAR16        *Dirname (IN CHAR16 *Path);
 CHAR16        *ReplaceExtension (IN CHAR16 *Path, IN CHAR16 *Extension);
-CHAR16        *egFindExtension (IN CHAR16 *FileName);
+CHAR16        *FindExtension (IN CHAR16 *FileName);
 
 INTN          FindMem (IN VOID *Buffer, IN UINTN BufferLength, IN VOID *SearchString, IN UINTN SearchStringLength);
 
@@ -650,7 +650,7 @@ extern EG_PIXEL   SelectionBackgroundPixel;
 extern EG_RECT    BannerPlace;
 extern EG_IMAGE   *BackgroundImage;
 
-VOID  InitScreen (IN BOOLEAN SetMaxResolution);
+VOID  InitScreen (IN BOOLEAN egSetMaxResolution);
 VOID  SetupScreen ();
 VOID  BeginTextScreen (IN CHAR16 *Title);
 VOID  FinishTextScreen (IN BOOLEAN WaitAlways);
@@ -667,15 +667,15 @@ VOID  SetNextScreenMode (INT32 Next);
 EG_PIXEL ToPixel (UINTN rgba);
 
 #if REFIT_DEBUG > 0
-VOID DebugPause();
+VOID DebugPause ();
 #else
 #define DebugPause()
 #endif
 
 //VOID EndlessIdleLoop();
 
-BOOLEAN CheckFatalError (IN EFI_STATUS Status, IN CHAR16 *where);
-BOOLEAN CheckError (IN EFI_STATUS Status, IN CHAR16 *where);
+BOOLEAN   CheckFatalError (IN EFI_STATUS Status, IN CHAR16 *where);
+BOOLEAN   CheckError (IN EFI_STATUS Status, IN CHAR16 *where);
 
 VOID  SwitchToGraphicsAndClear ();
 VOID  BltClearScreen (IN BOOLEAN ShowBanner);
@@ -701,8 +701,8 @@ VOID      FreeAnime (GUI_ANIME *Anime);
 //
 // icns loader module
 //
-EG_IMAGE
-*LoadOSIcon (
+EG_IMAGE *
+LoadOSIcon (
   IN  CHAR16    *OSIconName OPTIONAL,
   OUT CHAR16    **OSIconNameHover,
   IN  CHAR16    *FallbackIconName,
@@ -820,22 +820,24 @@ extern REFIT_CONFIG   DefaultConfig;
 
 VOID ReadConfig (INTN What);
 
-EG_IMAGE
-*egEnsureImageSize (
+EG_IMAGE *
+EnsureImageSize (
   IN EG_IMAGE   *Image,
   IN INTN       Width,
   IN INTN       Height,
   IN EG_PIXEL   *Color
 );
 
-EFI_STATUS egLoadFile (
+EFI_STATUS
+LoadFile (
   IN EFI_FILE_HANDLE  BaseDir,
   IN CHAR16           *FileName,
   OUT UINT8           **FileData,
   OUT UINTN           *FileDataLength
 );
 
-EFI_STATUS egSaveFile (
+EFI_STATUS
+SaveFile (
   IN EFI_FILE_HANDLE  BaseDir OPTIONAL,
   IN CHAR16           *FileName,
   IN UINT8            *FileData,
@@ -843,13 +845,13 @@ EFI_STATUS egSaveFile (
 );
 
 EFI_STATUS
-egMkDir (
+MkDir (
   IN EFI_FILE_HANDLE    BaseDir OPTIONAL,
   IN CHAR16             *DirName
 );
 
 EFI_STATUS
-egFindESP (
+FindESP (
   OUT EFI_FILE_HANDLE   *RootDir
 );
 
@@ -868,15 +870,15 @@ EfiLibOpenRoot (
   IN EFI_HANDLE   DeviceHandle
 );
 
-EFI_FILE_SYSTEM_VOLUME_LABEL
-*EfiLibFileSystemVolumeLabelInfo (
+EFI_FILE_SYSTEM_VOLUME_LABEL *
+EfiLibFileSystemVolumeLabelInfo (
   IN EFI_FILE_HANDLE    FHand
 );
 
 EFI_FILE_INFO           *EfiLibFileInfo (IN EFI_FILE_HANDLE FHand);
 EFI_FILE_SYSTEM_INFO    *EfiLibFileSystemInfo (IN EFI_FILE_HANDLE Root);
 
-BOOLEAN DumpVariable (CHAR16* Name, EFI_GUID* Guid, INTN DevicePathAt);
+BOOLEAN DumpVariable (CHAR16 *Name, EFI_GUID *Guid, INTN DevicePathAt);
 
 /*
 BOOLEAN
@@ -893,8 +895,7 @@ TimeCompare (
 );
 
 #define KERNEL_MAX_SIZE 40000000
-//#define FSearchReplace (Source, Search, Replace) SearchAndReplace(Source, KERNEL_MAX_SIZE, Search, sizeof(Search), Replace, 1)
-#define FSearchReplace(Source, Size, Search, Replace) SearchAndReplace((UINT8*)(UINTN)Source, Size, Search, sizeof(Search), Replace, 1)
+#define FSearchReplace(Source, Size, Search, Replace) SearchAndReplace((UINT8 *)(UINTN)Source, Size, Search, sizeof(Search), Replace, 1)
 BOOLEAN IsKernelIs64BitOnly (IN LOADER_ENTRY *Entry);
 VOID    DbgHeader (CHAR8 *str);
 

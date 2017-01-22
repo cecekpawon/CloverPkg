@@ -37,38 +37,38 @@ Rename this file to lodepng.cpp to use it for C++, or to lodepng.c to use it for
 CONST INT32 _fltused = 0;
 
 // Custom internal allocators for UEFI
-void* lodepng_malloc(size_t size)
+void* lodepng_malloc (size_t size)
 {
   void* pool;
 
-  EFI_STATUS Status = gBS->AllocatePool(EfiBootServicesData, size, &pool);
-  if (EFI_ERROR(Status)) {
+  EFI_STATUS Status = gBS->AllocatePool (EfiBootServicesData, size, &pool);
+  if (EFI_ERROR (Status)) {
     return NULL;
   }
 
   return pool;
 }
 
-void lodepng_free(void* ptr)
+void lodepng_free (void* ptr)
 {
   if (ptr) {
-    gBS->FreePool(ptr);
+    gBS->FreePool (ptr);
   }
 }
 
-void* lodepng_realloc(void* ptr, size_t new_size)
+void* lodepng_realloc (void* ptr, size_t new_size)
 {
   void* new_ptr;
   if (!ptr) {
     // NULL pointer means just do malloc
-    return lodepng_malloc(new_size);
+    return lodepng_malloc (new_size);
   } else if (new_size == 0) {
     // Non-NULL pointer and zero size means just do free
-    lodepng_free( ptr );
+    lodepng_free (ptr);
   } else {
-      new_ptr = lodepng_malloc(new_size);
+      new_ptr = lodepng_malloc (new_size);
       if (new_ptr != NULL) {
-        gBS->CopyMem(new_ptr, ptr, new_size);
+        gBS->CopyMem (new_ptr, ptr, new_size);
         lodepng_free (ptr);
         return new_ptr;
       }
@@ -78,18 +78,18 @@ void* lodepng_realloc(void* ptr, size_t new_size)
 
 #if defined(_MSC_VER)
 // Internal memset and memcpy implementations
-void *memcpy(void* dst, void* src, size_t size) {
-  gBS->CopyMem(dst, src, size);
+void *memcpy (void* dst, void* src, size_t size) {
+  gBS->CopyMem (dst, src, size);
   return dst;
 }
 
-void * memset(void *str, unsigned char c, size_t n) {
-  gBS->SetMem(str, n, c);
+void * memset (void *str, unsigned char c, size_t n) {
+  gBS->SetMem (str, n, c);
   return str;
 }
 #else
-#define memcpy(dest,source,count) gBS->CopyMem(dest,source,(UINTN)(count))
-#define memset(dest,ch,count)     gBS->SetMem(dest,(UINTN)(count),(UINT8)(ch))
+#define memcpy(dest,source,count) gBS->CopyMem (dest,source,(UINTN)(count))
+#define memset(dest,ch,count)     gBS->SetMem (dest,(UINTN)(count),(UINT8)(ch))
 #endif
 
 #ifdef LODEPNG_COMPILE_CPP

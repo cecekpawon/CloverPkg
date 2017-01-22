@@ -13,33 +13,33 @@ struc XDTR
 endstruc
 
 ; C callback method called on jump to kernel after boot.efi finishes
-extern  ASM_PFX(KernelEntryPatchJumpBack)
+extern  ASM_PFX (KernelEntryPatchJumpBack)
 
 ; saved 64bit state
-global ASM_PFX(SavedGDTR)
-global ASM_PFX(SavedIDTR)
-global ASM_PFX(SavedCR3)
+global ASM_PFX (SavedGDTR)
+global ASM_PFX (SavedIDTR)
+global ASM_PFX (SavedCR3)
 
-; addresses of relocated MyAsmCopyAndJumpToKernel code - filled by PrepareJumpFromKernel()
-global ASM_PFX(MyAsmCopyAndJumpToKernel32Addr)
-global ASM_PFX(MyAsmCopyAndJumpToKernel64Addr)
+; addresses of relocated MyAsmCopyAndJumpToKernel code - filled by PrepareJumpFromKernel ()
+global ASM_PFX (MyAsmCopyAndJumpToKernel32Addr)
+global ASM_PFX (MyAsmCopyAndJumpToKernel64Addr)
 
-; kernel entry address - filled by KernelEntryPatchJump()
-global ASM_PFX(AsmKernelEntry)
+; kernel entry address - filled by KernelEntryPatchJump ()
+global ASM_PFX (AsmKernelEntry)
 
-; params for kernel image relocation - filled by KernelEntryPatchJumpBack()
-global ASM_PFX(AsmKernelImageStartReloc)
-global ASM_PFX(AsmKernelImageStart)
-global ASM_PFX(AsmKernelImageSize)
+; params for kernel image relocation - filled by KernelEntryPatchJumpBack ()
+global ASM_PFX (AsmKernelImageStartReloc)
+global ASM_PFX (AsmKernelImageStart)
+global ASM_PFX (AsmKernelImageSize)
 
 ; end of MyAsmEntryPatchCode func
-global ASM_PFX(MyAsmEntryPatchCodeEnd)
+global ASM_PFX (MyAsmEntryPatchCodeEnd)
 
 ; start and end of MyAsmCopyAndJumpToKernel
-global ASM_PFX(MyAsmCopyAndJumpToKernel)
-global ASM_PFX(MyAsmCopyAndJumpToKernel32)
-global ASM_PFX(MyAsmCopyAndJumpToKernel64)
-global ASM_PFX(MyAsmCopyAndJumpToKernelEnd)
+global ASM_PFX (MyAsmCopyAndJumpToKernel)
+global ASM_PFX (MyAsmCopyAndJumpToKernel32)
+global ASM_PFX (MyAsmCopyAndJumpToKernel64)
+global ASM_PFX (MyAsmCopyAndJumpToKernelEnd)
 
 
 ;SECTION  .data
@@ -49,7 +49,7 @@ SECTION .text
 ; Adding data to code segment to avoid some error:
 ; Undefined symbols for architecture x86_64:
 ;  "_SavedGDTR", referenced from:
-;      _MyAsmPrepareJumpFromKernel in OsxAptioFixDrv.lib(AsmFuncsX64.obj)
+;      _MyAsmPrepareJumpFromKernel in OsxAptioFixDrv.lib (AsmFuncsX64.obj)
 ;
 
 ; variables accessed from both 32 and 64 bit code
@@ -58,18 +58,18 @@ DataBase:
 
 ; 64 bit state
 SavedGDTROff  EQU $-DataBase
-ASM_PFX(SavedGDTR):
+ASM_PFX (SavedGDTR):
     dw 0
     dq 0
 
 SavedIDTROff  EQU $-DataBase
-ASM_PFX(SavedIDTR):
+ASM_PFX (SavedIDTR):
     dw 0
     dq 0
 
     align 08h, db 0
 SavedCR3Off   EQU $-DataBase
-ASM_PFX(SavedCR3):     DQ   0
+ASM_PFX (SavedCR3):     DQ   0
 
 SavedCSOff    EQU $-DataBase
 SavedCS:      DW    0
@@ -103,15 +103,15 @@ SavedESP32:   DD      0
 
 ; address of relocated MyAsmCopyAndJumpToKernel32 - 64 bit
 MyAsmCopyAndJumpToKernel32AddrOff EQU $-DataBase
-ASM_PFX(MyAsmCopyAndJumpToKernel32Addr):    DQ      0
+ASM_PFX (MyAsmCopyAndJumpToKernel32Addr):    DQ      0
 
 ; address of relocated MyAsmCopyAndJumpToKernel64 - 64 bit
 MyAsmCopyAndJumpToKernel64AddrOff EQU $-DataBase
-ASM_PFX(MyAsmCopyAndJumpToKernel64Addr):    DQ      0
+ASM_PFX (MyAsmCopyAndJumpToKernel64Addr):    DQ      0
 
 ; kernel entry - 64 bit
 AsmKernelEntryOff       EQU $-DataBase
-ASM_PFX(AsmKernelEntry):            DQ      0
+ASM_PFX (AsmKernelEntry):            DQ      0
 
 ;
 ; for copying kernel image from reloc block to proper mem place
@@ -119,15 +119,15 @@ ASM_PFX(AsmKernelEntry):            DQ      0
 
 ; kernel image start in reloc block (source) - 64 bit
 AsmKernelImageStartRelocOff   EQU $-DataBase
-ASM_PFX(AsmKernelImageStartReloc):      DQ      0
+ASM_PFX (AsmKernelImageStartReloc):      DQ      0
 
 ; kernel image start (destination) - 64 bit
 AsmKernelImageStartOff      EQU $-DataBase
-ASM_PFX(AsmKernelImageStart):         DQ      0
+ASM_PFX (AsmKernelImageStart):         DQ      0
 
 ; kernel image size - 64 bit
 AsmKernelImageSizeOff     EQU $-DataBase
-ASM_PFX(AsmKernelImageSize):          DQ      0
+ASM_PFX (AsmKernelImageSize):          DQ      0
 
     align 08h, db 0
 
@@ -193,8 +193,8 @@ BITS    64
 ;   VOID
 ;   );
 ;------------------------------------------------------------------------------
-GLOBAL ASM_PFX(MyAsmReadSp)
-ASM_PFX(MyAsmReadSp):
+GLOBAL ASM_PFX (MyAsmReadSp)
+ASM_PFX (MyAsmReadSp):
   mov   rax, rsp
   add   rax, 8      ; return SP as caller see it
   ret
@@ -206,13 +206,13 @@ ASM_PFX(MyAsmReadSp):
 ; MyAsmPrepareJumpFromKernel (
 ;   );
 ;------------------------------------------------------------------------------
-GLOBAL ASM_PFX(MyAsmPrepareJumpFromKernel)
-ASM_PFX(MyAsmPrepareJumpFromKernel):
+GLOBAL ASM_PFX (MyAsmPrepareJumpFromKernel)
+ASM_PFX (MyAsmPrepareJumpFromKernel):
   ; save 64 bit state
-  sgdt  [REL ASM_PFX(SavedGDTR)]
-  sidt  [REL ASM_PFX(SavedIDTR)]
+  sgdt  [REL ASM_PFX (SavedGDTR)]
+  sidt  [REL ASM_PFX (SavedIDTR)]
   mov     rax, cr3
-  mov     [REL ASM_PFX(SavedCR3)], rax
+  mov     [REL ASM_PFX (SavedCR3)], rax
   mov   word [REL SavedCS], cs
   mov   word [REL SavedDS], ds
 
@@ -222,7 +222,7 @@ ASM_PFX(MyAsmPrepareJumpFromKernel):
 
   ; prepare MyAsmEntryPatchCode:
   ; patch MyAsmEntryPatchCode with address of MyAsmJumpFromKernel
-  lea   rax, [REL ASM_PFX(MyAsmJumpFromKernel)]
+  lea   rax, [REL ASM_PFX (MyAsmJumpFromKernel)]
   mov dword [REL MyAsmEntryPatchCodeJumpFromKernelPlaceholder], eax
 
   ret
@@ -244,10 +244,10 @@ ASM_PFX(MyAsmPrepareJumpFromKernel):
 ;
 ; This code is patched with address of MyAsmJumpFromKernel
 ; (into MyAsmEntryPatchCodeJumpFromKernelPlaceholder)
-; and then copied to kernel entry address by KernelEntryPatchJump()
+; and then copied to kernel entry address by KernelEntryPatchJump ()
 ;------------------------------------------------------------------------------
-GLOBAL ASM_PFX(MyAsmEntryPatchCode)
-ASM_PFX(MyAsmEntryPatchCode):
+GLOBAL ASM_PFX (MyAsmEntryPatchCode)
+ASM_PFX (MyAsmEntryPatchCode):
 
 BITS    32
   dec   eax                                 ; -> 48
@@ -262,7 +262,7 @@ MyAsmEntryPatchCodeJumpFromKernelPlaceholder  dd  011223344h
 ; mov     dword ecx, 011223344h       ; -> B9 44 33 22 11
 ; call  rcx                                 ; -> FF D1
 ; jmp rcx                                     ; -> FF E1
-ASM_PFX(MyAsmEntryPatchCodeEnd):
+ASM_PFX (MyAsmEntryPatchCodeEnd):
 
 
 ;------------------------------------------------------------------------------
@@ -274,8 +274,8 @@ ASM_PFX(MyAsmEntryPatchCodeEnd):
 ; - if 64 bit, then jump to MyAsmJumpFromKernel64
 ; - else just continue with MyAsmJumpFromKernel32
 ;------------------------------------------------------------------------------
-GLOBAL ASM_PFX(MyAsmJumpFromKernel)
-ASM_PFX(MyAsmJumpFromKernel):
+GLOBAL ASM_PFX (MyAsmJumpFromKernel)
+ASM_PFX (MyAsmJumpFromKernel):
 
 ; writing in 32 bit, but code must run in 64 bit also
 BITS    32
@@ -426,7 +426,7 @@ BITS 64
 
   ; KernelEntryPatchJumpBack should be EFIAPI
   ; and rbx should not be changed by EFIAPI calling convention
-  call  ASM_PFX(KernelEntryPatchJumpBack)
+  call  ASM_PFX (KernelEntryPatchJumpBack)
   ;hlt  ; uncomment to stop here for test
   ; return value in rax is bootArgs pointer
   mov   rdi, rax
@@ -520,7 +520,7 @@ BITS    64
   pop   rcx
   sub   rcx, 10
   ; and save it
-  mov   qword [REL ASM_PFX(AsmKernelEntry)], rcx
+  mov   qword [REL ASM_PFX (AsmKernelEntry)], rcx
 
   ; call our C code
   ; (calling conv.: always reserve place for 4 args on stack)
@@ -533,7 +533,7 @@ BITS    64
   push  rdx
   push  rcx
   ; KernelEntryPatchJumpBack should be EFIAPI
-  call  ASM_PFX(KernelEntryPatchJumpBack)
+  call  ASM_PFX (KernelEntryPatchJumpBack)
   ;hlt  ; uncomment to stop here for test
   ; return value in rax is bootArgs pointer
 
@@ -544,15 +544,15 @@ BITS    64
   ;
 
   ; kernel entry point
-  mov   rdx, [REL ASM_PFX(AsmKernelEntry)]
+  mov   rdx, [REL ASM_PFX (AsmKernelEntry)]
 
   ; source, destination and size for kernel copy
-  mov   rsi, [REL ASM_PFX(AsmKernelImageStartReloc)]
-  mov   rdi, [REL ASM_PFX(AsmKernelImageStart)]
-  mov   rcx, [REL ASM_PFX(AsmKernelImageSize)]
+  mov   rsi, [REL ASM_PFX (AsmKernelImageStartReloc)]
+  mov   rdi, [REL ASM_PFX (AsmKernelImageStart)]
+  mov   rcx, [REL ASM_PFX (AsmKernelImageSize)]
 
   ; address of relocated MyAsmCopyAndJumpToKernel64
-  mov   rbx, [REL ASM_PFX(MyAsmCopyAndJumpToKernel64Addr)]
+  mov   rbx, [REL ASM_PFX (MyAsmCopyAndJumpToKernel64Addr)]
 
   ;
   ; jump to MyAsmCopyAndJumpToKernel64
@@ -568,11 +568,11 @@ BITS    64
 ; This is the last part of the code - it will copy kernel image from reloc
 ; block to proper mem place and jump to kernel.
 ; There are separate versions for 32 and 64 bit.
-; This code will be relocated (copied) to higher mem by PrepareJumpFromKernel().
+; This code will be relocated (copied) to higher mem by PrepareJumpFromKernel ().
 ;------------------------------------------------------------------------------
     align 08h
-GLOBAL ASM_PFX(MyAsmCopyAndJumpToKernel)
-ASM_PFX(MyAsmCopyAndJumpToKernel):
+GLOBAL ASM_PFX (MyAsmCopyAndJumpToKernel)
+ASM_PFX (MyAsmCopyAndJumpToKernel):
 
 ;------------------------------------------------------------------------------
 ; MyAsmCopyAndJumpToKernel32
@@ -584,8 +584,8 @@ ASM_PFX(MyAsmCopyAndJumpToKernel):
 ; EDI = proper start of kernel image (destination)
 ; ECX = kernel image size in bytes
 ;------------------------------------------------------------------------------
-GLOBAL ASM_PFX(MyAsmCopyAndJumpToKernel32)
-ASM_PFX(MyAsmCopyAndJumpToKernel32):
+GLOBAL ASM_PFX (MyAsmCopyAndJumpToKernel32)
+ASM_PFX (MyAsmCopyAndJumpToKernel32):
 
 BITS    32
   ;
@@ -628,8 +628,8 @@ MyAsmCopyAndJumpToKernel32End:
 ; RCX = kernel image size in bytes
 ;------------------------------------------------------------------------------
     align 08h
-GLOBAL ASM_PFX(MyAsmCopyAndJumpToKernel64)
-ASM_PFX(MyAsmCopyAndJumpToKernel64):
+GLOBAL ASM_PFX (MyAsmCopyAndJumpToKernel64)
+ASM_PFX (MyAsmCopyAndJumpToKernel64):
 
 BITS    64
   ;
@@ -661,6 +661,6 @@ BITS    64
 ;MyAsmCopyAndJumpToKernel64 ENDP
 MyAsmCopyAndJumpToKernel64End:
 
-GLOBAL ASM_PFX(MyAsmCopyAndJumpToKernelEnd)
-ASM_PFX(MyAsmCopyAndJumpToKernelEnd):
+GLOBAL ASM_PFX (MyAsmCopyAndJumpToKernelEnd)
+ASM_PFX (MyAsmCopyAndJumpToKernelEnd):
 ;END

@@ -16,9 +16,9 @@
 #define DEBUG_GMA DEBUG_ALL
 #endif
 
-#define DBG(...) DebugLog(DEBUG_GMA, __VA_ARGS__)
+#define DBG(...) DebugLog (DEBUG_GMA, __VA_ARGS__)
 
-#define S_INTELMODEL "INTEL Graphics"
+#define S_INTELMODEL "Intel Graphics"
 
 //Slice - corrected all values, still not sure
 UINT8 INTELDEF_vals[28][4] = {
@@ -64,7 +64,7 @@ UINT8 OsInfo[] = {
 };
 
 BOOLEAN
-setup_gma_devprop (
+SetupGmaDevprop (
   pci_dt_t    *gma_dev
 ) {
   CHAR8           *devicepath, *model;
@@ -74,21 +74,21 @@ setup_gma_devprop (
   INTN            i;
   BOOLEAN         Injected = FALSE, SetIgPlatform = FALSE;
 
-  devicepath = get_pci_dev_path(gma_dev);
+  devicepath = GetPciDevPath (gma_dev);
 
-  model = (CHAR8*)AllocateCopyPool(AsciiStrSize(S_INTELMODEL), S_INTELMODEL);
+  model = (CHAR8 *)AllocateCopyPool (AsciiStrSize (S_INTELMODEL), S_INTELMODEL);
 
-  MsgLog(" - %a [%04x:%04x] | %a\n",
+  MsgLog (" - %a [%04x:%04x] | %a\n",
     model, gma_dev->vendor_id, gma_dev->device_id, devicepath);
 
   if (!string) {
-    string = devprop_create_string();
+    string = DevpropCreateString ();
   }
 
-  device = devprop_add_device_pci(string, gma_dev);
+  device = DevpropAddDevicePci (string, gma_dev);
 
   if (!device) {
-    DBG(" - Failed initializing dev-prop string dev-entry.\n");
+    DBG (" - Failed initializing dev-prop string dev-entry.\n");
     return FALSE;
   }
 
@@ -100,68 +100,68 @@ setup_gma_devprop (
 
       Injected = TRUE;
 
-      devprop_add_value (
+      DevpropAddValue (
         device,
         gSettings.AddProperties[i].Key,
-        (UINT8*)gSettings.AddProperties[i].Value,
+        (UINT8 *)gSettings.AddProperties[i].Value,
         gSettings.AddProperties[i].ValueLen
       );
     }
   }
 
   if (Injected) {
-    DBG(" - custom IntelGFX properties injected\n");
+    DBG (" - custom IntelGFX properties injected\n");
   }
 
   if (gSettings.FakeIntel) {
     UINT32    FakeID = gSettings.FakeIntel >> 16;
 
-    devprop_add_value(device, "device-id", (UINT8*)&FakeID, 4);
+    DevpropAddValue (device, "device-id", (UINT8 *)&FakeID, 4);
     FakeID = gSettings.FakeIntel & 0xFFFF;
-    devprop_add_value(device, "vendor-id", (UINT8*)&FakeID, 4);
+    DevpropAddValue (device, "vendor-id", (UINT8 *)&FakeID, 4);
   }
 
   if (gSettings.UseIntelHDMI) {
-    devprop_add_value(device, "hda-gfx", (UINT8*)"onboard-1", 10);
+    DevpropAddValue (device, "hda-gfx", (UINT8 *)"onboard-1", 10);
   }
 
   if (gSettings.InjectEDID && gSettings.CustomEDID) {
-    devprop_add_value(device, "AAPL00,override-no-connect", gSettings.CustomEDID, 128);
+    DevpropAddValue (device, "AAPL00,override-no-connect", gSettings.CustomEDID, 128);
   }
 
   if (gSettings.IgPlatform != 0) {
-    devprop_add_value (
+    DevpropAddValue (
       device,
       (gma_dev->device_id < 0x130) ? "AAPL,snb-platform-id" : "AAPL,ig-platform-id",
-      (UINT8*)&gSettings.IgPlatform,
+      (UINT8 *)&gSettings.IgPlatform,
       4
     );
 
-    MsgLog(" - %a-platform-id: 0x%08lx\n", (gma_dev->device_id < 0x130) ? "snb" : "ig", gSettings.IgPlatform);
+    MsgLog (" - %a-platform-id: 0x%08lx\n", (gma_dev->device_id < 0x130) ? "snb" : "ig", gSettings.IgPlatform);
 
     SetIgPlatform = TRUE;
   }
 
   if (gSettings.DualLink != 0) {
-    devprop_add_value(device, "AAPL00,DualLink", (UINT8*)&gSettings.DualLink, 1);
+    DevpropAddValue (device, "AAPL00,DualLink", (UINT8 *)&gSettings.DualLink, 1);
   }
 
   if (gSettings.NoDefaultProperties) {
-    //MsgLog(" - no default properties\n");
+    //MsgLog (" - no default properties\n");
     return TRUE;
   }
 
-  devprop_add_value(device, "model", (UINT8*)model, (UINT32)AsciiStrLen(model));
-  devprop_add_value(device, "device_type", (UINT8*)"display", 7);
-  devprop_add_value(device, "subsystem-vendor-id", INTELDEF_vals[21], 4);
-  devprop_add_value(device, "class-code", (UINT8*)ClassFix, 4);
+  DevpropAddValue (device, "model", (UINT8 *)model, (UINT32)AsciiStrLen (model));
+  DevpropAddValue (device, "device_type", (UINT8 *)"display", 7);
+  DevpropAddValue (device, "subsystem-vendor-id", INTELDEF_vals[21], 4);
+  DevpropAddValue (device, "class-code", (UINT8 *)ClassFix, 4);
 
   //DualLink = gSettings.DualLink;
 
-  //MacModel = GetModelFromString(gSettings.ProductName);
+  //MacModel = GetModelFromString (gSettings.ProductName);
   switch (gma_dev->device_id) {
     case 0x0102:
-      devprop_add_value(device, "class-code", (UINT8*)ClassFix, 4);
+      DevpropAddValue (device, "class-code", (UINT8 *)ClassFix, 4);
     case 0x0106:
     case 0x0112:
     case 0x0116:
@@ -270,69 +270,69 @@ setup_gma_devprop (
         }
 
         if (i) {
-          devprop_add_value(device, "AAPL,ig-platform-id", INTELDEF_vals[i], 4);
-          DBG(" - ig-platform-id: 0x%02x%02x%02x%02x\n", INTELDEF_vals[i][3], INTELDEF_vals[i][2], INTELDEF_vals[i][1], INTELDEF_vals[i][0]);
+          DevpropAddValue (device, "AAPL,ig-platform-id", INTELDEF_vals[i], 4);
+          DBG (" - ig-platform-id: 0x%02x%02x%02x%02x\n", INTELDEF_vals[i][3], INTELDEF_vals[i][2], INTELDEF_vals[i][1], INTELDEF_vals[i][0]);
         }
       }
     case 0xA011:
     case 0xA012:
       if (DualLink != 0) {
-        devprop_add_value(device, "AAPL00,DualLink", (UINT8*)&DualLink, 1);
+        DevpropAddValue (device, "AAPL00,DualLink", (UINT8 *)&DualLink, 1);
       }
     case 0x2582:
     case 0x2592:
     case 0x27A2:
     case 0x27AE:
-      devprop_add_value(device, "AAPL,HasPanel", reg_TRUE, 4);
-      devprop_add_value(device, "built-in", &BuiltIn, 1);
+      DevpropAddValue (device, "AAPL,HasPanel", reg_TRUE, 4);
+      DevpropAddValue (device, "built-in", &BuiltIn, 1);
       break;
     case 0x2772:
     case 0x29C2:
     case 0x0042:
     case 0x0046:
     case 0xA002:
-      devprop_add_value(device, "built-in", &BuiltIn, 1);
-      devprop_add_value(device, "AAPL00,DualLink", (UINT8*)&DualLink, 1);
-      devprop_add_value(device, "AAPL,os-info", (UINT8*)&OsInfo, sizeof(OsInfo));
+      DevpropAddValue (device, "built-in", &BuiltIn, 1);
+      DevpropAddValue (device, "AAPL00,DualLink", (UINT8 *)&DualLink, 1);
+      DevpropAddValue (device, "AAPL,os-info", (UINT8 *)&OsInfo, sizeof (OsInfo));
       break;
     case 0x2A02:
     case 0x2A12:
     case 0x2A42:
-      devprop_add_value(device, "AAPL,HasPanel", INTELDEF_vals[0], 4);
-      devprop_add_value(device, "AAPL,SelfRefreshSupported", INTELDEF_vals[1], 4);
-      devprop_add_value(device, "AAPL,aux-power-connected", INTELDEF_vals[2], 4);
-      devprop_add_value(device, "AAPL,backlight-control", INTELDEF_vals[3], 4);
-      devprop_add_value(device, "AAPL00,blackscreen-preferences", INTELDEF_vals[4], 4);
-      devprop_add_value(device, "AAPL01,BacklightIntensity", INTELDEF_vals[5], 4);
-      devprop_add_value(device, "AAPL01,blackscreen-preferences", INTELDEF_vals[6], 4);
-      devprop_add_value(device, "AAPL01,DataJustify", INTELDEF_vals[7], 4);
-      //devprop_add_value(device, "AAPL01,Depth", INTELDEF_vals[8], 4);
-      devprop_add_value(device, "AAPL01,Dither", INTELDEF_vals[9], 4);
-      devprop_add_value(device, "AAPL01,DualLink", (UINT8 *)&DualLink, 1);
-      //devprop_add_value(device, "AAPL01,Height", INTELDEF_vals[10], 4);
-      devprop_add_value(device, "AAPL01,Interlace", INTELDEF_vals[11], 4);
-      devprop_add_value(device, "AAPL01,Inverter", INTELDEF_vals[12], 4);
-      devprop_add_value(device, "AAPL01,InverterCurrent", INTELDEF_vals[13], 4);
-      //devprop_add_value(device, "AAPL01,InverterCurrency", INTELDEF_vals[15], 4);
-      devprop_add_value(device, "AAPL01,LinkFormat", INTELDEF_vals[14], 4);
-      devprop_add_value(device, "AAPL01,LinkType", INTELDEF_vals[15], 4);
-      devprop_add_value(device, "AAPL01,Pipe", INTELDEF_vals[16], 4);
-      //devprop_add_value(device, "AAPL01,PixelFormat", INTELDEF_vals[17], 4);
-      devprop_add_value(device, "AAPL01,Refresh", INTELDEF_vals[18], 4);
-      devprop_add_value(device, "AAPL01,Stretch", INTELDEF_vals[19], 4);
-      devprop_add_value(device, "AAPL01,InverterFrequency", INTELDEF_vals[20], 4);
-      //devprop_add_value(device, "class-code",   (UINT8*)ClassFix, 4);
-      //devprop_add_value(device, "subsystem-vendor-id", INTELDEF_vals[21], 4);
-      devprop_add_value(device, "subsystem-id", INTELDEF_vals[22], 4);
-      devprop_add_value(device, "built-in", &BuiltIn, 1);
+      DevpropAddValue (device, "AAPL,HasPanel", INTELDEF_vals[0], 4);
+      DevpropAddValue (device, "AAPL,SelfRefreshSupported", INTELDEF_vals[1], 4);
+      DevpropAddValue (device, "AAPL,aux-power-connected", INTELDEF_vals[2], 4);
+      DevpropAddValue (device, "AAPL,backlight-control", INTELDEF_vals[3], 4);
+      DevpropAddValue (device, "AAPL00,blackscreen-preferences", INTELDEF_vals[4], 4);
+      DevpropAddValue (device, "AAPL01,BacklightIntensity", INTELDEF_vals[5], 4);
+      DevpropAddValue (device, "AAPL01,blackscreen-preferences", INTELDEF_vals[6], 4);
+      DevpropAddValue (device, "AAPL01,DataJustify", INTELDEF_vals[7], 4);
+      //DevpropAddValue (device, "AAPL01,Depth", INTELDEF_vals[8], 4);
+      DevpropAddValue (device, "AAPL01,Dither", INTELDEF_vals[9], 4);
+      DevpropAddValue (device, "AAPL01,DualLink", (UINT8 *)&DualLink, 1);
+      //DevpropAddValue (device, "AAPL01,Height", INTELDEF_vals[10], 4);
+      DevpropAddValue (device, "AAPL01,Interlace", INTELDEF_vals[11], 4);
+      DevpropAddValue (device, "AAPL01,Inverter", INTELDEF_vals[12], 4);
+      DevpropAddValue (device, "AAPL01,InverterCurrent", INTELDEF_vals[13], 4);
+      //DevpropAddValue (device, "AAPL01,InverterCurrency", INTELDEF_vals[15], 4);
+      DevpropAddValue (device, "AAPL01,LinkFormat", INTELDEF_vals[14], 4);
+      DevpropAddValue (device, "AAPL01,LinkType", INTELDEF_vals[15], 4);
+      DevpropAddValue (device, "AAPL01,Pipe", INTELDEF_vals[16], 4);
+      //DevpropAddValue (device, "AAPL01,PixelFormat", INTELDEF_vals[17], 4);
+      DevpropAddValue (device, "AAPL01,Refresh", INTELDEF_vals[18], 4);
+      DevpropAddValue (device, "AAPL01,Stretch", INTELDEF_vals[19], 4);
+      DevpropAddValue (device, "AAPL01,InverterFrequency", INTELDEF_vals[20], 4);
+      //DevpropAddValue (device, "class-code",   (UINT8 *)ClassFix, 4);
+      //DevpropAddValue (device, "subsystem-vendor-id", INTELDEF_vals[21], 4);
+      DevpropAddValue (device, "subsystem-id", INTELDEF_vals[22], 4);
+      DevpropAddValue (device, "built-in", &BuiltIn, 1);
       break;
     default:
-      DBG(" - card id=%x unsupported\n", gma_dev->device_id);
+      DBG (" - card id=%x unsupported\n", gma_dev->device_id);
       return FALSE;
   }
 
 //#if DEBUG_GMA == 2
-//  gBS->Stall(5000000);
+//  gBS->Stall (5000000);
 //#endif
 
   return TRUE;

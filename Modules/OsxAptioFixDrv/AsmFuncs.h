@@ -9,20 +9,20 @@
 #include <Library/BaseLib.h>
 
 /** Read stack pointer. */
-UINT64  EFIAPI              MyAsmReadSp();
+UINT64  EFIAPI              MyAsmReadSp ();
 
 /** Save 64 bit state that will be restored on callback. */
-VOID    EFIAPI              MyAsmPrepareJumpFromKernel();
+VOID    EFIAPI              MyAsmPrepareJumpFromKernel ();
 
 /** Start and end address of the 32 and 64 bit code
  that is copied to kernel entry address to jump back
- to our code, to MyAsmJumpFromKernel().
+ to our code, to MyAsmJumpFromKernel ().
  */
 extern UINT8                MyAsmEntryPatchCode;
 extern UINT8                MyAsmEntryPatchCodeEnd;
 
 /** Callback function, 32 and 64 bit, that is called when boot.efi jumps to kernel address. */
-VOID EFIAPI                 MyAsmJumpFromKernel();
+VOID EFIAPI                 MyAsmJumpFromKernel ();
 
 /** 32 bit function start and end that copies kernel to proper mem and jumps to kernel. */
 extern UINT8                MyAsmCopyAndJumpToKernel;

@@ -43,7 +43,7 @@ extern UINT32                 gLastDescriptorVersion;
 EFI_STATUS PrepareJumpFromKernel ();
 EFI_STATUS KernelEntryPatchJump (UINT32 KernelEntry);
 EFI_STATUS KernelEntryFromMachOPatchJump (VOID *MachOImage, UINTN SlideAddr);
-//EFI_STATUS KernelEntryPatchJumpFill();
+//EFI_STATUS KernelEntryPatchJumpFill ();
 //EFI_STATUS KernelEntryPatchHalt (UINT32 KernelEntry);
 //EFI_STATUS KernelEntryPatchZero (UINT32 KernelEntry);
 EFI_STATUS

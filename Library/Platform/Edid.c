@@ -13,7 +13,7 @@
 #define DEBUG_EDID DEBUG_ALL
 #endif
 
-#define DBG(...) DebugLog(DEBUG_EDID, __VA_ARGS__)
+#define DBG(...) DebugLog (DEBUG_EDID, __VA_ARGS__)
 
 EFI_STATUS
 EFIAPI
@@ -42,7 +42,7 @@ InitializeEdidOverride () {
   EFI_STATUS                    Status;
   EFI_EDID_OVERRIDE_PROTOCOL    *EdidOverride;
 
-  EdidOverride = AllocateCopyPool(sizeof(EFI_EDID_OVERRIDE_PROTOCOL), &gEdidOverride);
+  EdidOverride = AllocateCopyPool (sizeof (EFI_EDID_OVERRIDE_PROTOCOL), &gEdidOverride);
 
   Status = gBS->InstallMultipleProtocolInterfaces (
                    &gImageHandle,
@@ -52,14 +52,15 @@ InitializeEdidOverride () {
                  );
 
   if (EFI_ERROR (Status)) {
-    DBG("Can't install EdidOverride on ImageHandle\n");
+    DBG ("Can't install EdidOverride on ImageHandle\n");
   }
 
   return Status;
 }
 
-UINT8
-*getCurrentEdid () {
+#if 0
+UINT8 *
+GetCurrentEdid () {
   EFI_STATUS                      Status;
   EFI_EDID_ACTIVE_PROTOCOL        *EdidProtocol;
   UINT8                           *Edid;
@@ -67,18 +68,19 @@ UINT8
   DBG ("Edid:");
   Edid = NULL;
 
-  Status = gBS->LocateProtocol (&gEfiEdidActiveProtocolGuid, NULL, (VOID**)&EdidProtocol);
+  Status = gBS->LocateProtocol (&gEfiEdidActiveProtocolGuid, NULL, (VOID **)&EdidProtocol);
   if (!EFI_ERROR (Status)) {
-    DBG(" size=%d", EdidProtocol->SizeOfEdid);
+    DBG (" size=%d", EdidProtocol->SizeOfEdid);
     if (EdidProtocol->SizeOfEdid > 0) {
       Edid = AllocateCopyPool (EdidProtocol->SizeOfEdid, EdidProtocol->Edid);
     }
   }
 
-  DBG(" %a\n", (Edid != NULL) ? "found" : "not found");
+  DBG (" %a\n", (Edid != NULL) ? "found" : "not found");
 
   return Edid;
 }
+#endif
 
 EFI_STATUS
 GetEdidDiscovered () {
@@ -92,27 +94,27 @@ GetEdidDiscovered () {
   if (!EFI_ERROR (Status)) {
     N = EdidDiscovered->SizeOfEdid;
     if (!GlobalConfig.DebugLog) {
-      DBG("EdidDiscovered size=%d\n", N);
+      DBG ("EdidDiscovered size=%d\n", N);
     }
 
     if (N == 0) {
       return EFI_NOT_FOUND;
     }
 
-    gEDID = AllocateAlignedPages(EFI_SIZE_TO_PAGES(N), 128);
+    gEDID = AllocateAlignedPages (EFI_SIZE_TO_PAGES (N), 128);
     if (!gSettings.CustomEDID) {
       gSettings.CustomEDID = gEDID; //copy pointer but data if no CustomEDID
     }
 
-    CopyMem(gEDID, EdidDiscovered->Edid, N);
+    CopyMem (gEDID, EdidDiscovered->Edid, N);
 
     if (!GlobalConfig.DebugLog) {
       for (i=0; i<N; i+=16) {
-        DBG("%03d | ", i);
+        DBG ("%03d | ", i);
         for (j=0; j<16; j++) {
-          DBG("%02x%a", EdidDiscovered->Edid[i+j], (j<15) ? " " : "");
+          DBG ("%02x%a", EdidDiscovered->Edid[i+j], (j<15) ? " " : "");
         }
-        DBG("\n");
+        DBG ("\n");
       }
     }
   }

@@ -47,7 +47,7 @@
 #define DEBUG_SCREEN DEBUG_ALL
 #endif
 
-#define DBG(...) DebugLog(DEBUG_SCREEN, __VA_ARGS__)
+#define DBG(...) DebugLog (DEBUG_SCREEN, __VA_ARGS__)
 
 // Console defines and variables
 
@@ -69,7 +69,7 @@ EG_PIXEL  StdBackgroundPixel           = { 0xbf, 0xbf, 0xbf, 0xff },
 
 EG_IMAGE  *BackgroundImage = NULL, *Banner = NULL, *BigBack = NULL;
 
-static    BOOLEAN GraphicsScreenDirty, haveError = FALSE;
+STATIC    BOOLEAN GraphicsScreenDirty, haveError = FALSE;
 
 //
 // LibScreen.c
@@ -79,30 +79,30 @@ static    BOOLEAN GraphicsScreenDirty, haveError = FALSE;
 
 // Console defines and variables
 
-static EFI_GUID ConsoleControlProtocolGuid = EFI_CONSOLE_CONTROL_PROTOCOL_GUID;
-static EFI_CONSOLE_CONTROL_PROTOCOL *ConsoleControl = NULL;
+STATIC EFI_GUID ConsoleControlProtocolGuid = EFI_CONSOLE_CONTROL_PROTOCOL_GUID;
+STATIC EFI_CONSOLE_CONTROL_PROTOCOL *ConsoleControl = NULL;
 
-static EFI_GUID GraphicsOutputProtocolGuid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
-static EFI_GRAPHICS_OUTPUT_PROTOCOL *GraphicsOutput = NULL;
+STATIC EFI_GUID GraphicsOutputProtocolGuid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
+STATIC EFI_GRAPHICS_OUTPUT_PROTOCOL *GraphicsOutput = NULL;
 
-static BOOLEAN egHasGraphics = FALSE;
-static UINTN egScreenWidth  = 0; //1024;
-static UINTN egScreenHeight = 0; //768;
+STATIC BOOLEAN egHasGraphics = FALSE;
+STATIC UINTN egScreenWidth  = 0; //1024;
+STATIC UINTN egScreenHeight = 0; //768;
 
-static EFI_CONSOLE_CONTROL_PROTOCOL_GET_MODE ConsoleControlGetMode = NULL;
+STATIC EFI_CONSOLE_CONTROL_PROTOCOL_GET_MODE ConsoleControlGetMode = NULL;
 
-//static EFI_STATUS GopSetModeAndReconnectTextOut();
+//STATIC EFI_STATUS GopSetModeAndReconnectTextOut ();
 
 //
-// Null ConsoleControl GetMode() implementation - for blocking resolution switch when using text mode
+// Null ConsoleControl GetMode () implementation - for blocking resolution switch when using text mode
 //
 EFI_STATUS
 EFIAPI
 NullConsoleControlGetModeText (
-  IN EFI_CONSOLE_CONTROL_PROTOCOL       *This,
-  OUT EFI_CONSOLE_CONTROL_SCREEN_MODE   *Mode,
-  OUT BOOLEAN                           *GopUgaExists,
-  OPTIONAL OUT BOOLEAN                  *StdInLocked OPTIONAL
+  IN  struct _EFI_CONSOLE_CONTROL_PROTOCOL  *This,
+  OUT EFI_CONSOLE_CONTROL_SCREEN_MODE       *Mode,
+  OUT BOOLEAN                               *GopUgaExists, OPTIONAL
+  OUT BOOLEAN                               *StdInLocked OPTIONAL
 ) {
   *Mode = EfiConsoleControlScreenText;
 
@@ -132,28 +132,28 @@ GopSetModeAndReconnectTextOut (
     return EFI_UNSUPPORTED;
   }
 
-  Status = GraphicsOutput->SetMode(GraphicsOutput, ModeNumber);
-  MsgLog("Video mode change to mode #%d: %r\n", ModeNumber, Status);
+  Status = GraphicsOutput->SetMode (GraphicsOutput, ModeNumber);
+  MsgLog ("Video mode change to mode #%d: %r\n", ModeNumber, Status);
 
   return Status;
 }
 
 EFI_STATUS
-egSetMaxResolution() {
+SetMaxResolution () {
   EFI_GRAPHICS_OUTPUT_MODE_INFORMATION    *Info;
-  EFI_STATUS    Status = EFI_UNSUPPORTED;
-  UINT32        Width = 0, Height = 0, BestMode = 0,
-                MaxMode, Mode;
-  UINTN         SizeOfInfo;
+  EFI_STATUS                              Status = EFI_UNSUPPORTED;
+  UINT32                                  Width = 0, Height = 0, BestMode = 0,
+                                          MaxMode, Mode;
+  UINTN                                   SizeOfInfo;
 
   if (GraphicsOutput == NULL) {
     return EFI_UNSUPPORTED;
   }
 
-  MsgLog("SetMaxResolution: ");
+  MsgLog ("SetMaxResolution: ");
   MaxMode = GraphicsOutput->Mode->MaxMode;
   for (Mode = 0; Mode < MaxMode; Mode++) {
-    Status = GraphicsOutput->QueryMode(GraphicsOutput, Mode, &SizeOfInfo, &Info);
+    Status = GraphicsOutput->QueryMode (GraphicsOutput, Mode, &SizeOfInfo, &Info);
     if (Status == EFI_SUCCESS) {
       if ((Width > Info->HorizontalResolution) || (Height > Info->VerticalResolution)) {
         continue;
@@ -164,25 +164,25 @@ egSetMaxResolution() {
     }
   }
 
-  MsgLog("Found best mode %d: %dx%d\n", BestMode, Width, Height);
+  MsgLog ("Found best mode %d: %dx%d\n", BestMode, Width, Height);
 
   // check if requested mode is equal to current mode
   if (BestMode == GraphicsOutput->Mode->Mode) {
-    //MsgLog(" - already set\n");
+    //MsgLog (" - already set\n");
     egScreenWidth = GraphicsOutput->Mode->Info->HorizontalResolution;
     egScreenHeight = GraphicsOutput->Mode->Info->VerticalResolution;
     Status = EFI_SUCCESS;
   } else {
-    //Status = GraphicsOutput->SetMode(GraphicsOutput, BestMode);
-    Status = GopSetModeAndReconnectTextOut(BestMode);
+    //Status = GraphicsOutput->SetMode (GraphicsOutput, BestMode);
+    Status = GopSetModeAndReconnectTextOut (BestMode);
     if (Status == EFI_SUCCESS) {
       egScreenWidth = Width;
       egScreenHeight = Height;
-      //MsgLog(" - set\n", Status);
+      //MsgLog (" - set\n", Status);
     } else {
       // we can not set BestMode - search for first one that we can
-      //MsgLog(" - %r\n", Status);
-      Status = egSetMode(1);
+      //MsgLog (" - %r\n", Status);
+      Status = SetMode (1);
     }
   }
 
@@ -190,14 +190,14 @@ egSetMaxResolution() {
 }
 
 EFI_STATUS
-egSetMode (
+SetMode (
   INT32     Next
 ) {
   EFI_GRAPHICS_OUTPUT_MODE_INFORMATION    *Info;
-  EFI_STATUS    Status = EFI_UNSUPPORTED;
-  UINT32        MaxMode, Index = 0;
-  UINTN         SizeOfInfo;
-  INT32         Mode;
+  EFI_STATUS                              Status = EFI_UNSUPPORTED;
+  UINT32                                  MaxMode, Index = 0;
+  UINTN                                   SizeOfInfo;
+  INT32                                   Mode;
 
   if (GraphicsOutput == NULL) {
     return EFI_UNSUPPORTED;
@@ -205,18 +205,18 @@ egSetMode (
 
   MaxMode = GraphicsOutput->Mode->MaxMode;
   Mode = GraphicsOutput->Mode->Mode;
-  while (EFI_ERROR(Status) && (Index <= MaxMode)) {
+  while (EFI_ERROR (Status) && (Index <= MaxMode)) {
     Mode = Mode + Next;
     Mode = (Mode >= (INT32)MaxMode) ? 0 : Mode;
     Mode = (Mode < 0) ? ((INT32)MaxMode - 1) : Mode;
-    Status = GraphicsOutput->QueryMode(GraphicsOutput, (UINT32)Mode, &SizeOfInfo, &Info);
+    Status = GraphicsOutput->QueryMode (GraphicsOutput, (UINT32)Mode, &SizeOfInfo, &Info);
 
-    MsgLog("QueryMode %d Status=%r\n", Mode, Status);
+    MsgLog ("QueryMode %d Status=%r\n", Mode, Status);
 
     if (Status == EFI_SUCCESS) {
-      //Status = GraphicsOutput->SetMode(GraphicsOutput, (UINT32)Mode);
-      Status = GopSetModeAndReconnectTextOut((UINT32)Mode);
-      //MsgLog("SetMode %d Status=%r\n", Mode, Status);
+      //Status = GraphicsOutput->SetMode (GraphicsOutput, (UINT32)Mode);
+      Status = GopSetModeAndReconnectTextOut ((UINT32)Mode);
+      //MsgLog ("SetMode %d Status=%r\n", Mode, Status);
       egScreenWidth = GraphicsOutput->Mode->Info->HorizontalResolution;
       egScreenHeight = GraphicsOutput->Mode->Info->VerticalResolution;
     }
@@ -227,14 +227,14 @@ egSetMode (
 }
 
 EFI_STATUS
-egSetScreenResolution (
-  IN CHAR16     *WidthHeight
+SetScreenResolution (
+  IN CHAR16   *WidthHeight
 ) {
   EFI_GRAPHICS_OUTPUT_MODE_INFORMATION    *Info;
-  EFI_STATUS      Status = EFI_UNSUPPORTED;
-  UINT32          Width, Height, MaxMode, Mode;
-  CHAR16          *HeightP;
-  UINTN           SizeOfInfo;
+  EFI_STATUS                              Status = EFI_UNSUPPORTED;
+  UINT32                                  Width, Height, MaxMode, Mode;
+  CHAR16                                  *HeightP;
+  UINTN                                   SizeOfInfo;
 
   if (GraphicsOutput == NULL) {
     return EFI_UNSUPPORTED;
@@ -244,7 +244,7 @@ egSetScreenResolution (
     return EFI_INVALID_PARAMETER;
   }
 
-  MsgLog("SetScreenResolution: %s", WidthHeight);
+  MsgLog ("SetScreenResolution: %s", WidthHeight);
 
   // we are expecting WidthHeight=L"1024x768"
   // parse Width and Height
@@ -259,12 +259,12 @@ egSetScreenResolution (
   }
 
   HeightP++;
-  Width = (UINT32)StrDecimalToUintn(WidthHeight);
-  Height = (UINT32)StrDecimalToUintn(HeightP);
+  Width = (UINT32)StrDecimalToUintn (WidthHeight);
+  Height = (UINT32)StrDecimalToUintn (HeightP);
 
   // check if requested mode is equal to current mode
   if ((GraphicsOutput->Mode->Info->HorizontalResolution == Width) && (GraphicsOutput->Mode->Info->VerticalResolution == Height)) {
-    MsgLog(" - already set\n");
+    MsgLog (" - already set\n");
     egScreenWidth = GraphicsOutput->Mode->Info->HorizontalResolution;
     egScreenHeight = GraphicsOutput->Mode->Info->VerticalResolution;
 
@@ -274,13 +274,13 @@ egSetScreenResolution (
   // iterate through modes and set it if found
   MaxMode = GraphicsOutput->Mode->MaxMode;
   for (Mode = 0; Mode < MaxMode; Mode++) {
-    Status = GraphicsOutput->QueryMode(GraphicsOutput, Mode, &SizeOfInfo, &Info);
+    Status = GraphicsOutput->QueryMode (GraphicsOutput, Mode, &SizeOfInfo, &Info);
     if (Status == EFI_SUCCESS) {
       if ((Width == Info->HorizontalResolution) && (Height == Info->VerticalResolution)) {
-        MsgLog(" - setting Mode %d\n", Mode);
+        MsgLog (" - setting Mode %d\n", Mode);
 
-        //Status = GraphicsOutput->SetMode(GraphicsOutput, Mode);
-        Status = GopSetModeAndReconnectTextOut(Mode);
+        //Status = GraphicsOutput->SetMode (GraphicsOutput, Mode);
+        Status = GopSetModeAndReconnectTextOut (Mode);
         if (Status == EFI_SUCCESS) {
           egScreenWidth = Width;
           egScreenHeight = Height;
@@ -291,28 +291,28 @@ egSetScreenResolution (
     }
   }
 
-  MsgLog(" - not found!\n");
+  MsgLog (" - not found!\n");
 
   return EFI_UNSUPPORTED;
 }
 
 VOID
-egInitScreen (
-  IN BOOLEAN    SetMaxResolution
+InternalInitScreen (
+  IN BOOLEAN    egSetMaxResolution
 ) {
   EFI_STATUS    Status;
   CHAR16        *Resolution;
 
   // get protocols
-  Status = EfiLibLocateProtocol(&ConsoleControlProtocolGuid, (VOID **) &ConsoleControl);
+  Status = EfiLibLocateProtocol (&ConsoleControlProtocolGuid, (VOID **) &ConsoleControl);
 
-  if (EFI_ERROR(Status)) {
+  if (EFI_ERROR (Status)) {
     ConsoleControl = NULL;
   }
 
-  Status = EfiLibLocateProtocol(&GraphicsOutputProtocolGuid, (VOID **) &GraphicsOutput);
+  Status = EfiLibLocateProtocol (&GraphicsOutputProtocolGuid, (VOID **) &GraphicsOutput);
 
-  if (EFI_ERROR(Status)) {
+  if (EFI_ERROR (Status)) {
     GraphicsOutput = NULL;
   }
 
@@ -323,12 +323,12 @@ egInitScreen (
 
   // if it not the first run, just restore resolution
   if ((egScreenWidth != 0) && (egScreenHeight != 0)) {
-    Resolution = PoolPrint(L"%dx%d",egScreenWidth,egScreenHeight);
+    Resolution = PoolPrint (L"%dx%d",egScreenWidth,egScreenHeight);
     if (Resolution) {
-      Status = egSetScreenResolution(Resolution);
-      FreePool(Resolution);
+      Status = SetScreenResolution (Resolution);
+      FreePool (Resolution);
 
-      if (!EFI_ERROR(Status)) {
+      if (!EFI_ERROR (Status)) {
         return;
       }
     }
@@ -339,14 +339,14 @@ egInitScreen (
 
   if (GraphicsOutput != NULL) {
     if (GlobalConfig.ScreenResolution != NULL) {
-      if (EFI_ERROR(egSetScreenResolution(GlobalConfig.ScreenResolution))) {
-        if (SetMaxResolution) {
-          egSetMaxResolution();
+      if (EFI_ERROR (SetScreenResolution (GlobalConfig.ScreenResolution))) {
+        if (egSetMaxResolution) {
+          SetMaxResolution ();
         }
       }
     } else {
-      if (SetMaxResolution) {
-        egSetMaxResolution();
+      if (egSetMaxResolution) {
+        SetMaxResolution ();
       }
     }
 
@@ -355,11 +355,11 @@ egInitScreen (
     egHasGraphics = TRUE;
   }
 
-  //egDumpSetConsoleVideoModes();
+  //egDumpSetConsoleVideoModes ();
 }
 
 VOID
-egGetScreenSize (
+GetScreenSize (
   OUT INTN    *ScreenWidth,
   OUT INTN    *ScreenHeight
 ) {
@@ -372,11 +372,11 @@ egGetScreenSize (
   }
 }
 
-CHAR16
-*egScreenDescription () {
+CHAR16 *
+ScreenDescription () {
   if (egHasGraphics) {
     if (GraphicsOutput != NULL) {
-      return PoolPrint(L"Graphics Output (UEFI), %dx%d", egScreenWidth, egScreenHeight);
+      return PoolPrint (L"Graphics Output (UEFI), %dx%d", egScreenWidth, egScreenHeight);
     } else {
       return L"Internal Error";
     }
@@ -386,16 +386,16 @@ CHAR16
 }
 
 BOOLEAN
-egHasGraphicsMode () {
+HasGraphicsMode () {
   return egHasGraphics;
 }
 
 BOOLEAN
-egIsGraphicsModeEnabled () {
+IsGraphicsModeEnabled () {
   EFI_CONSOLE_CONTROL_SCREEN_MODE     CurrentMode;
 
   if (ConsoleControl != NULL) {
-    ConsoleControl->GetMode(ConsoleControl, &CurrentMode, NULL, NULL);
+    ConsoleControl->GetMode (ConsoleControl, &CurrentMode, NULL, NULL);
     return (CurrentMode == EfiConsoleControlScreenGraphics) ? TRUE : FALSE;
   }
 
@@ -403,7 +403,7 @@ egIsGraphicsModeEnabled () {
 }
 
 VOID
-egSetGraphicsModeEnabled (
+SetGraphicsModeEnabled (
   IN BOOLEAN    Enable
 ) {
   EFI_CONSOLE_CONTROL_SCREEN_MODE     CurrentMode;
@@ -411,17 +411,17 @@ egSetGraphicsModeEnabled (
 
   if (ConsoleControl != NULL) {
     // Some UEFI bioses may cause resolution switch when switching to Text Mode via the ConsoleControl->SetMode command
-    // EFI applications wishing to use text, call the ConsoleControl->GetMode() command, and depending on its result may call ConsoleControl->SetMode().
+    // EFI applications wishing to use text, call the ConsoleControl->GetMode () command, and depending on its result may call ConsoleControl->SetMode ().
     // To avoid the resolution switch, when we set text mode, we can make ConsoleControl->GetMode report that text mode is enabled.
 
     // ConsoleControl->SetMode should not be needed on UEFI 2.x to switch to text, but some firmwares seem to block text out if it is not given.
     // We know it blocks text out on HPQ UEFI (HP ProBook for example - reported by dmazar), Apple firmwares with UGA, and some VMs.
     // So, it may be better considering to do this only with firmware vendors where the bug was observed (currently it is known to exist on some AMI firmwares).
-    //if (GraphicsOutput != NULL && StrCmp(gST->FirmwareVendor, L"American Megatrends") == 0) {
+    //if (GraphicsOutput != NULL && StrCmp (gST->FirmwareVendor, L"American Megatrends") == 0) {
     if (
       (GraphicsOutput != NULL) &&
-      (StrCmp(gST->FirmwareVendor, L"HPQ") != 0) &&
-      (StrCmp(gST->FirmwareVendor, L"VMware, Inc.") != 0)
+      (StrCmp (gST->FirmwareVendor, L"HPQ") != 0) &&
+      (StrCmp (gST->FirmwareVendor, L"VMware, Inc.") != 0)
     ) {
       if (!Enable) {
         // Don't allow switching to text mode, but report that we are in text mode when queried
@@ -433,12 +433,12 @@ egSetGraphicsModeEnabled (
       }
     }
 
-    ConsoleControl->GetMode(ConsoleControl, &CurrentMode, NULL, NULL);
+    ConsoleControl->GetMode (ConsoleControl, &CurrentMode, NULL, NULL);
 
     NewMode = Enable ? EfiConsoleControlScreenGraphics : EfiConsoleControlScreenText;
 
     if (CurrentMode != NewMode) {
-      ConsoleControl->SetMode(ConsoleControl, NewMode);
+      ConsoleControl->SetMode (ConsoleControl, NewMode);
     }
   }
 }
@@ -448,8 +448,8 @@ egSetGraphicsModeEnabled (
 //
 
 VOID
-egClearScreen (
-  IN EG_PIXEL     *Color
+ClearScreen (
+  IN EG_PIXEL   *Color
 ) {
   EFI_GRAPHICS_OUTPUT_BLT_PIXEL FillColor;
 
@@ -474,7 +474,7 @@ egClearScreen (
 }
 
 VOID
-egDrawImageArea (
+DrawImageArea (
   IN EG_IMAGE   *Image,
   IN INTN       AreaPosX,
   IN INTN       AreaPosY,
@@ -501,7 +501,7 @@ egDrawImageArea (
   }
 
   if ((AreaPosX != 0) || (AreaPosY != 0)) {
-    egRestrictImageArea(Image, AreaPosX, AreaPosY, &AreaWidth, &AreaHeight);
+    RestrictImageArea (Image, AreaPosX, AreaPosY, &AreaWidth, &AreaHeight);
 
     if (AreaWidth == 0) {
       return;
@@ -510,7 +510,7 @@ egDrawImageArea (
 
   //if (Image->HasAlpha) { // It shouldn't harm Blt
   //  //Image->HasAlpha = FALSE;
-  //  egSetPlane(PLPTR(Image, a), 255, Image->Width * Image->Height);
+  //  SetPlane (PLPTR (Image, a), 255, Image->Width * Image->Height);
   //}
 
   if ((ScreenPosX + AreaWidth) > UGAWidth) {
@@ -531,9 +531,9 @@ egDrawImageArea (
   }
 }
 
-// Blt(this, Buffer, mode, srcX, srcY, destX, destY, w, h, deltaSrc);
+// Blt (this, Buffer, mode, srcX, srcY, destX, destY, w, h, deltaSrc);
 VOID
-egTakeImage (
+TakeImage (
   IN EG_IMAGE     *Image,
   INTN            ScreenPosX,
   INTN            ScreenPosY,
@@ -565,7 +565,7 @@ egTakeImage (
 //
 
 EFI_STATUS
-egScreenShot() {
+ScreenShot () {
   EFI_STATUS                      Status = EFI_NOT_READY;
   EG_IMAGE                        *Image;
   UINT8                           *FileData;
@@ -579,9 +579,9 @@ egScreenShot() {
   }
 
   // allocate a buffer for the whole screen
-  Image = egCreateImage(egScreenWidth, egScreenHeight, FALSE);
+  Image = CreateImage (egScreenWidth, egScreenHeight, FALSE);
   if (Image == NULL) {
-    Print(L"Error egCreateImage returned NULL\n");
+    Print (L"Error CreateImage returned NULL\n");
     return EFI_NO_MEDIA;
   }
 
@@ -609,46 +609,46 @@ egScreenShot() {
   lodepng_encode32 (
     &FileData,
     &FileDataLength,
-    (CONST UINT8*)ImagePNG,
+    (CONST UINT8 *)ImagePNG,
     (UINT32)Image->Width,
     (UINT32)Image->Height
   );
 
-  egFreeImage(Image);
+  FreeImage (Image);
 
   if (FileData == NULL) {
-    Print(L"Error egScreenShot: FileData returned NULL\n");
+    Print (L"Error ScreenShot: FileData returned NULL\n");
     return EFI_NO_MEDIA;
   }
 
   for (Index=0; Index < 60; Index++) {
-    UnicodeSPrint(ScreenshotName, ARRAY_SIZE(ScreenshotName), L"%s\\screenshot%d.png", DIR_MISC, Index);
+    UnicodeSPrint (ScreenshotName, ARRAY_SIZE (ScreenshotName), L"%s\\screenshot%d.png", DIR_MISC, Index);
 
-    if(!FileExists(SelfRootDir, ScreenshotName)){
-      Status = egSaveFile(SelfRootDir, ScreenshotName, FileData, FileDataLength);
-      if (!EFI_ERROR(Status)) {
+    if (!FileExists (SelfRootDir, ScreenshotName)){
+      Status = SaveFile (SelfRootDir, ScreenshotName, FileData, FileDataLength);
+      if (!EFI_ERROR (Status)) {
         break;
       }
     }
   }
 
   // else save to file on the ESP
-  if (EFI_ERROR(Status)) {
+  if (EFI_ERROR (Status)) {
     for (Index=0; Index < 60; Index++) {
-      UnicodeSPrint(ScreenshotName, ARRAY_SIZE(ScreenshotName), L"%s\\screenshot%d.png", DIR_MISC, Index);
+      UnicodeSPrint (ScreenshotName, ARRAY_SIZE (ScreenshotName), L"%s\\screenshot%d.png", DIR_MISC, Index);
 
-      //if(!FileExists(NULL, ScreenshotName)){
-          Status = egSaveFile(NULL, ScreenshotName, FileData, FileDataLength);
-          if (!EFI_ERROR(Status)) {
+      //if (!FileExists (NULL, ScreenshotName)){
+          Status = SaveFile (NULL, ScreenshotName, FileData, FileDataLength);
+          if (!EFI_ERROR (Status)) {
             break;
           }
       //}
     }
 
-    CheckError(Status, L"Error egSaveFile\n");
+    CheckError (Status, L"Error SaveFile\n");
   }
 
-  FreePool(FileData);
+  FreePool (FileData);
 
   return Status;
 }
@@ -685,29 +685,29 @@ PauseForKey (
 #if REFIT_DEBUG > 0
   UINTN index;
   if (msg) {
-    Print(L"\n %s", msg);
+    Print (L"\n %s", msg);
   }
 
-  Print(L"\n* Hit any key to continue *");
+  Print (L"\n* Hit any key to continue *");
 
-  if (ReadAllKeyStrokes()) {  // remove buffered key strokes
-    gBS->Stall(5000000);      // 5 seconds delay
-    ReadAllKeyStrokes();      // empty the buffer again
+  if (ReadAllKeyStrokes ()) {  // remove buffered key strokes
+    gBS->Stall (5 * 1000000);      // 5 seconds delay
+    ReadAllKeyStrokes ();      // empty the buffer again
   }
 
-  gBS->WaitForEvent(1, &gST->ConIn->WaitForKey, &index);
-  ReadAllKeyStrokes();        // empty the buffer to protect the menu
+  gBS->WaitForEvent (1, &gST->ConIn->WaitForKey, &index);
+  ReadAllKeyStrokes ();        // empty the buffer to protect the menu
 
-  Print(L"\n");
+  Print (L"\n");
 #endif
 }
 
 #if REFIT_DEBUG > 0
 VOID
-DebugPause() {
+DebugPause () {
   // show console and wait for key
-  SwitchToText(FALSE);
-  PauseForKey(L"");
+  SwitchToText (FALSE);
+  PauseForKey (L"");
 
   // reset error flag
   haveError = FALSE;
@@ -719,8 +719,8 @@ EndlessIdleLoop () {
   UINTN index;
 
   for (;;) {
-    ReadAllKeyStrokes();
-    gBS->WaitForEvent(1, &gST->ConIn->WaitForKey, &index);
+    ReadAllKeyStrokes ();
+    gBS->WaitForEvent (1, &gST->ConIn->WaitForKey, &index);
   }
 }
 
@@ -729,7 +729,7 @@ EndlessIdleLoop () {
 //
 /*
 VOID StatusToString (OUT CHAR16 *Buffer, EFI_STATUS Status) {
-  UnicodeSPrint(Buffer, 64, L"EFI Error %r", Status);
+  UnicodeSPrint (Buffer, 64, L"EFI Error %r", Status);
 }
 */
 #endif
@@ -739,17 +739,17 @@ CheckFatalError (
   IN EFI_STATUS   Status,
   IN CHAR16       *where
 ) {
-  if (!EFI_ERROR(Status)) {
+  if (!EFI_ERROR (Status)) {
     return FALSE;
   }
 
-  //StatusToString(ErrorName, Status);
+  //StatusToString (ErrorName, Status);
   gST->ConOut->SetAttribute (gST->ConOut, ATTR_ERROR);
-  Print(L"Fatal Error: %r %s\n", Status, where);
+  Print (L"Fatal Error: %r %s\n", Status, where);
   gST->ConOut->SetAttribute (gST->ConOut, ATTR_BASIC);
   haveError = TRUE;
 
-  //gBS->Exit(ImageHandle, ExitStatus, ExitDataSize, ExitData);
+  //gBS->Exit (ImageHandle, ExitStatus, ExitDataSize, ExitData);
 
   return TRUE;
 }
@@ -761,13 +761,13 @@ CheckError (
 ) {
   //CHAR16 ErrorName[64];
 
-  if (!EFI_ERROR(Status)) {
+  if (!EFI_ERROR (Status)) {
     return FALSE;
   }
 
-  //StatusToString(ErrorName, Status);
+  //StatusToString (ErrorName, Status);
   gST->ConOut->SetAttribute (gST->ConOut, ATTR_ERROR);
-  Print(L"Error: %r %s\n", Status, where);
+  Print (L"Error: %r %s\n", Status, where);
   gST->ConOut->SetAttribute (gST->ConOut, ATTR_BASIC);
   haveError = TRUE;
 
@@ -779,9 +779,9 @@ CheckError (
 // This should be called when initializing screen, or when resolution changes
 //
 
-static
+STATIC
 VOID
-UpdateConsoleVars() {
+UpdateConsoleVars () {
   UINTN   i;
 
   // get size of text console
@@ -793,11 +793,11 @@ UpdateConsoleVars() {
 
   // free old BlankLine when it exists
   if (BlankLine != NULL) {
-    FreePool(BlankLine);
+    FreePool (BlankLine);
   }
 
   // make a buffer for a whole text line
-  BlankLine = AllocatePool((ConWidth + 1) * sizeof(CHAR16));
+  BlankLine = AllocatePool ((ConWidth + 1) * sizeof (CHAR16));
 
   for (i = 0; i < ConWidth; i++){
     BlankLine[i] = ' ';
@@ -812,18 +812,18 @@ UpdateConsoleVars() {
 
 VOID
 InitScreen (
-  IN BOOLEAN    SetMaxResolution
+  IN BOOLEAN    egSetMaxResolution
 ) {
-  //DbgHeader("InitScreen");
+  //DbgHeader ("InitScreen");
   // initialize libeg
-  egInitScreen(SetMaxResolution);
+  InternalInitScreen (egSetMaxResolution);
 
-  if (egHasGraphicsMode()) {
-    egGetScreenSize(&UGAWidth, &UGAHeight);
+  if (HasGraphicsMode ()) {
+    GetScreenSize (&UGAWidth, &UGAHeight);
     AllowGraphicsMode = TRUE;
   } else {
     AllowGraphicsMode = FALSE;
-    egSetGraphicsModeEnabled(FALSE);   // just to be sure we are in text mode
+    SetGraphicsModeEnabled (FALSE);   // just to be sure we are in text mode
   }
 
   GraphicsScreenDirty = TRUE;
@@ -831,27 +831,27 @@ InitScreen (
   // disable cursor
   gST->ConOut->EnableCursor (gST->ConOut, FALSE);
 
-  UpdateConsoleVars();
+  UpdateConsoleVars ();
 
   // show the banner (even when in graphics mode)
-  //DrawScreenHeader(L"Initializing...");
+  //DrawScreenHeader (L"Initializing...");
 }
 
-static
+STATIC
 VOID
 SwitchToText (
   IN BOOLEAN    CursorEnabled
 ) {
-  egSetGraphicsModeEnabled(FALSE);
+  SetGraphicsModeEnabled (FALSE);
   gST->ConOut->EnableCursor (gST->ConOut, CursorEnabled);
 }
 
-static
+STATIC
 VOID
 SwitchToGraphics () {
-  if (AllowGraphicsMode && !egIsGraphicsModeEnabled()) {
-    InitScreen(FALSE);
-    egSetGraphicsModeEnabled(TRUE);
+  if (AllowGraphicsMode && !IsGraphicsModeEnabled ()) {
+    InitScreen (FALSE);
+    SetGraphicsModeEnabled (TRUE);
     GraphicsScreenDirty = TRUE;
   }
 }
@@ -861,12 +861,12 @@ SetupScreen () {
   if (GlobalConfig.TextOnly) {
     // switch to text mode if requested
     AllowGraphicsMode = FALSE;
-    SwitchToText(FALSE);
+    SwitchToText (FALSE);
   } else if (AllowGraphicsMode) {
     // clear screen and show banner
     // (now we know we'll stay in graphics mode)
-    SwitchToGraphics();
-    //BltClearScreen(TRUE);
+    SwitchToGraphics ();
+    //BltClearScreen (TRUE);
   }
 }
 
@@ -874,14 +874,14 @@ SetupScreen () {
 // Screen control for running tools
 //
 
-static
+STATIC
 VOID
 DrawScreenHeader (
   IN CHAR16   *Title
 ) {
   UINTN     i;
 
-  egClearScreen(&DarkBackgroundPixel);
+  ClearScreen (&DarkBackgroundPixel);
   // clear to black background
   gST->ConOut->SetAttribute (gST->ConOut, ATTR_BASIC);
   //gST->ConOut->ClearScreen (gST->ConOut);
@@ -890,12 +890,12 @@ DrawScreenHeader (
 
   for (i = 0; i < 3; i++) {
     gST->ConOut->SetCursorPosition (gST->ConOut, 0, i);
-    Print(BlankLine);
+    Print (BlankLine);
   }
 
   // print header text
   gST->ConOut->SetCursorPosition (gST->ConOut, 3, 1);
-  Print(L"%a - %s", CLOVER_REVISION_STR /*GetRevisionString(TRUE)*/, Title);
+  Print (L"%a - %s", CLOVER_REVISION_STR /*GetRevisionString (TRUE)*/, Title);
 
   // reposition cursor
   gST->ConOut->SetAttribute (gST->ConOut, ATTR_BASIC);
@@ -916,8 +916,8 @@ VOID
 BeginTextScreen  (
   IN CHAR16   *Title
 ) {
-  DrawScreenHeader(Title);
-  SwitchToText(FALSE);
+  DrawScreenHeader (Title);
+  SwitchToText (FALSE);
 
   // reset error flag
   haveError = FALSE;
@@ -928,8 +928,8 @@ FinishTextScreen (
   IN BOOLEAN    WaitAlways
 ) {
   if (haveError || WaitAlways) {
-    SwitchToText(FALSE);
-    //PauseForKey(L"FinishTextScreen");
+    SwitchToText (FALSE);
+    //PauseForKey (L"FinishTextScreen");
   }
 
   // reset error flag
@@ -946,15 +946,15 @@ BeginExternalScreen (
   }
 
   if (UseGraphicsMode) {
-    SwitchToGraphics();
-    //BltClearScreen(FALSE);
+    SwitchToGraphics ();
+    //BltClearScreen (FALSE);
   }
 
   // show the header
-  //DrawScreenHeader(Title);
+  //DrawScreenHeader (Title);
 
   if (!UseGraphicsMode) {
-    SwitchToText(TRUE);
+    SwitchToText (TRUE);
   }
 
   // reset error flag
@@ -969,8 +969,8 @@ FinishExternalScreen () {
   if (haveError) {
     // leave error messages on screen in case of error,
     // wait for a key press, and then switch
-    //PauseForKey(L"was error, press any key\n");
-    SwitchToText(FALSE);
+    //PauseForKey (L"was error, press any key\n");
+    SwitchToText (FALSE);
   }
 
   // reset error flag
@@ -987,9 +987,9 @@ SetNextScreenMode (
 ) {
   EFI_STATUS Status;
 
-  Status = egSetMode(Next);
-  if (!EFI_ERROR(Status)) {
-    UpdateConsoleVars();
+  Status = SetMode (Next);
+  if (!EFI_ERROR (Status)) {
+    UpdateConsoleVars ();
   }
 }
 
@@ -999,14 +999,14 @@ SetNextScreenMode (
 
 VOID
 SwitchToGraphicsAndClear () {
-  SwitchToGraphics();
+  SwitchToGraphics ();
 
   if (GraphicsScreenDirty) {
-    BltClearScreen(TRUE);
+    BltClearScreen (TRUE);
   }
 }
 
-static
+STATIC
 INTN
 ConvertEdgeAndPercentageToPixelPosition (
   INTN    Edge,
@@ -1023,7 +1023,7 @@ ConvertEdgeAndPercentageToPixelPosition (
   return 0xFFFF; // to indicate that wrong edge was specified.
 }
 
-static
+STATIC
 INTN
 CalculateNudgePosition (
   INTN    Position,
@@ -1042,7 +1042,7 @@ CalculateNudgePosition (
   return value;
 }
 
-static
+STATIC
 BOOLEAN
 IsImageWithinScreenLimits (
   INTN    Value,
@@ -1052,7 +1052,7 @@ IsImageWithinScreenLimits (
   return ((Value >= 0) && ((Value + ImageDimension) <= ScreenDimension));
 }
 
-static
+STATIC
 INTN
 RepositionFixedByCenter (
   INTN    Value,
@@ -1062,7 +1062,7 @@ RepositionFixedByCenter (
   return (Value + ((ScreenDimension - DesignScreenDimension) / 2));
 }
 
-static
+STATIC
 INTN
 RepositionRelativeByGapsOnEdges (
   INTN    Value,
@@ -1073,7 +1073,7 @@ RepositionRelativeByGapsOnEdges (
   return (Value * (ScreenDimension - ImageDimension) / (DesignScreenDimension - ImageDimension));
 }
 
-static
+STATIC
 INTN
 HybridRepositioning (
   INTN    Edge,
@@ -1086,16 +1086,16 @@ HybridRepositioning (
 
   if ((DesignScreenDimension == 0xFFFF) || (ScreenDimension == DesignScreenDimension)) {
     // Calculate the horizontal pixel to place the top left corner of the animation - by screen resolution
-    pos = ConvertEdgeAndPercentageToPixelPosition(Edge, Value, ImageDimension, ScreenDimension);
+    pos = ConvertEdgeAndPercentageToPixelPosition (Edge, Value, ImageDimension, ScreenDimension);
   } else {
     // Calculate the horizontal pixel to place the top left corner of the animation - by theme design resolution
-    posThemeDesign = ConvertEdgeAndPercentageToPixelPosition(Edge, Value, ImageDimension, DesignScreenDimension);
+    posThemeDesign = ConvertEdgeAndPercentageToPixelPosition (Edge, Value, ImageDimension, DesignScreenDimension);
     // Try repositioning by center first
-    pos = RepositionFixedByCenter(posThemeDesign, ScreenDimension, DesignScreenDimension);
+    pos = RepositionFixedByCenter (posThemeDesign, ScreenDimension, DesignScreenDimension);
 
     // If out of edges, try repositioning by gaps on edges
-    if (!IsImageWithinScreenLimits(pos, ImageDimension, ScreenDimension)) {
-      pos = RepositionRelativeByGapsOnEdges(posThemeDesign, ImageDimension, ScreenDimension, DesignScreenDimension);
+    if (!IsImageWithinScreenLimits (pos, ImageDimension, ScreenDimension)) {
+      pos = RepositionRelativeByGapsOnEdges (posThemeDesign, ImageDimension, ScreenDimension, DesignScreenDimension);
     }
   }
 
@@ -1114,16 +1114,16 @@ BltClearScreen (
     // Banner is used in this theme
     if (!Banner) {
       // Banner is not loaded yet
-      if (IsEmbeddedTheme()) {
-        Banner = BuiltinIcon(BUILTIN_ICON_BANNER);
-        CopyMem(&BlueBackgroundPixel, &StdBackgroundPixel, sizeof(EG_PIXEL));
+      if (IsEmbeddedTheme ()) {
+        Banner = BuiltinIcon (BUILTIN_ICON_BANNER);
+        CopyMem (&BlueBackgroundPixel, &StdBackgroundPixel, sizeof (EG_PIXEL));
       } else  {
-        Banner = egLoadImage(ThemeDir, GlobalConfig.BannerFileName, FALSE);
+        Banner = LoadImage (ThemeDir, GlobalConfig.BannerFileName, FALSE);
         if (Banner) {
           // Banner was changed, so copy into BlueBackgroundBixel first pixel of banner
-          CopyMem(&BlueBackgroundPixel, &Banner->PixelData[0], sizeof(EG_PIXEL));
+          CopyMem (&BlueBackgroundPixel, &Banner->PixelData[0], sizeof (EG_PIXEL));
         } else {
-          DBG("banner file not read\n");
+          DBG ("banner file not read\n");
         }
       }
     }
@@ -1151,8 +1151,8 @@ BltClearScreen (
                             );
 
         // Check if banner is required to be nudged.
-        BannerPlace.XPos = CalculateNudgePosition(BannerPlace.XPos, GlobalConfig.BannerNudgeX, Banner->Width,  UGAWidth);
-        BannerPlace.YPos = CalculateNudgePosition(BannerPlace.YPos, GlobalConfig.BannerNudgeY, Banner->Height, UGAHeight);
+        BannerPlace.XPos = CalculateNudgePosition (BannerPlace.XPos, GlobalConfig.BannerNudgeX, Banner->Width,  UGAWidth);
+        BannerPlace.YPos = CalculateNudgePosition (BannerPlace.YPos, GlobalConfig.BannerNudgeY, Banner->Height, UGAHeight);
       } else {
         // Use rEFIt default (no placement values speicifed)
         BannerPlace.XPos = (UGAWidth - Banner->Width) >> 1;
@@ -1163,12 +1163,12 @@ BltClearScreen (
 
   if (
     !Banner || (GlobalConfig.HideUIFlags & HIDEUI_FLAG_BANNER) ||
-    !IsImageWithinScreenLimits(BannerPlace.XPos, BannerPlace.Width, UGAWidth) ||
-    !IsImageWithinScreenLimits(BannerPlace.YPos, BannerPlace.Height, UGAHeight)
+    !IsImageWithinScreenLimits (BannerPlace.XPos, BannerPlace.Width, UGAWidth) ||
+    !IsImageWithinScreenLimits (BannerPlace.YPos, BannerPlace.Height, UGAHeight)
   ) {
     // Banner is disabled or it cannot be used, apply defaults for placement
     if (Banner) {
-      FreePool(Banner);
+      FreePool (Banner);
       Banner = NULL;
     }
 
@@ -1180,7 +1180,7 @@ BltClearScreen (
 
   // Load Background and scale
   if (!BigBack && (GlobalConfig.BackgroundName != NULL)) {
-    BigBack = egLoadImage(ThemeDir, GlobalConfig.BackgroundName, FALSE);
+    BigBack = LoadImage (ThemeDir, GlobalConfig.BackgroundName, FALSE);
   }
 
   if (
@@ -1188,18 +1188,18 @@ BltClearScreen (
     ((BackgroundImage->Width != UGAWidth) || (BackgroundImage->Height != UGAHeight))
   ) {
     // Resolution changed
-    egFreeImage(BackgroundImage);
+    FreeImage (BackgroundImage);
     BackgroundImage = NULL;
   }
 
   if (BackgroundImage == NULL) {
-    BackgroundImage = egCreateFilledImage(UGAWidth, UGAHeight, FALSE, &BlueBackgroundPixel);
+    BackgroundImage = CreateFilledImage (UGAWidth, UGAHeight, FALSE, &BlueBackgroundPixel);
   }
 
   if (BigBack != NULL) {
     switch (GlobalConfig.BackgroundScale) {
       case Scale:
-        ScaleImage(BackgroundImage, BigBack);
+        ScaleImage (BackgroundImage, BigBack);
         break;
 
       case Crop:
@@ -1226,7 +1226,7 @@ BltClearScreen (
           y = UGAHeight;
         }
 
-        egRawCopy (
+        RawCopy (
           BackgroundImage->PixelData + y1 * UGAWidth + x1,
           BigBack->PixelData + y2 * BigBack->Width + x2,
           x, y, UGAWidth, BigBack->Width
@@ -1256,14 +1256,14 @@ BltClearScreen (
 
   // Draw background
   if (BackgroundImage) {
-    BltImage(BackgroundImage, 0, 0); //if NULL then do nothing
+    BltImage (BackgroundImage, 0, 0); //if NULL then do nothing
   } else {
-    egClearScreen(&StdBackgroundPixel);
+    ClearScreen (&StdBackgroundPixel);
   }
 
   // Draw banner
   if (Banner && ShowBanner) {
-    BltImageAlpha(Banner, BannerPlace.XPos, BannerPlace.YPos, &MenuBackgroundPixel, 16);
+    BltImageAlpha (Banner, BannerPlace.XPos, BannerPlace.YPos, &MenuBackgroundPixel, 16);
   }
 
   GraphicsScreenDirty = FALSE;
@@ -1279,7 +1279,7 @@ BltImage (
     return;
   }
 
-  egDrawImageArea(Image, 0, 0, 0, 0, XPos, YPos);
+  DrawImageArea (Image, 0, 0, 0, 0, XPos, YPos);
 
   GraphicsScreenDirty = TRUE;
 }
@@ -1298,32 +1298,32 @@ BltImageAlpha (
   GraphicsScreenDirty = TRUE;
 
   if (Image) {
-    NewImage = egCopyScaledImage(Image, Scale); //will be Scale/16
+    NewImage = CopyScaledImage (Image, Scale); //will be Scale/16
     Width = NewImage->Width;
     Height = NewImage->Height;
   }
 
   // compose on background
-  CompImage = egCreateFilledImage(Width, Height, (BackgroundImage != NULL), BackgroundPixel);
-  egComposeImage(CompImage, NewImage, 0, 0);
+  CompImage = CreateFilledImage (Width, Height, (BackgroundImage != NULL), BackgroundPixel);
+  ComposeImage (CompImage, NewImage, 0, 0);
 
   if (NewImage) {
-    egFreeImage(NewImage);
+    FreeImage (NewImage);
   }
 
   if (!BackgroundImage) {
-    egDrawImageArea(CompImage, 0, 0, 0, 0, XPos, YPos);
-    egFreeImage(CompImage);
+    DrawImageArea (CompImage, 0, 0, 0, 0, XPos, YPos);
+    FreeImage (CompImage);
     return;
   }
 
-  NewImage = egCreateImage(Width, Height, FALSE);
+  NewImage = CreateImage (Width, Height, FALSE);
 
   if (!NewImage) {
     return;
   }
 
-  egRawCopy (
+  RawCopy (
     NewImage->PixelData,
     BackgroundImage->PixelData + YPos * BackgroundImage->Width + XPos,
     Width, Height,
@@ -1331,12 +1331,12 @@ BltImageAlpha (
     BackgroundImage->Width
   );
 
-  egComposeImage(NewImage, CompImage, 0, 0);
-  egFreeImage(CompImage);
+  ComposeImage (NewImage, CompImage, 0, 0);
+  FreeImage (CompImage);
 
   // blit to screen and clean up
-  egDrawImageArea(NewImage, 0, 0, 0, 0, XPos, YPos);
-  egFreeImage(NewImage);
+  DrawImageArea (NewImage, 0, 0, 0, 0, XPos, YPos);
+  FreeImage (NewImage);
 }
 
 VOID
@@ -1354,7 +1354,7 @@ BltImageComposite (
   }
 
   // initialize buffer with base image
-  CompImage = egCopyImage(BaseImage);
+  CompImage = CopyImage (BaseImage);
   TotalWidth  = BaseImage->Width;
   TotalHeight = BaseImage->Height;
 
@@ -1373,12 +1373,12 @@ BltImageComposite (
   }
 
   OffsetY = (TotalHeight - CompHeight) >> 1;
-  egComposeImage(CompImage, TopImage, OffsetX, OffsetY);
+  ComposeImage (CompImage, TopImage, OffsetX, OffsetY);
 
   // blit to screen and clean up
-  //egDrawImageArea(CompImage, 0, 0, TotalWidth, TotalHeight, XPos, YPos);
-  BltImageAlpha(CompImage, XPos, YPos, &MenuBackgroundPixel, 16);
-  egFreeImage(CompImage);
+  //egDrawImageArea (CompImage, 0, 0, TotalWidth, TotalHeight, XPos, YPos);
+  BltImageAlpha (CompImage, XPos, YPos, &MenuBackgroundPixel, 16);
+  FreeImage (CompImage);
 
   GraphicsScreenDirty = TRUE;
 }
@@ -1414,17 +1414,17 @@ BltImageCompositeBadge (
     Selected = FALSE;
   }
 
-  NewBaseImage = egCopyScaledImage (BaseImage, Scale); //will be Scale/16
+  NewBaseImage = CopyScaledImage (BaseImage, Scale); //will be Scale/16
   TotalWidth = NewBaseImage->Width;
   TotalHeight = NewBaseImage->Height;
-  //DBG("BaseImage: Width=%d Height=%d Alfa=%d\n", TotalWidth, TotalHeight, NewBaseImage->HasAlpha);
+  //DBG ("BaseImage: Width=%d Height=%d Alfa=%d\n", TotalWidth, TotalHeight, NewBaseImage->HasAlpha);
 
-  NewTopImage = egCopyScaledImage (TopImage, Scale); //will be Scale/16
+  NewTopImage = CopyScaledImage (TopImage, Scale); //will be Scale/16
   CompWidth = NewTopImage->Width;
   CompHeight = NewTopImage->Height;
-  //DBG("TopImage: Width=%d Height=%d Alfa=%d\n", CompWidth, CompHeight, NewTopImage->HasAlpha);
+  //DBG ("TopImage: Width=%d Height=%d Alfa=%d\n", CompWidth, CompHeight, NewTopImage->HasAlpha);
 
-  CompImage = egCreateFilledImage (
+  CompImage = CreateFilledImage (
                 (CompWidth > TotalWidth) ? CompWidth : TotalWidth,
                 (CompHeight > TotalHeight) ? CompHeight : TotalHeight,
                 TRUE,
@@ -1432,7 +1432,7 @@ BltImageCompositeBadge (
               );
 
   if (!CompImage) {
-    DBG("Can't create CompImage\n");
+    DBG ("Can't create CompImage\n");
     return;
   }
 
@@ -1441,10 +1441,10 @@ BltImageCompositeBadge (
     OffsetX = (TotalWidth - CompWidth) >> 1;
     OffsetY = (TotalHeight - CompHeight) >> 1;
 
-    egComposeImage (CompImage, NewBaseImage, 0, 0);
+    ComposeImage (CompImage, NewBaseImage, 0, 0);
 
     if (!GlobalConfig.SelectionOnTop) {
-      egComposeImage (CompImage, NewTopImage, OffsetX, OffsetY);
+      ComposeImage (CompImage, NewTopImage, OffsetX, OffsetY);
     }
 
     CompWidth = TotalWidth;
@@ -1453,10 +1453,10 @@ BltImageCompositeBadge (
     OffsetX = (CompWidth - TotalWidth) >> 1;
     OffsetY = (CompHeight - TotalHeight) >> 1;
 
-    egComposeImage (CompImage, NewBaseImage, OffsetX, OffsetY);
+    ComposeImage (CompImage, NewBaseImage, OffsetX, OffsetY);
 
     if (!GlobalConfig.SelectionOnTop) {
-      egComposeImage (CompImage, NewTopImage, 0, 0);
+      ComposeImage (CompImage, NewTopImage, 0, 0);
     }
   }
 
@@ -1498,22 +1498,22 @@ BltImageCompositeBadge (
       OffsetY += CompHeight - 8 - BadgeImage->Height;
     }
 
-    egComposeImage (CompImage, BadgeImage, OffsetX, OffsetY);
+    ComposeImage (CompImage, BadgeImage, OffsetX, OffsetY);
   }
 
   if (GlobalConfig.SelectionOnTop) {
     if (CompWidth < TotalWidth) {
-      egComposeImage (CompImage, NewTopImage, OffsetXTmp, OffsetYTmp);
+      ComposeImage (CompImage, NewTopImage, OffsetXTmp, OffsetYTmp);
     } else {
-      egComposeImage (CompImage, NewTopImage, 0, 0);
+      ComposeImage (CompImage, NewTopImage, 0, 0);
     }
   }
 
   BltImageAlpha (CompImage, XPos, YPos, &MenuBackgroundPixel, (GlobalConfig.NonSelectedGrey && !Selected) ? -16 : 16);
 
-  egFreeImage (CompImage);
-  egFreeImage (NewBaseImage);
-  egFreeImage (NewTopImage);
+  FreeImage (CompImage);
+  FreeImage (NewBaseImage);
+  FreeImage (NewTopImage);
 
   GraphicsScreenDirty = TRUE;
 }
@@ -1528,16 +1528,16 @@ FreeAnime (
 ) {
   if (Anime) {
     if (Anime->Path) {
-      FreePool(Anime->Path);
+      FreePool (Anime->Path);
       Anime->Path = NULL;
     }
 
-    FreePool(Anime);
+    FreePool (Anime);
     //Anime = NULL;
   }
 }
 
-static EG_IMAGE *AnimeImage = NULL;
+STATIC EG_IMAGE *AnimeImage = NULL;
 
 VOID
 UpdateAnime (
@@ -1557,10 +1557,10 @@ UpdateAnime (
     (AnimeImage->Height != Screen->Film[0]->Height)
   ){
     if (AnimeImage) {
-      egFreeImage(AnimeImage);
+      FreeImage (AnimeImage);
     }
 
-    AnimeImage = egCreateImage(Screen->Film[0]->Width, Screen->Film[0]->Height, TRUE);
+    AnimeImage = CreateImage (Screen->Film[0]->Width, Screen->Film[0]->Height, TRUE);
   }
 
   // Retained for legacy themes without new anim placement options.
@@ -1568,8 +1568,8 @@ UpdateAnime (
   y = Place->YPos + (Place->Height - AnimeImage->Height) / 2;
 
   if (
-    !IsImageWithinScreenLimits(x, Screen->Film[0]->Width, UGAWidth) ||
-    !IsImageWithinScreenLimits(y, Screen->Film[0]->Height, UGAHeight)
+    !IsImageWithinScreenLimits (x, Screen->Film[0]->Width, UGAWidth) ||
+    !IsImageWithinScreenLimits (y, Screen->Film[0]->Height, UGAHeight)
   ) {
     // This anime can't be displayed
     return;
@@ -1589,12 +1589,12 @@ UpdateAnime (
     }
   }
 
-  Now = AsmReadTsc();
+  Now = AsmReadTsc ();
 
   if (Screen->LastDraw == 0) {
     //first start, we should save background into last frame
-    egFillImageArea(AnimeImage, 0, 0, AnimeImage->Width, AnimeImage->Height, &MenuBackgroundPixel);
-    egTakeImage (
+    FillImageArea (AnimeImage, 0, 0, AnimeImage->Width, AnimeImage->Height, &MenuBackgroundPixel);
+    TakeImage (
       Screen->Film[Screen->Frames],
       x, y,
       Screen->Film[Screen->Frames]->Width,
@@ -1602,20 +1602,20 @@ UpdateAnime (
     );
   }
 
-  if (TimeDiff(Screen->LastDraw, Now) < Screen->FrameTime) {
+  if (TimeDiff (Screen->LastDraw, Now) < Screen->FrameTime) {
     return;
   }
 
   if (Screen->Film[Screen->CurrentFrame]) {
-    egRawCopy (
+    RawCopy (
       AnimeImage->PixelData, Screen->Film[Screen->Frames]->PixelData,
       Screen->Film[Screen->Frames]->Width,
       Screen->Film[Screen->Frames]->Height,
       AnimeImage->Width,
       Screen->Film[Screen->Frames]->Width
     );
-    egComposeImage(AnimeImage, Screen->Film[Screen->CurrentFrame], 0, 0);
-    BltImage(AnimeImage, x, y);
+    ComposeImage (AnimeImage, Screen->Film[Screen->CurrentFrame], 0, 0);
+    BltImage (AnimeImage, x, y);
   }
 
   Screen->CurrentFrame++;
@@ -1647,11 +1647,11 @@ InitAnime (
     gThemeOptionsChanged ||
     !Anime ||
     !Screen->Film ||
-    IsEmbeddedTheme() ||
+    IsEmbeddedTheme () ||
     !Screen->Theme ||
-    (/*gThemeChanged && */StriCmp(GlobalConfig.Theme, Screen->Theme) != 0)
+    (/*gThemeChanged && */StriCmp (GlobalConfig.Theme, Screen->Theme) != 0)
   ) {
-    //DBG(" free screen\n");
+    //DBG (" free screen\n");
     if (Screen->Film) {
       //free images in the film
       INTN  i;
@@ -1659,16 +1659,16 @@ InitAnime (
       for (i = 0; i <= Screen->Frames; i++) { //really there are N+1 frames
         // free only last occurrence of repeated frames
         if ((Screen->Film[i] != NULL) && ((i == Screen->Frames) || (Screen->Film[i] != Screen->Film[i+1]))) {
-          FreePool(Screen->Film[i]);
+          FreePool (Screen->Film[i]);
         }
       }
 
-      FreePool(Screen->Film);
+      FreePool (Screen->Film);
       Screen->Film = NULL;
     }
 
     if (Screen->Theme) {
-      FreePool(Screen->Theme);
+      FreePool (Screen->Theme);
       Screen->Theme = NULL;
     }
   }
@@ -1676,17 +1676,17 @@ InitAnime (
   // Check if we should load anime files (first run or after theme change)
   if (Anime && (Screen->Film == NULL)) {
     Path = Anime->Path;
-    Screen->Film = (EG_IMAGE**)AllocateZeroPool((Anime->Frames + 1) * sizeof(VOID*));
+    Screen->Film = (EG_IMAGE **)AllocateZeroPool ((Anime->Frames + 1) * sizeof (VOID *));
 
     if (Path && Screen->Film) {
       // Look through contents of the directory
       UINTN   i;
 
       for (i = 0; i < Anime->Frames; i++) {
-        UnicodeSPrint(FileName, ARRAY_SIZE(FileName), L"%s\\%s_%03d.png", Path, Path, i);
-        //DBG("Try to load file %s\n", FileName);
+        UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s\\%s_%03d.png", Path, Path, i);
+        //DBG ("Try to load file %s\n", FileName);
 
-        p = egLoadImage(ThemeDir, FileName, TRUE);
+        p = LoadImage (ThemeDir, FileName, TRUE);
         if (!p) {
           p = Last;
           if (!p) break;
@@ -1699,13 +1699,13 @@ InitAnime (
 
       if (Screen->Film[0] != NULL) {
         Screen->Frames = i;
-        //DBG(" found %d frames of the anime\n", i);
+        //DBG (" found %d frames of the anime\n", i);
         // Create background frame
-        Screen->Film[i] = egCreateImage(Screen->Film[0]->Width, Screen->Film[0]->Height, FALSE);
+        Screen->Film[i] = CreateImage (Screen->Film[0]->Width, Screen->Film[0]->Height, FALSE);
         // Copy some settings from Anime into Screen
         Screen->FrameTime = Anime->FrameTime;
         Screen->Once = Anime->Once;
-        Screen->Theme = AllocateCopyPool(StrSize(GlobalConfig.Theme), GlobalConfig.Theme);
+        Screen->Theme = AllocateCopyPool (StrSize (GlobalConfig.Theme), GlobalConfig.Theme);
       }
     }
   }
@@ -1735,12 +1735,12 @@ InitAnime (
                               );
 
     // Does the user want to fine tune the placement?
-    Screen->FilmPlace.XPos = CalculateNudgePosition(Screen->FilmPlace.XPos, Anime->NudgeX, Screen->Film[0]->Width, UGAWidth);
-    Screen->FilmPlace.YPos = CalculateNudgePosition(Screen->FilmPlace.YPos, Anime->NudgeY, Screen->Film[0]->Height, UGAHeight);
+    Screen->FilmPlace.XPos = CalculateNudgePosition (Screen->FilmPlace.XPos, Anime->NudgeX, Screen->Film[0]->Width, UGAWidth);
+    Screen->FilmPlace.YPos = CalculateNudgePosition (Screen->FilmPlace.YPos, Anime->NudgeY, Screen->Film[0]->Height, UGAHeight);
 
     Screen->FilmPlace.Width = Screen->Film[0]->Width;
     Screen->FilmPlace.Height = Screen->Film[0]->Height;
-    //DBG("recalculated Screen->Film position\n");
+    //DBG ("recalculated Screen->Film position\n");
   } else {
     // We are here if there is no anime, or if we use oldstyle placement values
     // For both these cases, FilmPlace will be set after banner/menutitle positions are known
@@ -1758,7 +1758,7 @@ InitAnime (
   } else {
     Screen->AnimeRun = FALSE;
   }
-  //DBG("anime inited\n");
+  //DBG ("anime inited\n");
 }
 
 BOOLEAN
@@ -1777,7 +1777,7 @@ GetAnime (
     return FALSE;
   }
 
-  //DBG("Use anime=%s frames=%d\n", Anime->Path, Anime->Frames);
+  //DBG ("Use anime=%s frames=%d\n", Anime->Path, Anime->Frames);
 
   return TRUE;
 }

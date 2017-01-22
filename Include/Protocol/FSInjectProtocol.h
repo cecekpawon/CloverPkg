@@ -26,7 +26,7 @@ typedef FSI_STRING_LIST_ENTRY FSI_STRING_LIST;
 
 
 /**
- * FSINJECTION_PROTOCOL.Install() type definition
+ * FSINJECTION_PROTOCOL.Install () type definition
  * @param TgtHandle       target volume handler
  * @param TgtDir          dir on target volume where content of SrcDir will be injected
  * @param SrcHandle       volume where SrcDir exists
@@ -38,20 +38,20 @@ typedef FSI_STRING_LIST_ENTRY FSI_STRING_LIST;
 typedef EFI_STATUS (EFIAPI * FSINJECTION_INSTALL)(IN EFI_HANDLE TgtHandle, IN CHAR16 *TgtDir, IN EFI_HANDLE SrcHandle, IN CHAR16 *SrcDir, IN FSI_STRING_LIST *Blacklist, IN FSI_STRING_LIST *ForceLoadKexts);
 
 /**
- * FSINJECTION_PROTOCOL.CreateStringList() type definition
- * Creates new string list. List can be populated with FSINJECTION_PROTOCOL.AddStringToList()
+ * FSINJECTION_PROTOCOL.CreateStringList () type definition
+ * Creates new string list. List can be populated with FSINJECTION_PROTOCOL.AddStringToList ()
  * @return Created list or NULL if there is no memory.
  */
-typedef FSI_STRING_LIST* (EFIAPI *FSINJECTION_CREATE_STRING_LIST) (VOID);
+typedef FSI_STRING_LIST *(EFIAPI *FSINJECTION_CREATE_STRING_LIST) (VOID);
 
 
 /**
- * FSINJECTION_PROTOCOL.AddStringToList() type definition
- * @param List      List created with CreateStringList()
+ * FSINJECTION_PROTOCOL.AddStringToList () type definition
+ * @param List      List created with CreateStringList ()
  * @param String        String to add
  * @return List if ok, or NULL if no memory
  */
-typedef FSI_STRING_LIST* (EFIAPI *FSINJECTION_ADD_STRING_TO_LIST) (FSI_STRING_LIST *List, CONST CHAR16 *String);
+typedef FSI_STRING_LIST *(EFIAPI *FSINJECTION_ADD_STRING_TO_LIST) (FSI_STRING_LIST *List, CONST CHAR16 *String);
 
 
 /**

@@ -35,17 +35,20 @@ set "CLOVER_BUILD_PATH=%WORKSPACE%\Build\CloverX64\RELEASE_%MYTOOLCHAIN%"
 set "F_VER_H=%CLOVER_PATH%\Version.h"
 set "F_REV_TXT=rev.txt"
 set "CLOVER_VERSION=2.3k"
-set "CLOVER_REVISION_SUFFIX=X64"
+set "CLOVER_REVISION_SUFFIX="
 set "CLOVER_DSC=%CLOVER_PATH%\%CLOVER_BASEPATH%.dsc"
 set "CLOVER_LOG=%CLOVER_PATH%\%CLOVER_BASEPATH%.log"
 set "QEMU_EFI_PATH=G:\QVM\DISK\EFI"
 set DRV_LIST=(FSInject OsxAptioFixDrv)
+set EDK2_REVISION_MAGIC=2775
 
 rem # get revision
 
 cd %WORKSPACE%
-git rev-list --count HEAD>%F_REV_TXT%
-set /P EDK2_REVISION=<%F_REV_TXT%
+for /f %%i in ('git rev-list --count HEAD') do set EDK2_REVISION=%%i
+echo %EDK2_REVISION%
+set /a "EDK2_REVISION=%EDK2_REVISION%+%EDK2_REVISION_MAGIC%"
+echo %EDK2_REVISION%>%F_REV_TXT%
 
 cd %CURRENTDIR%
 git rev-list --count HEAD>%F_REV_TXT%

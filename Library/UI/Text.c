@@ -49,7 +49,7 @@
 #define DEBUG_TEXT DEBUG_ALL
 #endif
 
-#define DBG(...) DebugLog(DEBUG_TEXT, __VA_ARGS__)
+#define DBG(...) DebugLog (DEBUG_TEXT, __VA_ARGS__)
 
 EG_IMAGE *FontImage = NULL;
 EG_IMAGE *FontImageHover = NULL;
@@ -62,13 +62,13 @@ INTN TextHeight = 19;
 //
 
 VOID
-egMeasureText (
+MeasureText (
   IN  CHAR16    *Text,
   OUT INTN      *Width,
   OUT INTN      *Height
 ) {
   if (Width != NULL) {
-    *Width = StrLen(Text) * ((FontWidth > GlobalConfig.CharWidth) ? FontWidth : GlobalConfig.CharWidth);
+    *Width = StrLen (Text) * ((FontWidth > GlobalConfig.CharWidth) ? FontWidth : GlobalConfig.CharWidth);
   }
 
   if (Height != NULL) {
@@ -76,8 +76,8 @@ egMeasureText (
   }
 }
 
-EG_IMAGE
-*egLoadFontImage (
+EG_IMAGE *
+LoadFontImage (
   IN INTN     Rows,
   IN INTN     Cols
 ) {
@@ -87,33 +87,33 @@ EG_IMAGE
   //BOOLEAN     isKorean = (gLanguage == korean);
   CHAR16      *fontFilePath, *commonFontDir = DIR_FONTS;
 
-  if (IsEmbeddedTheme()) {
-    DBG("Using embedded font\n");
+  if (IsEmbeddedTheme ()) {
+    DBG ("Using embedded font\n");
     goto F_EMBEDDED;
   } else {
-    NewImage = egLoadImage(ThemeDir, GlobalConfig.FontFileName, TRUE);
-    DBG("Loading font from ThemeDir: %a\n", NewImage ? "Success" : "Error");
+    NewImage = LoadImage (ThemeDir, GlobalConfig.FontFileName, TRUE);
+    DBG ("Loading font from ThemeDir: %a\n", NewImage ? "Success" : "Error");
   }
 
   if (NewImage) {
     goto F_THEME;
   } else {
-    fontFilePath = PoolPrint(L"%s\\%s", commonFontDir, GlobalConfig.FontFileName);
-    NewImage = egLoadImage(SelfRootDir, fontFilePath, TRUE);
+    fontFilePath = PoolPrint (L"%s\\%s", commonFontDir, GlobalConfig.FontFileName);
+    NewImage = LoadImage (SelfRootDir, fontFilePath, TRUE);
 
     if (NewImage) {
-      DBG("font %s loaded from common font dir %s\n", GlobalConfig.FontFileName, commonFontDir);
-      FreePool(fontFilePath);
+      DBG ("font %s loaded from common font dir %s\n", GlobalConfig.FontFileName, commonFontDir);
+      FreePool (fontFilePath);
       goto F_THEME;
     }
 
-    DBG("Font %s is not loaded, using embedded\n", fontFilePath);
-    FreePool(fontFilePath);
+    DBG ("Font %s is not loaded, using embedded\n", fontFilePath);
+    FreePool (fontFilePath);
     goto F_EMBEDDED;
   }
 
 F_EMBEDDED:
-  NewImage = DEC_PNG_BUILTIN(emb_font_data);
+  NewImage = DEC_PNG_BUILTIN (emb_font_data);
   GlobalConfig.FontEmbedded = TRUE;
 
   //if (GlobalConfig.Font != FONT_RAW) {
@@ -139,15 +139,15 @@ F_THEME:
   GlobalConfig.CharRows = Rows;
 
   ImageWidth = NewImage->Width;
-  //DBG("ImageWidth=%d\n", ImageWidth);
+  //DBG ("ImageWidth=%d\n", ImageWidth);
   ImageHeight = NewImage->Height;
-  //DBG("ImageHeight=%d\n", ImageHeight);
+  //DBG ("ImageHeight=%d\n", ImageHeight);
   PixelPtr = NewImage->PixelData;
-  DBG("Font loaded: ImageWidth=%d ImageHeight=%d\n", ImageWidth, ImageHeight);
-  NewFontImage = egCreateImage(ImageWidth * Rows, ImageHeight / Rows, TRUE);
+  DBG ("Font loaded: ImageWidth=%d ImageHeight=%d\n", ImageWidth, ImageHeight);
+  NewFontImage = CreateImage (ImageWidth * Rows, ImageHeight / Rows, TRUE);
 
   if (NewFontImage == NULL) {
-    DBG("Can't create new font image!\n");
+    DBG ("Can't create new font image!\n");
     return NULL;
   }
 
@@ -173,7 +173,7 @@ F_THEME:
     }
   }
 
-  egFreeImage(NewImage);
+  FreeImage (NewImage);
 
   return NewFontImage;
 }
@@ -194,31 +194,32 @@ PaintFont (
   }
 }
 
-VOID PrepareFont() {
-  EG_PIXEL    TextPixel = ToPixel(GlobalConfig.TextColor),
-              TextPixelHover = ToPixel(GlobalConfig.SelectionTextColor);
+VOID
+PrepareFont () {
+  EG_PIXEL    TextPixel = ToPixel (GlobalConfig.TextColor),
+              TextPixelHover = ToPixel (GlobalConfig.SelectionTextColor);
 
   // load the font
-  DBG("Load font image type %d\n", GlobalConfig.Font);
+  DBG ("Load font image type %d\n", GlobalConfig.Font);
 
-  FontImage = egLoadFontImage(GlobalConfig.CharRows, GlobalConfig.CharCols);
+  FontImage = LoadFontImage (GlobalConfig.CharRows, GlobalConfig.CharCols);
 
   if (FontImage) {
-    FontImageHover = egCopyImage(FontImage);
+    FontImageHover = CopyImage (FontImage);
 
     switch (GlobalConfig.Font) {
       case FONT_ALFA:
       case FONT_LOAD:
         if (GlobalConfig.Font == FONT_LOAD) {
-          PaintFont(FontImage, TextPixel);
+          PaintFont (FontImage, TextPixel);
         }
 
-        PaintFont(FontImageHover, TextPixelHover);
+        PaintFont (FontImageHover, TextPixelHover);
         break;
 
       case FONT_GRAY:
-        PaintFont(FontImage, TextPixelHover);
-        PaintFont(FontImageHover, TextPixel);
+        PaintFont (FontImage, TextPixelHover);
+        PaintFont (FontImageHover, TextPixel);
         break;
 
       case FONT_RAW:
@@ -227,13 +228,14 @@ VOID PrepareFont() {
     }
 
     TextHeight = FontHeight + TEXT_YMARGIN * 2;
-    DBG(" - Font %d prepared WxH=%dx%d CharWidth=%d\n", GlobalConfig.Font, FontWidth, FontHeight, GlobalConfig.CharWidth);
+    DBG (" - Font %d prepared WxH=%dx%d CharWidth=%d\n", GlobalConfig.Font, FontWidth, FontHeight, GlobalConfig.CharWidth);
   } else {
-    DBG(" - Failed to load font\n");
+    DBG (" - Failed to load font\n");
   }
 }
 
-INTN egRenderText (
+INTN
+RenderText (
   IN     CHAR16       *Text,
   IN OUT EG_IMAGE     *CompImage,
   IN     INTN         PosX,
@@ -250,12 +252,12 @@ INTN egRenderText (
                   LeftSpace, RightSpace;
 
   // clip the text
-  TextLength = StrLen(Text);
+  TextLength = StrLen (Text);
   if (!FontImage) {
-    PrepareFont();
+    PrepareFont ();
   }
 
-  //DBG("TextLength =%d PosX=%d PosY=%d\n", TextLength, PosX, PosY);
+  //DBG ("TextLength =%d PosX=%d PosY=%d\n", TextLength, PosX, PosY);
   // render it
   BufferPtr = CompImage->PixelData;
   BufferLineOffset = CompImage->Width;
@@ -271,7 +273,7 @@ INTN egRenderText (
 
   RealWidth = GlobalConfig.CharWidth;
 
-  //DBG("FontWidth=%d, CharWidth=%d\n", FontWidth, RealWidth);
+  //DBG ("FontWidth=%d, CharWidth=%d\n", FontWidth, RealWidth);
 
   for (i = 0; i < TextLength; i++) {
     c = Text[i];
@@ -289,7 +291,7 @@ INTN egRenderText (
       break;
     }
 
-    egRawCompose (
+    RawCompose (
       BufferPtr - LeftSpace + 2, FontPixelData + c * FontWidth + RightSpace,
       RealWidth, FontHeight,
       BufferLineOffset, FontLineOffset
@@ -302,7 +304,7 @@ INTN egRenderText (
         c -= 0x20; // Skip 0 - 31
       }
 
-      egRawCompose (
+      RawCompose (
         BufferPtr - LeftSpace + 2, FontPixelData + c * FontWidth + RightSpace,
         RealWidth, FontHeight,
         BufferLineOffset, FontLineOffset
@@ -312,7 +314,7 @@ INTN egRenderText (
     BufferPtr += RealWidth - LeftSpace + 2;
   }
 
-  return ((INTN)BufferPtr - (INTN)FirstPixelBuf) / sizeof(EG_PIXEL);
+  return ((INTN)BufferPtr - (INTN)FirstPixelBuf) / sizeof (EG_PIXEL);
 }
 
 /* EOF */

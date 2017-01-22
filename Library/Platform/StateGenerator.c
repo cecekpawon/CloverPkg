@@ -16,7 +16,7 @@
 #define DEBUG_STATE_GEN DEBUG_ALL
 #endif
 
-#define DBG(...) DebugLog(DEBUG_STATE_GEN, __VA_ARGS__)
+#define DBG(...) DebugLog (DEBUG_STATE_GEN, __VA_ARGS__)
 
 CONST UINT8 pss_ssdt_header[] =
 {
@@ -60,8 +60,8 @@ CHAR8 plugin_type[] =
   0x65, 0x00,
 };
 
-SSDT_TABLE
-*generate_pss_ssdt (
+SSDT_TABLE *
+GeneratePssSsdt (
   UINT8   FirstID,
   UINTN   Number
 ) {
@@ -141,26 +141,26 @@ SSDT_TABLE
           case CPU_MODEL_SKYLAKE_U:
           case CPU_MODEL_SKYLAKE_S:
           case CPU_MODEL_ATOM_3700:
-            maximum.Control.Control = RShiftU64(AsmReadMsr64(MSR_PLATFORM_INFO), 8) & 0xff;
+            maximum.Control.Control = RShiftU64 (AsmReadMsr64 (MSR_PLATFORM_INFO), 8) & 0xff;
 
             if (gSettings.MaxMultiplier) {
-              DBG("Using custom MaxMultiplier %d instead of automatic %d\n",
+              DBG ("Using custom MaxMultiplier %d instead of automatic %d\n",
                   gSettings.MaxMultiplier, maximum.Control.Control);
               maximum.Control.Control = gSettings.MaxMultiplier;
             }
 
             realMax = maximum.Control.Control;
-            DBG("Maximum control=0x%x\n", realMax);
+            DBG ("Maximum control=0x%x\n", realMax);
 
             if (gSettings.Turbo) {
               realTurbo = (gCPUStructure.Turbo4 > gCPUStructure.Turbo1) ?
               (gCPUStructure.Turbo4 / 10) : (gCPUStructure.Turbo1 / 10);
               maximum.Control.Control = realTurbo;
-              DBG("Turbo control=0x%x\n", realTurbo);
+              DBG ("Turbo control=0x%x\n", realTurbo);
             }
 
             Apsn = (realTurbo > realMax)?(realTurbo - realMax):0;
-            realMin =  RShiftU64(AsmReadMsr64(MSR_PLATFORM_INFO), 40) & 0xff;
+            realMin =  RShiftU64 (AsmReadMsr64 (MSR_PLATFORM_INFO), 40) & 0xff;
 
             if (gSettings.MinMultiplier) {
               minimum.Control.Control = gSettings.MinMultiplier;
@@ -169,11 +169,11 @@ SSDT_TABLE
               minimum.Control.Control = realMin;
             }
 
-            DBG("P-States: min 0x%x, max 0x%x\n", minimum.Control.Control, maximum.Control.Control);
+            DBG ("P-States: min 0x%x, max 0x%x\n", minimum.Control.Control, maximum.Control.Control);
 
             // Sanity check
             if (maximum.Control.Control < minimum.Control.Control) {
-              DBG("Insane control values!");
+              DBG ("Insane control values!");
               p_states_count = 0;
             } else {
               p_states_count = 0;
@@ -197,7 +197,7 @@ SSDT_TABLE
                   j = i << 8;
                   p_states[p_states_count].Frequency = (UINT32)(100 * i);
                 } else {
-                  p_states[p_states_count].Frequency = (UINT32)(DivU64x32(MultU64x32(gCPUStructure.FSBFrequency, i), Mega));
+                  p_states[p_states_count].Frequency = (UINT32)(DivU64x32 (MultU64x32 (gCPUStructure.FSBFrequency, i), Mega));
                 }
 
                 p_states[p_states_count].Control.Control = (UINT16)j;
@@ -208,7 +208,7 @@ SSDT_TABLE
                   p_states_count++;
                   p_states[p_states_count].Control.Control = (UINT16)j;
                   p_states[p_states_count].CID = j;
-                  p_states[p_states_count].Frequency = (UINT32)(DivU64x32(MultU64x32(gCPUStructure.FSBFrequency, i), Mega)) - 1;
+                  p_states[p_states_count].Frequency = (UINT32)(DivU64x32 (MultU64x32 (gCPUStructure.FSBFrequency, i), Mega)) - 1;
 
                 }
 
@@ -229,89 +229,89 @@ SSDT_TABLE
     if (p_states_count > 0) {
       SSDT_TABLE    *ssdt;
       AML_CHUNK     *scop, *method, *pack, *metPSS, *metPPC,
-                    *namePCT, *packPCT, *metPCT, *root = aml_create_node(NULL);
+                    *namePCT, *packPCT, *metPCT, *root = AmlCreateNode (NULL);
 
-      aml_add_buffer(root, (CHAR8*)&pss_ssdt_header[0], sizeof(pss_ssdt_header)); // SSDT header
+      AmlAddBuffer (root, (CHAR8 *)&pss_ssdt_header[0], sizeof (pss_ssdt_header)); // SSDT header
 
-      AsciiSPrint(name, 31, "%a%4a", acpi_cpu_score, acpi_cpu_name[0]);
-      AsciiSPrint(name1, 31, "%a%4aPSS_", acpi_cpu_score, acpi_cpu_name[0]);
-      AsciiSPrint(name2, 31, "%a%4aPCT_", acpi_cpu_score, acpi_cpu_name[0]);
+      AsciiSPrint (name, 31, "%a%4a", acpi_cpu_score, acpi_cpu_name[0]);
+      AsciiSPrint (name1, 31, "%a%4aPSS_", acpi_cpu_score, acpi_cpu_name[0]);
+      AsciiSPrint (name2, 31, "%a%4aPCT_", acpi_cpu_score, acpi_cpu_name[0]);
 
-      scop = aml_add_scope(root, name);
-      method = aml_add_name(scop, "PSS_");
-      pack = aml_add_package(method);
+      scop = AmlAddScope (root, name);
+      method = AmlAddName (scop, "PSS_");
+      pack = AmlAddPackage (method);
 
       //for (i = gSettings.PLimitDict; i < p_states_count; i++) {
       for (i = 0; i < p_states_count; i++) {
-        AML_CHUNK* pstt = aml_add_package(pack);
+        AML_CHUNK   *pstt = AmlAddPackage (pack);
 
-        aml_add_dword(pstt, p_states[i].Frequency);
+        AmlAddDword (pstt, p_states[i].Frequency);
         if (p_states[i].Control.Control < realMin) {
-          aml_add_dword(pstt, 0); //zero for power
+          AmlAddDword (pstt, 0); //zero for power
         } else {
-          aml_add_dword(pstt, p_states[i].Frequency<<3); // Power
+          AmlAddDword (pstt, p_states[i].Frequency<<3); // Power
         }
 
-        aml_add_dword(pstt, 0x0000000A); // Latency
-        aml_add_dword(pstt, 0x0000000A); // Latency
-        aml_add_dword(pstt, p_states[i].Control.Control);
-        aml_add_dword(pstt, p_states[i].Control.Control); // Status
+        AmlAddDword (pstt, 0x0000000A); // Latency
+        AmlAddDword (pstt, 0x0000000A); // Latency
+        AmlAddDword (pstt, p_states[i].Control.Control);
+        AmlAddDword (pstt, p_states[i].Control.Control); // Status
       }
 
-      metPSS = aml_add_method(scop, "_PSS", 0);
-      aml_add_return_name(metPSS, "PSS_");
-      //metPSS = aml_add_method(scop, "APSS", 0);
-      //aml_add_return_name(metPSS, "PSS_");
-      metPPC = aml_add_method(scop, "_PPC", 0);
-      //aml_add_return_byte(metPPC, gSettings.PLimitDict);
-      aml_add_return_byte(metPPC, 0);
-      namePCT = aml_add_name(scop, "PCT_");
-      packPCT = aml_add_package(namePCT);
+      metPSS = AmlAddMethod (scop, "_PSS", 0);
+      AmlAddReturnName (metPSS, "PSS_");
+      //metPSS = AmlAddMethod (scop, "APSS", 0);
+      //AmlAddReturnName (metPSS, "PSS_");
+      metPPC = AmlAddMethod (scop, "_PPC", 0);
+      //AmlAddReturnByte (metPPC, gSettings.PLimitDict);
+      AmlAddReturnByte (metPPC, 0);
+      namePCT = AmlAddName (scop, "PCT_");
+      packPCT = AmlAddPackage (namePCT);
       resource_template_register_fixedhw[8] = 0x00;
       resource_template_register_fixedhw[9] = 0x00;
       resource_template_register_fixedhw[18] = 0x00;
-      aml_add_buffer(packPCT, resource_template_register_fixedhw, sizeof(resource_template_register_fixedhw));
-      aml_add_buffer(packPCT, resource_template_register_fixedhw, sizeof(resource_template_register_fixedhw));
-      metPCT = aml_add_method(scop, "_PCT", 0);
-      aml_add_return_name(metPCT, "PCT_");
+      AmlAddBuffer (packPCT, resource_template_register_fixedhw, sizeof (resource_template_register_fixedhw));
+      AmlAddBuffer (packPCT, resource_template_register_fixedhw, sizeof (resource_template_register_fixedhw));
+      metPCT = AmlAddMethod (scop, "_PCT", 0);
+      AmlAddReturnName (metPCT, "PCT_");
 
       if (gSettings.PluginType) {
-        aml_add_buffer(scop, plugin_type, sizeof(plugin_type));
-        aml_add_byte(scop, gSettings.PluginType);
+        AmlAddBuffer (scop, plugin_type, sizeof (plugin_type));
+        AmlAddByte (scop, gSettings.PluginType);
       }
 
       if (gCPUStructure.Family >= 2) {
-        aml_add_name(scop, "APSN");
-        aml_add_byte(scop, (UINT8)Apsn);
-        aml_add_name(scop, "APLF");
-        aml_add_byte(scop, (UINT8)Aplf);
+        AmlAddName (scop, "APSN");
+        AmlAddByte (scop, (UINT8)Apsn);
+        AmlAddName (scop, "APLF");
+        AmlAddByte (scop, (UINT8)Aplf);
       }
 
       // Add CPUs
       for (i = 1; i < Number; i++) {
-        AsciiSPrint(name, 31, "%a%4a", acpi_cpu_score, acpi_cpu_name[i]);
-        scop = aml_add_scope(root, name);
-        metPSS = aml_add_method(scop, "_PSS", 0);
-        aml_add_return_name(metPSS, name1);
-        //metPSS = aml_add_method(scop, "APSS", 0);
-        //aml_add_return_name(metPSS, name1);
-        metPPC = aml_add_method(scop, "_PPC", 0);
-        //aml_add_return_byte(metPPC, gSettings.PLimitDict);
-        aml_add_return_byte(metPPC, 0);
-        metPCT = aml_add_method(scop, "_PCT", 0);
-        aml_add_return_name(metPCT, name2);
+        AsciiSPrint (name, 31, "%a%4a", acpi_cpu_score, acpi_cpu_name[i]);
+        scop = AmlAddScope (root, name);
+        metPSS = AmlAddMethod (scop, "_PSS", 0);
+        AmlAddReturnName (metPSS, name1);
+        //metPSS = AmlAddMethod (scop, "APSS", 0);
+        //AmlAddReturnName (metPSS, name1);
+        metPPC = AmlAddMethod (scop, "_PPC", 0);
+        //AmlAddReturnByte (metPPC, gSettings.PLimitDict);
+        AmlAddReturnByte (metPPC, 0);
+        metPCT = AmlAddMethod (scop, "_PCT", 0);
+        AmlAddReturnName (metPCT, name2);
 
       }
 
-      aml_calculate_size(root);
+      AmlCalculateSize (root);
 
-      ssdt = (SSDT_TABLE *)AllocateZeroPool(root->Size);
-      aml_write_node(root, (VOID*)ssdt, 0);
+      ssdt = (SSDT_TABLE *)AllocateZeroPool (root->Size);
+      AmlWriteNode (root, (VOID *)ssdt, 0);
       ssdt->Length = root->Size;
       ssdt->Checksum = 0;
-      ssdt->Checksum = (UINT8)(256 - Checksum8(ssdt, ssdt->Length));
+      ssdt->Checksum = (UINT8)(256 - Checksum8 (ssdt, ssdt->Length));
 
-      aml_destroy_node(root);
+      AmlDestroyNode (root);
 
       MsgLog ("SSDT with CPU P-States generated successfully\n");
       return ssdt;
@@ -323,17 +323,17 @@ SSDT_TABLE
   return NULL;
 }
 
-SSDT_TABLE
-*generate_cst_ssdt (
+SSDT_TABLE *
+GenerateCstSsdt (
   EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE   *fadt,
   UINT8                                       FirstID,
   UINTN                                       Number
 ) {
   BOOLEAN       c2_enabled = gSettings.EnableC2,
                 c3_enabled,
-                c4_enabled = gSettings.EnableC4/*,
+                c4_enabled = gSettings.EnableC4 /*,
                 //c6_enabled = gSettings.EnableC6,
-                cst_using_systemio = gSettings.EnableISS*/;
+                cst_using_systemio = gSettings.EnableISS */;
   UINT8         cstates_count; // p_blk_lo, p_blk_hi,
   UINT32        acpi_cpu_p_blk;
   CHAR8         name2[31], name0[31], name1[31];
@@ -351,16 +351,16 @@ SSDT_TABLE
   cstates_count = 1 + (c2_enabled ? 1 : 0) + ((c3_enabled || c4_enabled)? 1 : 0)
                   + (gSettings.EnableC6 ? 1 : 0) + (gSettings.EnableC7 ? 1 : 0);
 
-  root = aml_create_node(NULL);
-  aml_add_buffer(root, cst_ssdt_header, sizeof(cst_ssdt_header)); // SSDT header
-  AsciiSPrint(name0, 31, "%a%4a", acpi_cpu_score, acpi_cpu_name[0]);
-  AsciiSPrint(name1, 31, "%a%4aCST_",  acpi_cpu_score, acpi_cpu_name[0]);
-  scop = aml_add_scope(root, name0);
-  name = aml_add_name(scop, "CST_");
-  pack = aml_add_package(name);
-  aml_add_byte(pack, cstates_count);
+  root = AmlCreateNode (NULL);
+  AmlAddBuffer (root, cst_ssdt_header, sizeof (cst_ssdt_header)); // SSDT header
+  AsciiSPrint (name0, 31, "%a%4a", acpi_cpu_score, acpi_cpu_name[0]);
+  AsciiSPrint (name1, 31, "%a%4aCST_",  acpi_cpu_score, acpi_cpu_name[0]);
+  scop = AmlAddScope (root, name0);
+  name = AmlAddName (scop, "CST_");
+  pack = AmlAddPackage (name);
+  AmlAddByte (pack, cstates_count);
 
-  tmpl = aml_add_package(pack);
+  tmpl = AmlAddPackage (pack);
 
   // C1
   resource_template_register_fixedhw[8] = 0x01;
@@ -370,86 +370,86 @@ SSDT_TABLE
 
   resource_template_register_fixedhw[11] = 0x00; // C1
 
-  aml_add_buffer(tmpl, resource_template_register_fixedhw, sizeof(resource_template_register_fixedhw));
-  aml_add_byte(tmpl, 0x01);     // C1
-  aml_add_word(tmpl, 0x0001);     // Latency
-  aml_add_dword(tmpl, 0x000003e8);  // Power
+  AmlAddBuffer (tmpl, resource_template_register_fixedhw, sizeof (resource_template_register_fixedhw));
+  AmlAddByte (tmpl, 0x01);     // C1
+  AmlAddWord (tmpl, 0x0001);     // Latency
+  AmlAddDword (tmpl, 0x000003e8);  // Power
 
   //resource_template_register_fixedhw[18] = 0x03;
   resource_template_register_fixedhw[10] = 0x03;
 
   if (c2_enabled) {         // C2
-    tmpl = aml_add_package(pack);
+    tmpl = AmlAddPackage (pack);
     resource_template_register_fixedhw[11] = 0x10; // C2
-    aml_add_buffer(tmpl, resource_template_register_fixedhw, sizeof(resource_template_register_fixedhw));
-    aml_add_byte(tmpl, 0x02);     // C2
-    aml_add_word(tmpl, 0x0040);     // Latency
-    aml_add_dword(tmpl, 0x000001f4);  // Power
+    AmlAddBuffer (tmpl, resource_template_register_fixedhw, sizeof (resource_template_register_fixedhw));
+    AmlAddByte (tmpl, 0x02);     // C2
+    AmlAddWord (tmpl, 0x0040);     // Latency
+    AmlAddDword (tmpl, 0x000001f4);  // Power
   }
 
   if (c4_enabled) {         // C4
-    tmpl = aml_add_package(pack);
+    tmpl = AmlAddPackage (pack);
     resource_template_register_fixedhw[11] = 0x30; // C4
-    aml_add_buffer(tmpl, resource_template_register_fixedhw, sizeof(resource_template_register_fixedhw));
-    aml_add_byte(tmpl, 0x04);     // C4
-    aml_add_word(tmpl, 0x0080);     // Latency
-    aml_add_dword(tmpl, 0x000000C8);  // Power
+    AmlAddBuffer (tmpl, resource_template_register_fixedhw, sizeof (resource_template_register_fixedhw));
+    AmlAddByte (tmpl, 0x04);     // C4
+    AmlAddWord (tmpl, 0x0080);     // Latency
+    AmlAddDword (tmpl, 0x000000C8);  // Power
   } else if (c3_enabled) {
-    tmpl = aml_add_package(pack);
+    tmpl = AmlAddPackage (pack);
     resource_template_register_fixedhw[11] = 0x20; // C3
-    aml_add_buffer(tmpl, resource_template_register_fixedhw, sizeof(resource_template_register_fixedhw));
-    aml_add_byte(tmpl, 0x03);     // C3
-    aml_add_word(tmpl, gSettings.C3Latency);      // Latency as in MacPro6,1 = 0x0043
-    aml_add_dword(tmpl, 0x000001F4);  // Power
+    AmlAddBuffer (tmpl, resource_template_register_fixedhw, sizeof (resource_template_register_fixedhw));
+    AmlAddByte (tmpl, 0x03);     // C3
+    AmlAddWord (tmpl, gSettings.C3Latency);      // Latency as in MacPro6,1 = 0x0043
+    AmlAddDword (tmpl, 0x000001F4);  // Power
   }
 
   if (gSettings.EnableC6) {     // C6
-    tmpl = aml_add_package(pack);
+    tmpl = AmlAddPackage (pack);
     resource_template_register_fixedhw[11] = 0x20; // C6
-    aml_add_buffer(tmpl, resource_template_register_fixedhw, sizeof(resource_template_register_fixedhw));
-    aml_add_byte(tmpl, 0x06);     // C6
-    aml_add_word(tmpl, gSettings.C3Latency + 3);      // Latency as in MacPro6,1 = 0x0046
-    aml_add_dword(tmpl, 0x0000015E);  // Power
+    AmlAddBuffer (tmpl, resource_template_register_fixedhw, sizeof (resource_template_register_fixedhw));
+    AmlAddByte (tmpl, 0x06);     // C6
+    AmlAddWord (tmpl, gSettings.C3Latency + 3);      // Latency as in MacPro6,1 = 0x0046
+    AmlAddDword (tmpl, 0x0000015E);  // Power
   }
 
   if (gSettings.EnableC7) {
-    tmpl = aml_add_package(pack);
+    tmpl = AmlAddPackage (pack);
     resource_template_register_fixedhw[11] = 0x30; // C4 or C7
-    aml_add_buffer(tmpl, resource_template_register_fixedhw, sizeof(resource_template_register_fixedhw));
-    aml_add_byte(tmpl, 0x07);     // C7
-    aml_add_word(tmpl, 0xF5);     // Latency as in iMac14,1
-    aml_add_dword(tmpl, 0xC8);  // Power
+    AmlAddBuffer (tmpl, resource_template_register_fixedhw, sizeof (resource_template_register_fixedhw));
+    AmlAddByte (tmpl, 0x07);     // C7
+    AmlAddWord (tmpl, 0xF5);     // Latency as in iMac14,1
+    AmlAddDword (tmpl, 0xC8);  // Power
   }
 
-  met = aml_add_method(scop, "_CST", 0);
-  aml_add_return_name(met, "CST_");
-  //met = aml_add_method(scop, "ACST", 0);
-  //ret = aml_add_return_name(met, "CST_");
+  met = AmlAddMethod (scop, "_CST", 0);
+  AmlAddReturnName (met, "CST_");
+  //met = AmlAddMethod (scop, "ACST", 0);
+  //ret = AmlAddReturnName (met, "CST_");
 
   // Aliases
   for (i = 1; i < Number; i++) {
-    AsciiSPrint(name2, 31, "%a%4a",  acpi_cpu_score, acpi_cpu_name[i]);
+    AsciiSPrint (name2, 31, "%a%4a",  acpi_cpu_score, acpi_cpu_name[i]);
 
-    scop = aml_add_scope(root, name2);
-    met = aml_add_method(scop, "_CST", 0);
-    aml_add_return_name(met, name1);
-    //met = aml_add_method(scop, "ACST", 0);
-    //ret = aml_add_return_name(met, name1);
+    scop = AmlAddScope (root, name2);
+    met = AmlAddMethod (scop, "_CST", 0);
+    AmlAddReturnName (met, name1);
+    //met = AmlAddMethod (scop, "ACST", 0);
+    //ret = AmlAddReturnName (met, name1);
   }
 
-  aml_calculate_size(root);
+  AmlCalculateSize (root);
 
-  ssdt = (SSDT_TABLE *)AllocateZeroPool(root->Size);
+  ssdt = (SSDT_TABLE *)AllocateZeroPool (root->Size);
 
-  aml_write_node(root, (VOID*)ssdt, 0);
+  AmlWriteNode (root, (VOID *)ssdt, 0);
 
   ssdt->Length = root->Size;
   ssdt->Checksum = 0;
-  ssdt->Checksum = (UINT8)(256 - Checksum8((VOID*)ssdt, ssdt->Length));
+  ssdt->Checksum = (UINT8)(256 - Checksum8 ((VOID *)ssdt, ssdt->Length));
 
-  aml_destroy_node(root);
+  AmlDestroyNode (root);
 
-  //dumpPhysAddr("C-States SSDT content: ", ssdt, ssdt->Length);
+  //dumpPhysAddr ("C-States SSDT content: ", ssdt, ssdt->Length);
 
   MsgLog ("SSDT with CPU C-States generated successfully\n");
 

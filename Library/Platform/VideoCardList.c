@@ -16,7 +16,7 @@
 #define DEBUG_VCARDLIST DEBUG_ALL
 #endif
 
-#define DBG(...) DebugLog(DEBUG_VCARDLIST, __VA_ARGS__)
+#define DBG(...) DebugLog (DEBUG_VCARDLIST, __VA_ARGS__)
 
 /*
  injection for NVIDIA card usage e.g (to be placed in the config.plist, under graphics tag):
@@ -42,7 +42,7 @@
       <key>IOPCIPrimaryMatch</key>
       <string>YOUR_SECOND_CARD_ID</string>
       <key>IOPCISubDevId</key>
-      <string>YOUR_SECOND_CARD_SUB_ID(if necessary)</string>
+      <string>YOUR_SECOND_CARD_SUB_ID (if necessary)</string>
       <key>VRAM</key>
       <integer>YOUR_SECOND_CARD_VRAM_SIZE</integer>
       <key>VideoPorts</key>
@@ -67,18 +67,18 @@
   </dict>
 */
 
-LIST_ENTRY gCardList = INITIALIZE_LIST_HEAD_VARIABLE (gCardList);
+LIST_ENTRY  gCardList = INITIALIZE_LIST_HEAD_VARIABLE (gCardList);
 
 VOID
 AddCard (
-  CONST     CHAR8* Model,
-  UINT32    Id,
-  UINT32    SubId,
-  UINT64    VideoRam,
-  UINTN     VideoPorts,
-  BOOLEAN   LoadVBios
+  CONST CHAR8     *Model,
+        UINT32    Id,
+        UINT32    SubId,
+        UINT64    VideoRam,
+        UINTN     VideoPorts,
+        BOOLEAN   LoadVBios
 ) {
-  CARDLIST *new_card = AllocateZeroPool(sizeof(CARDLIST));
+  CARDLIST    *new_card = AllocateZeroPool (sizeof (CARDLIST));
 
   if (new_card) {
     new_card->Signature = CARDLIST_SIGNATURE;
@@ -87,23 +87,23 @@ AddCard (
     new_card->VideoRam = VideoRam;
     new_card->VideoPorts = VideoPorts;
     new_card->LoadVBios = LoadVBios;
-    AsciiSPrint(new_card->Model, ARRAY_SIZE(new_card->Model), "%a", Model);
-    InsertTailList (&gCardList, (LIST_ENTRY *)(((UINT8 *)new_card) + OFFSET_OF(CARDLIST, Link)));
+    AsciiSPrint (new_card->Model, ARRAY_SIZE (new_card->Model), "%a", Model);
+    InsertTailList (&gCardList, (LIST_ENTRY *)(((UINT8 *)new_card) + OFFSET_OF (CARDLIST, Link)));
   }
 }
 
-CARDLIST
-*FindCardWithIds (
+CARDLIST *
+FindCardWithIds (
   UINT32    Id,
   UINT32    SubId
 ) {
   LIST_ENTRY    *Link;
   CARDLIST      *entry;
-  //FillCardList(); //moved to GetUserSettings
+  //FillCardList (); //moved to GetUserSettings
 
-  if (!IsListEmpty(&gCardList)) {
+  if (!IsListEmpty (&gCardList)) {
     for (Link = gCardList.ForwardLink; Link != &gCardList; Link = Link->ForwardLink) {
-      entry = CR(Link, CARDLIST, Link, CARDLIST_SIGNATURE);
+      entry = CR (Link, CARDLIST, Link, CARDLIST_SIGNATURE);
       if (entry->Id == Id) {
         return entry;
       }
@@ -117,18 +117,18 @@ VOID
 FillCardList (
   TagPtr    CfgDict
 ) {
-  if (IsListEmpty(&gCardList) && (CfgDict != NULL)) {
+  if (IsListEmpty (&gCardList) && (CfgDict != NULL)) {
     CHAR8     *VEN[] = { "NVIDIA",  "ATI" };
-    INTN      Index, Count = sizeof(VEN) / sizeof(VEN[0]);
+    INTN      Index, Count = sizeof (VEN) / sizeof (VEN[0]);
     TagPtr    prop;
 
     for (Index = 0; Index < Count; Index++) {
       CHAR8     *key = VEN[Index];
 
-      prop = GetProperty(CfgDict, key);
+      prop = GetProperty (CfgDict, key);
 
       if (prop && (prop->type == kTagTypeArray)) {
-        INTN      i, count = GetTagCount(prop);
+        INTN      i, count = GetTagCount (prop);
         TagPtr    element = 0, prop2 = 0;
 
         for (i = 0; i < count; i++) {
@@ -137,10 +137,10 @@ FillCardList (
           UINT64        VramSize  = 0;
           UINTN         VideoPorts  = 0;
           BOOLEAN       LoadVBios = FALSE;
-          EFI_STATUS    status = GetElement(prop, i, &element);
+          EFI_STATUS    status = GetElement (prop, i, &element);
 
           if (element && (status == EFI_SUCCESS)) {
-            if ((prop2 = GetProperty(element, "Model")) != 0) {
+            if ((prop2 = GetProperty (element, "Model")) != 0) {
               model_name = prop2->string;
             } else {
               model_name = "VideoCard";
@@ -153,7 +153,7 @@ FillCardList (
             subdev_id = (UINT32)GetPropertyInteger (prop2, 0);
 
             prop2 = GetProperty (element, "VRAM");
-            VramSize = LShiftU64((UINTN)GetPropertyInteger(prop2, (INTN)VramSize), 20); //Mb -> bytes
+            VramSize = LShiftU64 ((UINTN)GetPropertyInteger (prop2, (INTN)VramSize), 20); //Mb -> bytes
 
             prop2 = GetProperty (element, "VideoPorts");
             VideoPorts = (UINT16)GetPropertyInteger (prop2, VideoPorts);
@@ -164,9 +164,9 @@ FillCardList (
               LoadVBios = TRUE;
             }
 
-            DBG("FillCardList: %a | \"%a\" (%08x, %08x)\n", key, model_name, dev_id, subdev_id);
+            DBG ("FillCardList: %a | \"%a\" (%08x, %08x)\n", key, model_name, dev_id, subdev_id);
 
-            AddCard(model_name, dev_id, subdev_id, VramSize, VideoPorts, LoadVBios);
+            AddCard (model_name, dev_id, subdev_id, VramSize, VideoPorts, LoadVBios);
           }
         }
       }

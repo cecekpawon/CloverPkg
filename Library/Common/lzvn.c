@@ -9,12 +9,12 @@
 
 #include <Library/Platform/Platform.h>
 
-#define DBG(...) DebugLog(1, __VA_ARGS__)
+#define DBG(...) DebugLog (1, __VA_ARGS__)
 
 #define DEBUG_STATE_ENABLED  0
 
 #if DEBUG_STATE_ENABLED
-#define DEBUG_STATE(...) DBG(__VA_ARGS__)
+#define DEBUG_STATE(...) DBG (__VA_ARGS__)
 #else
 #define DEBUG_STATE(...)
 #endif
@@ -93,7 +93,7 @@ lzvn_decode (
 
   UINT64  compBuffer = (UINT64)compressedData,
 
-          compBufferPointer = 0, // use p(ointer)?
+          compBufferPointer = 0, // use p (ointer)?
           caseTableIndex = 0,
           byteCount = 0,
           currentLength = 0,                                                      // xor  %r12,%r12
@@ -119,7 +119,7 @@ lzvn_decode (
   // currentLength - (negativeOffset + byteCount) = compBufferPointer
   // length - negativeOffset = compBufferPointer
 
-  static short caseTable[ 256 ] = {
+  STATIC INT16 caseTable[ 256 ] = {
     1,  1,  1,  1,    1,  1,  2,  3,    1,  1,  1,  1,    1,  1,  4,  3,
     1,  1,  1,  1,    1,  1,  4,  3,    1,  1,  1,  1,    1,  1,  5,  3,
     1,  1,  1,  1,    1,  1,  5,  3,    1,  1,  1,  1,    1,  1,  5,  3,
@@ -144,7 +144,7 @@ lzvn_decode (
     return 0;
   }
 
-  compressedSize = (compBuffer + compressedSize - 8);                             // lea  -0x8(%rdx,%rcx,1),%rcx
+  compressedSize = (compBuffer + compressedSize - 8);                             // lea  -0x8 (%rdx,%rcx,1),%rcx
 
   if (compBuffer > compressedSize) {                                              // cmp  %rcx,%rdx
     return 0;                                                                     // ja Llzvn_exit
@@ -158,9 +158,9 @@ lzvn_decode (
       case CASE_TABLE: /******************************************************/
         switch (caseTable[(UINT8)caseTableIndex]) {
           case 0:
-            DEBUG_STATE("caseTable[0]\n");
+            DEBUG_STATE ("caseTable[0]\n");
             caseTableIndex >>= 6;                                                 // shr  $0x6,%r9
-            compBuffer = (compBuffer + caseTableIndex + 1);                       // lea  0x1(%rdx,%r9,1),%rdx
+            compBuffer = (compBuffer + caseTableIndex + 1);                       // lea  0x1 (%rdx,%r9,1),%rdx
 
             if (compBuffer > compressedSize) {                                    // cmp  %rcx,%rdx
               return 0;                                                           // ja Llzvn_exit
@@ -176,17 +176,17 @@ lzvn_decode (
             break;
 
           case 1:
-            DEBUG_STATE("caseTable[1]\n");
+            DEBUG_STATE ("caseTable[1]\n");
             caseTableIndex >>= 6;                                                 // shr  $0x6,%r9
-            compBuffer = (compBuffer + caseTableIndex + 2);                       // lea  0x2(%rdx,%r9,1),%rdx
+            compBuffer = (compBuffer + caseTableIndex + 2);                       // lea  0x2 (%rdx,%r9,1),%rdx
 
             if (compBuffer > compressedSize) {                                    // cmp  %rcx,%rdx
               return 0;                                                           // ja Llzvn_exit
             }
 
             negativeOffset = compBufferPointer;                                   // mov  %r8,%r12
-            //negativeOffset = OSSwapInt64(negativeOffset);                       // bswap  %r12
-            negativeOffset = SwapBytes64(negativeOffset);                         // bswap  %r12
+            //negativeOffset = OSSwapInt64 (negativeOffset);                       // bswap  %r12
+            negativeOffset = SwapBytes64 (negativeOffset);                         // bswap  %r12
             byteCount = negativeOffset;                                           // mov  %r12,%r10
             negativeOffset <<= 5;                                                 // shl  $0x5,%r12
             byteCount <<= 2;                                                      // shl  $0x2,%r10
@@ -199,13 +199,13 @@ lzvn_decode (
             break;
 
           case 2:
-            DEBUG_STATE("caseTable[2]\n");
+            DEBUG_STATE ("caseTable[2]\n");
             return length;
 
           case 3:
-            DEBUG_STATE("caseTable[3]\n");
+            DEBUG_STATE ("caseTable[3]\n");
             caseTableIndex >>= 6;                                                 // shr  $0x6,%r9
-            compBuffer = (compBuffer + caseTableIndex + 3);                       // lea  0x3(%rdx,%r9,1),%rdx
+            compBuffer = (compBuffer + caseTableIndex + 3);                       // lea  0x3 (%rdx,%r9,1),%rdx
 
             if (compBuffer > compressedSize) {                                    // cmp  %rcx,%rdx
               return 0;                                                           // ja Llzvn_exit
@@ -224,7 +224,7 @@ lzvn_decode (
             break;
 
           case 4:
-            DEBUG_STATE("caseTable[4]\n");
+            DEBUG_STATE ("caseTable[4]\n");
             compBuffer++;                                                         // add  $0x1,%rdx
 
             if (compBuffer > compressedSize) {                                    // cmp  %rcx,%rdx
@@ -238,14 +238,14 @@ lzvn_decode (
             break;                                                                // jmpq *(%rbx,%r9,8)
 
           case 5:
-            DEBUG_STATE("caseTable[5]\n");
+            DEBUG_STATE ("caseTable[5]\n");
             return 0;                                                             // Llzvn_table5;
 
           case 6:
-            DEBUG_STATE("caseTable[6]\n");
+            DEBUG_STATE ("caseTable[6]\n");
             caseTableIndex >>= 3;                                                 // shr  $0x3,%r9
             caseTableIndex &= 3;                                                  // and  $0x3,%r9
-            compBuffer = (compBuffer + caseTableIndex + 3);                       // lea  0x3(%rdx,%r9,1),%rdx
+            compBuffer = (compBuffer + caseTableIndex + 3);                       // lea  0x3 (%rdx,%r9,1),%rdx
 
             if (compBuffer > compressedSize) {                                    // cmp  %rcx,%rdx
               return 0;                                                           // ja Llzvn_exit
@@ -267,25 +267,25 @@ lzvn_decode (
             break;
 
           case 7:
-            DEBUG_STATE("caseTable[7]\n");
+            DEBUG_STATE ("caseTable[7]\n");
             compBufferPointer >>= 8;                                              // shr  $0x8,%r8
             compBufferPointer &= 255;                                             // and  $0xff,%r8
             compBufferPointer += 16;                                              // add  $0x10,%r8
-            compBuffer = (compBuffer + compBufferPointer + 2);                    // lea  0x2(%rdx,%r8,1),%rdx
+            compBuffer = (compBuffer + compBufferPointer + 2);                    // lea  0x2 (%rdx,%r8,1),%rdx
 
             jmpTo = LZVN_0;                                                       // jmp  Llzvn_l0
             break;
 
           case 8:
-            DEBUG_STATE("caseTable[8]\n");
+            DEBUG_STATE ("caseTable[8]\n");
             compBufferPointer &= 15;                                              // and  $0xf,%r8
-            compBuffer = (compBuffer + compBufferPointer + 1);                    // lea  0x1(%rdx,%r8,1),%rdx
+            compBuffer = (compBuffer + compBufferPointer + 1);                    // lea  0x1 (%rdx,%r8,1),%rdx
 
             jmpTo = LZVN_0;                                                       // jmp  Llzvn_l0
             break;
 
           case 9:
-            DEBUG_STATE("caseTable[9]\n");
+            DEBUG_STATE ("caseTable[9]\n");
             compBuffer += 2;                                                      // add  $0x2,%rdx
 
             if (compBuffer > compressedSize) {                                    // cmp  %rcx,%rdx
@@ -302,7 +302,7 @@ lzvn_decode (
             break;
 
           case 10:
-            DEBUG_STATE("caseTable[10]\n");
+            DEBUG_STATE ("caseTable[10]\n");
             compBuffer++;                                                         // add  $0x1,%rdx
 
             if (compBuffer > compressedSize) {                                    // cmp  %rcx,%rdx
@@ -316,14 +316,14 @@ lzvn_decode (
             break;
 
           default:
-            DEBUG_STATE("default() caseTableIndex[%d]\n", (UINT8)caseTableIndex);
+            DEBUG_STATE ("default () caseTableIndex[%d]\n", (UINT8)caseTableIndex);
             break;
         } // switch (caseTable[caseTableIndex])
 
         break;
 
       case LZVN_0: /**********************************************************/
-        DEBUG_STATE("jmpTable(0)\n");
+        DEBUG_STATE ("jmpTable (0)\n");
 
         if (compBuffer > compressedSize) {                                          // cmp  %rcx,%rdx
           return 0;                                                                 // ja Llzvn_exit
@@ -342,7 +342,7 @@ lzvn_decode (
 
       case LZVN_1: /**********************************************************/
         do {                                                                        // Llzvn_l1:
-          DEBUG_STATE("jmpTable(1)\n");
+          DEBUG_STATE ("jmpTable (1)\n");
 
           //caseTableIndex = *(UINT64 *)((UINT64)compBuffer + compBufferPointer);
 
@@ -351,7 +351,7 @@ lzvn_decode (
 
           //*(UINT64 *)((UINT64)currentLength + compBufferPointer) = caseTableIndex;
           // or:
-          //CopyMem((VOID *)currentLength + compBufferPointer, &caseTableIndex, 8);
+          //CopyMem ((VOID *)currentLength + compBufferPointer, &caseTableIndex, 8);
           // or:
           address = (currentLength + compBufferPointer);                            // mov  %r9,(%r11,%r8,1)
           *(UINT64 *)address = caseTableIndex;
@@ -369,16 +369,16 @@ lzvn_decode (
         break;                                                                      // jmpq *(%rbx,%r9,8)
 
       case LZVN_2: /**********************************************************/
-        DEBUG_STATE("jmpTable(2)\n");
-        currentLength = (decompressedSize + 8);                                     // lea  0x8(%rsi),%r11
+        DEBUG_STATE ("jmpTable (2)\n");
+        currentLength = (decompressedSize + 8);                                     // lea  0x8 (%rsi),%r11
 
       case LZVN_3: /***********************************************************/
         do {                                                                        // Llzvn_l3: (block copy of bytes)
-          DEBUG_STATE("jmpTable(3)\n");
+          DEBUG_STATE ("jmpTable (3)\n");
 
           address = (compBuffer + compBufferPointer);                               // movzbq (%rdx,%r8,1),%r9
           caseTableIndex = (*((UINT64 *)address) & 255);
-          CopyMem((UINT8 *)decompBuffer + length, &caseTableIndex, 1);
+          CopyMem ((UINT8 *)decompBuffer + length, &caseTableIndex, 1);
           length++;                                                                 // add  $0x1,%rax
 
           if (currentLength == length) {                                            // cmp  %rax,%r11
@@ -395,18 +395,18 @@ lzvn_decode (
         break;                                                                      // jmpq *(%rbx,%r9,8)
 
       case LZVN_4: /**********************************************************/
-        DEBUG_STATE("jmpTable(4)\n");
-        currentLength = (decompressedSize + 8);                                     // lea  0x8(%rsi),%r11
+        DEBUG_STATE ("jmpTable (4)\n");
+        currentLength = (decompressedSize + 8);                                     // lea  0x8 (%rsi),%r11
 
       case LZVN_9: /**********************************************************/
         do {                                                                        // Llzvn_l9: (block copy of bytes)
-          DEBUG_STATE("jmpTable(9)\n");
+          DEBUG_STATE ("jmpTable (9)\n");
 
           address = (decompBuffer + compBufferPointer);                             // movzbq (%rdi,%r8,1),%r9
           caseTableIndex = (*((UINT8 *)address) & 255);
 
           compBufferPointer++;                                                      // add  $0x1,%r8
-          CopyMem((UINT8 *)decompBuffer + length, &caseTableIndex, 1);              // mov  %r9,(%rdi,%rax,1)
+          CopyMem ((UINT8 *)decompBuffer + length, &caseTableIndex, 1);              // mov  %r9,(%rdi,%rax,1)
           length++;                                                                 // add  $0x1,%rax
 
           if (length == currentLength) {                                            // cmp  %rax,%r11
@@ -424,13 +424,13 @@ lzvn_decode (
 
       case LZVN_5: /**********************************************************/
         do {                                                                        // Llzvn_l5: (block copy of qwords)
-          DEBUG_STATE("jmpTable(5)\n");
+          DEBUG_STATE ("jmpTable (5)\n");
 
           address = (decompBuffer + compBufferPointer);                             // mov  (%rdi,%r8,1),%r9
           caseTableIndex = *((UINT64 *)address);
 
           compBufferPointer += 8;                                                   // add  $0x8,%r8
-          CopyMem((UINT8 *)decompBuffer + length, &caseTableIndex, 8);               // mov  %r9,(%rdi,%rax,1)
+          CopyMem ((UINT8 *)decompBuffer + length, &caseTableIndex, 8);               // mov  %r9,(%rdi,%rax,1)
           length += 8;                                                              // add  $0x8,%rax
           byteCount -= 8;                                                           // sub  $0x8,%r10
         } while ((byteCount + 8) > 8);                                              // ja Llzvn_l5
@@ -443,13 +443,13 @@ lzvn_decode (
         break;                                                                      // jmpq *(%rbx,%r9,8)
 
       case LZVN_10: /*********************************************************/
-        DEBUG_STATE("jmpTable(10)\n");
+        DEBUG_STATE ("jmpTable (10)\n");
 
         currentLength = (length + caseTableIndex);                                  // lea  (%rax,%r9,1),%r11
         currentLength += byteCount;                                                 // add  %r10,%r11
 
         if (currentLength < decompressedSize) {                                     // cmp  %rsi,%r11 (block_end: jae Llzvn_l8)
-          CopyMem((UINT8 *)decompBuffer + length, &compBufferPointer, 8);           // mov  %r8,(%rdi,%rax,1)
+          CopyMem ((UINT8 *)decompBuffer + length, &compBufferPointer, 8);           // mov  %r8,(%rdi,%rax,1)
           length += caseTableIndex;                                                 // add  %r9,%rax
           compBufferPointer = length;                                               // mov  %rax,%r8
 
@@ -469,21 +469,21 @@ lzvn_decode (
         }
 
       case LZVN_8: /**********************************************************/
-        DEBUG_STATE("jmpTable(8)\n");
+        DEBUG_STATE ("jmpTable (8)\n");
 
         if (caseTableIndex == 0) {                                                  // test %r9,%r9
           jmpTo = LZVN_7;                                                           // jmpq *(%rbx,%r9,8)
           break;
         }
 
-        currentLength = (decompressedSize + 8);                                     // lea  0x8(%rsi),%r11
+        currentLength = (decompressedSize + 8);                                     // lea  0x8 (%rsi),%r11
         //
 
       case LZVN_6: /**********************************************************/
         do {
-          DEBUG_STATE("jmpTable(6)\n");
+          DEBUG_STATE ("jmpTable (6)\n");
 
-          CopyMem((UINT8 *)decompBuffer + length, &compBufferPointer, 1);           // mov  %r8b,(%rdi,%rax,1)
+          CopyMem ((UINT8 *)decompBuffer + length, &compBufferPointer, 1);           // mov  %r8b,(%rdi,%rax,1)
           length++;                                                                 // add  $0x1,%rax
 
           if (length == currentLength) {                                            // cmp  %rax,%r11
@@ -495,7 +495,7 @@ lzvn_decode (
         } while (caseTableIndex != 1);                                              // jne  Llzvn_l6
 
       case LZVN_7: /**********************************************************/
-        DEBUG_STATE("jmpTable(7)\n");
+        DEBUG_STATE ("jmpTable (7)\n");
 
         compBufferPointer = length;                                                 // mov  %rax,%r8
         compBufferPointer -= negativeOffset;                                        // sub  %r12,%r8
@@ -508,7 +508,7 @@ lzvn_decode (
         break;                                                                      // jmpq *(%rbx,%r9,8)
 
       case LZVN_11: /*********************************************************/
-        DEBUG_STATE("jmpTable(11)\n");
+        DEBUG_STATE ("jmpTable (11)\n");
 
         compBufferPointer = length;                                                 // mov  %rax,%r8
         compBufferPointer -= negativeOffset;                                        // sub  %r12,%r8
@@ -533,16 +533,16 @@ lzvn_decode (
 STATIC
 EFI_STATUS
 CspConvertImage (
-  EFI_GRAPHICS_OUTPUT_BLT_PIXEL** imageBuffer,
-  UINT8 CONST* imageData,
+  EFI_GRAPHICS_OUTPUT_BLT_PIXEL **imageBuffer,
+  UINT8 CONST *imageData,
   UINTN width,
   UINTN height,
   //UINTN frameCount,
-  UINT8 CONST* lookupTable
+  UINT8 CONST *lookupTable
 ) {
-  UINTN                           dataLength = width * height/* * frameCount*/,
-                                  imageLength = dataLength * sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL);
-  EFI_GRAPHICS_OUTPUT_BLT_PIXEL   *theImage = (EFI_GRAPHICS_OUTPUT_BLT_PIXEL*)AllocateZeroPool(imageLength);
+  UINTN                           dataLength = width * height/* * frameCount */,
+                                  imageLength = dataLength * sizeof (EFI_GRAPHICS_OUTPUT_BLT_PIXEL);
+  EFI_GRAPHICS_OUTPUT_BLT_PIXEL   *theImage = (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *)AllocateZeroPool (imageLength);
 
   if (!theImage) {
     return EFI_OUT_OF_RESOURCES;
@@ -564,19 +564,19 @@ CspConvertImage (
 
 VOID
 hehe () {
-  UINTN compressedSize = sizeof(AppleLogoBlackPacked);
+  UINTN compressedSize = sizeof (AppleLogoBlackPacked);
   UINT8 *logoData = (UINT8 *)AppleLogoBlackPacked;
   UINTN logoSize = (APPLE_LOGO_WIDTH * APPLE_LOGO_HEIGHT);
-  UINT8 *decompressedData = AllocatePool(logoSize);
+  UINT8 *decompressedData = AllocatePool (logoSize);
 
   if (decompressedData) {
-    if (lzvn_decode(decompressedData, logoSize, logoData, compressedSize) == logoSize) {
+    if (lzvn_decode (decompressedData, logoSize, logoData, compressedSize) == logoSize) {
       //UINT8 *bootImageData = NULL;
-      //EFI_GRAPHICS_OUTPUT_BLT_PIXEL* logoImage;
+      //EFI_GRAPHICS_OUTPUT_BLT_PIXEL *logoImage;
 
-      //convertImage(APPLE_LOGO_WIDTH, APPLE_LOGO_HEIGHT, decompressedData, &bootImageData);
-      //drawDataRectangle(APPLE_LOGO_X, APPLE_LOGO_Y, APPLE_LOGO_WIDTH, APPLE_LOGO_HEIGHT, bootImageData);
-      //CspConvertImage(&logoImage, decompressedData, APPLE_LOGO_WIDTH, APPLE_LOGO_HEIGHT, /*1,*/ (UINT8 *)AppleLogoBlackClut);
+      //convertImage (APPLE_LOGO_WIDTH, APPLE_LOGO_HEIGHT, decompressedData, &bootImageData);
+      //drawDataRectangle (APPLE_LOGO_X, APPLE_LOGO_Y, APPLE_LOGO_WIDTH, APPLE_LOGO_HEIGHT, bootImageData);
+      //CspConvertImage (&logoImage, decompressedData, APPLE_LOGO_WIDTH, APPLE_LOGO_HEIGHT, /*1,*/ (UINT8 *)AppleLogoBlackClut);
       if (
         decompressedData[1] == 'P' &&
         decompressedData[2] == 'N' &&
@@ -591,6 +591,6 @@ hehe () {
       DBG ("lzvn_decode: failed\n");
     }
 
-    FreePool(decompressedData);
+    FreePool (decompressedData);
   }
 }

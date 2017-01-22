@@ -19,14 +19,14 @@
 // runtime debug
 #define DBG_ON(entry) \
   ((entry != NULL) && (entry->KernelAndKextPatches != NULL) && \
-  ((DEBUG_KEXT_PATCH != 0) || OSFLAG_ISSET(gSettings.FlagsBits, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
+  ((DEBUG_KEXT_PATCH != 0) || OSFLAG_ISSET (gSettings.FlagsBits, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
   /*entry->KernelAndKextPatches->KPDebug && \*/
 #define DBG_RT(entry, ...) \
-  if (DBG_ON(entry)) AsciiPrint(__VA_ARGS__)
+  if (DBG_ON (entry)) AsciiPrint (__VA_ARGS__)
 #define DBG_PAUSE(entry, s) \
-  if (DBG_ON(entry)) gBS->Stall(s * 1000000)
+  if (DBG_ON (entry)) gBS->Stall (s * 1000000)
 
-#define PRELINKKEXTLIST_SIGNATURE SIGNATURE_32('C','E','X','T')
+#define PRELINKKEXTLIST_SIGNATURE SIGNATURE_32 ('C','E','X','T')
 
 typedef struct {
   UINT32            Signature;
@@ -56,7 +56,7 @@ SearchAndCount (
   UINT8     *End = Source + SourceSize;
 
   while (Source < End) {
-    if (CompareMem(Source, Search, SearchSize) == 0) {
+    if (CompareMem (Source, Search, SearchSize) == 0) {
       NumFounds++;
       Source += SearchSize;
     } else {
@@ -92,8 +92,8 @@ SearchAndReplace (
   }
 
   while ((Source < End) && (NoReplacesRestriction || (MaxReplaces > 0))) {
-    if (CompareMem(Source, Search, SearchSize) == 0) {
-      CopyMem(Source, Replace, SearchSize);
+    if (CompareMem (Source, Search, SearchSize) == 0) {
+      CopyMem (Source, Replace, SearchSize);
       NumReplaces++;
       MaxReplaces--;
       Source += SearchSize;
@@ -142,7 +142,7 @@ SearchAndReplaceTxt (
           break;
         }
 
-        //AsciiPrint("%c", *Source);
+        //AsciiPrint ("%c", *Source);
         Source++;
         Pos++;
       }
@@ -157,7 +157,7 @@ SearchAndReplaceTxt (
       Source = FirstMatch + 1;
       /*
       if (Pos != Search) {
-        AsciiPrint("\n");
+        AsciiPrint ("\n");
       }
       */
 
@@ -178,17 +178,17 @@ SearchAndReplaceTxt (
 }
 
 BOOLEAN
-isPatchNameMatch (
+IsPatchNameMatch (
   CHAR8   *BundleIdentifier,
   CHAR8   *Name,
   CHAR8   *InfoPlist,
-  INT32   *isBundle
+  INT32   *IsBundle
 ) {
-  *isBundle = (countOccurrences(Name, '.') < 2) ? 0 : 1;
+  *IsBundle = (CountOccurrences (Name, '.') < 2) ? 0 : 1;
   return
-    (InfoPlist != NULL) && !isBundle // Full BundleIdentifier: com.apple.driver.AppleHDA
-      ? (AsciiStrStr(InfoPlist, Name) != NULL)
-      : (AsciiStrCmp(BundleIdentifier, Name) == 0);
+    (InfoPlist != NULL) && !IsBundle // Full BundleIdentifier: com.apple.driver.AppleHDA
+      ? (AsciiStrStr (InfoPlist, Name) != NULL)
+      : (AsciiStrCmp (BundleIdentifier, Name) == 0);
 }
 
 ////////////////////////////////////
@@ -199,12 +199,12 @@ isPatchNameMatch (
 //
 
 // inited or not?
-BOOLEAN ATIConnectorsPatchInited = FALSE;
+BOOLEAN   ATIConnectorsPatchInited = FALSE;
 
 // ATIConnectorsController's bundle IDs for
 // 0: ATI version - Lion, SnowLeo 10.6.7 2011 MBP
 // 1: AMD version - ML
-CHAR8 ATIKextBundleId[4][64];
+CHAR8   ATIKextBundleId[4][64];
 
 //
 // Inits patcher: prepares ATIKextBundleIds.
@@ -220,7 +220,7 @@ ATIConnectorsPatchInit (
   // Lion, SnowLeo 10.6.7 2011 MBP
   AsciiSPrint (
     ATIKextBundleId[0],
-    sizeof(ATIKextBundleId[0]),
+    sizeof (ATIKextBundleId[0]),
     "com.apple.kext.ATI%sController",
     Entry->KernelAndKextPatches->KPATIConnectorsController
   );
@@ -228,30 +228,30 @@ ATIConnectorsPatchInit (
   // ML
   AsciiSPrint (
     ATIKextBundleId[1],
-    sizeof(ATIKextBundleId[1]),
+    sizeof (ATIKextBundleId[1]),
     "com.apple.kext.AMD%sController",
     Entry->KernelAndKextPatches->KPATIConnectorsController
   );
 
   AsciiSPrint (
     ATIKextBundleId[2],
-    sizeof(ATIKextBundleId[2]),
+    sizeof (ATIKextBundleId[2]),
     "com.apple.kext.ATIFramebuffer"
   );
 
   AsciiSPrint (
     ATIKextBundleId[3],
-    sizeof(ATIKextBundleId[3]),
+    sizeof (ATIKextBundleId[3]),
     "com.apple.kext.AMDFramebuffer"
   );
 
   ATIConnectorsPatchInited = TRUE;
 
-  //DBG_RT(Entry, "Bundle1: %a\n", ATIKextBundleId[0]);
-  //DBG_RT(Entry, "Bundle2: %a\n", ATIKextBundleId[1]);
-  //DBG_RT(Entry, "Bundle3: %a\n", ATIKextBundleId[2]);
-  //DBG_RT(Entry, "Bundle4: %a\n", ATIKextBundleId[3]);
-  //DBG_PAUSE(Entry, 5);
+  //DBG_RT (Entry, "Bundle1: %a\n", ATIKextBundleId[0]);
+  //DBG_RT (Entry, "Bundle2: %a\n", ATIKextBundleId[1]);
+  //DBG_RT (Entry, "Bundle3: %a\n", ATIKextBundleId[2]);
+  //DBG_RT (Entry, "Bundle4: %a\n", ATIKextBundleId[3]);
+  //DBG_PAUSE (Entry, 5);
 }
 
 //
@@ -264,32 +264,34 @@ ATIConnectorsPatchRegisterKexts (
   LOADER_ENTRY          *Entry
 ) {
   CHAR16  *AtiForceLoadKexts[] = {
-    L"\\IOGraphicsFamily.kext\\Info.plist",
-    L"\\ATISupport.kext\\Contents\\Info.plist",
-    L"\\AMDSupport.kext\\Contents\\Info.plist",
-    L"\\AppleGraphicsControl.kext\\Info.plist",
-    L"\\AppleGraphicsControl.kext\\Contents\\PlugIns\\AppleGraphicsDeviceControl.kext\\Info.plist"/*,
-    // SnowLeo
-    L"\\ATIFramebuffer.kext\\Contents\\Info.plist",
-    L"\\AMDFramebuffer.kext\\Contents\\Info.plist"*/
-  };
-  UINTN   i = 0, AtiForceLoadKextsCount = ARRAY_SIZE(AtiForceLoadKexts);
+            L"\\IOGraphicsFamily.kext\\Info.plist",
+            L"\\ATISupport.kext\\Contents\\Info.plist",
+            L"\\AMDSupport.kext\\Contents\\Info.plist",
+            L"\\AppleGraphicsControl.kext\\Info.plist",
+            L"\\AppleGraphicsControl.kext\\Contents\\PlugIns\\AppleGraphicsDeviceControl.kext\\Info.plist"
+            /*,
+            // SnowLeo
+            L"\\ATIFramebuffer.kext\\Contents\\Info.plist",
+            L"\\AMDFramebuffer.kext\\Contents\\Info.plist"
+            */
+          };
+  UINTN   i = 0, AtiForceLoadKextsCount = ARRAY_SIZE (AtiForceLoadKexts);
 
   // for future?
   FSInject->AddStringToList (
               ForceLoadKexts,
-              PoolPrint(L"\\AMD%sController.kext\\Contents\\Info.plist", Entry->KernelAndKextPatches->KPATIConnectorsController)
+              PoolPrint (L"\\AMD%sController.kext\\Contents\\Info.plist", Entry->KernelAndKextPatches->KPATIConnectorsController)
             );
 
   // Lion, ML, SnowLeo 10.6.7 2011 MBP
   FSInject->AddStringToList (
               ForceLoadKexts,
-              PoolPrint(L"\\ATI%sController.kext\\Contents\\Info.plist", Entry->KernelAndKextPatches->KPATIConnectorsController)
+              PoolPrint (L"\\ATI%sController.kext\\Contents\\Info.plist", Entry->KernelAndKextPatches->KPATIConnectorsController)
             );
 
   // dependencies
   while (i < AtiForceLoadKextsCount) {
-    FSInject->AddStringToList(ForceLoadKexts, AtiForceLoadKexts[i++]);
+    FSInject->AddStringToList (ForceLoadKexts, AtiForceLoadKexts[i++]);
   }
 }
 
@@ -306,7 +308,7 @@ ATIConnectorsPatch (
 ) {
   UINTN   Num = 0;
 
-  DBG_RT(Entry, "\nATIConnectorsPatch: driverAddr = %x, driverSize = %x\nController = %s\n",
+  DBG_RT (Entry, "\nATIConnectorsPatch: driverAddr = %x, driverSize = %x\nController = %s\n",
          Driver, DriverSize, Entry->KernelAndKextPatches->KPATIConnectorsController);
 
   // number of occurences od Data should be 1
@@ -319,8 +321,8 @@ ATIConnectorsPatch (
 
   //if (Num > 1) {
   //  // error message - shoud always be printed
-  //  DBG_RT(Entry, "==> KPATIConnectorsData found %d times - skip patching!\n", Num);
-  //  //DBG_PAUSE(Entry, 5);
+  //  DBG_RT (Entry, "==> KPATIConnectorsData found %d times - skip patching!\n", Num);
+  //  //DBG_PAUSE (Entry, 5);
   //  return;
   //}
 
@@ -335,12 +337,12 @@ ATIConnectorsPatch (
         );
 
   if (Num > 0) {
-    DBG_RT(Entry, "==> patched %d times!\n", Num);
+    DBG_RT (Entry, "==> patched %d times!\n", Num);
   } else {
-    DBG_RT(Entry, "==> NOT patched!\n");
+    DBG_RT (Entry, "==> NOT patched!\n");
   }
 
-  //DBG_PAUSE(Entry, 5);
+  //DBG_PAUSE (Entry, 5);
 }
 
 VOID
@@ -350,15 +352,14 @@ GetText (
   OUT UINT32      *Size,
   OUT UINT32      *Off,
   LOADER_ENTRY    *Entry
-)
-{
-          UINT32              ncmds, cmdsize, binaryIndex, sectionIndex;
-          UINTN               cnt;
+) {
   struct  load_command        *loadCommand;
   struct  segment_command_64  *segCmd64;
   struct  section_64          *sect64;
+          UINT32              ncmds, cmdsize, binaryIndex, sectionIndex;
+          UINTN               cnt;
 
-  if (MACH_GET_MAGIC(binary) != MH_MAGIC_64) {
+  if (MACH_GET_MAGIC (binary) != MH_MAGIC_64) {
     return;
   }
 
@@ -375,22 +376,22 @@ GetText (
 
     cmdsize = loadCommand->cmdsize;
     segCmd64 = (struct segment_command_64 *)loadCommand;
-    sectionIndex = sizeof(struct segment_command_64);
+    sectionIndex = sizeof (struct segment_command_64);
 
     while (sectionIndex < segCmd64->cmdsize) {
-      sect64 = (struct section_64 *)((UINT8*)segCmd64 + sectionIndex);
-      sectionIndex += sizeof(struct section_64);
+      sect64 = (struct section_64 *)((UINT8 *)segCmd64 + sectionIndex);
+      sectionIndex += sizeof (struct section_64);
 
       if (
         (sect64->size > 0) &&
-        (AsciiStrCmp(sect64->segname, kTextSegment) == 0) &&
-        (AsciiStrCmp(sect64->sectname, kTextTextSection) == 0)
+        (AsciiStrCmp (sect64->segname, kTextSegment) == 0) &&
+        (AsciiStrCmp (sect64->sectname, kTextTextSection) == 0)
       ) {
         *Addr = (UINT32)sect64->addr;
         *Size = (UINT32)sect64->size;
         *Off = sect64->offset;
-        //DBG_RT(Entry, "%a, %a address 0x%x\n", kTextSegment, kTextTextSection, Off);
-        //DBG_PAUSE(Entry, 10);
+        //DBG_RT (Entry, "%a, %a address 0x%x\n", kTextSegment, kTextTextSection, Off);
+        //DBG_PAUSE (Entry, 10);
         break;
       }
     }
@@ -431,7 +432,7 @@ AsusAICPUPMPatch (
 
   GetText (Driver, &addr, &size, &off, Entry);
 
-  DBG_RT(Entry, "\nAsusAICPUPMPatch: driverAddr = %x, driverSize = %x\n", Driver, DriverSize);
+  DBG_RT (Entry, "\nAsusAICPUPMPatch: driverAddr = %x, driverSize = %x\n", Driver, DriverSize);
 
   if (off && size) {
     Index1 = off;
@@ -442,15 +443,15 @@ AsusAICPUPMPatch (
   // DONE: https://github.com/cecekpawon/Clover/commit/6e5a49ab2125889f666cc810f267552ba0627f74#diff-749d163a7ade3d836e727afe79424a70L5
   for (; Index1 < DriverSize; Index1++) {
     // search for MovlE2ToEcx
-    if (CompareMem(Driver + Index1, MovlE2ToEcx, sizeof(MovlE2ToEcx)) == 0) {
+    if (CompareMem (Driver + Index1, MovlE2ToEcx, sizeof (MovlE2ToEcx)) == 0) {
       // search for wrmsr in next few bytes
-      for (Index2 = Index1 + sizeof(MovlE2ToEcx); Index2 < Index1 + sizeof(MovlE2ToEcx) + 32; Index2++) {
+      for (Index2 = Index1 + sizeof (MovlE2ToEcx); Index2 < Index1 + sizeof (MovlE2ToEcx) + 32; Index2++) {
         if ((Driver[Index2] == Wrmsr[0]) && (Driver[Index2 + 1] == Wrmsr[1])) {
           // found it - patch it with nops
           Count++;
           Driver[Index2] = 0x90;
           Driver[Index2 + 1] = 0x90;
-          DBG_RT(Entry, " %d. patched at 0x%x\n", Count, Index2);
+          DBG_RT (Entry, " %d. patched at 0x%x\n", Count, Index2);
           break;
         } else if (
           ((Driver[Index2] == 0xC9) && (Driver[Index2 + 1] == 0xC3)) ||
@@ -463,15 +464,15 @@ AsusAICPUPMPatch (
           break;
         }
       }
-    } else if (CompareMem(Driver + Index1, MovE2ToCx, sizeof(MovE2ToCx)) == 0) {
+    } else if (CompareMem (Driver + Index1, MovE2ToCx, sizeof (MovE2ToCx)) == 0) {
       // search for wrmsr in next few bytes
-      for (Index2 = Index1 + sizeof(MovE2ToCx); Index2 < Index1 + sizeof(MovE2ToCx) + 32; Index2++) {
+      for (Index2 = Index1 + sizeof (MovE2ToCx); Index2 < Index1 + sizeof (MovE2ToCx) + 32; Index2++) {
         if ((Driver[Index2] == Wrmsr[0]) && (Driver[Index2 + 1] == Wrmsr[1])) {
           // found it - patch it with nops
           Count++;
           Driver[Index2] = 0x90;
           Driver[Index2 + 1] = 0x90;
-          DBG_RT(Entry, " %d. patched at 0x%x\n", Count, Index2);
+          DBG_RT (Entry, " %d. patched at 0x%x\n", Count, Index2);
           break;
         } else if (
           ((Driver[Index2] == 0xC9) && (Driver[Index2 + 1] == 0xC3)) ||
@@ -487,8 +488,8 @@ AsusAICPUPMPatch (
     }
   }
 
-  DBG_RT(Entry, "= %d patches\n", Count);
-  //DBG_PAUSE(Entry, 5);
+  DBG_RT (Entry, "= %d patches\n", Count);
+  //DBG_PAUSE (Entry, 5);
 }
 
 ////////////////////////////////////
@@ -516,36 +517,36 @@ AnyKextPatch (
   UINTN   Num = 0;
   //INTN    Ind;
 
-  DBG_RT(Entry, "\nAnyKextPatch: driverAddr = %x, driverSize = %x\nAnyKext = %a\n",
+  DBG_RT (Entry, "\nAnyKextPatch: driverAddr = %x, driverSize = %x\nAnyKext = %a\n",
          Driver, DriverSize, KextPatches->Label);
 
   if (KextPatches->Disabled) {
-    DBG_RT(Entry, "==> DISABLED!\n");
+    DBG_RT (Entry, "==> DISABLED!\n");
     return;
   }
 
   if (KextPatches->IsPlistPatch) { // Info plist patch
-    DBG_RT(Entry, "Info.plist patch\n");
+    DBG_RT (Entry, "Info.plist patch\n");
 
     /*
-      DBG_RT(Entry, "Info.plist data : '");
+      DBG_RT (Entry, "Info.plist data : '");
 
       for (Ind = 0; Ind < KextPatches->DataLen; Ind++) {
-        DBG_RT(Entry, "%c", KextPatches->Data[Ind]);
+        DBG_RT (Entry, "%c", KextPatches->Data[Ind]);
       }
 
-      DBG_RT(Entry, "' ->\n");
-      DBG_RT(Entry, "Info.plist patch: '");
+      DBG_RT (Entry, "' ->\n");
+      DBG_RT (Entry, "Info.plist patch: '");
 
       for (Ind = 0; Ind < KextPatches->DataLen; Ind++) {
-        DBG_RT(Entry, "%c", KextPatches->Patch[Ind]);
+        DBG_RT (Entry, "%c", KextPatches->Patch[Ind]);
       }
 
-      DBG_RT(Entry, "' \n");
+      DBG_RT (Entry, "' \n");
     */
 
     Num = SearchAndReplaceTxt (
-            (UINT8*)InfoPlist,
+            (UINT8 *)InfoPlist,
             InfoPlistSize,
             KextPatches->Data,
             KextPatches->DataLen,
@@ -557,7 +558,7 @@ AnyKextPatch (
 
     GetText (Driver, &addr, &size, &off, Entry);
 
-    DBG_RT(Entry, "Binary patch\n");
+    DBG_RT (Entry, "Binary patch\n");
 
     if (off && size) {
       Driver += off;
@@ -575,16 +576,16 @@ AnyKextPatch (
   }
 
   if (Num > 0) {
-    DBG_RT(Entry, "==> patched %d times!\n", Num);
+    DBG_RT (Entry, "==> patched %d times!\n", Num);
   } else {
-    DBG_RT(Entry, "==> NOT patched!\n");
+    DBG_RT (Entry, "==> NOT patched!\n");
   }
 
-  //DBG_PAUSE(Entry, 2);
+  //DBG_PAUSE (Entry, 2);
 }
 
 //
-// Called from SetFSInjection(), before boot.efi is started,
+// Called from SetFSInjection (), before boot.efi is started,
 // to allow patchers to prepare FSInject to force load needed kexts.
 //
 VOID
@@ -596,20 +597,20 @@ KextPatcherRegisterKexts (
   INTN i;
 
   if (Entry->KernelAndKextPatches->KPATIConnectorsController != NULL) {
-    ATIConnectorsPatchRegisterKexts(FSInject, ForceLoadKexts, Entry);
+    ATIConnectorsPatchRegisterKexts (FSInject, ForceLoadKexts, Entry);
   }
 
   // Not sure about this. NrKexts / NrForceKexts, what purposes?
-  for (i = 0; i < Entry->KernelAndKextPatches->/*NrKexts*/NrForceKexts; i++) {
+  for (i = 0; i < Entry->KernelAndKextPatches->/* NrKexts */NrForceKexts; i++) {
     FSInject->AddStringToList (
                 ForceLoadKexts,
-                //PoolPrint(
+                //PoolPrint (
                 //  L"\\%a.kext\\Contents\\Info.plist",
                 //    Entry->KernelAndKextPatches->KextPatches[i].Filename
                 //      ? Entry->KernelAndKextPatches->KextPatches[i].Filename
                 //      : Entry->KernelAndKextPatches->KextPatches[i].Name
                 //)
-                PoolPrint(L"\\%a\\Contents\\Info.plist", Entry->KernelAndKextPatches->ForceKexts[i])
+                PoolPrint (L"\\%a\\Contents\\Info.plist", Entry->KernelAndKextPatches->ForceKexts[i])
               );
   }
 }
@@ -636,17 +637,17 @@ PatchKext (
   if (
     (Entry->KernelAndKextPatches->KPATIConnectorsController != NULL) &&
     (
-      isPatchNameMatch(BundleIdentifier, ATIKextBundleId[0], NULL, &isBundle) ||
-      isPatchNameMatch(BundleIdentifier, ATIKextBundleId[1], NULL, &isBundle) ||
-      isPatchNameMatch(BundleIdentifier, ATIKextBundleId[2], NULL, &isBundle) ||
-      isPatchNameMatch(BundleIdentifier, ATIKextBundleId[3], NULL, &isBundle)
+      IsPatchNameMatch (BundleIdentifier, ATIKextBundleId[0], NULL, &isBundle) ||
+      IsPatchNameMatch (BundleIdentifier, ATIKextBundleId[1], NULL, &isBundle) ||
+      IsPatchNameMatch (BundleIdentifier, ATIKextBundleId[2], NULL, &isBundle) ||
+      IsPatchNameMatch (BundleIdentifier, ATIKextBundleId[3], NULL, &isBundle)
     )
   ) {
     if (!ATIConnectorsPatchInited) {
-      ATIConnectorsPatchInit(Entry);
+      ATIConnectorsPatchInit (Entry);
     }
 
-    ATIConnectorsPatch(Driver, DriverSize, Entry);
+    ATIConnectorsPatch (Driver, DriverSize, Entry);
 
     FreePool (Entry->KernelAndKextPatches->KPATIConnectorsController);
     Entry->KernelAndKextPatches->KPATIConnectorsController = NULL;
@@ -665,9 +666,9 @@ PatchKext (
 
   } else if (
     Entry->KernelAndKextPatches->KPAsusAICPUPM &&
-    isPatchNameMatch(BundleIdentifier, NULL, "com.apple.driver.AppleIntelCPUPowerManagement", &isBundle)
+    IsPatchNameMatch (BundleIdentifier, NULL, "com.apple.driver.AppleIntelCPUPowerManagement", &isBundle)
   ) {
-    AsusAICPUPMPatch(Driver, DriverSize, Entry);
+    AsusAICPUPMPatch (Driver, DriverSize, Entry);
     Entry->KernelAndKextPatches->KPAsusAICPUPM = FALSE;
 
   //
@@ -686,9 +687,9 @@ PatchKext (
       }
 
       if (
-        isPatchNameMatch(BundleIdentifier, Entry->KernelAndKextPatches->KextPatches[i].Name, InfoPlist, &isBundle)
+        IsPatchNameMatch (BundleIdentifier, Entry->KernelAndKextPatches->KextPatches[i].Name, InfoPlist, &isBundle)
       ) {
-        AnyKextPatch(Driver, DriverSize, InfoPlist, InfoPlistSize, &Entry->KernelAndKextPatches->KextPatches[i], Entry);
+        AnyKextPatch (Driver, DriverSize, InfoPlist, InfoPlistSize, &Entry->KernelAndKextPatches->KextPatches[i], Entry);
         if (isBundle) {
           Entry->KernelAndKextPatches->KextPatches[i].Patched = TRUE;
         }
@@ -707,8 +708,8 @@ ParsePrelinkKexts (
 
   Status = ParseXML (WholePlist, &KextsDict, 0);
 
-  //DBG_RT(Entry, "Parse %a: %r\n", kPrelinkInfoDictionaryKey, Status);
-  //DBG_PAUSE(Entry, 5);
+  //DBG_RT (Entry, "Parse %a: %r\n", kPrelinkInfoDictionaryKey, Status);
+  //DBG_PAUSE (Entry, 5);
 
   if (EFI_ERROR (Status)) {
     KextsDict = NULL;
@@ -730,12 +731,12 @@ ParsePrelinkKexts (
           !Prop->offset ||
           !Prop->taglen
         ) {
-          //DBG_RT(Entry, " %r parsing / empty element\n", Status);
-          //DBG_PAUSE(Entry, 1);
+          //DBG_RT (Entry, " %r parsing / empty element\n", Status);
+          //DBG_PAUSE (Entry, 1);
           continue;
         }
 
-        Dict = GetProperty(Prop, kPrelinkExecutableSourceKey);
+        Dict = GetProperty (Prop, kPrelinkExecutableSourceKey);
         if (
           (Dict == NULL) ||
           (
@@ -756,7 +757,7 @@ ParsePrelinkKexts (
           iPrelinkExecutableSourceKey = Dict->integer;
         }
 
-        Dict = GetProperty(Prop, kPrelinkExecutableSizeKey);
+        Dict = GetProperty (Prop, kPrelinkExecutableSizeKey);
         if (
           (Dict == NULL) ||
           (
@@ -777,7 +778,7 @@ ParsePrelinkKexts (
           iPrelinkExecutableSizeKey = Dict->integer;
         }
 
-        Dict = GetProperty(Prop, kPropCFBundleIdentifier);
+        Dict = GetProperty (Prop, kPropCFBundleIdentifier);
         if (
           (Dict == NULL) || !Dict->string ||
           !iPrelinkExecutableSourceKey ||
@@ -787,34 +788,34 @@ ParsePrelinkKexts (
         } else {
           // To speed up process sure we can apply all patches here immediately.
           // By saving all kexts data into list could be useful for other purposes, I hope.
-          PRELINKKEXTLIST   *nKext = AllocateZeroPool(sizeof(PRELINKKEXTLIST));
+          PRELINKKEXTLIST   *nKext = AllocateZeroPool (sizeof (PRELINKKEXTLIST));
 
           if (nKext) {
             nKext->Signature = PRELINKKEXTLIST_SIGNATURE;
-            nKext->BundleIdentifier = AllocateCopyPool(AsciiStrSize(Dict->string), Dict->string);
+            nKext->BundleIdentifier = AllocateCopyPool (AsciiStrSize (Dict->string), Dict->string);
             nKext->Address = iPrelinkExecutableSourceKey;
             nKext->Size = iPrelinkExecutableSizeKey;
             nKext->Offset = Prop->offset;
             nKext->Taglen = Prop->taglen;
-            InsertTailList (&gPrelinkKextList, (LIST_ENTRY *)(((UINT8 *)nKext) + OFFSET_OF(PRELINKKEXTLIST, Link)));
+            InsertTailList (&gPrelinkKextList, (LIST_ENTRY *)(((UINT8 *)nKext) + OFFSET_OF (PRELINKKEXTLIST, Link)));
           }
         }
       }
 
-      //DBG_RT(Entry, "Count %d\n", Count);
-      //DBG_PAUSE(Entry, 5);
+      //DBG_RT (Entry, "Count %d\n", Count);
+      //DBG_PAUSE (Entry, 5);
     } else {
-      DBG_RT(Entry, "NO kPrelinkInfoDictionaryKey\n");
-      DBG_PAUSE(Entry, 5);
+      DBG_RT (Entry, "NO kPrelinkInfoDictionaryKey\n");
+      DBG_PAUSE (Entry, 5);
     }
   }
 
-  return IsListEmpty(&gPrelinkKextList) ? EFI_UNSUPPORTED : EFI_SUCCESS;
+  return IsListEmpty (&gPrelinkKextList) ? EFI_UNSUPPORTED : EFI_SUCCESS;
 }
 
 //
 // Iterates over kexts in kernelcache
-// and calls PatchKext() for each.
+// and calls PatchKext () for each.
 //
 // PrelinkInfo section contains following plist, without spaces:
 // <dict>
@@ -843,20 +844,20 @@ VOID
 PatchPrelinkedKexts (
   LOADER_ENTRY    *Entry
 ) {
-  CHAR8   *WholePlist = (CHAR8*)(UINTN)KernelInfo->PrelinkInfoAddr;
+  CHAR8   *WholePlist = (CHAR8 *)(UINTN)KernelInfo->PrelinkInfoAddr;
 
-  if (!EFI_ERROR(ParsePrelinkKexts(Entry, WholePlist))) {
+  if (!EFI_ERROR (ParsePrelinkKexts (Entry, WholePlist))) {
     LIST_ENTRY    *Link;
 
     for (Link = gPrelinkKextList.ForwardLink; Link != &gPrelinkKextList; Link = Link->ForwardLink) {
-      PRELINKKEXTLIST   *sKext = CR(Link, PRELINKKEXTLIST, Link, PRELINKKEXTLIST_SIGNATURE);
-      CHAR8             *InfoPlist = AllocateCopyPool(sKext->Taglen, WholePlist + sKext->Offset);
+      PRELINKKEXTLIST   *sKext = CR (Link, PRELINKKEXTLIST, Link, PRELINKKEXTLIST_SIGNATURE);
+      CHAR8             *InfoPlist = AllocateCopyPool (sKext->Taglen, WholePlist + sKext->Offset);
 
       InfoPlist[sKext->Taglen] = '\0';
 
       // patch it
       PatchKext (
-        (UINT8*)(UINTN) (
+        (UINT8 *)(UINTN) (
             // get kext address from _PrelinkExecutableSourceAddr
             // truncate to 32 bit to get physical addr
             (UINT32)sKext->Address +
@@ -873,14 +874,14 @@ PatchPrelinkedKexts (
         Entry
       );
 
-      FreePool(InfoPlist);
+      FreePool (InfoPlist);
     }
   }
 }
 
 //
 // Iterates over kexts loaded by booter
-// and calls PatchKext() for each.
+// and calls PatchKext () for each.
 //
 VOID
 PatchLoadedKexts (
@@ -894,43 +895,43 @@ PatchLoadedKexts (
   DTPropertyIterator                PropIter = &OPropIter;
   //UINTN                           DbgCount = 0;
 
-  //DBG_RT(Entry, "\nPatchLoadedKexts ... dtRoot = %p\n", dtRoot);
+  //DBG_RT (Entry, "\nPatchLoadedKexts ... dtRoot = %p\n", dtRoot);
 
   if (!dtRoot) {
     return;
   }
 
-  DTInit(dtRoot);
+  DTInit (dtRoot);
 
   if (
-    (DTLookupEntry(NULL,"/chosen/memory-map", &MMEntry) == kSuccess) &&
-    (DTCreatePropertyIteratorNoAlloc(MMEntry, PropIter) == kSuccess)
+    (DTLookupEntry (NULL,"/chosen/memory-map", &MMEntry) == kSuccess) &&
+    (DTCreatePropertyIteratorNoAlloc (MMEntry, PropIter) == kSuccess)
   ) {
-    while (DTIterateProperties(PropIter, &PropName) == kSuccess) {
-      //DBG_RT(Entry, "Prop: %a\n", PropName);
-      if (AsciiStrStr(PropName,"Driver-")) {
+    while (DTIterateProperties (PropIter, &PropName) == kSuccess) {
+      //DBG_RT (Entry, "Prop: %a\n", PropName);
+      if (AsciiStrStr (PropName,"Driver-")) {
         TagPtr    KextsDict, Dict;
 
         // PropEntry _DeviceTreeBuffer is the value of Driver-XXXXXX property
-        PropEntry = (_DeviceTreeBuffer*)(((UINT8*)PropIter->currentProperty) + sizeof(DeviceTreeNodeProperty));
+        PropEntry = (_DeviceTreeBuffer *)(((UINT8 *)PropIter->currentProperty) + sizeof (DeviceTreeNodeProperty));
         //if (DbgCount < 3) {
-        //  DBG_RT(Entry, "%a: paddr = %x, length = %x\n", PropName, PropEntry->paddr, PropEntry->length);
+        //  DBG_RT (Entry, "%a: paddr = %x, length = %x\n", PropName, PropEntry->paddr, PropEntry->length);
         //}
 
         // PropEntry->paddr points to _BooterKextFileInfo
         KextFileInfo = (_BooterKextFileInfo *)(UINTN)PropEntry->paddr;
 
         // Info.plist should be terminated with 0, but will also do it just in case
-        InfoPlist = (CHAR8*)(UINTN)KextFileInfo->infoDictPhysAddr;
+        InfoPlist = (CHAR8 *)(UINTN)KextFileInfo->infoDictPhysAddr;
         SavedValue = InfoPlist[KextFileInfo->infoDictLength];
         InfoPlist[KextFileInfo->infoDictLength] = '\0';
 
         // TODO: Store into list first & process all later?
-        if (!EFI_ERROR(ParseXML (InfoPlist, &KextsDict, 0))) {
-          Dict = GetProperty(KextsDict, kPropCFBundleIdentifier);
+        if (!EFI_ERROR (ParseXML (InfoPlist, &KextsDict, 0))) {
+          Dict = GetProperty (KextsDict, kPropCFBundleIdentifier);
           if ((Dict != NULL) && Dict->string) {
             PatchKext (
-              (UINT8*)(UINTN)KextFileInfo->executablePhysAddr,
+              (UINT8 *)(UINTN)KextFileInfo->executablePhysAddr,
               KextFileInfo->executableLength,
               InfoPlist,
               KextFileInfo->infoDictLength,
@@ -941,15 +942,15 @@ PatchLoadedKexts (
         }
 
         // Check for FakeSMC here
-        //CheckForFakeSMC(InfoPlist, Entry);
+        //CheckForFakeSMC (InfoPlist, Entry);
 
         InfoPlist[KextFileInfo->infoDictLength] = SavedValue;
         //DbgCount++;
       }
 
-      //if (AsciiStrStr(PropName,"DriversPackage-") != 0)
+      //if (AsciiStrStr (PropName,"DriversPackage-") != 0)
       //{
-      //    DBG_RT(Entry, "Found %a\n", PropName);
+      //    DBG_RT (Entry, "Found %a\n", PropName);
       //    break;
       //}
     }
@@ -965,19 +966,19 @@ VOID
 KextPatcherStart (
   LOADER_ENTRY    *Entry
 ) {
-  DBG_RT(Entry, "\n\n%a: Start\n", __FUNCTION__);
+  DBG_RT (Entry, "\n\n%a: Start\n", __FUNCTION__);
 
   if (KernelInfo->isCache) {
-    DBG_RT(Entry, "Patching kernelcache ...\n");
-    DBG_PAUSE(Entry, 2);
+    DBG_RT (Entry, "Patching kernelcache ...\n");
+    DBG_PAUSE (Entry, 2);
 
-    PatchPrelinkedKexts(Entry);
+    PatchPrelinkedKexts (Entry);
   } else {
-    DBG_RT(Entry, "Patching loaded kexts ...\n");
-    DBG_PAUSE(Entry, 2);
+    DBG_RT (Entry, "Patching loaded kexts ...\n");
+    DBG_PAUSE (Entry, 2);
 
-    PatchLoadedKexts(Entry);
+    PatchLoadedKexts (Entry);
   }
 
-  DBG_RT(Entry, "%a: End\n", __FUNCTION__);
+  DBG_RT (Entry, "%a: End\n", __FUNCTION__);
 }

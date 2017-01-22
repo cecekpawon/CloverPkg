@@ -40,8 +40,8 @@
 // Load BMP image
 //
 
-EG_IMAGE
-*egDecodeBMP (
+EG_IMAGE *
+DecodeBMP (
   IN UINT8    *FileData,
   IN UINTN    FileDataLength,
   IN UINTN    IconSize,
@@ -55,7 +55,7 @@ EG_IMAGE
   UINT8               *ImagePtr, *ImagePtrBase, AlphaValue, ImageValue = 0;
 
   // read and check header
-  if ((FileDataLength < sizeof(BMP_IMAGE_HEADER)) || (FileData == NULL)) {
+  if ((FileDataLength < sizeof (BMP_IMAGE_HEADER)) || (FileData == NULL)) {
     return NULL;
   }
 
@@ -97,7 +97,7 @@ EG_IMAGE
   }
 
   // allocate image structure and buffer
-  NewImage = egCreateImage(BmpHeader->PixelWidth, BmpHeader->PixelHeight, WantAlpha);
+  NewImage = CreateImage (BmpHeader->PixelWidth, BmpHeader->PixelHeight, WantAlpha);
 
   if (NewImage == NULL) {
     return NULL;
@@ -106,7 +106,7 @@ EG_IMAGE
   AlphaValue = WantAlpha ? 255 : 0;
 
   // convert image
-  BmpColorMap = (BMP_COLOR_MAP *)(FileData + sizeof(BMP_IMAGE_HEADER));
+  BmpColorMap = (BMP_COLOR_MAP *)(FileData + sizeof (BMP_IMAGE_HEADER));
   ImagePtrBase = FileData + BmpHeader->ImageOffset;
 
   for (y = 0; y < BmpHeader->PixelHeight; y++) {
@@ -193,7 +193,7 @@ EG_IMAGE
 //
 
 VOID
-egEncodeBMP (
+EncodeBMP (
   IN  EG_IMAGE  *Image,
   OUT UINT8     **FileDataReturn,
   OUT UINTN     *FileDataLengthReturn
@@ -204,7 +204,7 @@ egEncodeBMP (
   INT64               x, y;
   UINT64              FileDataLength, ImageLineOffset;
 
-  ImageLineOffset = MultU64x32(Image->Width, 3);
+  ImageLineOffset = MultU64x32 (Image->Width, 3);
   //if ((ImageLineOffset % 4) != 0) {
   //  ImageLineOffset = ImageLineOffset + (4 - (ImageLineOffset % 4));
   //}
@@ -215,10 +215,10 @@ egEncodeBMP (
 
 
   // allocate buffer for file data
-  FileDataLength = sizeof(BMP_IMAGE_HEADER) + MultU64x64(Image->Height, ImageLineOffset);
-  FileData = AllocateZeroPool((UINTN)FileDataLength);
+  FileDataLength = sizeof (BMP_IMAGE_HEADER) + MultU64x64 (Image->Height, ImageLineOffset);
+  FileData = AllocateZeroPool ((UINTN)FileDataLength);
   if (FileData == NULL) {
-    Print(L"Error allocate %d bytes\n", FileDataLength);
+    Print (L"Error allocate %d bytes\n", FileDataLength);
     *FileDataReturn = NULL;
     *FileDataLengthReturn = 0;
     return;
@@ -229,7 +229,7 @@ egEncodeBMP (
   BmpHeader->CharB = 'B';
   BmpHeader->CharM = 'M';
   BmpHeader->Size = (UINT32)FileDataLength;
-  BmpHeader->ImageOffset = sizeof(BMP_IMAGE_HEADER);
+  BmpHeader->ImageOffset = sizeof (BMP_IMAGE_HEADER);
   BmpHeader->HeaderSize = 40;
   BmpHeader->PixelWidth = (UINT32)Image->Width;
   BmpHeader->PixelHeight = (UINT32)Image->Height;

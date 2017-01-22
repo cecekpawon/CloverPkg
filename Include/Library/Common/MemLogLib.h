@@ -5,7 +5,6 @@
 #ifndef __MEMLOG_LIB_H__
 #define __MEMLOG_LIB_H__
 
-
 //
 // Mem log sizes
 //
@@ -13,10 +12,8 @@
 #define MEM_LOG_MAX_SIZE        (2 * 1024 * 1024)
 #define MEM_LOG_MAX_LINE_SIZE   1024
 
-
 /** Callback that can be installed to be called when some message is printed with MemLog() or MemLogVA(). **/
 typedef VOID (EFIAPI *MEM_LOG_CALLBACK) (IN INTN DebugMode, IN CHAR8 *LastMessage);
-
 
 /**
   Prints a log message to memory buffer.
@@ -57,14 +54,12 @@ MemLog (
   ...
 );
 
-
 /**
   Returns pointer to MemLog buffer.
 **/
-CHAR8*
+CHAR8 *
 EFIAPI
 GetMemLogBuffer ();
-
 
 /**
   Returns the length of log (number of chars written) in mem buffer.
@@ -72,7 +67,6 @@ GetMemLogBuffer ();
 UINTN
 EFIAPI
 GetMemLogLen ();
-
 
 /**
   Sets callback that will be called when message is added to mem log.
@@ -83,13 +77,11 @@ SetMemLogCallback (
   MEM_LOG_CALLBACK  Callback
 );
 
-
 /**
   Returns TSC ticks per second.
  **/
 UINT64
 EFIAPI
 GetMemLogTscTicksPerSecond ();
-
 
 #endif // __MEMLOG_LIB_H__

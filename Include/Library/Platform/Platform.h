@@ -14,11 +14,12 @@ Headers collection for procedures
 
 #include <Guid/Acpi.h>
 
+#include <Pi/PiBootMode.h>
+
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 #include <Library/DevicePathLib.h>
-#include <IndustryStandard/PiBootMode.h>
 #include <Library/GenericBdsLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/PcdLib.h>
@@ -90,39 +91,39 @@ typedef enum {
 
 #define DIR_CLOVER          L"\\EFI\\CLOVER"
 
-#define DIR_DRIVERS         PoolPrint(L"%s\\drivers", DIR_CLOVER)
-#define DIR_DRIVERS64       PoolPrint(L"%s\\drivers64UEFI", DIR_CLOVER)
-#define DIR_MISC            PoolPrint(L"%s\\misc", DIR_CLOVER)
-#define DIR_OEM             PoolPrint(L"%s\\oem", DIR_CLOVER)
-//#define DIR_ROM             PoolPrint(L"%s\\rom", DIR_CLOVER)
-#define DIR_THEMES          PoolPrint(L"%s\\themes", DIR_CLOVER)
-#define DIR_TOOLS           PoolPrint(L"%s\\tools", DIR_CLOVER)
-#define DIR_FONTS           PoolPrint(L"%s\\fonts", DIR_CLOVER)
+#define DIR_DRIVERS         PoolPrint (L"%s\\drivers", DIR_CLOVER)
+#define DIR_DRIVERS64       PoolPrint (L"%s\\drivers64UEFI", DIR_CLOVER)
+#define DIR_MISC            PoolPrint (L"%s\\misc", DIR_CLOVER)
+#define DIR_OEM             PoolPrint (L"%s\\oem", DIR_CLOVER)
+//#define DIR_ROM             PoolPrint (L"%s\\rom", DIR_CLOVER)
+#define DIR_THEMES          PoolPrint (L"%s\\themes", DIR_CLOVER)
+#define DIR_TOOLS           PoolPrint (L"%s\\tools", DIR_CLOVER)
+#define DIR_FONTS           PoolPrint (L"%s\\fonts", DIR_CLOVER)
 
 #define DIR_ACPI            L"%s\\acpi"
-#define DIR_ACPI_PATCHED    PoolPrint(L"%s\\patched", DIR_ACPI)
-#define DIR_ACPI_ORIGIN     PoolPrint(L"%s\\origin", DIR_ACPI)
+#define DIR_ACPI_PATCHED    PoolPrint (L"%s\\patched", DIR_ACPI)
+#define DIR_ACPI_ORIGIN     PoolPrint (L"%s\\origin", DIR_ACPI)
 
-#define DSDT_ORIGIN         PoolPrint(L"%s\\DSDT-or.aml", DIR_ACPI)
+#define DSDT_ORIGIN         PoolPrint (L"%s\\DSDT-or.aml", DIR_ACPI)
 
 #define DIR_ROM             L"%s\\rom"
 
-//#define DIR_UEFI          PoolPrint(L"%s\\uefi", DIR_CLOVER)
+//#define DIR_UEFI          PoolPrint (L"%s\\uefi", DIR_CLOVER)
 #define DIR_KEXTS           L"%s\\kexts"
-#define DIR_KEXTS_OTHER     PoolPrint(L"%s\\other", DIR_KEXTS)
+#define DIR_KEXTS_OTHER     PoolPrint (L"%s\\other", DIR_KEXTS)
 
-#define VBIOS_BIN           PoolPrint(L"%s\\c0000.bin", DIR_MISC)
+#define VBIOS_BIN           PoolPrint (L"%s\\c0000.bin", DIR_MISC)
 
 #define MSG_LOG_SIZE        (256 * 1024)
 
-#define PREBOOT_LOG         PoolPrint(L"%s\\%s", DIR_MISC, L"preboot.log")
-#define DEBUG_LOG           PoolPrint(L"%s\\%s", DIR_MISC, L"debug.log")
+#define PREBOOT_LOG         PoolPrint (L"%s\\%s", DIR_MISC, L"preboot.log")
+#define DEBUG_LOG           PoolPrint (L"%s\\%s", DIR_MISC, L"debug.log")
 #define DATAHUB_LOG         L"boot-log"
 
 #ifndef DEBUG_ALL
-#define MsgLog(...)  DebugLog(1, __VA_ARGS__)
+#define MsgLog(...)  DebugLog (1, __VA_ARGS__)
 #else
-#define MsgLog(...)  DebugLog(DEBUG_ALL, __VA_ARGS__)
+#define MsgLog(...)  DebugLog (DEBUG_ALL, __VA_ARGS__)
 #endif
 
 #ifndef CLOVER_VERSION
@@ -173,7 +174,7 @@ typedef enum {
 #define CPU_MODEL_ATOM_3700       0x37  /* Bay Trail */
 #define CPU_MODEL_IVY_BRIDGE      0x3A
 #define CPU_MODEL_HASWELL         0x3C  /* Haswell DT */
-#define CPU_MODEL_HASWELL_U5      0x3D  /* Haswell U5  5th generation Broadwell*/
+#define CPU_MODEL_HASWELL_U5      0x3D  /* Haswell U5  5th generation Broadwell */
 #define CPU_MODEL_IVY_BRIDGE_E5   0x3E  /* Ivy Bridge Xeon UN */
 #define CPU_MODEL_HASWELL_E       0x3F  /* Haswell Extreme */
 //#define CPU_MODEL_HASWELL_H     0x??  // Haswell H
@@ -212,100 +213,100 @@ typedef enum {
  * The CPUID_FEATURE_XXX values define 64-bit values
  * returned in %ecx:%edx to a CPUID request with %eax of 1:
  */
-#define CPUID_FEATURE_FPU             _Bit(0)   /* Floating point unit on-chip */
-#define CPUID_FEATURE_VME             _Bit(1)   /* Virtual Mode Extension */
-#define CPUID_FEATURE_DE              _Bit(2)   /* Debugging Extension */
-#define CPUID_FEATURE_PSE             _Bit(3)   /* Page Size Extension */
-#define CPUID_FEATURE_TSC             _Bit(4)   /* Time Stamp Counter */
-#define CPUID_FEATURE_MSR             _Bit(5)   /* Model Specific Registers */
-#define CPUID_FEATURE_PAE             _Bit(6)   /* Physical Address Extension */
-#define CPUID_FEATURE_MCE             _Bit(7)   /* Machine Check Exception */
-#define CPUID_FEATURE_CX8             _Bit(8)   /* CMPXCHG8B */
-#define CPUID_FEATURE_APIC            _Bit(9)   /* On-chip APIC */
-#define CPUID_FEATURE_SEP             _Bit(11)  /* Fast System Call */
-#define CPUID_FEATURE_MTRR            _Bit(12)  /* Memory Type Range Register */
-#define CPUID_FEATURE_PGE             _Bit(13)  /* Page Global Enable */
-#define CPUID_FEATURE_MCA             _Bit(14)  /* Machine Check Architecture */
-#define CPUID_FEATURE_CMOV            _Bit(15)  /* Conditional Move Instruction */
-#define CPUID_FEATURE_PAT             _Bit(16)  /* Page Attribute Table */
-#define CPUID_FEATURE_PSE36           _Bit(17)  /* 36-bit Page Size Extension */
-#define CPUID_FEATURE_PSN             _Bit(18)  /* Processor Serial Number */
-#define CPUID_FEATURE_CLFSH           _Bit(19)  /* CLFLUSH Instruction supported */
-#define CPUID_FEATURE_DS              _Bit(21)  /* Debug Store */
-#define CPUID_FEATURE_ACPI            _Bit(22)  /* Thermal monitor and Clock Ctrl */
-#define CPUID_FEATURE_MMX             _Bit(23)  /* MMX supported */
-#define CPUID_FEATURE_FXSR            _Bit(24)  /* Fast floating pt save/restore */
-#define CPUID_FEATURE_SSE             _Bit(25)  /* Streaming SIMD extensions */
-#define CPUID_FEATURE_SSE2            _Bit(26)  /* Streaming SIMD extensions 2 */
-#define CPUID_FEATURE_SS              _Bit(27)  /* Self-Snoop */
-#define CPUID_FEATURE_HTT             _Bit(28)  /* Hyper-Threading Technology */
-#define CPUID_FEATURE_TM              _Bit(29)  /* Thermal Monitor (TM1) */
-#define CPUID_FEATURE_PBE             _Bit(31)  /* Pend Break Enable */
+#define CPUID_FEATURE_FPU             _Bit (0)   /* Floating point unit on-chip */
+#define CPUID_FEATURE_VME             _Bit (1)   /* Virtual Mode Extension */
+#define CPUID_FEATURE_DE              _Bit (2)   /* Debugging Extension */
+#define CPUID_FEATURE_PSE             _Bit (3)   /* Page Size Extension */
+#define CPUID_FEATURE_TSC             _Bit (4)   /* Time Stamp Counter */
+#define CPUID_FEATURE_MSR             _Bit (5)   /* Model Specific Registers */
+#define CPUID_FEATURE_PAE             _Bit (6)   /* Physical Address Extension */
+#define CPUID_FEATURE_MCE             _Bit (7)   /* Machine Check Exception */
+#define CPUID_FEATURE_CX8             _Bit (8)   /* CMPXCHG8B */
+#define CPUID_FEATURE_APIC            _Bit (9)   /* On-chip APIC */
+#define CPUID_FEATURE_SEP             _Bit (11)  /* Fast System Call */
+#define CPUID_FEATURE_MTRR            _Bit (12)  /* Memory Type Range Register */
+#define CPUID_FEATURE_PGE             _Bit (13)  /* Page Global Enable */
+#define CPUID_FEATURE_MCA             _Bit (14)  /* Machine Check Architecture */
+#define CPUID_FEATURE_CMOV            _Bit (15)  /* Conditional Move Instruction */
+#define CPUID_FEATURE_PAT             _Bit (16)  /* Page Attribute Table */
+#define CPUID_FEATURE_PSE36           _Bit (17)  /* 36-bit Page Size Extension */
+#define CPUID_FEATURE_PSN             _Bit (18)  /* Processor Serial Number */
+#define CPUID_FEATURE_CLFSH           _Bit (19)  /* CLFLUSH Instruction supported */
+#define CPUID_FEATURE_DS              _Bit (21)  /* Debug Store */
+#define CPUID_FEATURE_ACPI            _Bit (22)  /* Thermal monitor and Clock Ctrl */
+#define CPUID_FEATURE_MMX             _Bit (23)  /* MMX supported */
+#define CPUID_FEATURE_FXSR            _Bit (24)  /* Fast floating pt save/restore */
+#define CPUID_FEATURE_SSE             _Bit (25)  /* Streaming SIMD extensions */
+#define CPUID_FEATURE_SSE2            _Bit (26)  /* Streaming SIMD extensions 2 */
+#define CPUID_FEATURE_SS              _Bit (27)  /* Self-Snoop */
+#define CPUID_FEATURE_HTT             _Bit (28)  /* Hyper-Threading Technology */
+#define CPUID_FEATURE_TM              _Bit (29)  /* Thermal Monitor (TM1) */
+#define CPUID_FEATURE_PBE             _Bit (31)  /* Pend Break Enable */
 
-#define CPUID_FEATURE_SSE3            _HBit(0)  /* Streaming SIMD extensions 3 */
-#define CPUID_FEATURE_PCLMULQDQ       _HBit(1)  /* PCLMULQDQ Instruction */
-#define CPUID_FEATURE_DTES64          _HBit(2)  /* 64-bit DS layout */
-#define CPUID_FEATURE_MONITOR         _HBit(3)  /* Monitor/mwait */
-#define CPUID_FEATURE_DSCPL           _HBit(4)  /* Debug Store CPL */
-#define CPUID_FEATURE_VMX             _HBit(5)  /* VMX */
-#define CPUID_FEATURE_SMX             _HBit(6)  /* SMX */
-#define CPUID_FEATURE_EST             _HBit(7)  /* Enhanced SpeedsTep (GV3) */
-#define CPUID_FEATURE_TM2             _HBit(8)  /* Thermal Monitor 2 */
-#define CPUID_FEATURE_SSSE3           _HBit(9)  /* Supplemental SSE3 instructions */
-#define CPUID_FEATURE_CID             _HBit(10) /* L1 Context ID */
-#define CPUID_FEATURE_SEGLIM64        _HBit(11) /* 64-bit segment limit checking */
-#define CPUID_FEATURE_CX16            _HBit(13) /* CmpXchg16b instruction */
-#define CPUID_FEATURE_xTPR            _HBit(14) /* Send Task PRiority msgs */
-#define CPUID_FEATURE_PDCM            _HBit(15) /* Perf/Debug Capability MSR */
+#define CPUID_FEATURE_SSE3            _HBit (0)  /* Streaming SIMD extensions 3 */
+#define CPUID_FEATURE_PCLMULQDQ       _HBit (1)  /* PCLMULQDQ Instruction */
+#define CPUID_FEATURE_DTES64          _HBit (2)  /* 64-bit DS layout */
+#define CPUID_FEATURE_MONITOR         _HBit (3)  /* Monitor/mwait */
+#define CPUID_FEATURE_DSCPL           _HBit (4)  /* Debug Store CPL */
+#define CPUID_FEATURE_VMX             _HBit (5)  /* VMX */
+#define CPUID_FEATURE_SMX             _HBit (6)  /* SMX */
+#define CPUID_FEATURE_EST             _HBit (7)  /* Enhanced SpeedsTep (GV3) */
+#define CPUID_FEATURE_TM2             _HBit (8)  /* Thermal Monitor 2 */
+#define CPUID_FEATURE_SSSE3           _HBit (9)  /* Supplemental SSE3 instructions */
+#define CPUID_FEATURE_CID             _HBit (10) /* L1 Context ID */
+#define CPUID_FEATURE_SEGLIM64        _HBit (11) /* 64-bit segment limit checking */
+#define CPUID_FEATURE_CX16            _HBit (13) /* CmpXchg16b instruction */
+#define CPUID_FEATURE_xTPR            _HBit (14) /* Send Task PRiority msgs */
+#define CPUID_FEATURE_PDCM            _HBit (15) /* Perf/Debug Capability MSR */
 
-#define CPUID_FEATURE_PCID            _HBit(17) /* ASID-PCID support */
-#define CPUID_FEATURE_DCA             _HBit(18) /* Direct Cache Access */
-#define CPUID_FEATURE_SSE4_1          _HBit(19) /* Streaming SIMD extensions 4.1 */
-#define CPUID_FEATURE_SSE4_2          _HBit(20) /* Streaming SIMD extensions 4.2 */
-#define CPUID_FEATURE_xAPIC           _HBit(21) /* Extended APIC Mode */
-#define CPUID_FEATURE_MOVBE           _HBit(22) /* MOVBE instruction */
-#define CPUID_FEATURE_POPCNT          _HBit(23) /* POPCNT instruction */
-#define CPUID_FEATURE_TSCTMR          _HBit(24) /* TSC deadline timer */
-#define CPUID_FEATURE_AES             _HBit(25) /* AES instructions */
-#define CPUID_FEATURE_XSAVE           _HBit(26) /* XSAVE instructions */
-#define CPUID_FEATURE_OSXSAVE         _HBit(27) /* XGETBV/XSETBV instructions */
-#define CPUID_FEATURE_AVX1_0          _HBit(28) /* AVX 1.0 instructions */
-#define CPUID_FEATURE_RDRAND          _HBit(29) /* RDRAND instruction */
-#define CPUID_FEATURE_F16C            _HBit(30) /* Float16 convert instructions */
-#define CPUID_FEATURE_VMM             _HBit(31) /* VMM (Hypervisor) present */
+#define CPUID_FEATURE_PCID            _HBit (17) /* ASID-PCID support */
+#define CPUID_FEATURE_DCA             _HBit (18) /* Direct Cache Access */
+#define CPUID_FEATURE_SSE4_1          _HBit (19) /* Streaming SIMD extensions 4.1 */
+#define CPUID_FEATURE_SSE4_2          _HBit (20) /* Streaming SIMD extensions 4.2 */
+#define CPUID_FEATURE_xAPIC           _HBit (21) /* Extended APIC Mode */
+#define CPUID_FEATURE_MOVBE           _HBit (22) /* MOVBE instruction */
+#define CPUID_FEATURE_POPCNT          _HBit (23) /* POPCNT instruction */
+#define CPUID_FEATURE_TSCTMR          _HBit (24) /* TSC deadline timer */
+#define CPUID_FEATURE_AES             _HBit (25) /* AES instructions */
+#define CPUID_FEATURE_XSAVE           _HBit (26) /* XSAVE instructions */
+#define CPUID_FEATURE_OSXSAVE         _HBit (27) /* XGETBV/XSETBV instructions */
+#define CPUID_FEATURE_AVX1_0          _HBit (28) /* AVX 1.0 instructions */
+#define CPUID_FEATURE_RDRAND          _HBit (29) /* RDRAND instruction */
+#define CPUID_FEATURE_F16C            _HBit (30) /* Float16 convert instructions */
+#define CPUID_FEATURE_VMM             _HBit (31) /* VMM (Hypervisor) present */
 
 /*
  * Leaf 7, subleaf 0 additional features.
  * Bits returned in %ebx to a CPUID request with {%eax,%ecx} of (0x7,0x0}:
  */
-#define CPUID_LEAF7_FEATURE_RDWRFSGS  _Bit(0)   /* FS/GS base read/write */
-#define CPUID_LEAF7_FEATURE_SMEP      _Bit(7)   /* Supervisor Mode Execute Protect */
-#define CPUID_LEAF7_FEATURE_ENFSTRG   _Bit(9)   /* ENhanced Fast STRinG copy */
+#define CPUID_LEAF7_FEATURE_RDWRFSGS  _Bit (0)   /* FS/GS base read/write */
+#define CPUID_LEAF7_FEATURE_SMEP      _Bit (7)   /* Supervisor Mode Execute Protect */
+#define CPUID_LEAF7_FEATURE_ENFSTRG   _Bit (9)   /* ENhanced Fast STRinG copy */
 
 
 /*
  * The CPUID_EXTFEATURE_XXX values define 64-bit values
  * returned in %ecx:%edx to a CPUID request with %eax of 0x80000001:
  */
-#define CPUID_EXTFEATURE_SYSCALL      _Bit(11)  /* SYSCALL/sysret */
-#define CPUID_EXTFEATURE_XD           _Bit(20)  /* eXecute Disable */
-#define CPUID_EXTFEATURE_1GBPAGE      _Bit(26)  /* 1G-Byte Page support */
-#define CPUID_EXTFEATURE_RDTSCP       _Bit(27)  /* RDTSCP */
-#define CPUID_EXTFEATURE_EM64T        _Bit(29)  /* Extended Mem 64 Technology */
+#define CPUID_EXTFEATURE_SYSCALL      _Bit (11)  /* SYSCALL/sysret */
+#define CPUID_EXTFEATURE_XD           _Bit (20)  /* eXecute Disable */
+#define CPUID_EXTFEATURE_1GBPAGE      _Bit (26)  /* 1G-Byte Page support */
+#define CPUID_EXTFEATURE_RDTSCP       _Bit (27)  /* RDTSCP */
+#define CPUID_EXTFEATURE_EM64T        _Bit (29)  /* Extended Mem 64 Technology */
 
-//#define CPUID_EXTFEATURE_LAHF       _HBit(20) /* LAFH/SAHF instructions */
+//#define CPUID_EXTFEATURE_LAHF       _HBit (20) /* LAFH/SAHF instructions */
 // New definition with Snow kernel
-#define CPUID_EXTFEATURE_LAHF         _HBit(0)  /* LAHF/SAHF instructions */
+#define CPUID_EXTFEATURE_LAHF         _HBit (0)  /* LAHF/SAHF instructions */
 /*
  * The CPUID_EXTFEATURE_XXX values define 64-bit values
  * returned in %ecx:%edx to a CPUID request with %eax of 0x80000007:
  */
-#define CPUID_EXTFEATURE_TSCI         _Bit(8)   /* TSC Invariant */
+#define CPUID_EXTFEATURE_TSCI         _Bit (8)   /* TSC Invariant */
 
 #define CPUID_CACHE_SIZE              16        /* Number of descriptor values */
 
-#define CPUID_MWAIT_EXTENSION         _Bit(0)   /* enumeration of WMAIT extensions */
-#define CPUID_MWAIT_BREAK             _Bit(1)   /* interrupts are break events     */
+#define CPUID_MWAIT_EXTENSION         _Bit (0)   /* enumeration of WMAIT extensions */
+#define CPUID_MWAIT_BREAK             _Bit (1)   /* interrupts are break events     */
 
 /* Known MSR registers */
 #define MSR_IA32_PLATFORM_ID          0x0017
@@ -482,32 +483,32 @@ typedef enum {
 #define AML_CHUNK_ARG2          0x6A
 #define AML_CHUNK_ARG3          0x6B
 
-#define FIX_MCHC        bit(0)
-#define FIX_DISPLAY     bit(1)
-#define FIX_LAN         bit(2)
-#define FIX_WIFI        bit(3)
-#define FIX_HDA         bit(4)
-#define FIX_INTELGFX    bit(5)
-#define FIX_PNLF        bit(6)
-#define FIX_HDMI        bit(7)
-#define FIX_IMEI        bit(8)
+#define FIX_MCHC        bit (0)
+#define FIX_DISPLAY     bit (1)
+#define FIX_LAN         bit (2)
+#define FIX_WIFI        bit (3)
+#define FIX_HDA         bit (4)
+#define FIX_INTELGFX    bit (5)
+#define FIX_PNLF        bit (6)
+#define FIX_HDMI        bit (7)
+#define FIX_IMEI        bit (8)
 
 //devices
-#define DEV_ATI         bit(0)
-#define DEV_NVIDIA      bit(1)
-#define DEV_INTEL       bit(2)
-#define DEV_HDA         bit(3)
-#define DEV_HDMI        bit(4)
-#define DEV_LAN         bit(5)
-#define DEV_WIFI        bit(6)
-#define DEV_SATA        bit(7)
-#define DEV_IDE         bit(8)
-#define DEV_LPC         bit(9)
-#define DEV_SMBUS       bit(10)
-#define DEV_USB         bit(11)
-#define DEV_FIREWIRE    bit(12)
-#define DEV_MCHC        bit(13)
-#define DEV_BY_PCI      bit(31)
+#define DEV_ATI         bit (0)
+#define DEV_NVIDIA      bit (1)
+#define DEV_INTEL       bit (2)
+#define DEV_HDA         bit (3)
+#define DEV_HDMI        bit (4)
+#define DEV_LAN         bit (5)
+#define DEV_WIFI        bit (6)
+#define DEV_SATA        bit (7)
+#define DEV_IDE         bit (8)
+#define DEV_LPC         bit (9)
+#define DEV_SMBUS       bit (10)
+#define DEV_USB         bit (11)
+#define DEV_FIREWIRE    bit (12)
+#define DEV_MCHC        bit (13)
+#define DEV_BY_PCI      bit (31)
 
 //#define NUM_OF_CONFIGS 3
 
@@ -532,9 +533,9 @@ struct aml_chunk
   UINT16            Size;
   //UINT16            pad3[3];
 
-  struct aml_chunk* Next;
-  struct aml_chunk* First;
-  struct aml_chunk* Last;
+  struct aml_chunk  *Next;
+  struct aml_chunk  *First;
+  struct aml_chunk  *Last;
 };
 
 typedef struct aml_chunk AML_CHUNK;
@@ -664,16 +665,16 @@ extern REFIT_MENU_ENTRY   MenuEntryExit;
 extern REFIT_MENU_SCREEN  MainMenu;
 
 // common
-//CHAR16 *AddLoadOption(IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
-//CHAR16 *RemoveLoadOption(IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
+//CHAR16 *AddLoadOption (IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
+//CHAR16 *RemoveLoadOption (IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
 
 // loader
-VOID ScanLoader();
-VOID AddCustomEntries();
+VOID ScanLoader ();
+VOID AddCustomEntries ();
 
 // tool
-VOID ScanTool();
-VOID AddCustomTool();
+VOID ScanTool ();
+VOID AddCustomTool ();
 
 //<-- entry_scan.h
 
@@ -1056,9 +1057,9 @@ typedef struct {
   UINT8   Type;
   UINT32  ModuleSize;
   UINT32  Frequency;
-  CHAR8*  Vendor;
-  CHAR8*  PartNo;
-  CHAR8*  SerialNo;
+  CHAR8   *Vendor;
+  CHAR8   *PartNo;
+  CHAR8   *SerialNo;
 } RAM_SLOT_INFO;
 
 // The maximum number of RAM slots to detect
@@ -1138,11 +1139,6 @@ typedef struct {
 
 #define CARDLIST_SIGNATURE SIGNATURE_32('C','A','R','D')
 
-typedef EFI_ACPI_DESCRIPTION_HEADER SSDT_TABLE;
-
-SSDT_TABLE *generate_pss_ssdt(UINT8 FirstID, UINTN Number);
-SSDT_TABLE *generate_cst_ssdt(EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE* fadt, UINT8 FirstID, UINTN Number);
-
 #pragma pack(pop)
 //extern CHAR8                          *msgbuf;
 //extern CHAR8                          *msgCursor;
@@ -1203,7 +1199,6 @@ extern UINT32                           devices_number;
 extern INTN                             OldChosenTheme;
 extern INTN                             OldChosenConfig;
 
-//CHAR8*   orgBiosDsdt;
 extern UINT64                           BiosDsdt;
 extern UINT32                           BiosDsdtLen;
 extern UINT8                            acpi_cpu_count;
@@ -1305,7 +1300,7 @@ MACHINE_TYPES GetModelFromString (
 );
 
 VOID
-GetDefaultSettings();
+GetDefaultSettings ();
 
 VOID
 FillInputs (
@@ -1346,8 +1341,8 @@ StrToGuidLE (
 EFI_STATUS
 InitializeEdidOverride ();
 
-UINT8*
-getCurrentEdid ();
+//UINT8 *
+//GetCurrentEdid ();
 
 EFI_STATUS
 GetEdidDiscovered ();
@@ -1366,7 +1361,7 @@ VOID
 GetCPUProperties ();
 
 VOID
-GetDevices();
+GetDevices ();
 
 MACHINE_TYPES
 GetDefaultModel ();
@@ -1374,8 +1369,8 @@ GetDefaultModel ();
 UINT16
 GetAdvancedCpuType ();
 
-CHAR8
-*GetOSVersion (
+CHAR8 *
+GetOSVersion (
   IN  LOADER_ENTRY *Entry
 );
 
@@ -1412,10 +1407,10 @@ SetFSInjection (
   IN LOADER_ENTRY   *Entry
 );
 
-CHAR16*
+CHAR16 *
 GetOtherKextsDir ();
 
-CHAR16*
+CHAR16 *
 GetOSVersionKextsDir (
   CHAR8 *OSVersion
 );
@@ -1478,7 +1473,7 @@ VOID
 GetSmcKeys ();
 
 VOID
-GetMacAddress();
+GetMacAddress ();
 
 INTN
 FindStartupDiskVolume (
@@ -1506,10 +1501,10 @@ LogDataHub (
 );
 
 EFI_STATUS EFIAPI
-SetVariablesForOSX();
+SetVariablesForOSX ();
 
 VOID EFIAPI
-SetupDataForOSX();
+SetupDataForOSX ();
 
 
 EFI_STATUS
@@ -1524,41 +1519,36 @@ VOID
 ScanSPD ();
 
 BOOLEAN
-setup_ati_devprop (
+SetupAtiDevprop (
   LOADER_ENTRY  *Entry,
   pci_dt_t      *ati_dev
 );
 
 VOID
-get_ati_model (
+GetAtiModel (
   OUT GFX_PROPERTIES  *gfx,
   IN UINT32           device_id
 );
 
 BOOLEAN
-setup_gma_devprop (
-  pci_dt_t *gma_dev
+SetupGmaDevprop (
+  pci_dt_t  *gma_dev
 );
 
-//CHAR8
-//*get_gma_model (
-//  IN UINT16 DeviceID
-//);
-
 BOOLEAN
-setup_nvidia_devprop (
-  pci_dt_t *nvda_dev
+SetupNvidiaDevprop (
+  pci_dt_t  *nvda_dev
 );
 
 VOID
 FillCardList (
-  TagPtr CfgDict
+  TagPtr  CfgDict
 );
 
 CARDLIST
 *FindCardWithIds (
-  UINT32 Id,
-  UINT32 SubId
+  UINT32  Id,
+  UINT32  SubId
 );
 
 //ACPI
@@ -1590,11 +1580,11 @@ SaveOemTables ();
 
 UINT32
 FixAny (
-  UINT8* dsdt,
-  UINT32 len,
-  UINT8* ToFind,
-  UINT32 LenTF,
-  UINT8* ToReplace,
+  UINT8   *dsdt,
+  UINT32  len,
+  UINT8   *ToFind,
+  UINT32  LenTF,
+  UINT8   *ToReplace,
   UINT32 LenTR
 );
 
@@ -1606,7 +1596,7 @@ EventsInitialize (
   IN LOADER_ENTRY *Entry
 );
 
-CHAR8*
+CHAR8 *
 XMLDecode (
   CHAR8 *src
 );
@@ -1621,7 +1611,7 @@ ParseXML (
 TagPtr
 GetProperty (
   TagPtr dict,
-  CHAR8* key
+  CHAR8  *key
 );
 
 EFI_STATUS
@@ -1678,12 +1668,6 @@ GetPropertyInteger (
 EFI_STATUS
 SaveSettings ();
 
-UINTN
-iStrLen (
-  CHAR8* String,
-  UINTN  MaxLen
-);
-
 EFI_STATUS
 PrepatchSmbios ();
 
@@ -1714,33 +1698,34 @@ SetCPUProperties ();
 // Settings.c
 // Micky1979: Next five functions (+ needed struct) are to split a string like "10.10.5,10.7,10.11.6,10.8.x"
 // in their components separated by comma (in this case)
+typedef struct MatchOSes MatchOSes;
 struct MatchOSes {
   INTN    count;
   CHAR8   *array[100];
 };
 
 /** Returns a boolean and then enable disable the patch if MachOSEntry have a match for the booted OS. */
-BOOLEAN IsPatchEnabled(CHAR8 *MatchOSEntry, CHAR8 *CurrOS);
+BOOLEAN IsPatchEnabled (CHAR8 *MatchOSEntry, CHAR8 *CurrOS);
 
 /** return true if a given os contains '.' as separator,
  and then match components of the current booted OS. Also allow 10.10.x format meaning all revisions
  of the 10.10 OS */
-//BOOLEAN IsOSValid(CHAR8 *MatchOS, CHAR8 *CurrOS);
+//BOOLEAN IsOSValid (CHAR8 *MatchOS, CHAR8 *CurrOS);
 
 /** return MatchOSes struct (count+array) with the components of str that contains the given char sep as separator. */
-//struct MatchOSes *GetStrArraySeparatedByChar(CHAR8 *str, CHAR8 sep);
+//struct MatchOSes *GetStrArraySeparatedByChar (CHAR8 *str, CHAR8 sep);
 
 /** free MatchOSes struct and its array. */
-//VOID deallocMatchOSes(struct MatchOSes *s);
+//VOID deallocMatchOSes (struct MatchOSes *s);
 
-/** count occurrences of a given char in a char* string. */
-//INTN countOccurrences(CHAR8 *s, CHAR8 c);
+/** count occurrences of a given char in a char * string. */
+//INTN CountOccurrences (CHAR8 *s, CHAR8 c);
 
-CHAR16  *AddLoadOption(IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
-CHAR16  *RemoveLoadOption(IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
-CHAR16  *ToggleLoadOptions(UINT32 State, IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
+CHAR16  *AddLoadOption (IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
+CHAR16  *RemoveLoadOption (IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
+CHAR16  *ToggleLoadOptions (UINT32 State, IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
 
-BOOLEAN IsHDMIAudio(EFI_HANDLE PciDevHandle);
+BOOLEAN IsHDMIAudio (EFI_HANDLE PciDevHandle);
 
 //
 // PlatformDriverOverride.c
@@ -1766,6 +1751,12 @@ ParseSMBIOSSettings (
   TagPtr dictPointer
 );
 
+BOOLEAN
+CopyKernelAndKextPatches (
+  IN OUT KERNEL_AND_KEXT_PATCHES   *Dst,
+  IN     KERNEL_AND_KEXT_PATCHES   *Src
+);
+
 //
 // Hibernate.c
 //
@@ -1783,28 +1774,22 @@ PrepareHibernation (
   IN REFIT_VOLUME *Volume
 );
 
-INTN
-countOccurrences (
-  CHAR8   *s,
-  CHAR8   c
-);
-
-//UINT64 AsciiStrVersionToUint64(CONST CHAR8 *Version, UINT8 MaxDigitByPart, UINT8 MaxParts);
+//UINT64 AsciiStrVersionToUint64 (CONST CHAR8 *Version, UINT8 MaxDigitByPart, UINT8 MaxParts);
 /* Macro to use the AsciiStrVersionToUint64 for OSX Version strings */
-#define AsciiOSVersionToUint64(version) AsciiStrVersionToUint64(version, 2, 3)
+#define AsciiOSVersionToUint64(version) AsciiStrVersionToUint64 (version, 2, 3)
 
-#define OSX_LT(OSVersion, CurrVer) (OSVersion && (AsciiOSVersionToUint64(OSVersion) < AsciiOSVersionToUint64(CurrVer)))
-#define OSX_LE(OSVersion, CurrVer) (OSVersion && (AsciiOSVersionToUint64(OSVersion) <= AsciiOSVersionToUint64(CurrVer)))
-#define OSX_GT(OSVersion, CurrVer) (OSVersion && (AsciiOSVersionToUint64(OSVersion) > AsciiOSVersionToUint64(CurrVer)))
-#define OSX_GE(OSVersion, CurrVer) (OSVersion && (AsciiOSVersionToUint64(OSVersion) >= AsciiOSVersionToUint64(CurrVer)))
+#define OSX_LT(OSVersion, CurrVer) (OSVersion && (AsciiOSVersionToUint64 (OSVersion) < AsciiOSVersionToUint64 (CurrVer)))
+#define OSX_LE(OSVersion, CurrVer) (OSVersion && (AsciiOSVersionToUint64 (OSVersion) <= AsciiOSVersionToUint64 (CurrVer)))
+#define OSX_GT(OSVersion, CurrVer) (OSVersion && (AsciiOSVersionToUint64 (OSVersion) > AsciiOSVersionToUint64 (CurrVer)))
+#define OSX_GE(OSVersion, CurrVer) (OSVersion && (AsciiOSVersionToUint64 (OSVersion) >= AsciiOSVersionToUint64 (CurrVer)))
 
 UINT8 GetOSTypeFromPath (IN  CHAR16 *Path);
 
 extern CONST CHAR16 *OsxPathLCaches[];
-extern CONST UINTN OsxPathLCachesCount;
+extern CONST UINTN  OsxPathLCachesCount;
 
 #define OSX_PATH_SLE L"\\System\\Library\\Extensions"
-//#define OSX_VER_UNDETECTED "10.10.10"
+
 extern CHAR8  *OsVerUndetected;
 
 //
@@ -1819,7 +1804,8 @@ typedef EG_IMAGE * (*EG_DECODE_FUNC)(IN UINT8 *FileData, IN UINTN FileDataLength
 
 /* functions */
 
-VOID egRestrictImageArea (
+VOID
+RestrictImageArea (
   IN EG_IMAGE   *Image,
   IN INTN       AreaPosX,
   IN INTN       AreaPosY,
@@ -1827,48 +1813,49 @@ VOID egRestrictImageArea (
   IN OUT INTN   *AreaHeight
 );
 
-VOID egRawCopy (
-  IN OUT EG_PIXEL *CompBasePtr,
-  IN EG_PIXEL *TopBasePtr,
-  IN INTN Width,
-  IN INTN Height,
-  IN INTN CompLineOffset,
-  IN INTN TopLineOffset
+VOID
+RawCopy (
+  IN OUT EG_PIXEL   *CompBasePtr,
+  IN EG_PIXEL       *TopBasePtr,
+  IN INTN           Width,
+  IN INTN           Height,
+  IN INTN           CompLineOffset,
+  IN INTN           TopLineOffset
 );
 
-VOID egRawCompose (
-  IN OUT EG_PIXEL *CompBasePtr,
-  IN EG_PIXEL *TopBasePtr,
-  IN INTN Width,
-  IN INTN Height,
-  IN INTN CompLineOffset,
-  IN INTN TopLineOffset
+VOID
+RawCompose (
+  IN OUT EG_PIXEL   *CompBasePtr,
+  IN EG_PIXEL       *TopBasePtr,
+  IN INTN           Width,
+  IN INTN           Height,
+  IN INTN           CompLineOffset,
+  IN INTN           TopLineOffset
 );
 
-VOID egRawComposeOnFlat (
-  IN OUT EG_PIXEL *CompBasePtr,
-  IN EG_PIXEL *TopBasePtr,
-  IN INTN Width,
-  IN INTN Height,
-  IN INTN CompLineOffset,
-  IN INTN TopLineOffset
+VOID
+RawComposeOnFlat (
+  IN OUT EG_PIXEL   *CompBasePtr,
+  IN EG_PIXEL       *TopBasePtr,
+  IN INTN           Width,
+  IN INTN           Height,
+  IN INTN           CompLineOffset,
+  IN INTN           TopLineOffset
 );
 
-VOID egDecompressIcnsRLE(IN OUT UINT8 **CompData, IN OUT UINTN *CompLen, IN UINT8 *DestPlanePtr, IN UINTN PixelCount);
-VOID egInsertPlane(IN UINT8 *SrcDataPtr, IN UINT8 *DestPlanePtr, IN UINTN PixelCount);
-VOID egSetPlane(IN UINT8 *DestPlanePtr, IN UINT8 Value, IN UINT64 PixelCount);
-VOID egCopyPlane(IN UINT8 *SrcPlanePtr, IN UINT8 *DestPlanePtr, IN UINTN PixelCount);
+VOID DecompressIcnsRLE (IN OUT UINT8 **CompData, IN OUT UINTN *CompLen, IN UINT8 *DestPlanePtr, IN UINTN PixelCount);
+VOID InsertPlane (IN UINT8 *SrcDataPtr, IN UINT8 *DestPlanePtr, IN UINTN PixelCount);
+VOID SetPlane (IN UINT8 *DestPlanePtr, IN UINT8 Value, IN UINT64 PixelCount);
+VOID CopyPlane (IN UINT8 *SrcPlanePtr, IN UINT8 *DestPlanePtr, IN UINTN PixelCount);
 
-EG_IMAGE * egDecodeBMP(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha);
-EG_IMAGE * egDecodeICNS(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha);
-EG_IMAGE * egDecodePNG(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha);
+EG_IMAGE * DecodeBMP (IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha);
+EG_IMAGE * DecodeICNS (IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha);
+EG_IMAGE * DecodePNG (IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha);
 
-VOID egEncodeBMP(IN EG_IMAGE *Image, OUT UINT8 **FileData, OUT UINTN *FileDataLength);
+VOID EncodeBMP (IN EG_IMAGE *Image, OUT UINT8 **FileData, OUT UINTN *FileDataLength);
 
-//#define DEC_BUILTIN_ICON(id, ico) BuiltinIconTable[id].Image = DEC_PNG_BUILTIN(ico)
-//#define DEC_PNG_BUILTIN(ico) egDecodePNG(&ico[0], ARRAY_SIZE(ico), 0, TRUE)
-#define DEC_PNG_BUILTIN(ico) egDecodePNG(ico, ARRAY_SIZE(ico), 0, TRUE)
+#define DEC_PNG_BUILTIN(ico) DecodePNG (ico, ARRAY_SIZE (ico), 0, TRUE)
 
-VOID hehe();
+VOID hehe ();
 
 #endif

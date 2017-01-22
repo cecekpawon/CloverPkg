@@ -14,7 +14,7 @@
 #define DEBUG_MAC_ADDRESS DEBUG_ALL
 #endif
 
-#define DBG(...) DebugLog(DEBUG_MAC_ADDRESS, __VA_ARGS__)
+#define DBG(...) DebugLog (DEBUG_MAC_ADDRESS, __VA_ARGS__)
 
 extern UINTN                            nLanCards;     // number of LAN cards
 extern UINTN                            nLanPaths;     // number of UEFI LAN
@@ -47,7 +47,7 @@ extern BOOLEAN                          GetLegacyLanAddress;
 #define EMAC_MACADDR3_LO                0x0000042C
 
 VOID
-GetMacAddress() {
+GetMacAddress () {
   EFI_STATUS                  Status;
   EFI_MAC_ADDRESS             MacAddr;
   UINTN                       HwAddressSize, Index, Index2, Offset, NumberOfHandles;
@@ -78,7 +78,7 @@ GetMacAddress() {
     return;
   }
 
-  DbgHeader("GetMacAddress");
+  DbgHeader ("GetMacAddress");
 
   Found = FALSE;
   for (Index = 0; Index < NumberOfHandles; Index++) {
@@ -104,22 +104,22 @@ GetMacAddress() {
         //
         // Get MAC address.
         //
-        MacAddressNode = (MAC_ADDR_DEVICE_PATH*)DevicePath;
+        MacAddressNode = (MAC_ADDR_DEVICE_PATH *)DevicePath;
         //HwAddressSize = sizeof (EFI_MAC_ADDRESS);
         //if (MacAddressNode->IfType == 0x01 || MacAddressNode->IfType == 0x00) {
         //  HwAddressSize = 6;
         //}
-        CopyMem(&MacAddr, &MacAddressNode->MacAddress.Addr[0], HwAddressSize);
-        MsgLog("MAC address of LAN #%d = ", nLanPaths);
+        CopyMem (&MacAddr, &MacAddressNode->MacAddress.Addr[0], HwAddressSize);
+        MsgLog ("MAC address of LAN #%d = ", nLanPaths);
         HwAddress = &MacAddressNode->MacAddress.Addr[0];
 
         for (Index2 = 0; Index2 < HwAddressSize; Index2++) {
-          MsgLog("%a%02x", !Index2 ? "" : ":", *HwAddress++);
+          MsgLog ("%a%02x", !Index2 ? "" : ":", *HwAddress++);
         }
 
-        MsgLog("\n");
+        MsgLog ("\n");
         Found = TRUE;
-        CopyMem(&gLanMac[nLanPaths++], &MacAddressNode->MacAddress.Addr[0], HwAddressSize);
+        CopyMem (&gLanMac[nLanPaths++], &MacAddressNode->MacAddress.Addr[0], HwAddressSize);
         break;
       }
 
@@ -141,7 +141,7 @@ GetMacAddress() {
     //  Legacy boot. Get MAC-address from hardwaredirectly
     //
     ////
-    DBG("Legacy LAN MAC, %d card found\n", nLanCards);
+    DBG ("Legacy LAN MAC, %d card found\n", nLanCards);
     for (Index = 0; Index < nLanCards; Index++) {
       if (!gLanMmio[Index]) {  //security
         continue;
@@ -157,12 +157,12 @@ GetMacAddress() {
           } else {
             Offset = B2_MAC_1;
           }
-          CopyMem(&gLanMac[0][Index], gLanMmio[Index] + Offset, 6);
+          CopyMem (&gLanMac[0][Index], gLanMmio[Index] + Offset, 6);
           goto done;
 
         case 0x10ec:   //Realtek
-          Mac0 = IoRead32((UINTN)gLanMmio[Index]);
-          Mac4 = IoRead32((UINTN)gLanMmio[Index] + 4);
+          Mac0 = IoRead32 ((UINTN)gLanMmio[Index]);
+          Mac4 = IoRead32 ((UINTN)gLanMmio[Index] + 4);
           goto copy;
 
         case 0x14e4:   //Broadcom
@@ -194,8 +194,8 @@ GetMacAddress() {
         continue;
       }
 
-      Mac0 = *(UINT32*)(gLanMmio[Index] + Offset);
-      Mac4 = *(UINT32*)(gLanMmio[Index] + Offset + 4);
+      Mac0 = *(UINT32 *)(gLanMmio[Index] + Offset);
+      Mac4 = *(UINT32 *)(gLanMmio[Index] + Offset + 4);
 
       if (Swab) {
         gLanMac[Index][0] = (UINT8)((Mac4 & 0xFF00) >> 8);
@@ -208,18 +208,18 @@ GetMacAddress() {
       }
 
     copy:
-      CopyMem(&gLanMac[Index][0], &Mac0, 4);
-      CopyMem(&gLanMac[Index][4], &Mac4, 2);
+      CopyMem (&gLanMac[Index][0], &Mac0, 4);
+      CopyMem (&gLanMac[Index][4], &Mac4, 2);
 
     done:
       PreviousVendor = gLanVendor[Index];
-      MsgLog("Legacy MAC address of LAN #%d = ", Index);
+      MsgLog ("Legacy MAC address of LAN #%d = ", Index);
       HwAddress = &gLanMac[Index][0];
       for (Index2 = 0; Index2 < HwAddressSize; Index2++) {
-        MsgLog("%a%02x", !Index2 ? "" : ":", *HwAddress++);
+        MsgLog ("%a%02x", !Index2 ? "" : ":", *HwAddress++);
       }
 
-      MsgLog("\n");
+      MsgLog ("\n");
     }
   }
 }

@@ -18,13 +18,13 @@
 #define CPUID_MODEL_MEROM                   15
 #define CPUID_MODEL_PENRYN                  35
 
-#define MACH_GET_MAGIC(hdr)                 (((struct mach_header_64*)(hdr))->magic)
-#define MACH_GET_NCMDS(hdr)                 (((struct mach_header_64*)(hdr))->ncmds)
-#define MACH_GET_CPU(hdr)                   (((struct mach_header_64*)(hdr))->cputype)
-#define MACH_GET_FLAGS(hdr)                 (((struct mach_header_64*)(hdr))->flags)
-#define SC_GET_CMD(hdr)                     (((struct segment_command_64*)(hdr))->cmd)
+#define MACH_GET_MAGIC(hdr)                 (((struct mach_header_64 *)(hdr))->magic)
+#define MACH_GET_NCMDS(hdr)                 (((struct mach_header_64 *)(hdr))->ncmds)
+#define MACH_GET_CPU(hdr)                   (((struct mach_header_64 *)(hdr))->cputype)
+#define MACH_GET_FLAGS(hdr)                 (((struct mach_header_64 *)(hdr))->flags)
+#define SC_GET_CMD(hdr)                     (((struct segment_command_64 *)(hdr))->cmd)
 
-#define PTR_OFFSET(SourcePtr, Offset, ReturnType) ((ReturnType)(((UINT8*)SourcePtr) + Offset))
+#define PTR_OFFSET(SourcePtr, Offset, ReturnType) ((ReturnType)(((UINT8 *)SourcePtr) + Offset))
 
 #define kLinkeditSegment                    "__LINKEDIT"
 
@@ -151,7 +151,7 @@ KernelAndKextsPatcherStart (
 );
 
 //
-// Called from SetFSInjection(), before boot.efi is started,
+// Called from SetFSInjection (), before boot.efi is started,
 // to allow patchers to prepare FSInject to force load needed kexts.
 //
 VOID
@@ -222,7 +222,7 @@ AnyKextPatch (
 //);
 
 BOOLEAN
-isPatchNameMatch (
+IsPatchNameMatch (
   CHAR8   *BundleIdentifier,
   CHAR8   *Name,
   CHAR8   *InfoPlist,

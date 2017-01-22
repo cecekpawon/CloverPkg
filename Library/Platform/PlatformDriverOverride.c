@@ -22,7 +22,7 @@
 #define DEBUG_PLATFORM_DRIVER DEBUG_ALL
 #endif
 
-#define DBG(...) DebugLog(DEBUG_PLATFORM_DRIVER, __VA_ARGS__)
+#define DBG(...) DebugLog (DEBUG_PLATFORM_DRIVER, __VA_ARGS__)
 
 /** NULL terminated list of driver's handles that will be served by EFI_PLATFORM_DRIVER_OVERRIDE_PROTOCOL. */
 EFI_HANDLE  *mPriorityDrivers = NULL;
@@ -116,40 +116,40 @@ OurPlatformDriverLoaded (
                   (VOID **) &BlkIo
                 );
 
-  if (EFI_ERROR(Status)) {
+  if (EFI_ERROR (Status)) {
     return EFI_UNSUPPORTED;
   }
 
   Status = gBS->OpenProtocol (
                    DriverImageHandle,
                    &gEfiComponentNameProtocolGuid,
-                   (VOID**)&CompName,
+                   (VOID **)&CompName,
                    gImageHandle,
                    NULL,
                    EFI_OPEN_PROTOCOL_GET_PROTOCOL
                  );
 
-  if (EFI_ERROR(Status)) {
-    DBG(" CompName %r\n", Status);
+  if (EFI_ERROR (Status)) {
+    DBG (" CompName %r\n", Status);
     return EFI_UNSUPPORTED;
   }
 
-  Status = CompName->GetDriverName(CompName, "eng", &DriverName);
-  if (!EFI_ERROR(Status)) {
-    DBG(" DriverName=%s at Controller=%x\n", DriverName, ControllerHandle);
+  Status = CompName->GetDriverName (CompName, "eng", &DriverName);
+  if (!EFI_ERROR (Status)) {
+    DBG (" DriverName=%s at Controller=%x\n", DriverName, ControllerHandle);
   }
 
 #endif
 
   if (mOrigPlatformDriverLoaded) {
-    return mOrigPlatformDriverLoaded(This, ControllerHandle, DriverImagePath, DriverImageHandle);
+    return mOrigPlatformDriverLoaded (This, ControllerHandle, DriverImagePath, DriverImageHandle);
   }
 
   return EFI_UNSUPPORTED;
 }
 
 /** Our EFI_PLATFORM_DRIVER_OVERRIDE_PROTOCOL structure. */
-EFI_PLATFORM_DRIVER_OVERRIDE_PROTOCOL mOurPlatformDriverOverrideProtocol = {
+EFI_PLATFORM_DRIVER_OVERRIDE_PROTOCOL   mOurPlatformDriverOverrideProtocol = {
   OurPlatformGetDriver,
   OurPlatformGetDriverPath,
   OurPlatformDriverLoaded
@@ -166,14 +166,14 @@ EFI_PLATFORM_DRIVER_OVERRIDE_PROTOCOL mOurPlatformDriverOverrideProtocol = {
 EFI_STATUS
 EFIAPI
 OvrPlatformGetDriver (
-  IN EFI_PLATFORM_DRIVER_OVERRIDE_PROTOCOL      *This,
-  IN     EFI_HANDLE                             ControllerHandle,
-  IN OUT EFI_HANDLE                             *DriverImageHandle
+  IN      EFI_PLATFORM_DRIVER_OVERRIDE_PROTOCOL  *This,
+  IN      EFI_HANDLE                             ControllerHandle,
+  IN OUT  EFI_HANDLE                             *DriverImageHandle
 ) {
   EFI_HANDLE     *HandlePtr;
 
   if (mPriorityDrivers == NULL) {
-    return mOrigPlatformGetDriver(This, ControllerHandle, DriverImageHandle);
+    return mOrigPlatformGetDriver (This, ControllerHandle, DriverImageHandle);
   }
 
   // if first call - return first
@@ -198,7 +198,7 @@ OvrPlatformGetDriver (
   }
 
   // not found in our list, or was last in our list - call original
-  return mOrigPlatformGetDriver(This, ControllerHandle, DriverImageHandle);
+  return mOrigPlatformGetDriver (This, ControllerHandle, DriverImageHandle);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -219,9 +219,9 @@ RegisterDriversToHighestPriority (
   EFI_STATUS                                Status;
 
   mPriorityDrivers = PriorityDrivers;
-  Status = gBS->LocateProtocol(&gEfiPlatformDriverOverrideProtocolGuid, NULL, (VOID **) &PlatformDriverOverride);
-  if (EFI_ERROR(Status)) {
-    DBG("PlatformDriverOverrideProtocol not found. Installing ... ");
+  Status = gBS->LocateProtocol (&gEfiPlatformDriverOverrideProtocolGuid, NULL, (VOID **) &PlatformDriverOverride);
+  if (EFI_ERROR (Status)) {
+    DBG ("PlatformDriverOverrideProtocol not found. Installing ... ");
     Status = gBS->InstallMultipleProtocolInterfaces (
                      &gImageHandle,
                      &gEfiPlatformDriverOverrideProtocolGuid,
@@ -229,14 +229,13 @@ RegisterDriversToHighestPriority (
                      NULL
                    );
 
-    DBG("%r\n", Status);
+    DBG ("%r\n", Status);
     return;
   }
 
   mOrigPlatformGetDriver = PlatformDriverOverride->GetDriver;
   PlatformDriverOverride->GetDriver = OvrPlatformGetDriver;
-  DBG("PlatformDriverOverrideProtocol->GetDriver overriden\n");
+  DBG ("PlatformDriverOverrideProtocol->GetDriver overriden\n");
   mOrigPlatformDriverLoaded = PlatformDriverOverride->DriverLoaded;
   PlatformDriverOverride->DriverLoaded = OurPlatformDriverLoaded;
 }
-

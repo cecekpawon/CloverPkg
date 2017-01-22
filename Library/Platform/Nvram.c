@@ -18,7 +18,7 @@
 #define DEBUG_NVRAM DEBUG_ALL
 #endif
 
-#define DBG(...) DebugLog(DEBUG_NVRAM, __VA_ARGS__)
+#define DBG(...) DebugLog (DEBUG_NVRAM, __VA_ARGS__)
 
 EFI_DEVICE_PATH_PROTOCOL    // always contains original efi-boot-device-data
                             *gEfiBootDeviceData,
@@ -53,7 +53,7 @@ GetEfiTimeInMs (
   TimeMs = MultU64x32 (TimeMs, 24)   + T->Hour;
   TimeMs = MultU64x32 (TimeMs, 60)   + T->Minute;
   TimeMs = MultU64x32 (TimeMs, 60)   + T->Second;
-  TimeMs = MultU64x32 (TimeMs, 1000) + DivU64x32(T->Nanosecond, 1000000);
+  TimeMs = MultU64x32 (TimeMs, 1000) + DivU64x32 (T->Nanosecond, 1000000);
 
   return TimeMs;
 }
@@ -78,7 +78,7 @@ GetSmcKeys () {
     return;
   }
 
-  DBG("Dump SMC keys from NVRAM:\n");
+  DBG ("Dump SMC keys from NVRAM:\n");
 
   while (TRUE) {
     NewNameSize = NameSize;
@@ -97,25 +97,25 @@ GetSmcKeys () {
       break;  //no more variables
     }
 
-    if (StriStr(Name, L"fakesmc") == NULL) {
+    if (StriStr (Name, L"fakesmc") == NULL) {
       continue; //the variable is not interesting for us
     }
 
     Data = GetNvramVariable (Name, &Guid, NULL, &DataSize);
     if (Data) {
       Found = TRUE;
-      DBG(" - %s:", Name);
+      DBG (" - %s:", Name);
       for (Index = 0; Index < DataSize; Index++) {
-        DBG("%02x ", *((UINT8*)Data + Index));
+        DBG ("%02x ", *((UINT8 *)Data + Index));
       }
 
-      DBG("\n");
+      DBG ("\n");
       FreePool (Data);
     }
   }
 
   if (!Found) {
-    DBG(" - none\n");
+    DBG (" - none\n");
   }
 
   FreePool (Name);
@@ -123,8 +123,8 @@ GetSmcKeys () {
 #endif
 
 /** Reads and returns value of NVRAM variable. */
-VOID
-*GetNvramVariable (
+VOID *
+GetNvramVariable (
   IN  CHAR16      *VariableName,
   IN  EFI_GUID    *VendorGuid,
   OUT UINT32      *Attributes    OPTIONAL,
@@ -186,7 +186,7 @@ SetNvramVariable (
   OldData = GetNvramVariable (VariableName, VendorGuid, &OldAttributes, &OldDataSize);
   if (OldData != NULL) {
     // var already exists - check if it equal to new value
-    //DBG (" exists(0x%x, %d)", OldAttributes, OldDataSize);
+    //DBG (" exists (0x%x, %d)", OldAttributes, OldDataSize);
     if (
       (OldAttributes == Attributes) &&
       (OldDataSize == DataSize) &&
@@ -255,8 +255,8 @@ DeleteNvramVariable (
 
 
 /** Searches for GPT HDD dev path node and return pointer to partition GUID or NULL. */
-EFI_GUID
-*FindGPTPartitionGuidInDevicePath (
+EFI_GUID *
+FindGPTPartitionGuidInDevicePath (
   IN EFI_DEVICE_PATH_PROTOCOL *DevicePath
 ) {
   HARDDRIVE_DEVICE_PATH   *HDDDevPath;
@@ -267,26 +267,25 @@ EFI_GUID
   }
 
   while (
-    !IsDevicePathEndType(DevicePath) &&
-    !((DevicePathType(DevicePath) == MEDIA_DEVICE_PATH) && (DevicePathSubType (DevicePath) == MEDIA_HARDDRIVE_DP))
+    !IsDevicePathEndType (DevicePath) &&
+    !((DevicePathType (DevicePath) == MEDIA_DEVICE_PATH) && (DevicePathSubType (DevicePath) == MEDIA_HARDDRIVE_DP))
   ) {
-    DevicePath = NextDevicePathNode(DevicePath);
+    DevicePath = NextDevicePathNode (DevicePath);
   }
 
   if (
-    (DevicePathType(DevicePath) == MEDIA_DEVICE_PATH) &&
+    (DevicePathType (DevicePath) == MEDIA_DEVICE_PATH) &&
     (DevicePathSubType (DevicePath) == MEDIA_HARDDRIVE_DP)
   ) {
-    HDDDevPath = (HARDDRIVE_DEVICE_PATH*)DevicePath;
+    HDDDevPath = (HARDDRIVE_DEVICE_PATH *)DevicePath;
 
     if (HDDDevPath->SignatureType == SIGNATURE_TYPE_GUID) {
-      Guid = (EFI_GUID*)HDDDevPath->Signature;
+      Guid = (EFI_GUID *)HDDDevPath->Signature;
     }
   }
 
   return Guid;
 }
-
 
 /** detailed debug for BootVolumeDevicePathEqual */
 #define DBG_DP(...)
@@ -330,9 +329,9 @@ BootVolumeDevicePathEqual (
 
     //
     // Some eSata device can have path:
-    //  PciRoot(0x0)/Pci(0x1C,0x5)/Pci(0x0,0x0)/VenHw(CF31FAC5-C24E-11D2-85F3-00A0C93EC93B,80)
+    //  PciRoot (0x0)/Pci (0x1C,0x5)/Pci (0x0,0x0)/VenHw (CF31FAC5-C24E-11D2-85F3-00A0C93EC93B,80)
     // while OSX can set it as
-    //  PciRoot(0x0)/Pci(0x1C,0x5)/Pci(0x0,0x0)/Sata(0x0,0x0,0x0)
+    //  PciRoot (0x0)/Pci (0x1C,0x5)/Pci (0x0,0x0)/Sata (0x0,0x0,0x0)
     // we'll assume VenHw and Sata nodes to be equal to cover that
     //
     if ((Type1 == MESSAGING_DEVICE_PATH) && (SubType1 == MSG_SATA_DP)) {
@@ -429,8 +428,8 @@ BootVolumeDevicePathEqual (
  *  If SubType == 0 then it is ignored.
  */
 
-EFI_DEVICE_PATH_PROTOCOL
-*FindDevicePathNodeWithType (
+EFI_DEVICE_PATH_PROTOCOL *
+FindDevicePathNodeWithType (
   IN  EFI_DEVICE_PATH_PROTOCOL    *DevicePath,
   IN  UINT8                       Type,
   IN  UINT8                       SubType OPTIONAL
@@ -491,7 +490,7 @@ GetEfiBootDeviceFromNvram () {
   EFI_GUID                *Guid;
   FILEPATH_DEVICE_PATH    *FileDevPath;
 
-  DbgHeader("GetEfiBootDeviceFromNvram");
+  DbgHeader ("GetEfiBootDeviceFromNvram");
   //DBG ("GetEfiBootDeviceFromNvram:");
 
   if (gEfiBootDeviceData != NULL) {
@@ -502,12 +501,12 @@ GetEfiBootDeviceFromNvram () {
   gEfiBootDeviceData = GetNvramVariable (L"efi-boot-next-data", &gEfiAppleBootGuid, NULL, &Size);
 
   if (gEfiBootDeviceData != NULL) {
-    //DBG("Got efi-boot-next-data size=%d\n", Size);
-    if (IsDevicePathValid(gEfiBootDeviceData, Size)) {
-      //DBG(" - efi-boot-next-data: %s\n", FileDevicePathToStr (gEfiBootDeviceData));
+    //DBG ("Got efi-boot-next-data size=%d\n", Size);
+    if (IsDevicePathValid (gEfiBootDeviceData, Size)) {
+      //DBG (" - efi-boot-next-data: %s\n", FileDevicePathToStr (gEfiBootDeviceData));
     } else {
-      //DBG(" - device path for efi-boot-next-data is invalid\n");
-      FreePool(gEfiBootDeviceData);
+      //DBG (" - device path for efi-boot-next-data is invalid\n");
+      FreePool (gEfiBootDeviceData);
       gEfiBootDeviceData = NULL;
     }
   }
@@ -515,10 +514,10 @@ GetEfiBootDeviceFromNvram () {
   if (gEfiBootDeviceData == NULL) {
     gEfiBootDeviceData = GetNvramVariable (L"efi-boot-device-data", &gEfiAppleBootGuid, NULL, &Size);
     if (gEfiBootDeviceData != NULL) {
-      //DBG("Got efi-boot-device-data size=%d\n", Size);
-      if (!IsDevicePathValid(gEfiBootDeviceData, Size)) {
-        //DBG(" - device path for efi-boot-device-data is invalid\n");
-        FreePool(gEfiBootDeviceData);
+      //DBG ("Got efi-boot-device-data size=%d\n", Size);
+      if (!IsDevicePathValid (gEfiBootDeviceData, Size)) {
+        //DBG (" - device path for efi-boot-device-data is invalid\n");
+        FreePool (gEfiBootDeviceData);
         gEfiBootDeviceData = NULL;
       }
     }
@@ -539,7 +538,7 @@ GetEfiBootDeviceFromNvram () {
   // then Startup Disk sets BootCampHD to Win disk dev path.
   //
   if (
-    (DevicePathType(gEfiBootDeviceData) == HARDWARE_DEVICE_PATH) &&
+    (DevicePathType (gEfiBootDeviceData) == HARDWARE_DEVICE_PATH) &&
     (DevicePathSubType (gEfiBootDeviceData) == HW_MEMMAP_DP)
   ) {
     gBootCampHD = GetNvramVariable (L"BootCampHD", &gEfiAppleBootGuid, NULL, &Size);
@@ -550,9 +549,9 @@ GetEfiBootDeviceFromNvram () {
       return EFI_NOT_FOUND;
     }
 
-    if (!IsDevicePathValid(gBootCampHD, Size)) {
+    if (!IsDevicePathValid (gBootCampHD, Size)) {
       //DBG (" Error: BootCampHD device path is invalid\n");
-      FreePool(gBootCampHD);
+      FreePool (gBootCampHD);
       gEfiBootVolume = gBootCampHD = NULL;
       return EFI_NOT_FOUND;
     }
@@ -567,7 +566,7 @@ GetEfiBootDeviceFromNvram () {
 
   FileDevPath = (FILEPATH_DEVICE_PATH *)FindDevicePathNodeWithType (gEfiBootVolume, MEDIA_DEVICE_PATH, MEDIA_FILEPATH_DP);
   if (FileDevPath != NULL) {
-    gEfiBootLoaderPath = AllocateCopyPool (StrSize(FileDevPath->PathName), FileDevPath->PathName);
+    gEfiBootLoaderPath = AllocateCopyPool (StrSize (FileDevPath->PathName), FileDevPath->PathName);
     // copy DevPath and write end of path node after in place of file path node
     gEfiBootVolume = DuplicateDevicePath (gEfiBootVolume);
     FileDevPath = (FILEPATH_DEVICE_PATH *)FindDevicePathNodeWithType (gEfiBootVolume, MEDIA_DEVICE_PATH, MEDIA_FILEPATH_DP);
@@ -584,10 +583,10 @@ GetEfiBootDeviceFromNvram () {
   //
   Guid = FindGPTPartitionGuidInDevicePath (gEfiBootVolume);
   if (Guid != NULL) {
-    gEfiBootDeviceGuid = AllocatePool (sizeof(EFI_GUID));
+    gEfiBootDeviceGuid = AllocatePool (sizeof (EFI_GUID));
 
     if (gEfiBootDeviceGuid != NULL) {
-      CopyMem (gEfiBootDeviceGuid, Guid, sizeof(EFI_GUID));
+      CopyMem (gEfiBootDeviceGuid, Guid, sizeof (EFI_GUID));
       DBG ("  - Guid = %g\n", gEfiBootDeviceGuid);
     }
   }
@@ -623,7 +622,7 @@ FindStartupDiskVolume (
     return -1;
   }
 
-  DbgHeader("FindStartupDiskVolume");
+  DbgHeader ("FindStartupDiskVolume");
   //DBG ("FindStartupDiskVolume searching ...\n");
 
   //
@@ -635,7 +634,7 @@ FindStartupDiskVolume (
 
   //
   // 1. gEfiBootVolume + gEfiBootLoaderPath
-  // PciRoot(0x0)/.../Sata(...)/HD(...)/\EFI\BOOT\XXX.EFI - set by Clover
+  // PciRoot (0x0)/.../Sata (...)/HD (...)/\EFI\BOOT\XXX.EFI - set by Clover
   //
   if (gEfiBootLoaderPath != NULL) {
     DBG ("   - searching for that partition and loader '%s'\n", gEfiBootLoaderPath);
@@ -645,11 +644,11 @@ FindStartupDiskVolume (
         Volume = LoaderEntry->Volume;
         LoaderPath = LoaderEntry->LoaderPath;
 
-        if ((Volume != NULL) && BootVolumeDevicePathEqual(gEfiBootVolume, Volume->DevicePath)) {
+        if ((Volume != NULL) && BootVolumeDevicePathEqual (gEfiBootVolume, Volume->DevicePath)) {
           //DBG ("  checking '%s'\n", DevicePathToStr (Volume->DevicePath));
           //DBG ("   '%s'\n", LoaderPath);
           // case insensitive cmp
-          if ((LoaderPath != NULL) && (StriCmp(gEfiBootLoaderPath, LoaderPath) == 0)) {
+          if ((LoaderPath != NULL) && (StriCmp (gEfiBootLoaderPath, LoaderPath) == 0)) {
             // that's the one
             DBG ("    - found entry %d. '%s', Volume '%s', '%s'\n", Index, LoaderEntry->me.Title, Volume->VolName, LoaderPath);
             return Index;
@@ -676,7 +675,7 @@ FindStartupDiskVolume (
           //DBG ("  checking '%s'\n", DevicePathToStr (Volume->DevicePath));
           //DBG ("   '%s'\n", LoaderPath);
           // case insensitive cmp
-          if ((LoaderPath != NULL) && (StriCmp(gEfiBootLoaderPath, LoaderPath) == 0)) {
+          if ((LoaderPath != NULL) && (StriCmp (gEfiBootLoaderPath, LoaderPath) == 0)) {
             // that's the one
             DBG ("   - found entry %d. '%s', Volume '%s', '%s'\n", Index, LoaderEntry->me.Title, Volume->VolName, LoaderPath);
             return Index;
@@ -690,20 +689,19 @@ FindStartupDiskVolume (
 
   //
   // 2. gEfiBootVolume - partition volume
-  // PciRoot(0x0)/.../Sata(...)/HD(...) - set by Clover or OSX
+  // PciRoot (0x0)/.../Sata (...)/HD (...) - set by Clover or OSX
   //
   if (IsPartitionVolume) {
     DBG ("   - searching for that partition\n");
     for (Index = 0; ((Index < (INTN)MainMenu->EntryCount) && (MainMenu->Entries[Index]->Row == 0)); ++Index) {
       Volume = NULL;
-      /*if (MainMenu->Entries[Index]->Tag == TAG_LEGACY) {
-        LegacyEntry = (LEGACY_ENTRY *)MainMenu->Entries[Index];
-        Volume = LegacyEntry->Volume;
-      } else*/ if (MainMenu->Entries[Index]->Tag == TAG_LOADER) {
+
+      if (MainMenu->Entries[Index]->Tag == TAG_LOADER) {
         LoaderEntry = (LOADER_ENTRY *)MainMenu->Entries[Index];
         Volume = LoaderEntry->Volume;
       }
-      if (Volume != NULL && BootVolumeDevicePathEqual (gEfiBootVolume, Volume->DevicePath)) {
+
+      if ((Volume != NULL) && BootVolumeDevicePathEqual (gEfiBootVolume, Volume->DevicePath)) {
         DBG ("    - found entry %d. '%s', Volume '%s'\n", Index, MainMenu->Entries[Index]->Title, Volume->VolName);
         return Index;
       }
@@ -718,10 +716,8 @@ FindStartupDiskVolume (
 
     for (Index = 0; ((Index < (INTN)MainMenu->EntryCount) && (MainMenu->Entries[Index]->Row == 0)); ++Index) {
       Volume = NULL;
-      /*if (MainMenu->Entries[Index]->Tag == TAG_LEGACY) {
-        LegacyEntry = (LEGACY_ENTRY *)MainMenu->Entries[Index];
-        Volume = LegacyEntry->Volume;
-      } else*/ if (MainMenu->Entries[Index]->Tag == TAG_LOADER) {
+
+      if (MainMenu->Entries[Index]->Tag == TAG_LOADER) {
         LoaderEntry = (LOADER_ENTRY *)MainMenu->Entries[Index];
         Volume = LoaderEntry->Volume;
       }
@@ -737,7 +733,7 @@ FindStartupDiskVolume (
 
   //
   // 3. gEfiBootVolume - disk volume
-  // PciRoot(0x0)/.../Sata(...) - set by OSX for Win boot
+  // PciRoot (0x0)/.../Sata (...) - set by OSX for Win boot
   //
   // 3.1 First find disk volume in Volumes[]
   //
@@ -769,6 +765,7 @@ FindStartupDiskVolume (
     if (MainMenu->Entries[Index]->Tag == TAG_LOADER) {
       LoaderEntry = (LOADER_ENTRY *)MainMenu->Entries[Index];
       Volume = LoaderEntry->Volume;
+
       if ((Volume != NULL) && (Volume->WholeDiskBlockIO == DiskVolume->BlockIO)) {
         // check for Win
         //DBG ("  checking loader entry %d. %s\n", Index, LoaderEntry->me.Title);
@@ -788,23 +785,14 @@ FindStartupDiskVolume (
 
   //
   // 3.3 DiskVolume, but no Win entry
-  // PciRoot(0x0)/.../Sata(...)
+  // PciRoot (0x0)/.../Sata (...)
   // just find first menu entry on that disk?
   //
 
   DBG ("   - searching for any entry from disk '%s'\n", DiskVolume->VolName);
 
   for (Index = 0; ((Index < (INTN)MainMenu->EntryCount) && (MainMenu->Entries[Index]->Row == 0)); ++Index) {
-    /*if (MainMenu->Entries[Index]->Tag == TAG_LEGACY) {
-      LegacyEntry = (LEGACY_ENTRY *)MainMenu->Entries[Index];
-      Volume = LegacyEntry->Volume;
-      if (Volume != NULL && Volume->WholeDiskBlockIO == DiskVolume->BlockIO) {
-        // that's the one
-        DBG ("    - found legacy entry %d. '%s', Volume '%s'\n", Index, LegacyEntry->me.Title, Volume->VolName);
-
-        return Index;
-      }
-    } else */if (MainMenu->Entries[Index]->Tag == TAG_LOADER) {
+    if (MainMenu->Entries[Index]->Tag == TAG_LOADER) {
       LoaderEntry = (LOADER_ENTRY *)MainMenu->Entries[Index];
       Volume = LoaderEntry->Volume;
 
@@ -865,9 +853,9 @@ SetStartupDiskVolume (
   //
   // set efi-boot-device-data to volume dev path
   //
-  Status = SetNvramVariable (L"efi-boot-device-data", &gEfiAppleBootGuid, Attributes, GetDevicePathSize(DevPath), DevPath);
+  Status = SetNvramVariable (L"efi-boot-device-data", &gEfiAppleBootGuid, Attributes, GetDevicePathSize (DevPath), DevPath);
 
-  if (EFI_ERROR(Status)) {
+  if (EFI_ERROR (Status)) {
     return Status;
   }
 
@@ -887,7 +875,7 @@ SetStartupDiskVolume (
       "</dict></array>";
 
     Size = AsciiStrLen (EfiBootDeviceTpl) + 36;
-    EfiBootDevice = AllocateZeroPool(AsciiStrLen (EfiBootDeviceTpl) + 36);
+    EfiBootDevice = AllocateZeroPool (AsciiStrLen (EfiBootDeviceTpl) + 36);
     AsciiSPrint (EfiBootDevice, Size, EfiBootDeviceTpl, Guid);
     Size = AsciiStrLen (EfiBootDevice);
     DBG ("  * efi-boot-device: %a\n", EfiBootDevice);

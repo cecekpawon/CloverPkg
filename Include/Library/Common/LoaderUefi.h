@@ -23,7 +23,7 @@ typedef INT32     cpu_subtype_t;
 typedef INT32     vm_prot_t;
 
 struct mach_header_64 {
-  UINT32           magic;           /* mach magic number identifier */
+  UINT32          magic;           /* mach magic number identifier */
   cpu_type_t      cputype;          /* cpu specifier */
   cpu_subtype_t   cpusubtype;       /* machine specifier */
   UINT32          filetype;         /* type of file */
@@ -96,7 +96,7 @@ struct nlist_64 {
  */
 struct symtab_command {
   uint32_t  cmd;      /* LC_SYMTAB */
-  uint32_t  cmdsize;  /* sizeof(struct symtab_command) */
+  uint32_t  cmdsize;  /* sizeof (struct symtab_command) */
   uint32_t  symoff;   /* symbol table offset */
   uint32_t  nsyms;    /* number of symbol table entries */
   uint32_t  stroff;   /* string table offset */
