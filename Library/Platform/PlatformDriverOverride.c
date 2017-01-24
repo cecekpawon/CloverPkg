@@ -113,7 +113,7 @@ OurPlatformDriverLoaded (
   Status = gBS->HandleProtocol (
                   ControllerHandle,
                   &gEfiBlockIoProtocolGuid,
-                  (VOID **) &BlkIo
+                  (VOID **)&BlkIo
                 );
 
   if (EFI_ERROR (Status)) {
@@ -219,7 +219,7 @@ RegisterDriversToHighestPriority (
   EFI_STATUS                                Status;
 
   mPriorityDrivers = PriorityDrivers;
-  Status = gBS->LocateProtocol (&gEfiPlatformDriverOverrideProtocolGuid, NULL, (VOID **) &PlatformDriverOverride);
+  Status = gBS->LocateProtocol (&gEfiPlatformDriverOverrideProtocolGuid, NULL, (VOID **)&PlatformDriverOverride);
   if (EFI_ERROR (Status)) {
     DBG ("PlatformDriverOverrideProtocol not found. Installing ... ");
     Status = gBS->InstallMultipleProtocolInterfaces (

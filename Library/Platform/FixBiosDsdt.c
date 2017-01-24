@@ -522,7 +522,6 @@ FindCPU (
         }
       }
 
-
       for (j = 0; j < 4; j++) {
         CHAR8   c = dsdt[offset + j],
                 c1 = dsdt[offset + j + 1];
@@ -577,7 +576,6 @@ FindCPU (
 
   return;
 }
-
 
 //                start => move data start address
 //                offset => data move how many byte
@@ -659,7 +657,6 @@ write_offset (
   AmlWriteSize (size, (CHAR8 *)buffer, adr);
   return shift;
 }
-
 
   adr - a place to write new size. Size of some object.
   buffer - the binary aml codes array
@@ -1131,7 +1128,6 @@ DevFind (
 
   return 0; //impossible value for fool proof
 }
-
 
 BOOLEAN
 AddProperties (
@@ -1861,7 +1857,6 @@ AddHDMI (
     met = AmlAddMethod (root, "_DSM", 4);
   }
 
-
   met2 = AmlAddStore (met);
   pack = AmlAddPackage (met2);
   if (!gSettings.NoDefaultProperties) {
@@ -2441,8 +2436,6 @@ AddMCHC (
 
   return len;
 }
-
-
 
 UINT32
 AddIMEI (

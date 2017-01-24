@@ -19,7 +19,6 @@ PUBLIC SavedCR3
 PUBLIC SavedGDTR
 PUBLIC SavedIDTR
 
-
 ; addresses of relocated MyAsmCopyAndJumpToKernel code - filled by PrepareJumpFromKernel ()
 PUBLIC MyAsmCopyAndJumpToKernel32Addr
 PUBLIC MyAsmCopyAndJumpToKernel64Addr
@@ -174,7 +173,6 @@ MyAsmReadSp   PROC
   ret
 MyAsmReadSp   ENDP
 
-
 ;------------------------------------------------------------------------------
 ; VOID
 ; EFIAPI
@@ -275,7 +273,6 @@ MyAsmJumpFromKernel   PROC
   ; in MyAsmEntryPatchCode
   db    040h          ; inc eax
 MyAsmJumpFromKernel   ENDP
-
 
 ;------------------------------------------------------------------------------
 ; MyAsmJumpFromKernel32
@@ -474,7 +471,6 @@ toNext:
   ;
   jmp   QWORD PTR rbx     ; jmp DWORD PTR ebx in 32 bit
 
-
 _RETF64:
   DB  048h
 _RETF32:
@@ -490,9 +486,7 @@ _RETF32:
   push  ((0cbh SHL 24) OR CODE64_SEL)
   call  $-1
 
-
 MyAsmJumpFromKernel32   ENDP
-
 
 ;------------------------------------------------------------------------------
 ; MyAsmJumpFromKernel64
@@ -546,7 +540,6 @@ MyAsmJumpFromKernel64   PROC
   ret
 MyAsmJumpFromKernel64   ENDP
 
-
 ;------------------------------------------------------------------------------
 ; MyAsmCopyAndJumpToKernel
 ;
@@ -597,7 +590,6 @@ MyAsmCopyAndJumpToKernel32   PROC
   jmp   QWORD PTR rdx     ; jmp DWORD PTR edx in 32 bit
 MyAsmCopyAndJumpToKernel32   ENDP
 MyAsmCopyAndJumpToKernel32End:
-
 
 ;------------------------------------------------------------------------------
 ; MyAsmCopyAndJumpToKernel64

@@ -98,7 +98,7 @@ MemLogInit () {
   //
   // Try to use existing MEM_LOG
   //
-  Status = gBS->LocateProtocol (&mMemLogProtocolGuid, NULL, (VOID **) &mMemLog);
+  Status = gBS->LocateProtocol (&mMemLogProtocolGuid, NULL, (VOID **)&mMemLog);
   if (Status == EFI_SUCCESS && mMemLog != NULL) {
     //
     // We are inited with existing MEM_LOG
@@ -357,7 +357,6 @@ GetMemLogBuffer () {
 
   return (mMemLog != NULL) ? mMemLog->Buffer : NULL;
 }
-
 
 /**
  Returns the length of log (number of chars written) in mem buffer.

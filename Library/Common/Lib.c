@@ -82,8 +82,8 @@ EFI_UNICODE_COLLATION_PROTOCOL    *mUnicodeCollation = NULL;
 
 // functions
 
-STATIC EFI_STATUS   FinishInitRefitLib (VOID);
-STATIC VOID         UninitVolumes (VOID);
+STATIC EFI_STATUS   FinishInitRefitLib ();
+STATIC VOID         UninitVolumes ();
 
 BOOLEAN
 MetaiMatch (
@@ -122,7 +122,7 @@ InitRefitLib (
   Status = gBS->HandleProtocol (
                   SelfImageHandle,
                   &gEfiLoadedImageProtocolGuid,
-                  (VOID **) &SelfLoadedImage
+                  (VOID **)&SelfLoadedImage
                 );
 
   if (CheckFatalError (Status, L"while getting a LoadedImageProtocol handle")) {
@@ -248,7 +248,6 @@ ReinitSelfLib () {
 
   return Status;
 }
-
 
 STATIC
 EFI_STATUS
@@ -713,7 +712,6 @@ ScanVolume (
     }
   }
 
-
   DevicePath = DuplicateDevicePath (Volume->DevicePath);
   RemainingDevicePath = DevicePath; //initial value
 
@@ -764,7 +762,7 @@ ScanVolume (
       Status = gBS->HandleProtocol (
         WholeDiskHandle,
         &gEfiBlockIoProtocolGuid,
-        (VOID **) &Volume->WholeDiskBlockIO
+        (VOID **)&Volume->WholeDiskBlockIO
       );
 
       if (!EFI_ERROR (Status)) {
@@ -967,7 +965,7 @@ ScanExtendedPartition (
           Volume->HasBootCode = FALSE;
         }
 
-        AddListElement ((VOID ***) &Volumes, &VolumesCount, Volume);
+        AddListElement ((VOID ***)&Volumes, &VolumesCount, Volume);
       }
     }
   }
@@ -1023,7 +1021,7 @@ VOID ScanVolumes () {
 
     Status = ScanVolume (Volume);
     if (!EFI_ERROR (Status)) {
-      AddListElement ((VOID ***) &Volumes, &VolumesCount, Volume);
+      AddListElement ((VOID ***)&Volumes, &VolumesCount, Volume);
       for (HVi = 0; HVi < gSettings.HVCount; HVi++) {
         if (
           StriStr (Volume->DevicePathString, gSettings.HVHideStrings[HVi]) ||
@@ -1244,7 +1242,7 @@ ReinitVolumes () {
         Status = gBS->HandleProtocol (
                         WholeDiskHandle,
                         &gEfiBlockIoProtocolGuid,
-                        (VOID **) &Volume->WholeDiskBlockIO
+                        (VOID **)&Volume->WholeDiskBlockIO
                       );
 
         if (EFI_ERROR (Status)) {
@@ -1260,8 +1258,8 @@ ReinitVolumes () {
   VolumesCount = VolumesFound;
 }
 
-REFIT_VOLUME
-*FindVolumeByName (
+REFIT_VOLUME *
+FindVolumeByName (
   IN CHAR16 *VolName
 ) {
   REFIT_VOLUME    *Volume;
@@ -1546,7 +1544,7 @@ LoadFile (
   FreePool (FileInfo);
 
   BufferSize = (UINTN)ReadSize;   // was limited to 1 GB above, so this is safe
-  Buffer = (UINT8 *) AllocateZeroPool (BufferSize);
+  Buffer = (UINT8 *)AllocateZeroPool (BufferSize);
   if (Buffer == NULL) {
     FileHandle->Close (FileHandle);
     return EFI_OUT_OF_RESOURCES;
@@ -1649,7 +1647,6 @@ SaveFile (
   return Status;
 }
 
-
 EFI_STATUS
 MkDir (
   IN EFI_FILE_HANDLE    BaseDir OPTIONAL,
@@ -1704,7 +1701,6 @@ MetaiMatch (
   return mUnicodeCollation->MetaiMatch (mUnicodeCollation, String, Pattern);
 }
 
-
 EFI_STATUS
 InitializeUnicodeCollationProtocol () {
   EFI_STATUS  Status;
@@ -1721,22 +1717,22 @@ InitializeUnicodeCollationProtocol () {
   Status = gBS->LocateProtocol (
                   &gEfiUnicodeCollation2ProtocolGuid,
                   NULL,
-                  (VOID **) &mUnicodeCollation
+                  (VOID **)&mUnicodeCollation
                 );
 
   if (EFI_ERROR (Status)) {
     Status = gBS->LocateProtocol (
                     &gEfiUnicodeCollationProtocolGuid,
                     NULL,
-                    (VOID **) &mUnicodeCollation
+                    (VOID **)&mUnicodeCollation
                   );
   }
 
   return Status;
 }
 
-CHAR16
-*Basename (
+CHAR16 *
+Basename (
   IN CHAR16   *Path
 ) {
   CHAR16  *FileName = Path;
@@ -1755,8 +1751,8 @@ CHAR16
   return FileName;
 }
 
-CHAR16
-*Dirname (
+CHAR16 *
+Dirname (
   IN CHAR16   *Path
 ) {
   CHAR16  *FileName = Path;
@@ -1775,8 +1771,8 @@ CHAR16
   return FileName;
 }
 
-CHAR16
-*ReplaceExtension (
+CHAR16 *
+ReplaceExtension (
   IN CHAR16    *Path,
   IN CHAR16    *Extension
 ) {
@@ -1801,8 +1797,8 @@ CHAR16
   return Path;
 }
 
-CHAR16
-*FindExtension (
+CHAR16 *
+FindExtension (
   IN CHAR16   *FileName
 ) {
   UINTN   i, len = StrLen (FileName);
@@ -1846,8 +1842,8 @@ FindMem (
   return -1;
 }
 
-CHAR8
-*SearchString (
+CHAR8 *
+SearchString (
   IN  CHAR8       *Source,
   IN  UINT64      SourceSize,
   IN  CHAR8       *Search,
@@ -1869,8 +1865,8 @@ CHAR8
 //
 // Aptio UEFI returns File DevPath as 2 nodes (dir, file)
 // and DevicePathToStr connects them with /, but we need '\\'
-CHAR16
-*FileDevicePathToStr (
+CHAR16 *
+FileDevicePathToStr (
   IN EFI_DEVICE_PATH_PROTOCOL   *DevPath
 ) {
   CHAR16    *FilePath, *Res = NULL;
@@ -1910,8 +1906,8 @@ CHAR16
   return Res;
 }
 
-CHAR16
-*FileDevicePathFileToStr (
+CHAR16 *
+FileDevicePathFileToStr (
   IN EFI_DEVICE_PATH_PROTOCOL   *DevPath
 ) {
   EFI_DEVICE_PATH_PROTOCOL  *Node;
@@ -2048,7 +2044,6 @@ BootArgsExists (
   Find the first instance of this Protocol
   in the system and return it's interface.
 
-
   @param ProtocolGuid    Provides the protocol to search for
   @param Interface       On return, a pointer to the first interface
                          that matches ProtocolGuid
@@ -2067,7 +2062,7 @@ EfiLibLocateProtocol (
   Status = gBS->LocateProtocol (
     ProtocolGuid,
     NULL,
-    (VOID **) Interface
+    (VOID **)Interface
   );
 
   return Status;
@@ -2098,7 +2093,7 @@ EfiLibOpenRoot (
   Status = gBS->HandleProtocol (
     DeviceHandle,
     &gEfiSimpleFileSystemProtocolGuid,
-    (VOID **) &Volume
+    (VOID **)&Volume
   );
 
   //
@@ -2119,15 +2114,14 @@ EfiLibOpenRoot (
   Function gets the file system information from an open file descriptor,
   and stores it in a buffer allocated from pool.
 
-
   @param FHand           The file handle.
 
   @return                A pointer to a buffer with file information.
   @retval                NULL is returned if failed to get Volume Label Info.
 
 **/
-EFI_FILE_SYSTEM_VOLUME_LABEL
-*EfiLibFileSystemVolumeLabelInfo (
+EFI_FILE_SYSTEM_VOLUME_LABEL *
+EfiLibFileSystemVolumeLabelInfo (
   IN EFI_FILE_HANDLE    FHand
 ) {
   EFI_STATUS    Status;
@@ -2170,8 +2164,8 @@ EFI_FILE_SYSTEM_VOLUME_LABEL
   @return                A pointer to a buffer with file information or NULL is returned
 
 **/
-EFI_FILE_INFO
-*EfiLibFileInfo (
+EFI_FILE_INFO *
+EfiLibFileInfo (
   IN EFI_FILE_HANDLE    FHand
 ) {
   EFI_STATUS      Status;
@@ -2189,8 +2183,8 @@ EFI_FILE_INFO
   return EFI_ERROR (Status)?NULL:FileInfo;
 }
 
-EFI_FILE_SYSTEM_INFO
-*EfiLibFileSystemInfo (
+EFI_FILE_SYSTEM_INFO *
+EfiLibFileSystemInfo (
   IN EFI_FILE_HANDLE    FHand
 ) {
   EFI_STATUS    Status;
@@ -2212,13 +2206,12 @@ EFI_FILE_SYSTEM_INFO
   Function is used to determine the number of device path instances
   that exist in a device path.
 
-
   @param DevicePath      A pointer to a device path data structure.
 
   @return This function counts and returns the number of device path instances
           in DevicePath.
-
 **/
+
 UINTN
 EfiDevicePathInstanceCount (
   IN EFI_DEVICE_PATH_PROTOCOL      *DevicePath
@@ -2337,11 +2330,11 @@ StrHToBuf (
     // and for even characters, the lower nibble.
     //
     if ((Index & 1) == 0) {
-      Byte = (UINT8) (Digit << 4);
+      Byte = (UINT8)(Digit << 4);
     } else {
       Byte = Buf[Index / 2];
       Byte &= 0xF0;
-      Byte = (UINT8) (Byte | Digit);
+      Byte = (UINT8)(Byte | Digit);
     }
 
     Buf[Index / 2] = Byte;

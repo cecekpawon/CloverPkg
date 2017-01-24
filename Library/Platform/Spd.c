@@ -109,7 +109,6 @@ UINT8 spd_mem_to_smbios[] =
 #define SPD_XMP_PROF1_RATIO         186
 #define SPD_XMP_PROF2_RATIO         221
 
-
 #define SPD_XMP20_SIG1              0x180
 #define SPD_XMP20_SIG2              0x181
 #define SPD_XMP20_PROFILES          0x182
@@ -707,7 +706,6 @@ ReadSmb (
                                 &hostc
                                 );
 
-
   MsgLog ("Scanning SMBus [%04x:%04x], mmio: 0x%x, ioport: 0x%x, hostc: 0x%x\n",
          vid, did, mmio, base, hostc);
 
@@ -718,7 +716,7 @@ ReadSmb (
 
   // Search MAX_RAM_SLOTS slots
   //==>
-  /*  TotalSlotsCount = (UINT8) TotalCount;
+  /*  TotalSlotsCount = (UINT8)TotalCount;
    if (!TotalSlotsCount) {
    TotalSlotsCount = MAX_RAM_SLOTS;
    }
@@ -813,14 +811,12 @@ ReadSmb (
          6  0110 = 16 Gb
          7  0111 = 32 Gb
 
-
          Primary Bus Width
 
          000 = 8 bits
          001 = 16 bits
          010 = 32 bits
          011 = 64 bits
-
 
          SDRAM Device Width
 
@@ -829,14 +825,12 @@ ReadSmb (
          010 = 16 bits
          011 = 32 bits
 
-
          Logical Ranks per DIMM for SDP, DDP, QDP
 
          000 = 1 Package Rank
          001 = 2 Package Ranks
          010 = 3 Package Ranks
          011 = 4 Package Ranks
-
 
          Die Count for 3DS
 
@@ -859,7 +853,7 @@ ReadSmb (
       continue;
     }
 
-    //spd_type = (slot->spd[SPD_MEMORY_TYPE] < ((UINT8) 12) ? slot->spd[SPD_MEMORY_TYPE] : 0);
+    //spd_type = (slot->spd[SPD_MEMORY_TYPE] < ((UINT8)12) ? slot->spd[SPD_MEMORY_TYPE] : 0);
     //gRAM Type = spd_mem_to_smbios[spd_type];
     gRAM.SPD[i].PartNo = GetDDRPartNum (spdbuf, base, i);
     gRAM.SPD[i].Vendor = GetVendorName (&(gRAM.SPD[i]), spdbuf, base, i);

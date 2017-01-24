@@ -97,7 +97,7 @@ OurBlockIoRead (
 
     DBG (" OurBlockIoRead: Lba=%lx, Offset=%lx (BlockSize=%d)\n", Lba, MultU64x32 (Lba, BlockSize), BlockSize);
 
-    Header = (IOHibernateImageHeader *) Buffer;
+    Header = (IOHibernateImageHeader *)Buffer;
 
     //DBG (" sig lion: %x\n", Header->signature);
     //DBG (" sig snow: %x\n", Header2->signature);

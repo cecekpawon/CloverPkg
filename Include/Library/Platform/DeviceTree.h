@@ -38,14 +38,12 @@ enum {
   kDTPathNameSeparator  = '/'       /* 0x2F */
 };
 
-
 /* Property Name Definitions (Property Names are C-Strings)*/
 enum {
   kDTMaxPropertyNameLength=31 /* Max length of Property Name (terminator not included) */
 };
 
 typedef char DTPropertyNameBuf[32];
-
 
 /* Entry Name Definitions (Entry Names are C-Strings)*/
 enum {
@@ -55,7 +53,6 @@ enum {
 /* length of DTEntryNameBuf = kDTMaxEntryNameLength +1 */
 typedef char DTEntryNameBuf[32];
 
-
 /* Entry */
 typedef struct OpaqueDTEntry *DTEntry;
 
@@ -64,7 +61,6 @@ typedef struct OpaqueDTEntryIterator *DTEntryIterator;
 
 /* Property Iterator */
 typedef struct OpaqueDTPropertyIterator *DTPropertyIterator;
-
 
 /* status values */
 enum {

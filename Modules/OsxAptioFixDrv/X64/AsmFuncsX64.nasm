@@ -41,7 +41,6 @@ global ASM_PFX (MyAsmCopyAndJumpToKernel32)
 global ASM_PFX (MyAsmCopyAndJumpToKernel64)
 global ASM_PFX (MyAsmCopyAndJumpToKernelEnd)
 
-
 ;SECTION  .data
 SECTION .text
 
@@ -83,12 +82,10 @@ SavedGDTR32:
     dw 0
     dq 0
 
-
 SavedIDTR32Off  EQU $-DataBase
 SavedIDTR32:
     dw 0
     dq 0
-
 
 SavedCS32Off  EQU $-DataBase
 SavedCS32:    DW      0
@@ -180,11 +177,9 @@ CODE32_SEL    equ $-GDT_BASE      ; 0x18
 
 GDT_END:
 
-
 ;SECTION .text
 
 BITS    64
-
 
 ;------------------------------------------------------------------------------
 ; UINT64
@@ -198,7 +193,6 @@ ASM_PFX (MyAsmReadSp):
   mov   rax, rsp
   add   rax, 8      ; return SP as caller see it
   ret
-
 
 ;------------------------------------------------------------------------------
 ; VOID
@@ -226,7 +220,6 @@ ASM_PFX (MyAsmPrepareJumpFromKernel):
   mov dword [REL MyAsmEntryPatchCodeJumpFromKernelPlaceholder], eax
 
   ret
-
 
 ;------------------------------------------------------------------------------
 ; Code that is used for patching kernel entry to jump back
@@ -264,7 +257,6 @@ MyAsmEntryPatchCodeJumpFromKernelPlaceholder  dd  011223344h
 ; jmp rcx                                     ; -> FF E1
 ASM_PFX (MyAsmEntryPatchCodeEnd):
 
-
 ;------------------------------------------------------------------------------
 ; MyAsmJumpFromKernel
 ;
@@ -299,7 +291,6 @@ BITS    32
 ; bt    eax, 8                  ; Check if LME==1 -> CF=1.
 ; pop   rax
 ; jnc   MyAsmJumpFromKernel64 ; LME==1 -> jump to 64 bit code
-
 
 ;------------------------------------------------------------------------------
 ; MyAsmJumpFromKernel32
@@ -500,12 +491,10 @@ toNext:
   ;
   jmp   ebx
 
-
 _RETF64:
   DB  048h
 _RETF32:
   retf
-
 
 ;------------------------------------------------------------------------------
 ; MyAsmJumpFromKernel64
@@ -561,7 +550,6 @@ BITS    64
   ret
 ;MyAsmJumpFromKernel64   ENDP
 
-
 ;------------------------------------------------------------------------------
 ; MyAsmCopyAndJumpToKernel
 ;
@@ -615,7 +603,6 @@ BITS    32
   jmp   edx
 ;MyAsmCopyAndJumpToKernel32   ENDP
 MyAsmCopyAndJumpToKernel32End:
-
 
 ;------------------------------------------------------------------------------
 ; MyAsmCopyAndJumpToKernel64

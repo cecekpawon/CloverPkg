@@ -142,12 +142,12 @@ GetCPUProperties () {
     DoCpuid (0x80000001, gCPUStructure.CPUID[CPUID_81]);
   }
 
-  gCPUStructure.Stepping      = (UINT8) bitfield (gCPUStructure.Signature, 3, 0);
-  gCPUStructure.Model         = (UINT8) bitfield (gCPUStructure.Signature, 7, 4);
-  gCPUStructure.Family        = (UINT8) bitfield (gCPUStructure.Signature, 11, 8);
-  gCPUStructure.Type          = (UINT8) bitfield (gCPUStructure.Signature, 13, 12);
-  gCPUStructure.Extmodel      = (UINT8) bitfield (gCPUStructure.Signature, 19, 16);
-  gCPUStructure.Extfamily     = (UINT8) bitfield (gCPUStructure.Signature, 27, 20);
+  gCPUStructure.Stepping      = (UINT8)bitfield (gCPUStructure.Signature, 3, 0);
+  gCPUStructure.Model         = (UINT8)bitfield (gCPUStructure.Signature, 7, 4);
+  gCPUStructure.Family        = (UINT8)bitfield (gCPUStructure.Signature, 11, 8);
+  gCPUStructure.Type          = (UINT8)bitfield (gCPUStructure.Signature, 13, 12);
+  gCPUStructure.Extmodel      = (UINT8)bitfield (gCPUStructure.Signature, 19, 16);
+  gCPUStructure.Extfamily     = (UINT8)bitfield (gCPUStructure.Signature, 27, 20);
   gCPUStructure.Features      = quad (gCPUStructure.CPUID[CPUID_1][ECX], gCPUStructure.CPUID[CPUID_1][EDX]);
   gCPUStructure.ExtFeatures   = quad (gCPUStructure.CPUID[CPUID_81][ECX], gCPUStructure.CPUID[CPUID_81][EDX]);
 
@@ -296,7 +296,7 @@ GetCPUProperties () {
       !AsciiStrnCmp (
         (CONST CHAR8 *)gCPUStructure.BrandString,
         (CONST CHAR8 *)CPU_STRING_UNKNOWN,
-        iStrLen ((gCPUStructure.BrandString) + 1, Len)
+        AsciiTrimStrLen ((gCPUStructure.BrandString) + 1, Len)
       )
     ) {
       gCPUStructure.BrandString[0] = '\0';
@@ -504,7 +504,6 @@ GetCPUProperties () {
           gCPUStructure.Turbo4 *= 10;
           break;
 
-
          default:
           gCPUStructure.TSCFrequency = MultU64x32 (gCPUStructure.CurrentSpeed, Mega); //MHz -> Hz
           gCPUStructure.CPUFrequency = gCPUStructure.TSCFrequency;
@@ -550,7 +549,7 @@ GetCPUProperties () {
     Status = gBS->LocateHandleBuffer (ByProtocol, &gEfiPciIoProtocolGuid, NULL, &HandleCount, &HandleBuffer);
     if (Status == EFI_SUCCESS) {
       for (HandleIndex = 0; HandleIndex < HandleCount; HandleIndex++) {
-        Status = gBS->HandleProtocol (HandleBuffer[HandleIndex], &gEfiPciIoProtocolGuid, (VOID **) &PciIo);
+        Status = gBS->HandleProtocol (HandleBuffer[HandleIndex], &gEfiPciIoProtocolGuid, (VOID **)&PciIo);
         if (!EFI_ERROR (Status)) {
           /* Read PCI BUS */
           Status = PciIo->GetLocation (PciIo, &Segment, &Bus, &Device, &Function);

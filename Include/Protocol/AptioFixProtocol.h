@@ -24,10 +24,4 @@ typedef struct {
 
 #define APTIOFIX_SIGNATURE SIGNATURE_64('A','P','T','I','O','F','I','X')
 
-//EFI_GUID  gAptioFixProtocolGuid = {0xB79DCC2E, 0x61BE, 0x453F, {0xBC, 0xAC, 0xC2, 0x60, 0xFA, 0xAE, 0xCC, 0xDA }};
-
-/** APTIOFIX_PROTOCOL GUID */
-extern EFI_GUID gAptioFixProtocolGuid;
-
-
 #endif

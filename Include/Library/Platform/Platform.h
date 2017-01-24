@@ -283,7 +283,6 @@ typedef enum {
 #define CPUID_LEAF7_FEATURE_SMEP      _Bit (7)   /* Supervisor Mode Execute Protect */
 #define CPUID_LEAF7_FEATURE_ENFSTRG   _Bit (9)   /* ENhanced Fast STRinG copy */
 
-
 /*
  * The CPUID_EXTFEATURE_XXX values define 64-bit values
  * returned in %ecx:%edx to a CPUID request with %eax of 0x80000001:
@@ -869,7 +868,6 @@ typedef struct {
   UINT16                    DropOEM_DSM;
   UINT8                     *CustomEDID;
 
-
   CHAR16                    FBName[16];
   UINT16                    VideoPorts;
   BOOLEAN                   NvidiaSingle;
@@ -1374,8 +1372,8 @@ GetOSVersion (
   IN  LOADER_ENTRY *Entry
 );
 
-CHAR16
-*GetOSIconName (
+CHAR16 *
+GetOSIconName (
   IN  CHAR8 *OSVersion
 );
 
@@ -1429,8 +1427,8 @@ ParseLoadOptions (
 //
 // Nvram.c
 //
-VOID
-*GetNvramVariable (
+VOID *
+GetNvramVariable (
   IN   CHAR16     *VariableName,
   IN   EFI_GUID   *VendorGuid,
   OUT  UINT32     *Attributes    OPTIONAL,
@@ -1464,8 +1462,8 @@ DeleteNvramVariable (
 EFI_STATUS
 GetEfiBootDeviceFromNvram ();
 
-EFI_GUID
-*FindGPTPartitionGuidInDevicePath (
+EFI_GUID *
+FindGPTPartitionGuidInDevicePath (
   IN  EFI_DEVICE_PATH_PROTOCOL *DevicePath
 );
 
@@ -1506,7 +1504,6 @@ SetVariablesForOSX ();
 VOID EFIAPI
 SetupDataForOSX ();
 
-
 EFI_STATUS
 SetPrivateVarProto ();
 
@@ -1545,8 +1542,8 @@ FillCardList (
   TagPtr  CfgDict
 );
 
-CARDLIST
-*FindCardWithIds (
+CARDLIST *
+FindCardWithIds (
   UINT32  Id,
   UINT32  SubId
 );
@@ -1680,8 +1677,8 @@ FinalizeSmbios ();
 EFI_STATUS
 FixOwnership ();
 
-UINT8
-*Base64Decode (
+UINT8 *
+Base64Decode (
   IN   CHAR8    *EncodedData,
   OUT  UINTN    *DecodedSize
 );

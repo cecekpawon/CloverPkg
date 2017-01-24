@@ -54,7 +54,7 @@ SkipProperties (
   if ((entry == NULL) || (entry->nProperties == 0)) {
     return NULL;
   } else {
-    prop = (DeviceTreeNodeProperty *) (entry + 1);
+    prop = (DeviceTreeNodeProperty *)(entry + 1);
     for (k = 0; k < entry->nProperties; k++) {
       prop = NextProp (prop);
     }
@@ -151,7 +151,6 @@ FindChild (
   return NULL;
 }
 
-
 /*
  * External Routines
  */
@@ -183,18 +182,18 @@ FindEntry (
   CONST CHAR8       *propValue,
         DTEntry     *entryH
 ) {
-  DeviceTreeNode  *nodeP = (DeviceTreeNode *) (VOID *) startingP;
+  DeviceTreeNode  *nodeP = (DeviceTreeNode *)(VOID *)startingP;
   UINTN           k;
 
   if (nodeP->nProperties == 0) {
     return (kError);  // End of the list of nodes
   }
 
-  startingP = (CHAR8 *) (nodeP + 1);
+  startingP = (CHAR8 *)(nodeP + 1);
 
   // Search current entry
   for (k = 0; k < nodeP->nProperties; ++k) {
-    DeviceTreeNodeProperty    *propP = (DeviceTreeNodeProperty *) (VOID *) startingP;
+    DeviceTreeNodeProperty    *propP = (DeviceTreeNodeProperty *)(VOID *)startingP;
 
     startingP += sizeof (*propP) + ((propP->length + 3) & -4);
 
@@ -241,9 +240,9 @@ DTLookupEntry (
   CONST CHAR8     *pathName,
         DTEntry   *foundEntry
 ) {
-  DTEntryNameBuf  buf;
-  RealDTEntry     cur;
-  CONST CHAR8     *cp;
+        DTEntryNameBuf  buf;
+        RealDTEntry     cur;
+  CONST CHAR8           *cp;
 
   if (!DTInitialized) {
     return kError;
@@ -443,7 +442,7 @@ DTGetProperty (
   if ((entry == NULL) || (entry->nProperties == 0)) {
     return kError;
   } else {
-    prop = (DeviceTreeNodeProperty *) (entry + 1);
+    prop = (DeviceTreeNodeProperty *)(entry + 1);
     for (k = 0; k < entry->nProperties; k++) {
       if (AsciiStrCmp ((CHAR8 *)prop->name, (CHAR8 *)propertyName) == 0) {
         *propertyValue = (VOID *) (((UINT8 *)prop) + sizeof (DeviceTreeNodeProperty));
@@ -517,7 +516,7 @@ DTIterateProperties (
   } else {
     iter->currentIndex++;
     if (iter->currentIndex == 1) {
-      iter->currentProperty = (DeviceTreeNodeProperty *) (iter->entry + 1);
+      iter->currentProperty = (DeviceTreeNodeProperty *)(iter->entry + 1);
     } else {
       iter->currentProperty = NextProp (iter->currentProperty);
     }

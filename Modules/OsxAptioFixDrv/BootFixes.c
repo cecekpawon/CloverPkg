@@ -72,7 +72,6 @@ MachOGetEntryAddress (
           x86_thread_state64_t  *ThreadState64;
           UINTN                 Address;
 
-
   Address = 0;
   MHdr = (struct mach_header *)MachOImage;
   MHdr64 = (struct mach_header_64 *)MachOImage;
@@ -272,7 +271,6 @@ KernelEntryFromMachOPatchJump (
   return KernelEntryPatchJump ((UINT32)KernelEntry);
 }
 
-
 #if 0
 /** Patches kernel entry point with HLT - used for testing to cause system halt. */
 EFI_STATUS
@@ -410,7 +408,6 @@ CopyEfiSysTableToSeparateRtDataArea (
   *EfiSystemTable = (UINT32)(UINTN)Dest;
 }
 
-
 /** Protect RT data from relocation by marking them MemMapIO. Except area with EFI system table.
  *  This one must be relocated into kernel boot image or kernel will crash (kernel accesses it
  *  before RT areas are mapped into vm).
@@ -450,7 +447,6 @@ ProtectRtDataFromRelocation (
     Desc = NEXT_MEMORY_DESCRIPTOR (Desc, DescriptorSize);
   }
 }
-
 
 /** Assignes OSX virtual addresses to runtime areas in memory map. */
 VOID
@@ -637,7 +633,6 @@ DevTreeFix (
           DTMemMapEntry             *PropValue;
           BooterKextFileInfo        *KextInfo;
 
-
   DevTree = (DTEntry)(UINTN)(*BA->deviceTreeP);
 
   //DBG ("Fixing DevTree at %p\n", DevTree);
@@ -785,7 +780,6 @@ FixBootingWithRelocBlock (
   UINTN                   MemoryMapSize, DescriptorSize;
   EFI_MEMORY_DESCRIPTOR   *MemoryMap;
   UINT32                  DescriptorVersion;
-
 
   BootArgsPrint (pBootArgs);
 

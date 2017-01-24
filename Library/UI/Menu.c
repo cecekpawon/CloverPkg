@@ -185,10 +185,10 @@ OPT_MENU_GEN OPT_MENU_DEVICES[] = {
 INTN    OptMenuDevicesNum = ARRAY_SIZE (OPT_MENU_DEVICES);
 
 OPT_MENU_GEN OPT_MENU_PATCHES[] = {
-  { mKextPatchesAllowed,    L"Allow Kext Patch"   },
-  { mKernelPatchesAllowed,  L"Allow Kernel Patch" },
-  { mKPKernelPm,            L"KernelPM Patch"     },
-  { mKPAsusAICPUPM,         L"AsusAICPUPM Patch"  },
+  { mKextPatchesAllowed,    L"Allow Kext Patches"   },
+  { mKernelPatchesAllowed,  L"Allow Kernel Patches" },
+  { mKPKernelPm,            L"KernelPM Patch"       },
+  { mKPAsusAICPUPM,         L"AsusAICPUPM Patch"    },
 };
 
 INTN    OptMenuPatchesNum = ARRAY_SIZE (OPT_MENU_PATCHES);
@@ -238,11 +238,13 @@ OPT_MENU_OPTBIT_K OPT_MENU_OPTBIT[] = {
 INTN    OptMenuOptBitNum = ARRAY_SIZE (OPT_MENU_OPTBIT);
 
 OPT_MENU_OPTBIT_K OPT_MENU_FLAGBIT[] = {
-  { L"Hibernate wake",        NULL,   OSFLAG_HIBERNATED,  OSTYPE_OSX },
-  { L"Without caches",        NULL,   OSFLAG_NOCACHES,    OSTYPE_OSX },
-  { L"With injected kexts",   NULL,   OSFLAG_WITHKEXTS,   OSTYPE_OSX },
-  { L"No SIP",                NULL,   OSFLAG_NOSIP,       OSTYPE_OSX },
-  { L"Debug Patches",         NULL,   OSFLAG_DBGPATCHES,  OSTYPE_OSX },
+  { L"Hibernate wake",        NULL,   OSFLAG_HIBERNATED,            OSTYPE_OSX },
+  { L"Without caches",        NULL,   OSFLAG_NOCACHES,              OSTYPE_OSX },
+  { L"With injected kexts",   NULL,   OSFLAG_WITHKEXTS,             OSTYPE_OSX },
+  { L"No SIP",                NULL,   OSFLAG_NOSIP,                 OSTYPE_OSX },
+  { L"Debug Patches",         NULL,   OSFLAG_DBGPATCHES,            OSTYPE_OSX },
+  { L"Allow Kext Patches",    NULL,   OSFLAG_ALLOW_KEXT_PATCHES,    OSTYPE_OSX },
+  { L"Allow Kernel Patches",  NULL,   OSFLAG_ALLOW_KERNEL_PATCHES,  OSTYPE_OSX },
 };
 
 INTN    OptMenuFlagBitNum = ARRAY_SIZE (OPT_MENU_FLAGBIT);
@@ -255,12 +257,13 @@ BOOLEAN     SubInjectNVidia = FALSE,
 INTN          OptMenuItemsNum = 0;
 INPUT_ITEM    *InputItems = NULL;
 
-INTN GetSubMenuCount (VOID) {
+INTN
+GetSubMenuCount () {
   return SUBMENU_COUNT;
 }
 
-REFIT_MENU_ENTRY
-*GenMenu (
+REFIT_MENU_ENTRY *
+GenMenu (
   REFIT_MENU_SCREEN     *Screen,
   CHAR16                *Title,
   INPUT_ITEM            *Item,
@@ -281,8 +284,8 @@ REFIT_MENU_ENTRY
   return (REFIT_MENU_ENTRY *)InputBootArgs;
 }
 
-REFIT_MENU_ENTRY
-*AddMenuBOOL (
+REFIT_MENU_ENTRY *
+AddMenuBOOL (
   REFIT_MENU_SCREEN   *Screen,
   CHAR16              *Title,
   INPUT_ITEM          *Item,
@@ -291,8 +294,8 @@ REFIT_MENU_ENTRY
   return GenMenu (Screen, Title, Item, ItemNum, TAG_INPUT, 0xFFFF);
 }
 
-REFIT_MENU_ENTRY
-*AddMenuString (
+REFIT_MENU_ENTRY *
+AddMenuString (
   REFIT_MENU_SCREEN   *Screen,
   CHAR16              *Title,
   INTN                ItemNum
@@ -300,8 +303,8 @@ REFIT_MENU_ENTRY
   return GenMenu (Screen, Title, NULL, ItemNum, TAG_INPUT, StrLen (InputItems[ItemNum].SValue));
 }
 
-REFIT_MENU_ENTRY
-*AddMenuCheck (
+REFIT_MENU_ENTRY *
+AddMenuCheck (
   REFIT_MENU_SCREEN   *Screen,
   CHAR16              *Title,
   UINTN               Bit,
@@ -310,8 +313,8 @@ REFIT_MENU_ENTRY
   return GenMenu (Screen, Title, NULL, ItemNum, TAG_CHECKBIT, Bit);
 }
 
-REFIT_MENU_ENTRY
-*AddMenuRadio (
+REFIT_MENU_ENTRY *
+AddMenuRadio (
   REFIT_MENU_SCREEN   *Screen,
   CHAR16              *Title,
   INPUT_ITEM          *Item,
@@ -726,7 +729,6 @@ AddMenuEntry (
 ) {
   AddListElement ((VOID ***) &(Screen->Entries), (UINTN *)&(Screen->EntryCount), Entry);
 }
-
 
 VOID
 SplitMenuInfo (
@@ -1187,7 +1189,6 @@ InputDialog (
 #if DBG_INPUTDIALOG
   UINTN             Iteration = 0;
 #endif
-
 
   if (
     (Item->ItemType != BoolValue) &&
@@ -2770,8 +2771,8 @@ CountItems (
 }
 
 /*
-CHAR16
-*GetRevisionString (
+CHAR16 *
+GetRevisionString (
   BOOLEAN   CloverRev
 ) {
   BOOLEAN   CloverRevDef = FALSE;
@@ -3100,8 +3101,8 @@ CreateHeaderEntries (
   *SubScreen = TmpSubScreen;
 }
 
-REFIT_MENU_ENTRY
-*SubMenuDevices () {
+REFIT_MENU_ENTRY *
+SubMenuDevices () {
   REFIT_MENU_ENTRY      *Entry = NULL;
   REFIT_MENU_SCREEN     *SubScreen = NULL;
   INTN                  i = 0;
@@ -3121,8 +3122,8 @@ REFIT_MENU_ENTRY
   return Entry;
 }
 
-REFIT_MENU_ENTRY
-*SubMenuPatches () {
+REFIT_MENU_ENTRY *
+SubMenuPatches () {
   REFIT_MENU_ENTRY      *Entry = NULL;
   REFIT_MENU_SCREEN     *SubScreen = NULL;
   INTN                  i = 0;
@@ -3143,8 +3144,8 @@ REFIT_MENU_ENTRY
   return Entry;
 }
 
-REFIT_MENU_ENTRY
-*SubMenuDebug () {
+REFIT_MENU_ENTRY *
+SubMenuDebug () {
   REFIT_MENU_ENTRY      *Entry = NULL;
   REFIT_MENU_SCREEN     *SubScreen = NULL;
   INTN                  i = 0;
@@ -3162,8 +3163,8 @@ REFIT_MENU_ENTRY
   return Entry;
 }
 
-REFIT_MENU_ENTRY
-*SubMenuAcpi () {
+REFIT_MENU_ENTRY *
+SubMenuAcpi () {
   REFIT_MENU_ENTRY    *Entry = NULL;
   REFIT_MENU_SCREEN   *SubScreen = NULL;
   CHAR8               sign[5], OTID[9];
@@ -3201,7 +3202,6 @@ REFIT_MENU_ENTRY
   if (gSettings.ACPIDropTables) {
     ACPI_DROP_TABLE   *DropTable = gSettings.ACPIDropTables;
 
-
     while (DropTable) {
       CopyMem ((CHAR8 *)&sign, (CHAR8 *)&(DropTable->Signature), 4);
       CopyMem ((CHAR8 *)&OTID, (CHAR8 *)&(DropTable->TableId), 8);
@@ -3234,8 +3234,8 @@ REFIT_MENU_ENTRY
   return Entry;
 }
 
-REFIT_MENU_ENTRY
-*SubMenuThemes () {
+REFIT_MENU_ENTRY *
+SubMenuThemes () {
   REFIT_MENU_ENTRY      *Entry = NULL;
   REFIT_MENU_SCREEN     *SubScreen = NULL;
   S_FILES               *aTmp = aThemes;
@@ -3263,8 +3263,8 @@ REFIT_MENU_ENTRY
   return Entry;
 }
 
-REFIT_MENU_ENTRY
-*SubMenuConfigs () {
+REFIT_MENU_ENTRY *
+SubMenuConfigs () {
   REFIT_MENU_ENTRY      *Entry = NULL;
   REFIT_MENU_SCREEN     *SubScreen = NULL;
   S_FILES               *aTmp = aConfigs;

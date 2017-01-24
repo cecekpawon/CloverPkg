@@ -162,8 +162,8 @@ STATIC CONST UINTN BuiltinIconNamesCount = ARRAY_SIZE (BuiltinIconNames);
 // Load an image from a .icns file
 //
 
-EG_IMAGE
-*LoadIcns (
+EG_IMAGE *
+LoadIcns (
   IN EFI_FILE_HANDLE    BaseDir,
   IN CHAR16             *FileName,
   IN UINTN              PixelSize
@@ -181,8 +181,8 @@ EG_IMAGE
 
 STATIC EG_PIXEL BlackPixel  = { 0x00, 0x00, 0x00, 0 };
 
-EG_IMAGE
-*DummyImage (
+EG_IMAGE *
+DummyImage (
   IN UINTN    PixelSize
 ) {
   EG_IMAGE    *Image;
@@ -215,8 +215,8 @@ EG_IMAGE
   return Image;
 }
 
-EG_IMAGE
-*LoadIcnsFallback (
+EG_IMAGE *
+LoadIcnsFallback (
   IN EFI_FILE_HANDLE  BaseDir,
   IN CHAR16           *FileName,
   IN UINTN            PixelSize
@@ -228,8 +228,8 @@ EG_IMAGE
   return LoadIcon (BaseDir, FileName, PixelSize);
 }
 
-CHAR16
-*GetIconsExt (
+CHAR16 *
+GetIconsExt (
   IN CHAR16   *Icon,
   IN CHAR16   *Def
 ) {
@@ -600,8 +600,8 @@ FreeScrollBar () {
   }
 }
 
-EG_IMAGE
-*GetSmallHover (
+EG_IMAGE *
+GetSmallHover (
   IN UINTN    Id
 ) {
   if (IsEmbeddedTheme ()) {
@@ -614,8 +614,8 @@ EG_IMAGE
   }
 }
 
-EG_IMAGE
-*BuiltinIcon (
+EG_IMAGE *
+BuiltinIcon (
   IN UINTN    Id
 ) {
   INTN      Size = 0;
@@ -724,8 +724,8 @@ GET_EMBEDDED:
   return BuiltinIconTable[Id].Image;
 }
 
-EG_IMAGE
-*LoadBuiltinIcon (
+EG_IMAGE *
+LoadBuiltinIcon (
   IN CHAR16   *IconName
 ) {
   UINTN Index = 0;
@@ -744,8 +744,8 @@ EG_IMAGE
   return NULL;
 }
 
-EG_IMAGE
-*ScanVolumeDefaultIcon (
+EG_IMAGE *
+ScanVolumeDefaultIcon (
      REFIT_VOLUME  *Volume,
   IN UINT8          OSType
 ) {
@@ -803,8 +803,8 @@ EG_IMAGE
 // Load an icon for an operating system
 //
 
-EG_IMAGE
-*LoadOSIcon (
+EG_IMAGE *
+LoadOSIcon (
   IN  CHAR16    *OSIconName OPTIONAL,
   OUT CHAR16    **OSIconNameHover,
   IN  CHAR16    *FallbackIconName,
@@ -882,8 +882,8 @@ EG_IMAGE
   return WantDummy ? DummyImage (PixelSize) : NULL;
 }
 
-EG_IMAGE
-*LoadHoverIcon (
+EG_IMAGE *
+LoadHoverIcon (
   IN CHAR16   *OSIconName,
   IN UINTN    PixelSize
 ) {

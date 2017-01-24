@@ -72,8 +72,8 @@ typedef struct _pstate {
   UINTN     AttrBlueColor;
   UINTN     AttrGreenColor;
 
-  INTN      (*Output) (VOID *context, CHAR16 *str);
-  INTN      (*SetAttr) (VOID *context, UINTN attr);
+  INTN      (*Output)(VOID *context, CHAR16 *str);
+  INTN      (*SetAttr)(VOID *context, UINTN attr);
   VOID      *Context;
 
   //
@@ -125,7 +125,7 @@ _PoolCatPrint (
   IN CHAR16                 *fmt,
   IN VA_LIST                args,
   IN OUT POOL_PRINT         *spc,
-  IN INTN                   (*Output) (VOID *context, CHAR16 *str)
+  IN INTN                   (*Output)(VOID *context, CHAR16 *str)
 );
 
 INTN
@@ -251,7 +251,7 @@ _PoolCatPrint (
   IN      CHAR16      *fmt,
   IN      VA_LIST     args,
   IN OUT  POOL_PRINT  *spc,
-  IN      INTN        (*Output) (VOID *context, CHAR16 *str)
+  IN      INTN        (*Output)(VOID *context, CHAR16 *str)
 ) {
   /*++
 
@@ -281,8 +281,8 @@ _PoolCatPrint (
   VA_END (ps.args);
 }
 
-CHAR16
-*PoolPrint (
+CHAR16 *
+PoolPrint (
   IN CHAR16   *fmt,
   ...
 ) {
@@ -375,8 +375,6 @@ _IPrint (
       args   - args
 
   Returns:
-
-
   --*/
 
   PRINT_STATE ps;
@@ -389,8 +387,8 @@ _IPrint (
 
   SetMem (&ps, sizeof (ps), 0);
   ps.Context  = Out;
-  ps.Output   = (INTN (*) (VOID *, CHAR16 *)) Out->OutputString;
-  ps.SetAttr  = (INTN (*) (VOID *, UINTN)) Out->SetAttribute;
+  ps.Output   = (INTN (*)(VOID *, CHAR16 *)) Out->OutputString;
+  ps.SetAttr  = (INTN (*)(VOID *, UINTN)) Out->SetAttribute;
   //ASSERT (NULL != Out->Mode);
 
   if (!Out->Mode) {
@@ -522,8 +520,8 @@ PFLUSH (
   }
 
   CopyMem (
-    ((CHAR8 *) (ps->Buffer)) - PRINT_JOINT_BUFFER_LEN,
-    ((CHAR8 *) (ps->Pos)) - PRINT_JOINT_BUFFER_LEN,
+    ((CHAR8 *)(ps->Buffer)) - PRINT_JOINT_BUFFER_LEN,
+    ((CHAR8 *)(ps->Pos)) - PRINT_JOINT_BUFFER_LEN,
     PRINT_JOINT_BUFFER_LEN
   );
 
@@ -598,7 +596,7 @@ PGETC (
     return 0;
   }
 
-  c = (CHAR16) (p->Ascii ? p->u.pc[p->Index] : p->u.pw[p->Index]);
+  c = (CHAR16)(p->Ascii ? p->u.pc[p->Index] : p->u.pw[p->Index]);
   p->Index += 1;
 
   return c;
@@ -764,7 +762,7 @@ _PPrint (
   }
 
   ps->Len       = 0;
-  ps->Buffer    = (CHAR16 *) ((CHAR8 *) Buffer + PRINT_JOINT_BUFFER_LEN);
+  ps->Buffer    = (CHAR16 *) ((CHAR8 *)Buffer + PRINT_JOINT_BUFFER_LEN);
   ps->Pos       = ps->Buffer;
   ps->End       = Buffer + PRINT_STRING_LEN - 1;
   ps->Item      = &Item;
@@ -868,7 +866,7 @@ _PPrint (
 
         case 'c':
           Item.Item.u.pw    = Item.Scratch;
-          Item.Item.u.pw[0] = (CHAR16) VA_ARG (ps->args, UINTN);
+          Item.Item.u.pw[0] = (CHAR16)VA_ARG (ps->args, UINTN);
           Item.Item.u.pw[1] = 0;
           break;
 
@@ -1050,7 +1048,6 @@ WaitForSingleEvent (
 
   return Status;
 }
-
 
 //set Timeout in ms
 EFI_STATUS
@@ -1318,8 +1315,6 @@ Output (
       Str - string
 
   Returns:
-
-
   --*/
 
   gST->ConOut->OutputString (gST->ConOut, Str);
@@ -1344,8 +1339,6 @@ Input (
       StrLen - The string buffer length
 
   Returns:
-
-
   --*/
 
   IInput (

@@ -64,7 +64,6 @@ TOOL_CHAIN_TAG        = MYTOOLS
 #                                                 cores or CPUs. Less than 2 means disable multithread build.
 MAX_CONCURRENT_THREAD_NUMBER = 1
 
-
 # BUILD_RULE_CONF  Filename Optional  Specify the file name to use for the build rules that are followed
 #                                     when generating Makefiles. If not specified, the file:
 #                                     WORKSPACE/Conf/build_rule.txt will be used

@@ -1086,7 +1086,6 @@ ParseXML (
     }
   }
 
-
   if (length != -1) {
 //#if USE_REF
     moduleDict->ref_strings = (ref_strings != NULL)

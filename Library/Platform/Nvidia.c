@@ -98,7 +98,6 @@ UINT8 default_NVCAP[]= {
 //
 //#define NVPM_LEN ( sizeof (default_NVPM) / sizeof (UINT8) )
 
-
 #define S_NVIDIAMODEL "Nvidia Graphics"
 
 //STATIC nvidia_pci_info_t nvidia_card_generic[] = {
@@ -207,7 +206,6 @@ ReadNvidiaPRAMIN (
 
   return EFI_SUCCESS;
 }
-
 
 EFI_STATUS
 ReadNvidiaPROM (

@@ -1038,7 +1038,7 @@ ErrorExit:
  */
 FSI_STRING_LIST *
 EFIAPI
-FSInjectionCreateStringList (VOID) {
+FSInjectionCreateStringList () {
   FSI_STRING_LIST   *List;
 
   List = AllocateZeroPool (sizeof (FSI_STRING_LIST));

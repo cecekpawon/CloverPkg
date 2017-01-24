@@ -304,13 +304,13 @@ InternalInitScreen (
   CHAR16        *Resolution;
 
   // get protocols
-  Status = EfiLibLocateProtocol (&ConsoleControlProtocolGuid, (VOID **) &ConsoleControl);
+  Status = EfiLibLocateProtocol (&ConsoleControlProtocolGuid, (VOID **)&ConsoleControl);
 
   if (EFI_ERROR (Status)) {
     ConsoleControl = NULL;
   }
 
-  Status = EfiLibLocateProtocol (&GraphicsOutputProtocolGuid, (VOID **) &GraphicsOutput);
+  Status = EfiLibLocateProtocol (&GraphicsOutputProtocolGuid, (VOID **)&GraphicsOutput);
 
   if (EFI_ERROR (Status)) {
     GraphicsOutput = NULL;
@@ -1781,5 +1781,3 @@ GetAnime (
 
   return TRUE;
 }
-
-

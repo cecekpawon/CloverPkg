@@ -744,7 +744,6 @@ GetDisplayType (
   return TRUE;
 }
 
-
 BOOLEAN
 GetNameVal (
   value_t   *val,
@@ -791,7 +790,6 @@ GetNamePciVal (
 
   return TRUE;
 }
-
 
 BOOLEAN
 GetModelVal (
@@ -1140,7 +1138,6 @@ LoadVbiosFile (
   //if we are here then TRUE
   //  if (!gSettings.LoadVBios)
   //    return FALSE;
-
 
   UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s\\%04x_%04x.rom", RomPath, vendor_id, device_id);
   if (FileExists (OEMDir, FileName)){

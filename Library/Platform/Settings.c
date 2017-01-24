@@ -239,7 +239,7 @@ StringDataToHex (
 
   Len = (UINT32)AsciiStrLen (Val) >> 1; // number of hex digits
   Data = AllocateZeroPool (Len); // 2 chars per byte, one more byte for odd number
-  Len  = hex2bin (Val, Data, Len);
+  Len  = Hex2Bin (Val, Data, Len);
   *DataLen = Len;
 
   return Data;
@@ -322,7 +322,7 @@ GetStrArraySeparatedByChar (
   }
 
   if (mo->count > 1) {
-    INTN    *indexes = (INTN *) AllocatePool (mo->count + 1);
+    INTN    *indexes = (INTN *)AllocatePool (mo->count + 1);
 
     for (i = 0; i < len; ++i) {
       CHAR8 c = str[i];
@@ -1246,7 +1246,7 @@ FillinCustomEntry (
           UINT8   *data  = (UINT8 *)AllocateZeroPool (len);
 
           if (data) {
-            Entry->Image = DecodePNG (data, hex2bin (Prop->string, data, len), 0, TRUE);
+            Entry->Image = DecodePNG (data, Hex2Bin (Prop->string, data, len), 0, TRUE);
           }
         }
       } else if (Prop->type == kTagTypeData) {
@@ -1290,7 +1290,7 @@ FillinCustomEntry (
           UINT8   *data = (UINT8 *)AllocateZeroPool (len);
 
           if (data) {
-            Entry->DriveImage = DecodePNG (data, hex2bin (Prop->string, data, len), 0, TRUE);
+            Entry->DriveImage = DecodePNG (data, Hex2Bin (Prop->string, data, len), 0, TRUE);
           }
         }
       } else if (Prop->type == kTagTypeData) {
@@ -1541,7 +1541,7 @@ FillinCustomTool (
           UINT8   *data = (UINT8 *)AllocateZeroPool (Len);
 
           if (data != NULL) {
-            Entry->Image = DecodePNG (data, hex2bin (Prop->string, data, Len), 0, TRUE);
+            Entry->Image = DecodePNG (data, Hex2Bin (Prop->string, data, Len), 0, TRUE);
           }
         }
       } else if (Prop->type == kTagTypeData) {
@@ -3228,7 +3228,7 @@ GetUserSettings (
 
       Prop = GetProperty (DictPointer, "NVCAP");
       if (Prop != NULL) {
-        hex2bin (Prop->string, (UINT8 *)&gSettings.NVCAP[0], 20);
+        Hex2Bin (Prop->string, (UINT8 *)&gSettings.NVCAP[0], 20);
         DBG ("Read NVCAP: ");
 
         for (i = 0; i<20; i++) {
@@ -3241,7 +3241,7 @@ GetUserSettings (
 
       Prop = GetProperty (DictPointer, "display-cfg");
       if (Prop != NULL) {
-        hex2bin (Prop->string, (UINT8 *)&gSettings.Dcfg[0], 8);
+        Hex2Bin (Prop->string, (UINT8 *)&gSettings.Dcfg[0], 8);
       }
 
       Prop = GetProperty (DictPointer, "DualLink");
@@ -3290,7 +3290,7 @@ GetUserSettings (
           if (!EFI_ERROR (Status)) {
             cProperties = (UINT8 *)(UINTN)BufferPtr;
             cPropSize   = (UINT32)(strlength >> 1);
-            cPropSize   = hex2bin (cDeviceProperties, cProperties, cPropSize);
+            cPropSize   = Hex2Bin (cDeviceProperties, cProperties, cPropSize);
             DBG ("Injected EFIString of length %d\n", cPropSize);
           }
           //---------
@@ -3332,9 +3332,9 @@ GetUserSettings (
                 continue;
               }
 
-              Bus   = hexstrtouint8 (Str);
-              Dev   = hexstrtouint8 (&Str[3]);
-              Func  = hexstrtouint8 (&Str[6]);
+              Bus   = HexStrToUint8 (Str);
+              Dev   = HexStrToUint8 (&Str[3]);
+              Func  = HexStrToUint8 (&Str[6]);
               DeviceAddr = PCIADDR (Bus, Dev, Func);
 
               DBG (" %02x:%02x.%02x\n", Bus, Dev, Func);
@@ -3353,7 +3353,7 @@ GetUserSettings (
                   gSettings.AddProperties = AllocateZeroPool (sizeof (DEV_PROPERTY));
                   gSettings.AddProperties->Next = DevProp;
 
-                  gSettings.AddProperties->Device = (UINT32) DeviceAddr;
+                  gSettings.AddProperties->Device = (UINT32)DeviceAddr;
 
                   Prop3 = GetProperty (Dict3, "Key");
                   if (Prop3 && (Prop3->type == kTagTypeString) && Prop3->string) {
@@ -4948,7 +4948,7 @@ SetDevices (
       //-------
       mPropSize = (UINT32)AsciiStrLen (gDeviceProperties) / 2;
       //     DBG ("Preliminary size of mProperties=%d\n", mPropSize);
-      mPropSize = hex2bin (gDeviceProperties, mProperties, mPropSize);
+      mPropSize = Hex2Bin (gDeviceProperties, mProperties, mPropSize);
       //     DBG ("Final size of mProperties=%d\n", mPropSize);
       //---------
     }
@@ -4985,8 +4985,8 @@ SaveSettings () {
   return EFI_SUCCESS;
 }
 
-CHAR16
-*GetOtherKextsDir () {
+CHAR16 *
+GetOtherKextsDir () {
   CHAR16    *SrcDir = PoolPrint (DIR_KEXTS_OTHER, OEMPath);
 
   if (!FileExists (SelfVolume->RootDir, SrcDir)) {

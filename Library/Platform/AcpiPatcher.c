@@ -17,7 +17,6 @@ Re-Work by Slice 2011.
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-
 #include <Library/Platform/AmlGenerator.h>
 
 #ifndef DEBUG_ALL
@@ -61,7 +60,6 @@ CHAR8     *acpi_cpu_score;
 
 extern OPER_REGION *gRegions;
 //-----------------------------------
-
 
 UINT8 pmBlock[] = {
   /*0070: 0xA5, 0x84, 0x00, 0x00,*/ 0x01, 0x08, 0x00, 0x01, 0xF9, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1133,7 +1131,7 @@ DumpTables (
   // are not available
   //
 
-  RsdPtr = (EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_POINTER *) RsdPtrVoid;
+  RsdPtr = (EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_POINTER *)RsdPtrVoid;
   if (DirName != NULL) {
     DBG ("Saving ACPI tables from RSDP %p to %s ...\n", RsdPtr, DirName);
   } else {
@@ -1302,7 +1300,6 @@ DumpTables (
     FileNamePrefix = L"RSDT-";
 
   } // if Xsdt
-
 
   if (Rsdt != NULL) {
     //
@@ -2190,8 +2187,6 @@ PatchACPI (
   return EFI_SUCCESS;
 }
 
-
-
 /**
  * Searches for TableName in PathPatched dirs and loads it
  * to Buffer if found. Buffer is allocated here and should be released
@@ -2356,11 +2351,11 @@ PatchACPI_OtherOS (
   //
   RsdPointer = NULL;
 
-  Status = EfiGetSystemConfigurationTable (&gEfiAcpi20TableGuid, (VOID **) &RsdPointer);
+  Status = EfiGetSystemConfigurationTable (&gEfiAcpi20TableGuid, (VOID **)&RsdPointer);
   if (RsdPointer != NULL) {
     DBG ("OtherOS: Found Acpi 2.0 RSDP 0x%x\n", RsdPointer);
   } else {
-    Status = EfiGetSystemConfigurationTable (&gEfiAcpi10TableGuid, (VOID **) &RsdPointer);
+    Status = EfiGetSystemConfigurationTable (&gEfiAcpi10TableGuid, (VOID **)&RsdPointer);
     if (RsdPointer != NULL) {
       DBG ("Found Acpi 1.0 RSDP 0x%x\n", RsdPointer);
     }

@@ -14,7 +14,7 @@
 // runtime debug
 #define DBG_ON(entry) \
   ((entry != NULL) && (entry->KernelAndKextPatches != NULL) && \
-  ((DEBUG_KEXT_INJECT != 0) || OSFLAG_ISSET (gSettings.FlagsBits, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
+  ((DEBUG_KEXT_INJECT != 0) || OSFLAG_ISSET (entry->Flags, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
   /*entry->KernelAndKextPatches->KPDebug && \*/
 #define DBG_RT(entry, ...) \
   if (DBG_ON (entry)) AsciiPrint (__VA_ARGS__)
@@ -431,7 +431,7 @@ InjectKexts (
     if (DTCreatePropertyIteratorNoAlloc (memmapEntry,iter) == kSuccess) {
       while (DTIterateProperties (iter,&ptr) == kSuccess) {
         prop = iter->currentProperty;
-        drvPtr = (UINT8 *) prop;
+        drvPtr = (UINT8 *)prop;
 
         if (
           (AsciiStrnCmp (prop->name, "Driver-", 7) == 0) ||
@@ -448,11 +448,11 @@ InjectKexts (
       while (DTIterateProperties (iter,&ptr) == kSuccess) {
         prop = iter->currentProperty;
         if (AsciiStrCmp (prop->name,"mm_extra") == 0) {
-          infoPtr = (UINT8 *) prop;
+          infoPtr = (UINT8 *)prop;
         }
 
         if (AsciiStrCmp (prop->name,"extra") == 0) {
-          extraPtr = (UINT8 *) prop;
+          extraPtr = (UINT8 *)prop;
         }
       }
     }
@@ -474,12 +474,12 @@ InjectKexts (
 
   // make space for memory map entries
   platformEntry->nProperties -= 2;
-  offset = sizeof (DeviceTreeNodeProperty) + ((DeviceTreeNodeProperty *) infoPtr)->length;
+  offset = sizeof (DeviceTreeNodeProperty) + ((DeviceTreeNodeProperty *)infoPtr)->length;
   CopyMem (drvPtr+offset, drvPtr, infoPtr-drvPtr);
 
   // make space behind device tree
   // platformEntry->nProperties--;
-  offset = sizeof (DeviceTreeNodeProperty)+((DeviceTreeNodeProperty *) extraPtr)->length;
+  offset = sizeof (DeviceTreeNodeProperty)+((DeviceTreeNodeProperty *)extraPtr)->length;
   CopyMem (extraPtr, extraPtr+offset, dtLength-(UINTN)(extraPtr-dtEntry)-offset);
   *deviceTreeLength -= (UINT32)offset;
 
@@ -489,14 +489,14 @@ InjectKexts (
     for (Link = gKextList.ForwardLink; Link != &gKextList; Link = Link->ForwardLink) {
       KextEntry = CR (Link, KEXT_ENTRY, Link, KEXT_SIGNATURE);
 
-      CopyMem ((VOID *) KextBase, (VOID *)(UINTN) KextEntry->kext.paddr, KextEntry->kext.length);
-      drvinfo = (_BooterKextFileInfo *) KextBase;
-      drvinfo->infoDictPhysAddr += (UINT32) KextBase;
-      drvinfo->executablePhysAddr += (UINT32) KextBase;
-      drvinfo->bundlePathPhysAddr += (UINT32) KextBase;
+      CopyMem ((VOID *)KextBase, (VOID *)(UINTN)KextEntry->kext.paddr, KextEntry->kext.length);
+      drvinfo = (_BooterKextFileInfo *)KextBase;
+      drvinfo->infoDictPhysAddr += (UINT32)KextBase;
+      drvinfo->executablePhysAddr += (UINT32)KextBase;
+      drvinfo->bundlePathPhysAddr += (UINT32)KextBase;
 
       memmapEntry->nProperties++;
-      prop = ((DeviceTreeNodeProperty *) drvPtr);
+      prop = ((DeviceTreeNodeProperty *)drvPtr);
       prop->length = sizeof (_DeviceTreeBuffer);
       mm = (_DeviceTreeBuffer *) (((UINT8 *)prop) + sizeof (DeviceTreeNodeProperty));
       mm->paddr = (UINT32)KextBase;

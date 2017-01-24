@@ -103,7 +103,6 @@
 #define SPD_tRC                               41  /* SDRAM Device Minimum Active to Active/Auto Refresh Time (tRC) */
 #define SPD_tRFC                              42  /* SDRAM Device Minimum Auto Refresh to Active/Auto Refresh (tRFC) */
 
-
 /* SPD_MEMORY_TYPE values. */
 #define SPD_MEMORY_TYPE_FPM_DRAM              1
 #define SPD_MEMORY_TYPE_EDO                   2

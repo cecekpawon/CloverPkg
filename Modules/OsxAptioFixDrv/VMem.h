@@ -146,7 +146,6 @@ typedef union {
 
 #pragma pack()
 
-
 // 64 bit
 #define CR3_ADDR_MASK 0x000FFFFFFFFFF000
 #define CR3_FLAG_PWT  0x0000000000000008
@@ -155,7 +154,6 @@ typedef union {
 #define PT_ADDR_MASK_4K 0x000FFFFFFFFFF000
 #define PT_ADDR_MASK_2M 0x000FFFFFFFE00000
 #define PT_ADDR_MASK_1G 0x000FFFFFC0000000
-
 
 /** Returns pointer to PML4 table in PageTable and PWT and PCD flags in Flags. */
 VOID

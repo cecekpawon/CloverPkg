@@ -61,13 +61,13 @@ CreateImage (
 ) {
   EG_IMAGE    *NewImage;
 
-  NewImage = (EG_IMAGE *) AllocatePool (sizeof (EG_IMAGE));
+  NewImage = (EG_IMAGE *)AllocatePool (sizeof (EG_IMAGE));
 
   if (NewImage == NULL){
     return NULL;
   }
 
-  NewImage->PixelData = (EG_PIXEL *) AllocatePool ((UINTN)(Width * Height * sizeof (EG_PIXEL)));
+  NewImage->PixelData = (EG_PIXEL *)AllocatePool ((UINTN)(Width * Height * sizeof (EG_PIXEL)));
 
   if (NewImage->PixelData == NULL) {
     FreePool (NewImage);
@@ -272,7 +272,6 @@ do { \
      Dest->P = (UINT8)((a01.P * (cell - dx) * 3 + a10.P * (cell - dy) * 3 + \
                         a21.P * dx * 3 + a12.P * dy * 3 + a11.P * 2 * cell) / (cell * 8)); \
 } while (0)
-
 
 VOID
 ScaleImage (
@@ -969,7 +968,7 @@ DecodePNG (
   UINT32      PNG_error, Width, Height;
   INTN        i, ImageSize;
 
-  PNG_error = lodepng_decode32 ((UINT8 **) &PixelData, &Width, &Height, (CONST UINT8 *) FileData, FileDataLength);
+  PNG_error = lodepng_decode32 ((UINT8 **)&PixelData, &Width, &Height, (CONST UINT8 *)FileData, FileDataLength);
 
   if (PNG_error) {
     return NULL;

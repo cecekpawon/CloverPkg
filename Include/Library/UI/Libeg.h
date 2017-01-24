@@ -160,7 +160,6 @@ typedef struct {
   UINTN       PixelSize; // for .icns
 } BUILTIN_ICON;
 
-
 /* functions */
 
 //VOID

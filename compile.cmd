@@ -46,7 +46,6 @@ rem # get revision
 
 cd %WORKSPACE%
 for /f %%i in ('git rev-list --count HEAD') do set EDK2_REVISION=%%i
-echo %EDK2_REVISION%
 set /a "EDK2_REVISION=%EDK2_REVISION%+%EDK2_REVISION_MAGIC%"
 echo %EDK2_REVISION%>%F_REV_TXT%
 

@@ -19,7 +19,7 @@
 // runtime debug
 #define DBG_ON(entry) \
   ((entry != NULL) && (entry->KernelAndKextPatches != NULL) && \
-  ((DEBUG_KEXT_PATCH != 0) || OSFLAG_ISSET (gSettings.FlagsBits, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
+  ((DEBUG_KEXT_PATCH != 0) || OSFLAG_ISSET (entry->Flags, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
   /*entry->KernelAndKextPatches->KPDebug && \*/
 #define DBG_RT(entry, ...) \
   if (DBG_ON (entry)) AsciiPrint (__VA_ARGS__)
@@ -368,7 +368,7 @@ GetText (
   ncmds = MACH_GET_NCMDS (binary);
 
   for (cnt = 0; cnt < ncmds; cnt++) {
-    loadCommand = (struct load_command *) (binary + binaryIndex);
+    loadCommand = (struct load_command *)(binary + binaryIndex);
 
     if (loadCommand->cmd != LC_SEGMENT_64) {
       continue;

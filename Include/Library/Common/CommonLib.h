@@ -58,7 +58,7 @@ AsciiStrVersionToUint64 (
 
 UINT32
 EFIAPI
-hex2bin (
+Hex2Bin (
   IN  CHAR8   *hex,
   OUT UINT8   *bin,
   IN  UINT32  len
@@ -66,7 +66,7 @@ hex2bin (
 
 UINT8
 EFIAPI
-hexstrtouint8 (
+HexStrToUint8 (
   CHAR8   *buf
 ); //one or two hex letters to one byte
 
@@ -102,13 +102,6 @@ EFIAPI
 StriStartsWith (
   IN CHAR16   *String1,
   IN CHAR16   *String2
-);
-
-UINTN
-EFIAPI
-iStrLen (
-  CHAR8   *String,
-  UINTN   MaxLen
 );
 
 //
@@ -148,6 +141,13 @@ AsciiStrStriN (
   IN CONST UINTN     sWhatSize,
   IN CONST CHAR8    *WhereString,
   IN CONST UINTN     sWhereSize
+);
+
+UINTN
+EFIAPI
+AsciiTrimStrLen (
+  CHAR8   *String,
+  UINTN   MaxLen
 );
 
 //UINTN

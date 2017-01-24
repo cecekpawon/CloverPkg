@@ -35,7 +35,6 @@ kext injection
 #define THIN_IA32 0xfeedface
 #define THIN_X64  0xfeedfacf
 
-
 ////////////////////
 // types
 ////////////////////
@@ -62,7 +61,6 @@ typedef struct
   LIST_ENTRY          Link;
   _DeviceTreeBuffer   kext;
 } KEXT_ENTRY;
-
 
 ////////////////////
 // functions

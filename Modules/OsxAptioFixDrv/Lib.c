@@ -302,7 +302,7 @@ FileDevicePathToText (
     (i > 0)
   ) {
     if ((FilePathProto->Type == MEDIA_DEVICE_PATH) && (FilePathProto->SubType == MEDIA_FILEPATH_DP)) {
-      FilePath = (FILEPATH_DEVICE_PATH *) FilePathProto;
+      FilePath = (FILEPATH_DEVICE_PATH *)FilePathProto;
       Size = (DevicePathNodeLength (FilePathProto) - 4) / 2;
       if ((SizeAll + Size) < Len) {
         if ((SizeAll > 0) && (FilePathText[SizeAll / 2 - 2] != L'\\')) {

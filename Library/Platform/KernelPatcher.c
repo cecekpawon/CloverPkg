@@ -22,7 +22,7 @@
 // runtime debug
 #define DBG_ON(entry) \
   ((entry != NULL) && (entry->KernelAndKextPatches != NULL) && \
-  ((DEBUG_KERNEL != 0) || OSFLAG_ISSET (gSettings.FlagsBits, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
+  ((DEBUG_KERNEL != 0) || OSFLAG_ISSET (entry->Flags, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
   /*entry->KernelAndKextPatches->KPDebug && \*/
 #define DBG_RT(entry, ...) \
   if (DBG_ON (entry)) AsciiPrint (__VA_ARGS__)
@@ -65,16 +65,16 @@ GetKernelVersion (
   }
 
   for (i = addr; i < addr + size; i++) {
-    if (AsciiStrnCmp ((CHAR8 *) i, "Darwin Kernel Version", 21) == 0) {
+    if (AsciiStrnCmp ((CHAR8 *)i, "Darwin Kernel Version", 21) == 0) {
       kvBegin = i + 22;
       i2 = kvBegin;
-      s = (CHAR8 *) kvBegin;
+      s = (CHAR8 *)kvBegin;
 
-      while (AsciiStrnCmp ((CHAR8 *) i2, ":", 1) != 0) {
+      while (AsciiStrnCmp ((CHAR8 *)i2, ":", 1) != 0) {
         i2++;
       }
 
-      KernelInfo->Version = (CHAR8 *) AllocateZeroPool (i2 - kvBegin + 1);
+      KernelInfo->Version = (CHAR8 *)AllocateZeroPool (i2 - kvBegin + 1);
       s1 = KernelInfo->Version;
 
       for (i3 = kvBegin; i3 < i2; i3++) {
@@ -119,8 +119,8 @@ InitKernel (
 
         if (segCmd64->nsects == 0) {
           if (AsciiStrCmp (segCmd64->segname, kLinkeditSegment) == 0) {
-            linkeditaddr = (UINT32) segCmd64->vmaddr;
-            linkeditfileoff = (UINT32) segCmd64->fileoff;
+            linkeditaddr = (UINT32)segCmd64->vmaddr;
+            linkeditfileoff = (UINT32)segCmd64->fileoff;
             //DBG_RT (Entry, "%a: Segment = %a, Addr = 0x%x, Size = 0x%x, FileOff = 0x%x\n", __FUNCTION__,
             //  segCmd64->segname, linkeditaddr, segCmd64->vmsize, linkeditfileoff
             //);
@@ -205,7 +205,7 @@ InitKernel (
         break;
 
       case LC_SYMTAB:
-        comSymTab = (struct symtab_command *) loadCommand;
+        comSymTab = (struct symtab_command *)loadCommand;
         symoff = comSymTab->symoff;
         nsyms = comSymTab->nsyms;
         stroff = comSymTab->stroff;
@@ -226,17 +226,17 @@ InitKernel (
     UINT32    patchLocation;
 
     cnt = 0;
-    symbin = (UINT8 *)(UINTN) (linkeditaddr + (symoff - linkeditfileoff) + KernelInfo->RelocBase);
-    strbin = (UINT8 *)(UINTN) (linkeditaddr + (stroff - linkeditfileoff) + KernelInfo->RelocBase);
+    symbin = (UINT8 *)(UINTN)(linkeditaddr + (symoff - linkeditfileoff) + KernelInfo->RelocBase);
+    strbin = (UINT8 *)(UINTN)(linkeditaddr + (stroff - linkeditfileoff) + KernelInfo->RelocBase);
 
     //DBG_RT (Entry, "%a: symaddr = 0x%x, straddr = 0x%x\n", __FUNCTION__, symbin, strbin);
 
     while ((cnt < nsyms) && CntPatches) {
-      systabentry = (struct nlist_64 *) (symbin);
+      systabentry = (struct nlist_64 *)(symbin);
 
       if (systabentry->n_value) {
-        symbolName = (CHAR8 *) (strbin + systabentry->n_un.n_strx);
-        Addr = (UINT32) systabentry->n_value;
+        symbolName = (CHAR8 *)(strbin + systabentry->n_un.n_strx);
+        Addr = (UINT32)systabentry->n_value;
         patchLocation = Addr - (UINT32)(UINTN)KernelInfo->Bin + (UINT32)KernelInfo->RelocBase;
 
         if (systabentry->n_sect == KernelInfo->TextIndex) {

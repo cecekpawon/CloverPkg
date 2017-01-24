@@ -37,7 +37,6 @@ EFI_HANDLE_PROTOCOL           gHandleProtocol = NULL;
 EFI_SET_VIRTUAL_ADDRESS_MAP   gStoredSetVirtualAddressMap = NULL;
 UINT32                        OrgRTCRC32 = 0;
 
-
 // monitoring AlocatePages
 EFI_PHYSICAL_ADDRESS          gMinAllocatedAddr = 0;
 EFI_PHYSICAL_ADDRESS          gMaxAllocatedAddr = 0;
@@ -203,7 +202,6 @@ MOAllocatePages (
   return Status;
 }
 
-
 /** gBS->GetMemoryMap override:
  * Returns shrinked memory map. I think kernel can handle up to 128 entries.
  */
@@ -313,7 +311,6 @@ MOExitBootServices (
   return Status;
 }
 
-
 /** gRT->SetVirtualAddressMap override:
  * Fixes virtualizing of RT services.
  */
@@ -362,7 +359,6 @@ OvrSetVirtualAddressMap (
   return Status;
 }
 
-
 /** Callback called when boot.efi jumps to kernel. */
 UINTN
 EFIAPI
@@ -384,7 +380,6 @@ KernelEntryPatchJumpBack (
 
   return bootArgs;
 }
-
 
 
 /** SWITCH_STACK_ENTRY_POINT implementation:
@@ -488,7 +483,7 @@ MOStartImage (
   DBG ("StartImage (%lx)\n", ImageHandle);
 
   // find out image name from EfiLoadedImageProtocol
-  Status = gBS->OpenProtocol (ImageHandle, &gEfiLoadedImageProtocolGuid, (VOID **) &Image, gImageHandle, NULL, EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+  Status = gBS->OpenProtocol (ImageHandle, &gEfiLoadedImageProtocolGuid, (VOID **)&Image, gImageHandle, NULL, EFI_OPEN_PROTOCOL_GET_PROTOCOL);
   if (Status != EFI_SUCCESS) {
     DBG ("ERROR: MOStartImage: OpenProtocol (gEfiLoadedImageProtocolGuid) = %r\n", Status);
     return EFI_INVALID_PARAMETER;

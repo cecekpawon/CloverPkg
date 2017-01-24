@@ -60,8 +60,8 @@ VirtualAddressChangeEvent (
   IN EFI_EVENT    Event,
   IN VOID         *Context
 ) {
-//  EfiConvertPointer (0x0, (VOID **) &mProperty);
-//  EfiConvertPointer (0x0, (VOID **) &mSmmCommunication);
+//  EfiConvertPointer (0x0, (VOID **)&mProperty);
+//  EfiConvertPointer (0x0, (VOID **)&mSmmCommunication);
 }
 
 VOID
@@ -105,7 +105,6 @@ GuiEventsInitialize () {
                     &RegSimpleFileSystem
                   );
   }
-
 
   return Status;
 }

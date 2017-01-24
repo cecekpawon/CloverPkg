@@ -59,7 +59,7 @@ DecodeBMP (
     return NULL;
   }
 
-  BmpHeader = (BMP_IMAGE_HEADER *) FileData;
+  BmpHeader = (BMP_IMAGE_HEADER *)FileData;
 
   if ((BmpHeader->CharB != 'B') || (BmpHeader->CharM != 'M')) {
     return NULL;
@@ -212,7 +212,6 @@ EncodeBMP (
   if ((ImageLineOffset & 3) != 0) {
     ImageLineOffset = ImageLineOffset + (4 - (ImageLineOffset & 3));
   }
-
 
   // allocate buffer for file data
   FileDataLength = sizeof (BMP_IMAGE_HEADER) + MultU64x64 (Image->Height, ImageLineOffset);

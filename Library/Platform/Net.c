@@ -86,14 +86,14 @@ GetMacAddress () {
     Status = gBS->HandleProtocol (
                     HandleBuffer[Index],
                     &gEfiDevicePathProtocolGuid,
-                    (VOID **) &Node
+                    (VOID **)&Node
                   );
 
     if (EFI_ERROR (Status)) {
       continue;
     }
 
-    DevicePath = (EFI_DEVICE_PATH_PROTOCOL *) Node;
+    DevicePath = (EFI_DEVICE_PATH_PROTOCOL *)Node;
 
     //
     while (!IsDevicePathEnd (DevicePath)) {

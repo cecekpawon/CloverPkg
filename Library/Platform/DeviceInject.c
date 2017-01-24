@@ -138,7 +138,7 @@ GetScreenInfo (
   Status = gBS->HandleProtocol (
                   gST->ConsoleOutHandle,
                   &gEfiGraphicsOutputProtocolGuid,
-                  (VOID **) &mGraphicsOutput
+                  (VOID **)&mGraphicsOutput
                 );
 
   if (EFI_ERROR (Status)) {
@@ -180,7 +180,6 @@ SetPrivateVarProto () {
 
   return Status;
 }
-
 
 DevPropString *
 DevpropCreateString () {

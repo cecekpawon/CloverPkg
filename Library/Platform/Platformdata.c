@@ -207,7 +207,6 @@ CHAR8 *AppleFamilies[] =
   "MacPro"
 };
 
-
 CHAR8 *AppleSystemVersion[] =
 {
   "1.1",
@@ -362,7 +361,6 @@ CHAR8 *SmcPlatform[] =
   "j90",  // MacPro6,1
 };
 
-
 UINT8 SmcRevision[][6] =
 {
   { 0x01, 0x04, 0x0F, 0, 0, 0x12 },   // MacBook1,1,
@@ -401,7 +399,6 @@ UINT8 SmcRevision[][6] =
   { 0x02, 0x20, 0x0F, 0, 0, 0x18 },   // MacPro6,1 :2.20f18
 };
 
-
 UINT32 SmcConfig[] =
 {
   0x71001,  //"MacBook1,1",
@@ -439,7 +436,6 @@ UINT32 SmcConfig[] =
   0x7c002,  //"MacPro5,1"
   0xf0f006, // MacPro6,1
 };
-
 
 CHAR8   *AppleBoardSN       = "C02140302D5DMT31M";
 CHAR8   *AppleBoardLocation = "Part Component";

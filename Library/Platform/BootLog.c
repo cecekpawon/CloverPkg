@@ -7,7 +7,6 @@
  *  Initial idea from Kabyl
  */
 
-
 #include <Library/Platform/Platform.h>
 #include <Library/Common/MemLogLib.h>
 
@@ -35,7 +34,6 @@ DebugLog (
    MemLogVA (TRUE, DebugMode, FormatString, Marker);
    VA_END (Marker);
 }
-
 
 /** Prints Number of bytes in a row (hex and ascii). Row size is MaxNumber. */
 VOID
@@ -83,14 +81,14 @@ PrintBytes (
   }
 }
 
-EFI_FILE_PROTOCOL
-*GetDebugLogFile () {
+EFI_FILE_PROTOCOL *
+GetDebugLogFile () {
   EFI_STATUS            Status;
   EFI_LOADED_IMAGE      *LoadedImage;
   EFI_FILE_PROTOCOL     *RootDir, *LogFile;
 
   // get RootDir from device we are loaded from
-  Status = gBS->HandleProtocol (gImageHandle, &gEfiLoadedImageProtocolGuid, (VOID **) &LoadedImage);
+  Status = gBS->HandleProtocol (gImageHandle, &gEfiLoadedImageProtocolGuid, (VOID **)&LoadedImage);
   if (EFI_ERROR (Status)) {
     return NULL;
   }

@@ -116,7 +116,6 @@ GetNumberOfRTPages (
   return Status;
 }
 
-
 /** Calculate the size of reloc block.
   * gRelocSizePages = KERNEL_BLOCK_NO_RT_SIZE_PAGES + RT&MMIO pages
   */
@@ -288,7 +287,6 @@ MOAllocatePages (
   return Status;
 }
 
-
 /** gBS->GetMemoryMap override:
   * Returns shrinked memory map. I think kernel can handle up to 128 entries.
   */
@@ -375,7 +373,6 @@ MOExitBootServices (
   return Status;
 }
 
-
 /** Callback called when boot.efi jumps to kernel. */
 UINTN
 EFIAPI
@@ -393,8 +390,6 @@ KernelEntryPatchJumpBack (
 
   return bootArgs;
 }
-
-
 
 /** SWITCH_STACK_ENTRY_POINT implementation:
   * Allocates kernel image reloc block, installs UEFI overrides and starts given image.
@@ -490,7 +485,7 @@ MOStartImage (
   //DBG ("StartImage (%lx)\n", ImageHandle);
 
   // find out image name from EfiLoadedImageProtocol
-  Status = gBS->OpenProtocol (ImageHandle, &gEfiLoadedImageProtocolGuid, (VOID **) &Image, gImageHandle, NULL, EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+  Status = gBS->OpenProtocol (ImageHandle, &gEfiLoadedImageProtocolGuid, (VOID **)&Image, gImageHandle, NULL, EFI_OPEN_PROTOCOL_GET_PROTOCOL);
   if (Status != EFI_SUCCESS) {
     //DBG ("ERROR: MOStartImage: OpenProtocol (gEfiLoadedImageProtocolGuid) = %r\n", Status);
     return EFI_INVALID_PARAMETER;

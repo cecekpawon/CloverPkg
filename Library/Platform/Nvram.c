@@ -34,7 +34,6 @@ CHAR16                      *gEfiBootLoaderPath;
                             // contains GPT GUID from gEfiBootDeviceData or gBootCampHD (if exists)
 EFI_GUID                    *gEfiBootDeviceGuid;
 
-
 #if 0
 /** returns given time as miliseconds.
  *  assumes 31 days per month, so it's not correct,
@@ -167,7 +166,6 @@ GetNvramVariable (
   return Data;
 }
 
-
 /** Sets NVRAM variable. Does nothing if variable with the same data and attributes already exists. */
 EFI_STATUS
 SetNvramVariable (
@@ -237,7 +235,6 @@ AddNvramVariable (
   }
 }
 
-
 /** Deletes NVRAM variable. */
 EFI_STATUS
 DeleteNvramVariable (
@@ -252,7 +249,6 @@ DeleteNvramVariable (
 
   return Status;
 }
-
 
 /** Searches for GPT HDD dev path node and return pointer to partition GUID or NULL. */
 EFI_GUID *
@@ -451,7 +447,6 @@ FindDevicePathNodeWithType (
   return NULL;
 }
 
-
 /** Returns TRUE if dev paths contain the same MEDIA_DEVICE_PATH. */
 BOOLEAN
 BootVolumeMediaDevicePathNodesEqual (
@@ -473,7 +468,6 @@ BootVolumeMediaDevicePathNodesEqual (
       (CompareMem (DevicePath1, DevicePath2, DevicePathNodeLength (DevicePath1)) == 0)
     );
 }
-
 
 /** Reads gEfiAppleBootGuid:efi-boot-device-data and BootCampHD NVRAM variables and parses them
  *  into gEfiBootVolume, gEfiBootLoaderPath and gEfiBootDeviceGuid.
@@ -809,7 +803,6 @@ FindStartupDiskVolume (
   return -1;
 }
 
-
 /** Sets efi-boot-device-data RT var to currently selected Volume and LoadePath. */
 EFI_STATUS
 SetStartupDiskVolume (
@@ -887,7 +880,6 @@ SetStartupDiskVolume (
 
   return Status;
 }
-
 
 /** Deletes Startup disk vars: efi-boot-device, efi-boot-device-data, BootCampHD. */
 VOID

@@ -60,7 +60,7 @@ EFI_BOOT_SERVICES       *gBS;
 EFI_RUNTIME_SERVICES    *gRS;
 EFI_DXE_SERVICES        *gDS;
 
-DRIVERS_FLAGS           gDriversFlags = {FALSE, FALSE, FALSE, FALSE};  //the initializer is not needed for global variables
+DRIVERS_FLAGS           gDriversFlags = { FALSE, FALSE, FALSE, FALSE };  //the initializer is not needed for global variables
 
 STATIC
 EFI_STATUS
@@ -167,7 +167,7 @@ StartEFILoadedImage (
     ReturnStatus = Status = gBS->HandleProtocol (
                                     ChildImageHandle,
                                     &gEfiLoadedImageProtocolGuid,
-                                    (VOID **) &ChildLoadedImage
+                                    (VOID **)&ChildLoadedImage
                                   );
 
     if (CheckError (Status, L"while getting a LoadedImageProtocol handle")) {
@@ -539,8 +539,9 @@ StartLoader (
   }
 
   DBG ("Finally: Bus=%ldkHz CPU=%ldMHz\n",
-         DivU64x32 (gCPUStructure.FSBFrequency, kilo),
-         gCPUStructure.MaxSpeed);
+    DivU64x32 (gCPUStructure.FSBFrequency, kilo),
+    gCPUStructure.MaxSpeed)
+  ;
 
   //DumpKernelAndKextPatches (Entry->KernelAndKextPatches);
 
@@ -569,7 +570,7 @@ StartLoader (
       Status = gBS->HandleProtocol (
                       ImageHandle,
                       &gEfiLoadedImageProtocolGuid,
-                      (VOID **) &LoadedImage
+                      (VOID **)&LoadedImage
                     );
 
       if (!EFI_ERROR (Status)) {
@@ -623,6 +624,14 @@ StartLoader (
       }
 
       ReadSIPCfg ();
+    }
+
+    if (OSFLAG_ISUNSET (Entry->Flags, OSFLAG_ALLOW_KEXT_PATCHES)) {
+      gSettings.KextPatchesAllowed = FALSE;
+    }
+
+    if (OSFLAG_ISUNSET (Entry->Flags, OSFLAG_ALLOW_KERNEL_PATCHES)) {
+      gSettings.KernelPatchesAllowed = FALSE;
     }
 
     FilterKextPatches (Entry);
@@ -854,8 +863,15 @@ ScanDriverDir (
         (StriStr (DirEntry->FileName, L"FSInject") != NULL)
       ) ||
       (
-        gDriversFlags.AptioFixEmbedded &&
-        (StriStr (DirEntry->FileName, L"AptioFixDrv") != NULL)
+        (gDriversFlags.AptioFixEmbedded || gDriversFlags.AptioFixLoaded) &&
+        (
+          (StriStr (DirEntry->FileName, L"AptioFix") != NULL) ||
+          (StriStr (DirEntry->FileName, L"LowMemFix") != NULL)
+        )
+      ) ||
+      (
+        gDriversFlags.HFSLoaded &&
+        (StriStr (DirEntry->FileName, L"HFS") != NULL)
       )
     ) {
       continue;
@@ -886,12 +902,23 @@ ScanDriverDir (
     }
 
     if (
+      !gDriversFlags.AptioFixEmbedded && !gDriversFlags.AptioFixLoaded &&
+      (
+        (StriStr (DirEntry->FileName, L"AptioFix") != NULL) ||
+        (StriStr (DirEntry->FileName, L"LowMemFix") != NULL)
+      )
+    ) {
+      DBG ("- AptioFix driver loaded\n");
+      gDriversFlags.AptioFixLoaded = TRUE;
+    }
+
+    if (
       (DriverHandle != NULL) &&
       (DriversToConnectNum != 0) &&
       (DriversToConnect != NULL)
     ) {
       // driver loaded - check for EFI_DRIVER_BINDING_PROTOCOL
-      Status = gBS->HandleProtocol (DriverHandle, &gEfiDriverBindingProtocolGuid, (VOID **) &DriverBinding);
+      Status = gBS->HandleProtocol (DriverHandle, &gEfiDriverBindingProtocolGuid, (VOID **)&DriverBinding);
 
       if (!EFI_ERROR (Status) && (DriverBinding != NULL)) {
         DBG (" - driver needs connecting\n");
@@ -1042,7 +1069,7 @@ LoadDrivers () {
     BdsLibConnectAllDriversToAllControllers ();
   }
 
-  if (NumLoad) {
+  if (NumLoad && !gDriversFlags.AptioFixLoaded) {
     Status = EfiLibLocateProtocol (&gAptioProtocolGuid, (VOID **)&AptioFix);
     if (!EFI_ERROR (Status) && (AptioFix->Signature == APTIOFIX_SIGNATURE)) {
       DBG ("- AptioFix driver loaded\n");
@@ -1268,7 +1295,7 @@ RefitMain (
   gImageHandle  = ImageHandle;
   gBS           = SystemTable->BootServices;
   gRS           = SystemTable->RuntimeServices;
-  /*Status = */EfiGetSystemConfigurationTable (&gEfiDxeServicesTableGuid, (VOID **) &gDS);
+  /*Status = */EfiGetSystemConfigurationTable (&gEfiDxeServicesTableGuid, (VOID **)&gDS);
 
   // To initialize 'SelfRootDir', we should place it here
   Status = InitRefitLib (gImageHandle);
@@ -1322,6 +1349,7 @@ RefitMain (
 
   // disable EFI watchdog timer
   gBS->SetWatchdogTimer (0x0000, 0x0000, 0x0000, NULL);
+
   ZeroMem ((VOID *)&gSettings, sizeof (SETTINGS_DATA));
 
   Status = InitializeUnicodeCollationProtocol ();
@@ -1334,14 +1362,14 @@ RefitMain (
   PrepatchSmbios ();
 
   //replace / with _
-  Size = iStrLen (gSettings.OEMProduct, 64);
+  Size = AsciiTrimStrLen (gSettings.OEMProduct, 64);
   for (i = 0; i < Size; i++) {
     if (gSettings.OEMProduct[i] == 0x2F) {
       gSettings.OEMProduct[i] = 0x5F;
     }
   }
 
-  Size = iStrLen (gSettings.OEMBoard, 64);
+  Size = AsciiTrimStrLen (gSettings.OEMBoard, 64);
   for (i = 0; i < Size; i++) {
     if (gSettings.OEMBoard[i] == 0x2F) {
       gSettings.OEMBoard[i] = 0x5F;
@@ -1351,6 +1379,7 @@ RefitMain (
   MsgLog ("Running on: '%a' with board '%a'\n", gSettings.OEMProduct, gSettings.OEMBoard);
 
   GetCPUProperties ();
+
   GetDevices ();
 
   DbgHeader ("LoadSettings");

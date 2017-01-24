@@ -825,6 +825,14 @@ AddLoaderEntry (
         Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_DBGPATCHES);
       }
 
+      if (OSFLAG_ISSET (gSettings.FlagsBits, OSFLAG_ALLOW_KEXT_PATCHES) || gSettings.KextPatchesAllowed) {
+        Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_ALLOW_KEXT_PATCHES);
+      }
+
+      if (OSFLAG_ISSET (gSettings.FlagsBits, OSFLAG_ALLOW_KERNEL_PATCHES) || gSettings.KernelPatchesAllowed) {
+        Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_ALLOW_KERNEL_PATCHES);
+      }
+
       if (gSettings.NoCaches) {
         Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_NOCACHES);
       }

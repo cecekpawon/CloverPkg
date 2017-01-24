@@ -21,7 +21,6 @@ typedef struct _IOPolledFileExtent
   UINT64  length;
 } IOPolledFileExtent;
 
-
 typedef struct _IOHibernateImageHeader
 {
   UINT64  imageSize;

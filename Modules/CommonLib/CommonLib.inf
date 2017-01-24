@@ -16,3 +16,6 @@
 [Packages]
   CloverPkg/CloverPkg.dec
   MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  MemLogLib

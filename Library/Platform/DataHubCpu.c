@@ -340,9 +340,9 @@ SetupDataForOSX () {
     //LogDataHub (&gEfiProcessorSubClassGuid,    L"clovergui-revision",    &Revision,              sizeof (UINT32));
 
     // collect info about real hardware
-    LogDataHub (&gEfiMiscSubClassGuid,         L"OEMVendor",             &gSettings.OEMVendor,  (UINT32)iStrLen (gSettings.OEMVendor,  64) + 1);
-    LogDataHub (&gEfiMiscSubClassGuid,         L"OEMProduct",            &gSettings.OEMProduct, (UINT32)iStrLen (gSettings.OEMProduct, 64) + 1);
-    LogDataHub (&gEfiMiscSubClassGuid,         L"OEMBoard",              &gSettings.OEMBoard,   (UINT32)iStrLen (gSettings.OEMBoard,   64) + 1);
+    LogDataHub (&gEfiMiscSubClassGuid,         L"OEMVendor",             &gSettings.OEMVendor,  (UINT32)AsciiTrimStrLen (gSettings.OEMVendor,  64) + 1);
+    LogDataHub (&gEfiMiscSubClassGuid,         L"OEMProduct",            &gSettings.OEMProduct, (UINT32)AsciiTrimStrLen (gSettings.OEMProduct, 64) + 1);
+    LogDataHub (&gEfiMiscSubClassGuid,         L"OEMBoard",              &gSettings.OEMBoard,   (UINT32)AsciiTrimStrLen (gSettings.OEMBoard,   64) + 1);
 
     // SMC helper
     LogDataHub (&gEfiMiscSubClassGuid,         L"RPlt",                  &gSettings.RPlt,        8);

@@ -40,6 +40,7 @@
 #include <Library/MemoryAllocationLib.h>
 #include <Library/PrintLib.h>
 
+#include <Library/Common/MemLogLib.h>
 #include <Library/Common/CommonLib.h>
 
 #ifndef DEBUG_ALL
@@ -53,7 +54,13 @@
 #define DEBUG_COMMON DEBUG_ALL
 #endif
 
-#define DBG(...) DebugLog (DEBUG_COMMON, __VA_ARGS__)
+//#define DBG(...) DebugLog (DEBUG_COMMON, __VA_ARGS__)
+
+#if DEBUG_COMMON > 0
+#define DBG(...) MemLog(TRUE, 1, __VA_ARGS__)
+#else
+#define DBG(...)
+#endif
 
 CONST CHAR16 *OsxPathLCaches[] = {
    L"\\System\\Library\\Caches\\com.apple.kext.caches\\Startup\\kernelcache",
@@ -88,10 +95,10 @@ Base64DecodeValue (
     30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51
   };
 
-  INT32   NewValue = (UINT8) Value;
+  INT32   NewValue = (UINT8)Value;
 
   NewValue -= 43;
-  if (NewValue < 0 || ((UINT32) NewValue >= sizeof (Decoding))) {
+  if (NewValue < 0 || ((UINT32)NewValue >= sizeof (Decoding))) {
     return -1;
   }
 
@@ -207,7 +214,7 @@ Base64Decode (
   DecodedData = AllocateZeroPool (EncodedSize);
 
   Base64InitDecodeState (&State);
-  DecodedSizeInternal = Base64DecodeBlock (EncodedData, (CONST INT32)EncodedSize, (CHAR8 *) DecodedData, &State);
+  DecodedSizeInternal = Base64DecodeBlock (EncodedData, (CONST INT32)EncodedSize, (CHAR8 *)DecodedData, &State);
 
   if (DecodedSize != NULL) {
     *DecodedSize = (UINTN)DecodedSizeInternal;
@@ -405,7 +412,6 @@ StriCmp (
 /**
   Adjusts the size of a previously allocated buffer.
 
-
   @param OldPool         - A pointer to the buffer whose size is being adjusted.
   @param OldSize         - The size of the current buffer.
   @param NewSize         - The size of the new buffer.
@@ -507,7 +513,6 @@ AsciiStriStr (
   return AsciiStrStr (AsciiStrToLower (String), AsciiStrToLower (SearchString));
 }
 
-
 /*
   Taken from Shell
   Trim leading trailing spaces
@@ -565,6 +570,43 @@ AsciiStriNCmp (
   return TRUE;
 }
 
+// This function determines ascii string length ending by space.
+// search restricted to MaxLen, for example
+// AsciiTrimStrLen ("ABC    ", 20) == 3
+// if MaxLen=0 then as usual strlen but bugless
+UINTN
+EFIAPI
+AsciiTrimStrLen (
+  CHAR8   *String,
+  UINTN   MaxLen
+) {
+  UINTN   Len = 0;
+  CHAR8   *BA;
+
+  if (MaxLen > 0) {
+    for (Len=0; Len < MaxLen; Len++) {
+      if (String[Len] == 0) {
+        break;
+      }
+    }
+
+    BA = &String[Len - 1];
+
+    while ((Len != 0) && ((*BA == ' ') || (*BA == 0))) {
+      BA--;
+      Len--;
+    }
+  } else {
+    BA = String;
+    while (*BA) {
+      BA++;
+      Len++;
+    }
+  }
+
+  return Len;
+}
+
 // Case insensitive search of WhatString in WhereString
 BOOLEAN
 EFIAPI
@@ -588,7 +630,7 @@ AsciiStrStriN (
 
 UINT8
 EFIAPI
-hexstrtouint8 (
+HexStrToUint8 (
   CHAR8   *buf
 ) {
   INT8  i = 0;
@@ -624,7 +666,7 @@ IsHexDigit (
 
 UINT32
 EFIAPI
-hex2bin (
+Hex2Bin (
   IN  CHAR8   *hex,
   OUT UINT8   *bin,
   IN  UINT32  len
@@ -638,7 +680,7 @@ hex2bin (
   }
 
   buf[2] = '\0';
-  p = (CHAR8 *) hex;
+  p = (CHAR8 *)hex;
 
   for (i = 0; i < len; i++) {
     while ((*p == 0x20) || (*p == ',')) {
@@ -656,7 +698,7 @@ hex2bin (
 
     buf[0] = *p++;
     buf[1] = *p++;
-    bin[i] = hexstrtouint8 (buf);
+    bin[i] = HexStrToUint8 (buf);
     outlen++;
   }
 
@@ -777,37 +819,6 @@ StriStartsWith (
   //DBG ("=%s \n", Result ? L"TRUE" : L"FALSE");
 
   return Result;
-}
-
-// This function determines ascii string length ending by space.
-// search restricted to MaxLen, for example
-// iStrLen ("ABC    ", 20) == 3
-// if MaxLen=0 then as usual strlen but bugless
-UINTN
-EFIAPI
-iStrLen (
-  CHAR8   *String,
-  UINTN   MaxLen
-) {
-  UINTN   Len = 0;
-  CHAR8   *BA;
-
-  if (MaxLen > 0) {
-    for (Len=0; Len<MaxLen; Len++) {
-      if (String[Len] == 0) {
-        break;
-      }
-    }
-    BA = &String[Len - 1];
-    while ((Len != 0) && ((*BA == ' ') || (*BA == 0))) {
-      BA--; Len--;
-    }
-  } else {
-    BA = String;
-    while (*BA){BA++; Len++;}
-  }
-
-  return Len;
 }
 
 INTN
