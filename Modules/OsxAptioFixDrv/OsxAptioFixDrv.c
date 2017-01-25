@@ -57,8 +57,6 @@ EFI_MEMORY_DESCRIPTOR     *gLastMemoryMap = NULL;
 UINTN                     gLastDescriptorSize = 0;
 UINT32                    gLastDescriptorVersion = 0;
 
-EFI_GUID  gAptioFixProtocolGuid = {0xB79DCC2E, 0x61BE, 0x453F, {0xBC, 0xAC, 0xC2, 0x60, 0xFA, 0xAE, 0xCC, 0xDA}};
-
 /** Helper function that calls GetMemoryMap () and returns new MapKey.
  * Uses gStoredGetMemoryMap, so can be called only after gStoredGetMemoryMap is set.
  */
@@ -162,9 +160,13 @@ AllocateRelocBlock () {
 
   // set reloc addr in runtime vars for boot manager
   //Print (L"OsxAptioFixDrv: AllocateRelocBlock (): gRelocBase set to %lx - %lx\n", gRelocBase, gRelocBase + EFI_PAGES_TO_SIZE (gRelocSizePages) - 1);
-  /*Status = */gRT->SetVariable (L"OsxAptioFixDrv-RelocBase", &gEfiGlobalVariableGuid,
-                /*   EFI_VARIABLE_NON_VOLATILE |*/ EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS,
-                sizeof (gRelocBase) ,&gRelocBase);
+  /*Status = */gRT->SetVariable (
+                      L"OsxAptioFixDrv-RelocBase",
+                      &gEfiGlobalVariableGuid,
+                      /* EFI_VARIABLE_NON_VOLATILE |*/ EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS,
+                      sizeof (gRelocBase),
+                      &gRelocBase
+                    );
 
   return Status;
 }
@@ -293,11 +295,11 @@ MOAllocatePages (
 EFI_STATUS
 EFIAPI
 MOGetMemoryMap (
-  IN OUT UINTN                  *MemoryMapSize,
-  IN OUT EFI_MEMORY_DESCRIPTOR  *MemoryMap,
-  OUT UINTN                     *MapKey,
-  OUT UINTN                     *DescriptorSize,
-  OUT UINT32                    *DescriptorVersion
+  IN  OUT UINTN                   *MemoryMapSize,
+  IN  OUT EFI_MEMORY_DESCRIPTOR   *MemoryMap,
+  OUT UINTN                       *MapKey,
+  OUT UINTN                       *DescriptorSize,
+  OUT UINT32                      *DescriptorVersion
 ) {
   EFI_STATUS    Status;
 
@@ -508,9 +510,10 @@ MOStartImage (
 
   // check if this is boot.efi
   if (StriStr (FilePathText, L"boot.efi") && !gHibernateWake) {
-
-    Print (L"OsxAptioFixDrv: Starting overrides for %s\nUsing reloc block: yes, hibernate wake: %s \n",
-        FilePathText, gHibernateWake ? L"yes" : L"no");
+    Print (
+      L"OsxAptioFixDrv: Starting overrides for %s\nUsing reloc block: yes, hibernate wake: %s \n",
+      FilePathText, gHibernateWake ? L"yes" : L"no"
+    );
     //gBS->Stall (2000000);
 
     // run with our overrides

@@ -55,8 +55,6 @@ EFI_MEMORY_DESCRIPTOR         *gLastMemoryMap = NULL;
 UINTN                         gLastDescriptorSize = 0;
 UINT32                        gLastDescriptorVersion = 0;
 
-EFI_GUID                      gAptioFixProtocolGuid = {0xB79DCC2E, 0x61BE, 0x453F, {0xBC, 0xAC, 0xC2, 0x60, 0xFA, 0xAE, 0xCC, 0xDA}};
-
 /** Helper function that calls GetMemoryMap () and returns new MapKey.
  * Uses gStoredGetMemoryMap, so can be called only after gStoredGetMemoryMap is set.
  */
@@ -305,7 +303,7 @@ MOExitBootServices (
     // at this stage HIB section is not yet copied from sleep image to it's
     // proper memory destination. so we'll patch entry point in sleep image.
     ImageHeader = (IOHibernateImageHeader *)(UINTN)gHibernateImageAddress;
-    KernelEntryPatchJump ( ((UINT32)(UINTN)&(ImageHeader->fileExtentMap[0])) + ImageHeader->fileExtentMapSize + ImageHeader->restore1CodeOffset );
+    KernelEntryPatchJump (((UINT32)(UINTN)&(ImageHeader->fileExtentMap[0])) + ImageHeader->fileExtentMapSize + ImageHeader->restore1CodeOffset);
   }
 
   return Status;
@@ -483,7 +481,15 @@ MOStartImage (
   DBG ("StartImage (%lx)\n", ImageHandle);
 
   // find out image name from EfiLoadedImageProtocol
-  Status = gBS->OpenProtocol (ImageHandle, &gEfiLoadedImageProtocolGuid, (VOID **)&Image, gImageHandle, NULL, EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+  Status = gBS->OpenProtocol (
+                  ImageHandle,
+                  &gEfiLoadedImageProtocolGuid,
+                  (VOID **)&Image,
+                  gImageHandle,
+                  NULL,
+                  EFI_OPEN_PROTOCOL_GET_PROTOCOL
+                );
+
   if (Status != EFI_SUCCESS) {
     DBG ("ERROR: MOStartImage: OpenProtocol (gEfiLoadedImageProtocolGuid) = %r\n", Status);
     return EFI_INVALID_PARAMETER;
@@ -566,8 +572,10 @@ MOStartImage (
     Status = gRT->GetVariable (L"boot-switch-vars", &gEfiAppleBootGuid, NULL, &Size, NULL);
     gHibernateWake = (Status == EFI_BUFFER_TOO_SMALL);
 
-    Print (L"OsxAptioFix2Drv: Starting overrides for %s\nUsing reloc block: no, hibernate wake: %s \n",
-          FilePathText, gHibernateWake ? L"yes" : L"no");
+    Print (
+      L"OsxAptioFix2Drv: Starting overrides for %s\nUsing reloc block: no, hibernate wake: %s \n",
+      FilePathText, gHibernateWake ? L"yes" : L"no"
+    );
     //gBS->Stall (2000000);
 
     // run with our overrides

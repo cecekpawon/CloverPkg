@@ -43,3 +43,6 @@
   gEfiAppleBootGuid
   gEfiFileInfoGuid
   gEfiGlobalVariableGuid
+
+[Protocols]
+  gAptioFixProtocolGuid

@@ -1070,7 +1070,7 @@ LoadDrivers () {
   }
 
   if (NumLoad && !gDriversFlags.AptioFixLoaded) {
-    Status = EfiLibLocateProtocol (&gAptioProtocolGuid, (VOID **)&AptioFix);
+    Status = EfiLibLocateProtocol (&gAptioFixProtocolGuid, (VOID **)&AptioFix);
     if (!EFI_ERROR (Status) && (AptioFix->Signature == APTIOFIX_SIGNATURE)) {
       DBG ("- AptioFix driver loaded\n");
       gDriversFlags.AptioFixLoaded = TRUE;

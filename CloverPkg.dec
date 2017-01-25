@@ -37,6 +37,6 @@
   gEfiMiscSubClassGuid                    = {0X772484B2, 0X7482, 0X4B91, {0X9F, 0X9A, 0XAD, 0X43, 0XF8, 0X1C, 0X58, 0X81}}
   gEfiProcessorSubClassGuid               = {0X26FDEB7E, 0XB8AF, 0X4CCF, {0XAA, 0X97, 0X02, 0X63, 0X3C, 0XE4, 0X8C, 0XA7}}
 
-  gAptioProtocolGuid                      = {0XB79DCC2E, 0X61BE, 0X453F, {0XBC, 0XAC, 0XC2, 0X60, 0XFA, 0XAE, 0XCC, 0XDA}}
+  gAptioFixProtocolGuid                   = {0XB79DCC2E, 0X61BE, 0X453F, {0XBC, 0XAC, 0XC2, 0X60, 0XFA, 0XAE, 0XCC, 0XDA}}
   gFSInjectProtocolGuid                   = {0X3F048284, 0X6D4C, 0X11E1, {0XA4, 0XD7, 0X37, 0XE3, 0X48, 0X24, 0X01, 0X9B}}
   gMsgLogProtocolGuid                     = {0X511CE018, 0X0018, 0X4002, {0X20, 0X12, 0X17, 0X38, 0X05, 0X01, 0X02, 0X03}}

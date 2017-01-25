@@ -86,14 +86,14 @@ PrintMemMap (
 CHAR16 *
 EFIAPI
 FileDevicePathToText (
-  EFI_DEVICE_PATH_PROTOCOL  *FilePathProto
+  EFI_DEVICE_PATH_PROTOCOL    *FilePathProto
 );
 
 /** Helper function that calls GetMemoryMap (), allocates space for mem map and returns it. */
 EFI_STATUS
 EFIAPI
 GetMemoryMapAlloc (
-  IN EFI_GET_MEMORY_MAP       GetMemoryMapFunction,
+  IN  EFI_GET_MEMORY_MAP      GetMemoryMapFunction,
   OUT UINTN                   *MemoryMapSize,
   OUT EFI_MEMORY_DESCRIPTOR   **MemoryMap,
   OUT UINTN                   *MapKey,

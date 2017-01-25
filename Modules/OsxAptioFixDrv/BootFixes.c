@@ -180,8 +180,8 @@ PrepareJumpFromKernel () {
   //
   // and relocate it to higher mem
   //
-  MyAsmCopyAndJumpToKernel32Addr = HigherMem + ( (UINT8 *)(UINTN)&MyAsmCopyAndJumpToKernel32 - (UINT8 *)(UINTN)&MyAsmCopyAndJumpToKernel );
-  MyAsmCopyAndJumpToKernel64Addr = HigherMem + ( (UINT8 *)(UINTN)&MyAsmCopyAndJumpToKernel64 - (UINT8 *)(UINTN)&MyAsmCopyAndJumpToKernel );
+  MyAsmCopyAndJumpToKernel32Addr = HigherMem + ((UINT8 *)(UINTN)&MyAsmCopyAndJumpToKernel32 - (UINT8 *)(UINTN)&MyAsmCopyAndJumpToKernel);
+  MyAsmCopyAndJumpToKernel64Addr = HigherMem + ((UINT8 *)(UINTN)&MyAsmCopyAndJumpToKernel64 - (UINT8 *)(UINTN)&MyAsmCopyAndJumpToKernel);
 
   Size = (UINT8 *)&MyAsmCopyAndJumpToKernelEnd - (UINT8 *)&MyAsmCopyAndJumpToKernel;
   if (Size > EFI_PAGES_TO_SIZE (1)) {
@@ -470,12 +470,12 @@ AssignVirtualAddressesToMemMap (
     // assign virtual addresses to all EFI_MEMORY_RUNTIME marked pages (including MMIO)
     if ((Desc->Attribute & EFI_MEMORY_RUNTIME) != 0) {
       //BlockSize = EFI_PAGES_TO_SIZE ((UINTN)Desc->NumberOfPages);
-      if (Desc->Type == EfiRuntimeServicesCode || Desc->Type == EfiRuntimeServicesData) {
+      if ((Desc->Type == EfiRuntimeServicesCode) || (Desc->Type == EfiRuntimeServicesData)) {
         // for RT block - assign from kernel block
         Desc->VirtualStart = KernelRTAddress + 0xffffff8000000000;
         // next kernel block
         KernelRTAddress += BlockSize;
-      } else if (Desc->Type == EfiMemoryMappedIO || Desc->Type == EfiMemoryMappedIOPortSpace) {
+      } else if ((Desc->Type == EfiMemoryMappedIO) || (Desc->Type == EfiMemoryMappedIOPortSpace)) {
         // for MMIO block - assign from kernel block
         Desc->VirtualStart = KernelRTAddress + 0xffffff8000000000;
         // next kernel block
@@ -514,7 +514,7 @@ DefragmentRuntimeServices (
     if ((Desc->Type == EfiRuntimeServicesCode) || (Desc->Type == EfiRuntimeServicesData)) {
 
       // skip our block with sys table copy if required
-      if (SkipOurSysTableRtArea && Desc->PhysicalStart == gSysTableRtArea) {
+      if ((SkipOurSysTableRtArea && Desc->PhysicalStart) == gSysTableRtArea) {
         Desc = NEXT_MEMORY_DESCRIPTOR (Desc, DescriptorSize);
         continue;
       }

@@ -85,6 +85,7 @@
   !ifndef EMBED_APTIOFIX
     CloverPkg/Modules/OsxAptioFixDrv/OsxAptioFixDrv.inf
   !endif
+
   #CloverPkg/Modules/OsxFatBinaryDrv/OsxFatBinaryDrv.inf
   #CloverPkg/Applications/bdmesg_efi/bdmesg.inf
   CloverPkg/Applications/Clover/Clover.inf

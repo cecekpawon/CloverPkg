@@ -281,7 +281,7 @@ WaitForKeyPress (
 CHAR16 *
 EFIAPI
 FileDevicePathToText (
-  EFI_DEVICE_PATH_PROTOCOL *FilePathProto
+  EFI_DEVICE_PATH_PROTOCOL    *FilePathProto
 ) {
   EFI_STATUS            Status;
   FILEPATH_DEVICE_PATH  *FilePath;
@@ -339,7 +339,7 @@ FileDevicePathToText (
 EFI_STATUS
 EFIAPI
 GetMemoryMapAlloc (
-  IN EFI_GET_MEMORY_MAP       GetMemoryMapFunction,
+  IN  EFI_GET_MEMORY_MAP      GetMemoryMapFunction,
   OUT UINTN                   *MemoryMapSize,
   OUT EFI_MEMORY_DESCRIPTOR   **MemoryMap,
   OUT UINTN                   *MapKey,
@@ -370,9 +370,9 @@ GetMemoryMapAlloc (
 EFI_STATUS
 EFIAPI
 AllocatePagesFromTop (
-  IN EFI_MEMORY_TYPE            MemoryType,
-  IN UINTN                      Pages,
-  IN OUT EFI_PHYSICAL_ADDRESS   *Memory
+  IN      EFI_MEMORY_TYPE        MemoryType,
+  IN      UINTN                  Pages,
+  IN OUT  EFI_PHYSICAL_ADDRESS   *Memory
 ) {
   EFI_STATUS              Status;
   UINTN                   MemoryMapSize, MapKey, DescriptorSize;
