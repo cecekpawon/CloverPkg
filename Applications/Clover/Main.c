@@ -327,12 +327,10 @@ FilterKextPatches (
         FreePool (Str);
       }
 
-      MsgLog (" - [%02d]: %a | %a | [OS: %a %s| MatchOS: %a | MatchBuild: %a]",
+      MsgLog (" - [%02d]: %a | %a | [MatchOS: %a | MatchBuild: %a]",
         i,
         Entry->KernelAndKextPatches->KextPatches[i].Label,
         Entry->KernelAndKextPatches->KextPatches[i].IsPlistPatch ? "PlistPatch" : "BinPatch",
-        Entry->OSVersion,
-        NeedBuildVersion ? PoolPrint (L"(%a) ", Entry->BuildVersion) : L"",
         Entry->KernelAndKextPatches->KextPatches[i].MatchOS
           ? Entry->KernelAndKextPatches->KextPatches[i].MatchOS
           : "All",
@@ -379,11 +377,9 @@ FilterKernelPatches (
                   (Entry->KernelAndKextPatches->KernelPatches[i].MatchBuild != NULL)
                 );
 
-      MsgLog (" - [%02d]: %a | [OS: %a %s| MatchOS: %a | MatchBuild: %a]",
+      MsgLog (" - [%02d]: %a | [MatchOS: %a | MatchBuild: %a]",
         i,
         Entry->KernelAndKextPatches->KernelPatches[i].Label,
-        Entry->OSVersion,
-        NeedBuildVersion ? PoolPrint (L"(%a) ", Entry->BuildVersion) : L"",
         Entry->KernelAndKextPatches->KernelPatches[i].MatchOS
           ? Entry->KernelAndKextPatches->KernelPatches[i].MatchOS
           : "All",
@@ -432,6 +428,8 @@ ReadSIPCfg () {
     StrCatS (csrLog, SVALUE_MAX_SIZE, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_UNRESTRICTED_NVRAM"));
   if (csrCfg & CSR_ALLOW_DEVICE_CONFIGURATION)
     StrCatS (csrLog, SVALUE_MAX_SIZE, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_DEVICE_CONFIGURATION"));
+  if (csrCfg & CSR_ALLOW_ANY_RECOVERY_OS)
+    StrCatS (csrLog, SVALUE_MAX_SIZE, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_ANY_RECOVERY_OS"));
 
   if (StrLen (csrLog)) MsgLog ("CSR_CFG: %s\n", csrLog);
 
@@ -540,8 +538,8 @@ StartLoader (
 
   DBG ("Finally: Bus=%ldkHz CPU=%ldMHz\n",
     DivU64x32 (gCPUStructure.FSBFrequency, kilo),
-    gCPUStructure.MaxSpeed)
-  ;
+    gCPUStructure.MaxSpeed
+  );
 
   //DumpKernelAndKextPatches (Entry->KernelAndKextPatches);
 
@@ -1314,7 +1312,7 @@ RefitMain (
 
   ZeroMem ((VOID *)&gGraphics[0], sizeof (GFX_PROPERTIES) * 4);
 
-  DbgHeader ("RefitMain");
+  //DbgHeader ("RefitMain");
   //hehe ();
 
   if ((Now.TimeZone < 0) || (Now.TimeZone > 24)) {

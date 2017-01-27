@@ -35,28 +35,6 @@ CHAR16                      *gEfiBootLoaderPath;
 EFI_GUID                    *gEfiBootDeviceGuid;
 
 #if 0
-/** returns given time as miliseconds.
- *  assumes 31 days per month, so it's not correct,
- *  but is enough for basic checks.
- */
-UINT64
-GetEfiTimeInMs (
-  IN  EFI_TIME *T
-) {
-  UINT64  TimeMs;
-
-  TimeMs = T->Year - 1900;
-  // is 64bit multiply workign in 32 bit?
-  TimeMs = MultU64x32 (TimeMs, 12)   + T->Month;
-  TimeMs = MultU64x32 (TimeMs, 31)   + T->Day; // counting with 31 day
-  TimeMs = MultU64x32 (TimeMs, 24)   + T->Hour;
-  TimeMs = MultU64x32 (TimeMs, 60)   + T->Minute;
-  TimeMs = MultU64x32 (TimeMs, 60)   + T->Second;
-  TimeMs = MultU64x32 (TimeMs, 1000) + DivU64x32 (T->Nanosecond, 1000000);
-
-  return TimeMs;
-}
-
 ///
 //  Print all fakesmc variables, i.e. SMC keys
 ///

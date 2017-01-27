@@ -1,10 +1,19 @@
 /**
 
-  UEFI driver for enabling loading of OSX by using memory relocation.
+ UEFI driver for enabling loading of OSX with/out memory relocation.
 
-  by dmazar
+ by dmazar
 
-**/
+ **/
+
+#ifndef APTIOFIX_VER
+#define APTIOFIX_VER 2
+#else
+#if APTIOFIX_VER > 2 || APTIOFIX_VER < 0
+#undef APTIOFIX_VER
+#define APTIOFIX_VER 2
+#endif
+#endif
 
 #include <Library/UefiLib.h>
 #include <Library/UefiBootServicesTableLib.h>
@@ -13,7 +22,11 @@
 #include <Library/MemoryAllocationLib.h>
 #include <Library/DebugLib.h>
 
+#include <Library/Common/MemLogLib.h>
 #include <Library/Common/CommonLib.h>
+#if APTIOFIX_VER == 2
+#include <Library/Common/Hibernate.h>
+#endif
 
 #include <Protocol/LoadedImage.h>
 
@@ -23,39 +36,48 @@
 #include "VMem.h"
 #include "Lib.h"
 
-// defines the size of block that will be allocated for kernel image relocation,
-//   without RT and MMIO regions
+#if APTIOFIX_VER == 1
+// defines the size of block that will be allocated for kernel image relocation, without RT and MMIO regions
 // rehabman - Increase the size for ElCapitan to 128Mb 0x8000
 // stinga11 - 0x6000
-#define KERNEL_BLOCK_NO_RT_SIZE_PAGES 0x8000
+#define KERNEL_BLOCK_NO_RT_SIZE_PAGES   0x8000
+#define MAX_PHYSICAL_ADDRESS            0x100000000
+#endif
 
 // TRUE if we are doing hibernate wake
-BOOLEAN                   gHibernateWake = FALSE;
+BOOLEAN                       gHibernateWake = FALSE;
 
-// placeholders for storing original Boot Services functions
-EFI_ALLOCATE_PAGES        gStoredAllocatePages = NULL;
-EFI_GET_MEMORY_MAP        gStoredGetMemoryMap = NULL;
-EFI_EXIT_BOOT_SERVICES    gStoredExitBootServices = NULL;
-EFI_IMAGE_START           gStartImage = NULL;
-EFI_HANDLE_PROTOCOL       gHandleProtocol = NULL;
+// placeholders for storing original Boot and RT Services functions
+EFI_ALLOCATE_PAGES            gStoredAllocatePages = NULL;
+EFI_GET_MEMORY_MAP            gStoredGetMemoryMap = NULL;
+EFI_EXIT_BOOT_SERVICES        gStoredExitBootServices = NULL;
+EFI_IMAGE_START               gStartImage = NULL;
+EFI_HANDLE_PROTOCOL           gHandleProtocol = NULL;
+
+#if APTIOFIX_VER == 2
+EFI_SET_VIRTUAL_ADDRESS_MAP   gStoredSetVirtualAddressMap = NULL;
+UINT32                        OrgRTCRC32 = 0;
+#endif
 
 // monitoring AlocatePages
-EFI_PHYSICAL_ADDRESS      gMinAllocatedAddr = 0;
-EFI_PHYSICAL_ADDRESS      gMaxAllocatedAddr = 0;
+EFI_PHYSICAL_ADDRESS          gMinAllocatedAddr = 0;
+EFI_PHYSICAL_ADDRESS          gMaxAllocatedAddr = 0;
 
 // relocation base address
-EFI_PHYSICAL_ADDRESS      gRelocBase = 0;
+EFI_PHYSICAL_ADDRESS          gRelocBase = 0;
+#if APTIOFIX_VER == 1
 // relocation block size in pages
-UINTN                     gRelocSizePages = 0;
+UINTN                         gRelocSizePages = 0;
+#endif
 
 // location of memory allocated by boot.efi for hibernate image
-EFI_PHYSICAL_ADDRESS      gHibernateImageAddress = 0;
+EFI_PHYSICAL_ADDRESS          gHibernateImageAddress = 0;
 
 // last memory map obtained by boot.efi
-UINTN                     gLastMemoryMapSize = 0;
-EFI_MEMORY_DESCRIPTOR     *gLastMemoryMap = NULL;
-UINTN                     gLastDescriptorSize = 0;
-UINT32                    gLastDescriptorVersion = 0;
+UINTN                         gLastMemoryMapSize = 0;
+EFI_MEMORY_DESCRIPTOR         *gLastMemoryMap = NULL;
+UINTN                         gLastDescriptorSize = 0;
+UINT32                        gLastDescriptorVersion = 0;
 
 /** Helper function that calls GetMemoryMap () and returns new MapKey.
  * Uses gStoredGetMemoryMap, so can be called only after gStoredGetMemoryMap is set.
@@ -65,9 +87,8 @@ GetMemoryMapKey (
   OUT UINTN   *MapKey
 ) {
   EFI_STATUS              Status;
-  UINTN                   MemoryMapSize;
+  UINTN                   MemoryMapSize, DescriptorSize;
   EFI_MEMORY_DESCRIPTOR   *MemoryMap;
-  UINTN                   DescriptorSize;
   UINT32                  DescriptorVersion;
 
   Status = GetMemoryMapAlloc (gStoredGetMemoryMap, &MemoryMapSize, &MemoryMap, MapKey, &DescriptorSize, &DescriptorVersion);
@@ -81,9 +102,9 @@ GetNumberOfRTPages (
   OUT UINTN   *NumPages
 ) {
   EFI_STATUS              Status;
+  EFI_MEMORY_DESCRIPTOR   *MemoryMap, *Desc;
   UINTN                   MemoryMapSize, MapKey, DescriptorSize, NumEntries, Index;
   UINT32                  DescriptorVersion;
-  EFI_MEMORY_DESCRIPTOR   *MemoryMap, *Desc;
 
   Status = GetMemoryMapAlloc (gBS->GetMemoryMap, &MemoryMapSize, &MemoryMap, &MapKey, &DescriptorSize, &DescriptorVersion);
   if (EFI_ERROR (Status)) {
@@ -114,6 +135,7 @@ GetNumberOfRTPages (
   return Status;
 }
 
+#if APTIOFIX_VER == 1
 /** Calculate the size of reloc block.
   * gRelocSizePages = KERNEL_BLOCK_NO_RT_SIZE_PAGES + RT&MMIO pages
   */
@@ -145,7 +167,7 @@ AllocateRelocBlock () {
   CalculateRelocBlockSize ();
 
   gRelocBase = 0;
-  Addr = 0x100000000; // max address
+  Addr = MAX_PHYSICAL_ADDRESS; // max address
   Status = AllocatePagesFromTop (EfiBootServicesData, gRelocSizePages, &Addr);
   if (Status != EFI_SUCCESS) {
     //DBG ("OsxAptioFixDrv: AllocateRelocBlock (): can not allocate relocation block (0x%x pages below 0x%lx): %r\n",
@@ -176,13 +198,14 @@ EFI_STATUS
 FreeRelocBlock () {
   return gBS->FreePages (gRelocBase, gRelocSizePages);
 }
+#endif
 
 /** gBS->HandleProtocol override:
-  * Boot.efi requires EfiGraphicsOutputProtocol on ConOutHandle, but it is not present
-  * there on Aptio 2.0. EfiGraphicsOutputProtocol exists on some other handle.
-  * If this is the case, we'll intercept that call and return EfiGraphicsOutputProtocol
-  * from that other handle.
-  */
+ * Boot.efi requires EfiGraphicsOutputProtocol on ConOutHandle, but it is not present
+ * there on Aptio 2.0. EfiGraphicsOutputProtocol exists on some other handle.
+ * If this is the case, we'll intercept that call and return EfiGraphicsOutputProtocol
+ * from that other handle.
+ */
 EFI_STATUS
 EFIAPI
 MOHandleProtocol (
@@ -190,8 +213,8 @@ MOHandleProtocol (
   IN  EFI_GUID      *Protocol,
   OUT VOID          **Interface
 ) {
-  EFI_STATUS                    res;
-  EFI_GRAPHICS_OUTPUT_PROTOCOL  *GraphicsOutput;
+  EFI_STATUS                      res;
+  EFI_GRAPHICS_OUTPUT_PROTOCOL    *GraphicsOutput;
 
   // special handling if gEfiGraphicsOutputProtocolGuid is requested by boot.efi
   if (CompareGuid (Protocol, &gEfiGraphicsOutputProtocolGuid)) {
@@ -217,28 +240,25 @@ MOHandleProtocol (
 }
 
 /** gBS->AllocatePages override:
-  * Returns pages from free memory block to boot.efi for kernel boot image.
-  */
+ * Returns pages from free memory block to boot.efi for kernel boot image.
+ */
 EFI_STATUS
 EFIAPI
 MOAllocatePages (
-  IN EFI_ALLOCATE_TYPE          Type,
-  IN EFI_MEMORY_TYPE            MemoryType,
-  IN UINTN                      NumberOfPages,
-  IN OUT EFI_PHYSICAL_ADDRESS   *Memory
+  IN      EFI_ALLOCATE_TYPE       Type,
+  IN      EFI_MEMORY_TYPE         MemoryType,
+  IN      UINTN                   NumberOfPages,
+  IN OUT  EFI_PHYSICAL_ADDRESS    *Memory
 ) {
-  EFI_STATUS                Status;
-  EFI_PHYSICAL_ADDRESS      UpperAddr;
-  //EFI_PHYSICAL_ADDRESS    MemoryIn;
-  //BOOLEAN                 FromRelocBlock = FALSE;
-
-  //MemoryIn = *Memory;
+  EFI_STATUS            Status;
+  EFI_PHYSICAL_ADDRESS  UpperAddr;
 
   if ((Type == AllocateAddress) && (MemoryType == EfiLoaderData)) {
     // called from boot.efi
 
     UpperAddr = *Memory + EFI_PAGES_TO_SIZE (NumberOfPages);
 
+#if APTIOFIX_VER == 1
     // check if the requested mem can be served from reloc block
     // the upper address is compared to the size of the relocation block to achieve Address + gRelocBase for all
     // allocations, so that the entire block can be copied to the proper location on kernel entry
@@ -263,6 +283,7 @@ MOAllocatePages (
 
       return EFI_OUT_OF_RESOURCES;
     }
+#endif
 
     // store min and max mem - can be used later to determine start and end of kernel boot image
     if ((gMinAllocatedAddr == 0) || (*Memory < gMinAllocatedAddr)) {
@@ -273,12 +294,26 @@ MOAllocatePages (
       gMaxAllocatedAddr = UpperAddr;
     }
 
+#if APTIOFIX_VER == 1
     // give it from our allocated block
     *Memory += gRelocBase;
     //Status = gStoredAllocatePages (Type, MemoryType, NumberOfPages, Memory);
     //FromRelocBlock = TRUE;
     Status = EFI_SUCCESS;
-
+#else
+    Status = gStoredAllocatePages (Type, MemoryType, NumberOfPages, Memory);
+  } else if (
+    gHibernateWake &&
+    (Type == AllocateAnyPages) &&
+    (MemoryType == EfiLoaderData)
+  ) {
+    // called from boot.efi during hibernate wake
+    // first such allocation is for hibernate image
+    Status = gStoredAllocatePages (Type, MemoryType, NumberOfPages, Memory);
+    if ((gHibernateImageAddress == 0) && (Status == EFI_SUCCESS)) {
+      gHibernateImageAddress = *Memory;
+    }
+#endif
   } else {
     // default page allocation
     Status = gStoredAllocatePages (Type, MemoryType, NumberOfPages, Memory);
@@ -290,16 +325,16 @@ MOAllocatePages (
 }
 
 /** gBS->GetMemoryMap override:
-  * Returns shrinked memory map. I think kernel can handle up to 128 entries.
-  */
+ * Returns shrinked memory map. I think kernel can handle up to 128 entries.
+ */
 EFI_STATUS
 EFIAPI
 MOGetMemoryMap (
-  IN  OUT UINTN                   *MemoryMapSize,
-  IN  OUT EFI_MEMORY_DESCRIPTOR   *MemoryMap,
-  OUT UINTN                       *MapKey,
-  OUT UINTN                       *DescriptorSize,
-  OUT UINT32                      *DescriptorVersion
+  IN OUT  UINTN                   *MemoryMapSize,
+  IN OUT  EFI_MEMORY_DESCRIPTOR   *MemoryMap,
+     OUT  UINTN                   *MapKey,
+     OUT  UINTN                   *DescriptorSize,
+     OUT  UINT32                  *DescriptorVersion
 ) {
   EFI_STATUS    Status;
 
@@ -307,7 +342,9 @@ MOGetMemoryMap (
   //PrintMemMap (*MemoryMapSize, MemoryMap, *DescriptorSize, *DescriptorVersion);
   if (Status == EFI_SUCCESS) {
     FixMemMap (*MemoryMapSize, MemoryMap, *DescriptorSize, *DescriptorVersion);
-    //ShrinkMemMap (MemoryMapSize, MemoryMap, *DescriptorSize, *DescriptorVersion);
+#if APTIOFIX_VER == 2
+    ShrinkMemMap (MemoryMapSize, MemoryMap, *DescriptorSize, *DescriptorVersion);
+#endif
     //PrintMemMap (*MemoryMapSize, MemoryMap, *DescriptorSize, *DescriptorVersion);
 
     // remember last/final memmap
@@ -321,43 +358,49 @@ MOGetMemoryMap (
 }
 
 /** gBS->ExitBootServices override:
-  * Patches kernel entry point with jump to our KernelEntryPatchJumpBack ().
-  */
+ * Patches kernel entry point with jump to our KernelEntryPatchJumpBack ().
+ */
 EFI_STATUS
 EFIAPI
 MOExitBootServices (
   IN EFI_HANDLE   ImageHandle,
   IN UINTN        MapKey
 ) {
-  EFI_STATUS    Status;
-  UINTN         NewMapKey, SlideAddr = 0;
-  VOID          *MachOImage = NULL;
+  EFI_STATUS              Status;
+  UINTN                   NewMapKey;
+#if APTIOFIX_VER == 1
+  UINTN                   SlideAddr = 0;
+  VOID                    *MachOImage = NULL;
+#else
+  IOHibernateImageHeader  *ImageHeader = NULL;
+
+  // we need hibernate image address for wake
+  if (gHibernateWake && gHibernateImageAddress == 0) {
+    Print (L"OsxAptioFix error: Doing hibernate wake, but did not find hibernate image address.");
+    Print (L"... waiting 5 secs ...\n");
+    gBS->Stall (5 * 1000000);
+
+    return EFI_INVALID_PARAMETER;
+  }
+#endif
 
   // for  tests: we can just return EFI_SUCCESS and continue using Print for debug.
-  //Status = EFI_SUCCESS;
+  //  Status = EFI_SUCCESS;
   //Print (L"ExitBootServices ()\n");
   Status = gStoredExitBootServices (ImageHandle, MapKey);
 
   if (EFI_ERROR (Status)) {
-    // just report error as var in nvram to be visible from OSX with "nvrap -p"
-    //gRT->SetVariable (L"OsxAptioFixDrv-ErrorExitingBootServices",
-    //         &gEfiAppleBootGuid,
-    //         EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS,
-    //         3,
-    //         "Yes"
-    //         );
-
     Status = GetMemoryMapKey (&NewMapKey);
     if (Status == EFI_SUCCESS) {
       // we have latest mem map and NewMapKey
       // we'll try again ExitBootServices with NewMapKey
       Status = gStoredExitBootServices (ImageHandle, NewMapKey);
-      //if (EFI_ERROR (Status)) {
-      //  // Error!
-      //  Print (L"OsxAptioFixDrv: Error ExitBootServices () 2nd try = Status: %r\n", Status);
-      //}
+      if (EFI_ERROR (Status)) {
+        // Error!
+        Print (L"OsxAptioFixDrv: Error ExitBootServices () 2nd try = Status: %r\n", Status);
+      }
     } else {
-      //Print (L"OsxAptioFixDrv: Error ExitBootServices (), GetMemoryMapKey () = Status: %r\n", Status);
+      Print (L"OsxAptioFixDrv: Error ExitBootServices (), GetMemoryMapKey () = Status: %r\n", Status);
       Status = EFI_INVALID_PARAMETER;
     }
   }
@@ -368,12 +411,76 @@ MOExitBootServices (
     return Status;
   }
 
+#if APTIOFIX_VER == 1
   //DBG ("ExitBootServices: gMinAllocatedAddr: %lx, gMaxAllocatedAddr: %lx\n", gMinAllocatedAddr, gMaxAllocatedAddr);
   MachOImage = (VOID *)(UINTN)(gRelocBase + 0x200000);
   KernelEntryFromMachOPatchJump (MachOImage, SlideAddr);
+#else
+  if (!gHibernateWake) {
+    // normal boot
+    DBG ("ExitBootServices: gMinAllocatedAddr: %lx, gMaxAllocatedAddr: %lx\n", gMinAllocatedAddr, gMaxAllocatedAddr);
+    //SlideAddr = gMinAllocatedAddr - 0x100000;
+    //MachOImage = (VOID *)(UINTN)(SlideAddr + 0x200000);
+    //KernelEntryFromMachOPatchJump (MachOImage, SlideAddr);
+  } else {
+    // hibernate wake
+    // at this stage HIB section is not yet copied from sleep image to it's
+    // proper memory destination. so we'll patch entry point in sleep image.
+    ImageHeader = (IOHibernateImageHeader *)(UINTN)gHibernateImageAddress;
+    KernelEntryPatchJump (((UINT32)(UINTN)&(ImageHeader->fileExtentMap[0])) + ImageHeader->fileExtentMapSize + ImageHeader->restore1CodeOffset);
+  }
+#endif
 
   return Status;
 }
+
+#if APTIOFIX_VER == 2
+/** gRT->SetVirtualAddressMap override:
+ * Fixes virtualizing of RT services.
+ */
+EFI_STATUS
+EFIAPI
+OvrSetVirtualAddressMap (
+  IN UINTN                  MemoryMapSize,
+  IN UINTN                  DescriptorSize,
+  IN UINT32                 DescriptorVersion,
+  IN EFI_MEMORY_DESCRIPTOR  *VirtualMap
+) {
+  EFI_STATUS    Status;
+  UINT32        EfiSystemTable;
+
+  DBG ("->SetVirtualAddressMap (%d, %d, 0x%x, %p) START ...\n", MemoryMapSize, DescriptorSize, DescriptorVersion, VirtualMap);
+
+  // restore origs
+  gRT->Hdr.CRC32 = OrgRTCRC32;
+  gRT->SetVirtualAddressMap = gStoredSetVirtualAddressMap;
+
+  // Protect RT data areas from relocation by marking then MemMapIO
+  ProtectRtDataFromRelocation (MemoryMapSize, DescriptorSize, DescriptorVersion, VirtualMap);
+
+  // Remember physical sys table addr
+  EfiSystemTable = (UINT32)(UINTN)gST;
+
+  // virtualize RT services with all needed fixes
+  Status = ExecSetVirtualAddressesToMemMap (MemoryMapSize, DescriptorSize, DescriptorVersion, VirtualMap);
+
+  CopyEfiSysTableToSeparateRtDataArea (&EfiSystemTable);
+
+  // we will defragment RT data and code that is left unprotected.
+  // this will also mark those as AcpiNVS and by this protect it
+  // from boot.efi relocation and zeroing
+  DefragmentRuntimeServices (
+    MemoryMapSize,
+    DescriptorSize,
+    DescriptorVersion,
+    VirtualMap,
+    NULL,
+    gHibernateWake ? FALSE : TRUE
+  );
+
+  return Status;
+}
+#endif
 
 /** Callback called when boot.efi jumps to kernel. */
 UINTN
@@ -382,6 +489,7 @@ KernelEntryPatchJumpBack (
   UINTN     bootArgs,
   BOOLEAN   ModeX64
 ) {
+#if APTIOFIX_VER == 1
   bootArgs = FixBootingWithRelocBlock (bootArgs, ModeX64);
 
   // debug for jumping back to kernel
@@ -389,21 +497,29 @@ KernelEntryPatchJumpBack (
   //SetMem ((VOID *)(UINTN)(AsmKernelEntry + gRelocBase), 1, 0xF4);
   // put 0 to kernel entry point to restart
   //SetMem64 ((VOID *)(UINTN)(AsmKernelEntry + gRelocBase), 1, 0);
+#else
+  if (gHibernateWake) {
+    bootArgs = FixHibernateWakeWithoutRelocBlock (bootArgs, ModeX64);
+  } else {
+    bootArgs = FixBootingWithoutRelocBlock (bootArgs, ModeX64);
+  }
+#endif
 
   return bootArgs;
 }
 
 /** SWITCH_STACK_ENTRY_POINT implementation:
-  * Allocates kernel image reloc block, installs UEFI overrides and starts given image.
-  * If image returns, then deinstalls overrides and releases kernel image reloc block.
-  *
-  * If started with ImgContext->JumpBuffer, then it will return with LongJump ().
-  */
+ * Allocates kernel image reloc block, installs UEFI overrides and starts given image.
+ * If image returns, then deinstalls overrides and releases kernel image reloc block.
+ *
+ * If started with ImgContext->JumpBuffer, then it will return with LongJump ().
+ */
 EFI_STATUS
 RunImageWithOverrides (
-  IN  EFI_HANDLE  ImageHandle,
-  OUT UINTN       *ExitDataSize,
-  OUT CHAR16      **ExitData  OPTIONAL
+  IN  EFI_HANDLE                  ImageHandle,
+  IN  EFI_LOADED_IMAGE_PROTOCOL   *Image,
+  OUT UINTN                       *ExitDataSize,
+  OUT CHAR16                      **ExitData  OPTIONAL
 ) {
   EFI_STATUS    Status;
 
@@ -421,11 +537,13 @@ RunImageWithOverrides (
     return Status;
   }
 
+#if APTIOFIX_VER == 1
   // allocate block for kernel image relocation
   Status = AllocateRelocBlock ();
   if (EFI_ERROR (Status)) {
     return Status;
   }
+#endif
 
   // clear monitoring vars
   gMinAllocatedAddr = 0;
@@ -446,6 +564,19 @@ RunImageWithOverrides (
   gBS->Hdr.CRC32 = 0;
   gBS->CalculateCrc32 (gBS, gBS->Hdr.HeaderSize, &gBS->Hdr.CRC32);
 
+#if APTIOFIX_VER == 2
+  OrgRTCRC32 = gRT->Hdr.CRC32;
+  gStoredSetVirtualAddressMap = gRT->SetVirtualAddressMap;
+  gRT->SetVirtualAddressMap = OvrSetVirtualAddressMap;
+  gRT->Hdr.CRC32 = 0;
+  gBS->CalculateCrc32 (gRT, gRT->Hdr.HeaderSize, &gRT->Hdr.CRC32);
+
+  // force boot.efi to use our copy od system table
+  DBG ("StartImage: orig sys table: %p\n", Image->SystemTable);
+  Image->SystemTable = (EFI_SYSTEM_TABLE *)(UINTN)gSysTableRtArea;
+  DBG ("StartImage: new sys table: %p\n", Image->SystemTable);
+#endif
+
   // run image
   Status = gStartImage (ImageHandle, ExitDataSize, ExitData);
 
@@ -461,63 +592,101 @@ RunImageWithOverrides (
   gBS->Hdr.CRC32 = 0;
   gBS->CalculateCrc32 (gBS, gBS->Hdr.HeaderSize, &gBS->Hdr.CRC32);
 
+#if APTIOFIX_VER == 2
+  gRT->SetVirtualAddressMap = gStoredSetVirtualAddressMap;
+  gBS->CalculateCrc32 (gRT, gRT->Hdr.HeaderSize, &gRT->Hdr.CRC32);
+#else
   // release reloc block
   FreeRelocBlock ();
+#endif
 
   return Status;
 }
 
 /** gBS->StartImage override:
-  * Called to start an efi image.
-  *
-  * If this is boot.efi, then run it with our overrides.
-  */
+ * Called to start an efi image.
+ *
+ * If this is boot.efi, then run it with our overrides.
+ */
 EFI_STATUS
 EFIAPI
 MOStartImage (
-  IN  EFI_HANDLE    ImageHandle,
-  OUT UINTN         *ExitDataSize,
-  OUT CHAR16        **ExitData  OPTIONAL
+  IN  EFI_HANDLE  ImageHandle,
+  OUT UINTN       *ExitDataSize,
+  OUT CHAR16      **ExitData  OPTIONAL
 ) {
   EFI_STATUS                  Status;
   EFI_LOADED_IMAGE_PROTOCOL   *Image;
   CHAR16                      *FilePathText = NULL;
   UINTN                       Size = 0;
+  BOOLEAN                     StartFlag;
+#if APTIOFIX_VER == 2
+  VOID                        *Value = NULL;
+#endif
 
-  //DBG ("StartImage (%lx)\n", ImageHandle);
+  DBG ("StartImage (%lx)\n", ImageHandle);
 
   // find out image name from EfiLoadedImageProtocol
-  Status = gBS->OpenProtocol (ImageHandle, &gEfiLoadedImageProtocolGuid, (VOID **)&Image, gImageHandle, NULL, EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+  Status = gBS->OpenProtocol (
+                  ImageHandle,
+                  &gEfiLoadedImageProtocolGuid,
+                  (VOID **)&Image,
+                  gImageHandle,
+                  NULL,
+                  EFI_OPEN_PROTOCOL_GET_PROTOCOL
+                );
+
   if (Status != EFI_SUCCESS) {
-    //DBG ("ERROR: MOStartImage: OpenProtocol (gEfiLoadedImageProtocolGuid) = %r\n", Status);
+    DBG ("ERROR: MOStartImage: OpenProtocol (gEfiLoadedImageProtocolGuid) = %r\n", Status);
     return EFI_INVALID_PARAMETER;
   }
 
   FilePathText = FileDevicePathToText (Image->FilePath);
-  //if (FilePathText != NULL) {
-  //  DBG ("FilePath: %s\n", FilePathText);
-  //}
-  //DBG ("ImageBase: %p - %lx (%lx)\n", Image->ImageBase, (UINT64)Image->ImageBase + Image->ImageSize, Image->ImageSize);
-  Status = gBS->CloseProtocol (ImageHandle, &gEfiLoadedImageProtocolGuid, gImageHandle, NULL);
-  //if (EFI_ERROR (Status)) {
-  //  DBG ("CloseProtocol error: %r\n", Status);
-  //}
+  if (FilePathText != NULL) {
+    DBG ("FilePath: %s\n", FilePathText);
+  }
 
-  //the presence of the variable means HibernateWake
-  //if the wake is canceled then the variable must be deleted
-  Status = gRT->GetVariable (L"boot-switch-vars", &gEfiAppleBootGuid, NULL, &Size, NULL);
-  gHibernateWake = (Status == EFI_BUFFER_TOO_SMALL);
+  DBG ("ImageBase: %p - %lx (%lx)\n", Image->ImageBase, (UINT64)Image->ImageBase + Image->ImageSize, Image->ImageSize);
+
+  Status = gBS->CloseProtocol (ImageHandle, &gEfiLoadedImageProtocolGuid, gImageHandle, NULL);
+  if (EFI_ERROR (Status)) {
+    DBG ("CloseProtocol error: %r\n", Status);
+  }
+
+  StartFlag = (StriStr (FilePathText, L"boot.efi") != NULL);
+
+  if (StartFlag) {
+#if APTIOFIX_VER == 2
+    //Check recovery-boot-mode present for nested boot.efi
+    Status = GetVariable2 (L"recovery-boot-mode", &gEfiAppleBootGuid, &Value, &Size);
+    if (!EFI_ERROR (Status)) {
+      //If it presents, then wait for \com.apple.recovery.boot\boot.efi boot
+      DBG (" recovery-boot-mode present\n");
+      StartFlag = (StriStr (FilePathText, L"\\com.apple.recovery.boot\\boot.efi") != NULL);
+    }
+
+    FreePool (Value);
+#endif
+  }
 
   // check if this is boot.efi
-  if (StriStr (FilePathText, L"boot.efi") && !gHibernateWake) {
+  if (StartFlag) {
+    //the presence of the variable means HibernateWake
+    //if the wake is canceled then the variable must be deleted
+    Status = gRT->GetVariable (L"boot-switch-vars", &gEfiAppleBootGuid, NULL, &Size, NULL);
+    gHibernateWake = (Status == EFI_BUFFER_TOO_SMALL);
+
     Print (
-      L"OsxAptioFixDrv: Starting overrides for %s\nUsing reloc block: yes, hibernate wake: %s \n",
-      FilePathText, gHibernateWake ? L"yes" : L"no"
+      L"OsxAptioFixDrv (ver %d):\n - Starting overrides for: %s\n - Using reloc block: %s, hibernate wake: %s\n",
+      APTIOFIX_VER,
+      FilePathText,
+      (APTIOFIX_VER == 1) ? L"Yes" : L"No",
+      gHibernateWake ? L"Yes" : L"No"
     );
-    //gBS->Stall (2000000);
+    //gBS->Stall (2 * 1000000);
 
     // run with our overrides
-    Status = RunImageWithOverrides (ImageHandle, ExitDataSize, ExitData);
+    Status = RunImageWithOverrides (ImageHandle, Image, ExitDataSize, ExitData);
 
   } else {
     // call original function to do the job
@@ -532,8 +701,8 @@ MOStartImage (
 }
 
 /** Entry point. Installs our StartImage override.
-  * All other stuff will be installed from there when boot.efi is started.
-  */
+ * All other stuff will be installed from there when boot.efi is started.
+ */
 EFI_STATUS
 EFIAPI
 OsxAptioFixDrvEntrypoint (

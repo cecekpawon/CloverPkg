@@ -514,7 +514,7 @@ DefragmentRuntimeServices (
     if ((Desc->Type == EfiRuntimeServicesCode) || (Desc->Type == EfiRuntimeServicesData)) {
 
       // skip our block with sys table copy if required
-      if ((SkipOurSysTableRtArea && Desc->PhysicalStart) == gSysTableRtArea) {
+      if (SkipOurSysTableRtArea && (Desc->PhysicalStart == gSysTableRtArea)) {
         Desc = NEXT_MEMORY_DESCRIPTOR (Desc, DescriptorSize);
         continue;
       }

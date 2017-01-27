@@ -285,7 +285,7 @@ FileDevicePathToText (
 ) {
   EFI_STATUS            Status;
   FILEPATH_DEVICE_PATH  *FilePath;
-  CHAR16                FilePathText[AVALUE_MAX_SIZE], // possible problem: if filepath is bigger
+  CHAR16                FilePathText[SVALUE_MAX_SIZE], // possible problem: if filepath is bigger
                         *OutFilePathText;
   UINTN                 Size, SizeAll, i, Len;
 

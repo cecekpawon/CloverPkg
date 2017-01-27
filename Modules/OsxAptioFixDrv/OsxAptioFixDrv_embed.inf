@@ -20,8 +20,7 @@
   MdePkg/MdePkg.dec
 
 [Sources]
-  #OsxAptioFixDrv.c
-  OsxAptioFix2Drv.c
+  OsxAptioFixDrv.c
   BootFixes.c
   BootArgs.c
   VMem.c
@@ -31,6 +30,9 @@
   X64/AsmFuncsX64.asm | INTEL
   X64/AsmFuncsX64.asm | MSFT
   X64/AsmFuncsX64.nasm | GCC
+
+[LibraryClasses]
+  MemLogLib
 
 [Guids]
   gEfiAppleBootGuid

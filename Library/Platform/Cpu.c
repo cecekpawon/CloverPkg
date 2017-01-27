@@ -901,6 +901,7 @@ GetDefaultModel () {
       case CPU_MODEL_NEHALEM:
         DefaultType = iMac111;
         break;
+
       case CPU_MODEL_NEHALEM_EX:
         DefaultType = MacPro41;
         break;
@@ -964,7 +965,6 @@ GetDefaultModel () {
           DefaultType = iMac131;
           break;
         }
-
         break;
 
       case CPU_MODEL_JAKETOWN:
@@ -986,7 +986,6 @@ GetDefaultModel () {
           DefaultType = iMac141;
           break;
         }
-
         break;
 
       default:

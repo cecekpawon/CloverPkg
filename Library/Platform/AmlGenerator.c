@@ -124,7 +124,8 @@ AmlAddBuffer (
 
 AML_CHUNK *
 AmlAddByte (
-  AML_CHUNK   *parent, UINT8 value
+  AML_CHUNK   *parent,
+  UINT8       value
 ) {
   AML_CHUNK   *node = AmlCreateNode (parent);
 

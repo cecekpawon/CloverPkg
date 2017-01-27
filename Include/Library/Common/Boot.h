@@ -80,14 +80,25 @@ typedef struct EfiMemoryRange {
 /*
  * Video information..
  */
-
-struct Boot_Video {
+struct Boot_VideoV1 {
   UINT32  v_baseAddr; /* Base address of video memory */
   UINT32  v_display;  /* Display Code (if Applicable */
   UINT32  v_rowBytes; /* Number of bytes per pixel row */
   UINT32  v_width;  /* Width */
   UINT32  v_height; /* Height */
   UINT32  v_depth;  /* Pixel Depth */
+};
+
+typedef struct Boot_VideoV1 Boot_VideoV1;
+
+struct Boot_Video {
+  UINT32  v_display;  /* Display Code (if Applicable */
+  UINT32  v_rowBytes; /* Number of bytes per pixel row */
+  UINT32  v_width;  /* Width */
+  UINT32  v_height; /* Height */
+  UINT32  v_depth;  /* Pixel Depth */
+  UINT32  v_resv[7];  /* Reserved */
+  UINT64  v_baseAddr; /* Base address of video memory */
 };
 
 typedef struct Boot_Video Boot_Video;
@@ -103,16 +114,8 @@ typedef struct Boot_Video Boot_Video;
 #define kBootArgsRevision       0
 #define kBootArgsVersion        2
 
-/* Snapshot constants of previous revisions that are supported */
-//#define kBootArgsVersion1       1
-//#define kBootArgsRevision1_4    4
-//#define kBootArgsRevision1_5    5
-//#define kBootArgsRevision1_6    6
-
 #define kBootArgsVersion2       2
-#define kBootArgsRevision2_0    0
 
-#define kBootArgsEfiMode32      32
 #define kBootArgsEfiMode64      64
 
 /* Bitfields for boot_args->flags */
@@ -132,10 +135,11 @@ typedef struct Boot_Video Boot_Video;
 #define CSR_ALLOW_TASK_FOR_PID          (1 << 2)
 #define CSR_ALLOW_KERNEL_DEBUGGER       (1 << 3)
 #define CSR_ALLOW_APPLE_INTERNAL        (1 << 4)
-#define CSR_ALLOW_DESTRUCTIVE_DTRACE    (1 << 5) /* name deprecated */
+//#define CSR_ALLOW_DESTRUCTIVE_DTRACE    (1 << 5) /* name deprecated */
 #define CSR_ALLOW_UNRESTRICTED_DTRACE   (1 << 5)
 #define CSR_ALLOW_UNRESTRICTED_NVRAM    (1 << 6)
 #define CSR_ALLOW_DEVICE_CONFIGURATION  (1 << 7)
+#define CSR_ALLOW_ANY_RECOVERY_OS       (1 << 8)
 
 #define CSR_VALID_FLAGS (CSR_ALLOW_UNTRUSTED_KEXTS | \
                          CSR_ALLOW_UNRESTRICTED_FS | \
@@ -144,54 +148,58 @@ typedef struct Boot_Video Boot_Video;
                          CSR_ALLOW_APPLE_INTERNAL | \
                          CSR_ALLOW_UNRESTRICTED_DTRACE | \
                          CSR_ALLOW_UNRESTRICTED_NVRAM | \
-                         CSR_ALLOW_DEVICE_CONFIGURATION)
+                         CSR_ALLOW_DEVICE_CONFIGURATION | \
+                         CSR_ALLOW_ANY_RECOVERY_OS)
 
-//version2 as used in Lion
 typedef struct {
-  UINT16        Revision; /* Revision of boot_args structure */
-  UINT16        Version;  /* Version of boot_args structure */
+  UINT16          Revision; /* Revision of boot_args structure */
+  UINT16          Version;  /* Version of boot_args structure */
 
-  UINT8         efiMode;    /* 32 = 32-bit, 64 = 64-bit */
-  UINT8         debugMode;  /* Bit field with behavior changes */
-  UINT16        flags;
+  UINT8           efiMode;    /* 32 = 32-bit, 64 = 64-bit */
+  UINT8           debugMode;  /* Bit field with behavior changes */
+  UINT16          flags;
 
-  CHAR8         CommandLine[BOOT_LINE_LENGTH];  /* Passed in command line */
+  CHAR8           CommandLine[BOOT_LINE_LENGTH];  /* Passed in command line */
 
-  UINT32        MemoryMap;  /* Physical address of memory map */
-  UINT32        MemoryMapSize;
-  UINT32        MemoryMapDescriptorSize;
-  UINT32        MemoryMapDescriptorVersion;
+  UINT32          MemoryMap;  /* Physical address of memory map */
+  UINT32          MemoryMapSize;
+  UINT32          MemoryMapDescriptorSize;
+  UINT32          MemoryMapDescriptorVersion;
 
-  Boot_Video    Video;    /* Video Information */
+  Boot_VideoV1    VideoV1; /* Video Information */
 
-  UINT32        deviceTreeP;    /* Physical address of flattened device tree */
-  UINT32        deviceTreeLength; /* Length of flattened tree */
+  UINT32          deviceTreeP;    /* Physical address of flattened device tree */
+  UINT32          deviceTreeLength; /* Length of flattened tree */
 
-  UINT32        kaddr;            /* Physical address of beginning of kernel text */
-  UINT32        ksize;            /* Size of combined kernel text+data+efi */
+  UINT32          kaddr;            /* Physical address of beginning of kernel text */
+  UINT32          ksize;            /* Size of combined kernel text+data+efi */
 
-  UINT32        efiRuntimeServicesPageStart; /* physical address of defragmented runtime pages */
-  UINT32        efiRuntimeServicesPageCount;
-  UINT64        efiRuntimeServicesVirtualPageStart; /* virtual address of defragmented runtime pages */
+  UINT32          efiRuntimeServicesPageStart; /* physical address of defragmented runtime pages */
+  UINT32          efiRuntimeServicesPageCount;
+  UINT64          efiRuntimeServicesVirtualPageStart; /* virtual address of defragmented runtime pages */
 
-  UINT32        efiSystemTable;   /* physical address of system table in runtime area */
-  UINT32        kslide;      /* in Lion: reserved and 0; in ML: kernel image "sliding offset" (KASLR slide) */
+  UINT32          efiSystemTable;   /* physical address of system table in runtime area */
+  UINT32          kslide;
 
-  UINT32        performanceDataStart; /* physical address of log */
-  UINT32        performanceDataSize;
+  UINT32          performanceDataStart; /* physical address of log */
+  UINT32          performanceDataSize;
 
-  UINT32        keyStoreDataStart; /* physical address of key store data */
-  UINT32        keyStoreDataSize;
-  UINT64        bootMemStart; /* physical address of interpreter boot memory */
-  UINT64        bootMemSize;
-  UINT64        PhysicalMemorySize;
-  UINT64        FSBFrequency;
-  UINT64        pciConfigSpaceBaseAddress;
-  UINT32        pciConfigSpaceStartBusNumber;
-  UINT32        pciConfigSpaceEndBusNumber;
-  UINT32        csrActiveConfig;
-  UINT32        csrPendingConfig;
-  UINT32        __reserved4[728];
+  UINT32          keyStoreDataStart; /* physical address of key store data */
+  UINT32          keyStoreDataSize;
+  UINT64          bootMemStart;
+  UINT64          bootMemSize;
+  UINT64          PhysicalMemorySize;
+  UINT64          FSBFrequency;
+  UINT64          pciConfigSpaceBaseAddress;
+  UINT32          pciConfigSpaceStartBusNumber;
+  UINT32          pciConfigSpaceEndBusNumber;
+  UINT32          csrActiveConfig;
+  UINT32          csrCapabilities;
+  UINT32          boot_SMC_plimit;
+  UINT16          bootProgressMeterStart;
+  UINT16          bootProgressMeterEnd;
+  Boot_Video      Video;    /* Video Information */
+  UINT32          __reserved4[712];
 } BootArgs2;
 
 #endif /* _PEXPERT_I386_BOOT_H */

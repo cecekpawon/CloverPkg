@@ -1487,9 +1487,6 @@ SetStartupDiskVolume (
 VOID
 RemoveStartupDiskVolume ();
 
-UINT64
-GetEfiTimeInMs (IN EFI_TIME *T);
-
 EFI_STATUS EFIAPI
 LogDataHub (
   IN  EFI_GUID  *TypeGuid,
