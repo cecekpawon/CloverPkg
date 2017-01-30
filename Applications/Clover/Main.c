@@ -617,8 +617,8 @@ StartLoader (
 
     if (OSX_GT (Entry->OSVersion, "10.11")) {
       if (OSFLAG_ISSET (Entry->Flags, OSFLAG_NOSIP)) {
-        gSettings.CsrActiveConfig = (UINT32)0x7F;
-        gSettings.BooterConfig = 0x28;
+        gSettings.CsrActiveConfig = (UINT32)DEF_NOSIP_CSR_ACTIVE_CONFIG;
+        gSettings.BooterConfig = (UINT16)DEF_NOSIP_BOOTER_CONFIG;
       }
 
       ReadSIPCfg ();
@@ -668,7 +668,7 @@ StartLoader (
         (
           Entry->KernelAndKextPatches->KPDebug ||
           gSettings.DebugKP ||
-          OSFLAG_ISSET (gSettings.FlagsBits, OSFLAG_DBGPATCHES)
+          OSFLAG_ISSET (Entry->Flags, OSFLAG_DBGPATCHES)
         )
       )
     ) {
@@ -736,13 +736,13 @@ StartLoader (
   } else if (OSTYPE_IS_WINDOWS_GLOB (Entry->LoaderType)) {
     //DBG ("Closing events for Windows\n");
 
-    PatchACPI_OtherOS (L"Windows", FALSE);
+    PatchACPIOS (L"Windows", FALSE);
     //PauseForKey (L"continue");
   } else if (OSTYPE_IS_LINUX_GLOB (Entry->LoaderType)) {
     //DBG ("Closing events for Linux\n");
 
     //FinalizeSmbios ();
-    PatchACPI_OtherOS (L"Linux", FALSE);
+    PatchACPIOS (L"Linux", FALSE);
     //PauseForKey (L"continue");
   }
 

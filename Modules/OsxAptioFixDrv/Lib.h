@@ -27,7 +27,9 @@
   ((EFI_MEMORY_DESCRIPTOR *)((UINT8 *)(MemoryDescriptor) - (Size)))
 
 /** Our internal structure to hold boot args params to make the code independent of the boot args version. */
-typedef struct _BootArgs {
+typedef struct InternalBootArgs InternalBootArgs;
+struct InternalBootArgs
+{
   UINT32    *MemoryMap;               /* We will change this value so we need pointer to original field. */
   UINT32    *MemoryMapSize;
   UINT32    *MemoryMapDescriptorSize;
@@ -43,7 +45,7 @@ typedef struct _BootArgs {
   UINT32    *efiRuntimeServicesPageCount;
   UINT64    *efiRuntimeServicesVirtualPageStart;
   UINT32    *efiSystemTable;
-} BootArgs;
+};
 
 /** Applies some fixes to mem map. */
 VOID EFIAPI
@@ -110,7 +112,7 @@ AllocatePagesFromTop (
   IN OUT  EFI_PHYSICAL_ADDRESS  *Memory
 );
 
-VOID        EFIAPI BootArgsPrint  (VOID *bootArgs);
-BootArgs *  EFIAPI GetBootArgs    (VOID *bootArgs);
-VOID        EFIAPI BootArgsFix    (BootArgs *BA, EFI_PHYSICAL_ADDRESS gRellocBase);
-//VOID *    EFIAPI BootArgsFind   (IN EFI_PHYSICAL_ADDRESS Start);
+VOID                EFIAPI BootArgsPrint  (VOID *bootArgs);
+InternalBootArgs *  EFIAPI GetBootArgs    (VOID *bootArgs);
+VOID                EFIAPI BootArgsFix    (InternalBootArgs *BA, EFI_PHYSICAL_ADDRESS gRellocBase);
+//VOID *            EFIAPI BootArgsFind   (IN EFI_PHYSICAL_ADDRESS Start);

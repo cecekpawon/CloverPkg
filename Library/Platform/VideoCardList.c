@@ -119,25 +119,25 @@ FillCardList (
 ) {
   if (IsListEmpty (&gCardList) && (CfgDict != NULL)) {
     CHAR8     *VEN[] = { "NVIDIA",  "ATI" };
-    INTN      Index, Count = sizeof (VEN) / sizeof (VEN[0]);
+    INTN      Index, VenCount = ARRAY_SIZE (VEN);
     TagPtr    prop;
 
-    for (Index = 0; Index < Count; Index++) {
+    for (Index = 0; Index < VenCount; Index++) {
       CHAR8     *key = VEN[Index];
 
       prop = GetProperty (CfgDict, key);
 
       if (prop && (prop->type == kTagTypeArray)) {
-        INTN      i, count = GetTagCount (prop);
+        INTN      i, Count = GetTagCount (prop);
         TagPtr    element = 0, prop2 = 0;
 
-        for (i = 0; i < count; i++) {
+        for (i = 0; i < Count; i++) {
           CHAR8         *model_name = NULL;
           UINT32        dev_id = 0, subdev_id = 0;
           UINT64        VramSize  = 0;
           UINTN         VideoPorts  = 0;
           BOOLEAN       LoadVBios = FALSE;
-          EFI_STATUS    status = GetElement (prop, i, &element);
+          EFI_STATUS    status = GetElement (prop, i, Count, &element);
 
           if (element && (status == EFI_SUCCESS)) {
             if ((prop2 = GetProperty (element, "Model")) != 0) {

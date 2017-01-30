@@ -149,6 +149,9 @@ typedef enum {
   #define CLOVER_BUILDINFOS_STR "Unknown"
 #endif
 
+#define DEF_NOSIP_CSR_ACTIVE_CONFIG     (CSR_ALLOW_APPLE_INTERNAL + CSR_ALLOW_UNRESTRICTED_NVRAM + CSR_ALLOW_DEVICE_CONFIGURATION + CSR_ALLOW_ANY_RECOVERY_OS)
+#define DEF_NOSIP_BOOTER_CONFIG         (kBootArgsFlagCSRActiveConfig + kBootArgsFlagCSRConfigMode + kBootArgsFlagCSRBoot)
+
 //#define CPU_MODEL_PENTIUM_M     0x09
 //#define CPU_MODEL_DOTHAN        0x0D
 //#define CPU_MODEL_YONAH         0x0E
@@ -734,6 +737,18 @@ struct ACPI_PATCHED_AML
   INPUT_ITEM          MenuItem;
 };
 
+typedef struct PATCH_DSDT PATCH_DSDT;
+struct PATCH_DSDT
+{
+  PATCH_DSDT  *Next;
+  UINT8       *Find;
+  UINT32      LenToFind;
+  UINT8       *Replace;
+  UINT32      LenToReplace;
+  BOOLEAN     Disabled;
+  CHAR8       *Comment;
+};
+
 typedef struct S_HAS_GRAPHICS S_HAS_GRAPHICS;
 struct S_HAS_GRAPHICS
 {
@@ -907,7 +922,6 @@ typedef struct {
 
   //Drivers
   INTN                      BlackListCount;
-
   CHAR16                    **BlackList;
 
   //SMC keys
@@ -918,13 +932,10 @@ typedef struct {
 
   //Patch DSDT arbitrary
   UINT32                    PatchDsdtNum;
-  UINT8                     **PatchDsdtFind;
-  UINT32                    *LenToFind;
-  UINT8                     **PatchDsdtReplace;
-  UINT32                    *LenToReplace;
   BOOLEAN                   DebugDSDT;
-  BOOLEAN                   SlpWak;
   BOOLEAN                   UseIntelHDMI;
+
+  PATCH_DSDT                *PatchDsdt;
 
   // Table dropping
   ACPI_DROP_TABLE           *ACPIDropTables;
@@ -1552,8 +1563,14 @@ PatchACPI (
       CHAR8         *OSVersion
 );
 
+UINT32
+PatchACPIBin (
+  UINT8   *temp,
+  UINT32  len
+);
+
 EFI_STATUS
-PatchACPI_OtherOS (
+PatchACPIOS (
   CHAR16    *OsSubdir,
   BOOLEAN   DropSSDT
 );
@@ -1643,9 +1660,10 @@ GetTagCount (
 
 EFI_STATUS
 GetElement (
-  TagPtr dict,
-  INTN   id,
-  TagPtr *dict1
+  TagPtr  dict,
+  INTN    id,
+  INTN    count,
+  TagPtr  *dict1
 );
 
 BOOLEAN

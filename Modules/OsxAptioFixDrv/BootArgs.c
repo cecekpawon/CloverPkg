@@ -67,9 +67,9 @@ BootArgsPrint (
 #endif
 }
 
-BootArgs    gBootArgs;
+InternalBootArgs    gBootArgs;
 
-BootArgs *
+InternalBootArgs *
 EFIAPI
 GetBootArgs (
   VOID    *bootArgs
@@ -101,7 +101,7 @@ GetBootArgs (
 VOID
 EFIAPI
 BootArgsFix (
-  BootArgs                *BA,
+  InternalBootArgs        *BA,
   EFI_PHYSICAL_ADDRESS    gRellocBase
 ) {
   *BA->MemoryMap = *BA->MemoryMap - (UINT32)gRellocBase;

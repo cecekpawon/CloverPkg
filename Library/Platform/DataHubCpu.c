@@ -243,6 +243,7 @@ SetVariablesForOSX () {
     }
   }
 
+#ifndef NO_NVRAM_SIP
   //Hack for recovery by Asgorath
   if (gSettings.CsrActiveConfig != 0xFFFF) {
     SetNvramVariable (
@@ -263,6 +264,7 @@ SetVariablesForOSX () {
       &gSettings.BooterConfig
     );
   }
+#endif
 
   return EFI_SUCCESS;
 }

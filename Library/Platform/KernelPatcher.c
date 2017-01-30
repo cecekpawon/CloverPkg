@@ -582,6 +582,7 @@ FindBootArgs (
       // set vars
       dtRoot = (CHAR8 *)(UINTN)bootArgs2->deviceTreeP;
       KernelInfo->Slide = bootArgs2->kslide;
+
       /*
         DBG_RT (Entry, "Found bootArgs2 at 0x%08x, DevTree at %p\n", ptr, dtRoot);
         //DBG_RT (Entry, "bootArgs2->kaddr = 0x%08x and bootArgs2->ksize =  0x%08x\n", bootArgs2->kaddr, bootArgs2->ksize);
@@ -592,6 +593,43 @@ FindBootArgs (
         DBG_RT (Entry, "bootArgs2->bootMemStart = 0x%x\n", bootArgs2->bootMemStart);
         DBG_PAUSE (Entry, 2);
       */
+
+#ifdef NO_NVRAM_SIP
+      bootArgs2->flags = kBootArgsFlagCSRActiveConfig; //kBootArgsFlagRebootOnPanic + kBootArgsFlagBlackBg
+
+      switch (Entry->LoaderType) {
+        case OSTYPE_RECOVERY:
+        case OSTYPE_OSX_INSTALLER:
+          bootArgs2->flags |=  (kBootArgsFlagCSRConfigMode + kBootArgsFlagCSRBoot);
+          //bootArgs2->flags =  DEF_NOSIP_BOOTER_CONFIG;
+          //bootArgs2->csrActiveConfig = DEF_NOSIP_CSR_ACTIVE_CONFIG;
+          break;
+        default:
+          // user defined?
+          break;
+      }
+
+      //
+      // user defined
+      //
+
+      if (gSettings.BooterConfig != 0xFFFF) {
+        bootArgs2->flags |= gSettings.BooterConfig;
+      }
+
+      if (gSettings.CsrActiveConfig != 0xFFFF) {
+        bootArgs2->csrActiveConfig = gSettings.CsrActiveConfig;
+      }
+
+      //bootArgs2->csrCapabilities = CSR_CAPABILITY_UNLIMITED;
+      //bootArgs2->boot_SMC_plimit = 0;
+
+      //bootArgs2->VideoV1.v_display = OSFLAG_ISSET(Entry->Flags, OSFLAG_USEGRAPHICS) ? GRAPHICS_MODE : FB_TEXT_MODE;
+
+      DeleteNvramVariable (L"csr-active-config", &gEfiAppleBootGuid);
+      DeleteNvramVariable (L"bootercfg", &gEfiAppleBootGuid);
+#endif
+
       break;
     }
 
@@ -607,7 +645,7 @@ KernelUserPatch (
 
   DBG_RT (Entry, "\n\n%a: Start\n", __FUNCTION__);
 
-  for (; i < Entry->KernelAndKextPatches->NrKernels; ++i) {
+  for (i = 0; i < Entry->KernelAndKextPatches->NrKernels; ++i) {
     DBG_RT (Entry, "Patch[%02d]: %a\n", i, Entry->KernelAndKextPatches->KernelPatches[i].Label);
 
     if (Entry->KernelAndKextPatches->KernelPatches[i].Disabled) {

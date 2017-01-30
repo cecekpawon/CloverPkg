@@ -429,9 +429,6 @@ DropTableFromXSDT (
   UINT64    TableId,
   UINT32    Length
 ) {
-  //EFI_STATUS                      Status = EFI_SUCCESS;
-  //EFI_PHYSICAL_ADDRESS          ssdt = EFI_SYSTEM_TABLE_MAX_ADDRESS;
-  //UINT32                          i, SsdtLen;
   EFI_ACPI_DESCRIPTION_HEADER   *TableEntry;
   UINTN                         Index, Index2;
   UINT32                        EntryCount;
@@ -521,7 +518,7 @@ PatchAllSSDT () {
   EFI_ACPI_DESCRIPTION_HEADER     *TableEntry;
   EFI_PHYSICAL_ADDRESS            ssdt = EFI_SYSTEM_TABLE_MAX_ADDRESS;
   UINTN                           Index;
-  UINT32                          EntryCount, i, SsdtLen;
+  UINT32                          EntryCount, SsdtLen;
   CHAR8                           *BasePtr, *Ptr, sign[5], OTID[9];
   UINT64                          Entry64;
 
@@ -555,27 +552,16 @@ PatchAllSSDT () {
       Ptr = (CHAR8 *)(UINTN)ssdt;
       CopyMem (Ptr, (VOID *)TableEntry, SsdtLen);
 
-      if (gSettings.PatchDsdtNum > 0) {
+      if ((gSettings.PatchDsdtNum > 0) && gSettings.PatchDsdt) {
         MsgLog ("Patching SSDT:\n");
-        for (i = 0; i < gSettings.PatchDsdtNum; i++) {
-          if (!gSettings.PatchDsdtFind[i] || !gSettings.LenToFind[i]) {
-            continue;
-          }
-
-          MsgLog (" - [%02d]:", i);
-          SsdtLen = FixAny (
-                      (UINT8 *)(UINTN)ssdt, SsdtLen,
-                      gSettings.PatchDsdtFind[i], gSettings.LenToFind[i],
-                      gSettings.PatchDsdtReplace[i], gSettings.LenToReplace[i]
-                    );
-        }
+        SsdtLen = PatchACPIBin ((UINT8 *)(UINTN)ssdt, SsdtLen);
       }
 
       CopyMem ((VOID *)BasePtr, &ssdt, sizeof (UINT64));
       // Finish SSDT patch and resize SSDT Length
       CopyMem (&Ptr[4], &SsdtLen, 4);
       ((EFI_ACPI_DESCRIPTION_HEADER *)Ptr)->Checksum = 0;
-      ((EFI_ACPI_DESCRIPTION_HEADER *)Ptr)->Checksum = (UINT8)(256-Checksum8 (Ptr, SsdtLen));
+      ((EFI_ACPI_DESCRIPTION_HEADER *)Ptr)->Checksum = (UINT8)(256 - Checksum8 (Ptr, SsdtLen));
     }
   }
 }
@@ -585,11 +571,11 @@ InsertTable (
   VOID      *TableEntry,
   UINTN     Length
 ) {
-  EFI_STATUS              Status; // = EFI_SUCCESS;
+  EFI_STATUS              Status = EFI_NOT_FOUND;
   EFI_PHYSICAL_ADDRESS    BufferPtr  = EFI_SYSTEM_TABLE_MAX_ADDRESS;
 
   if (!TableEntry) {
-    return EFI_NOT_FOUND;
+    return Status;
   }
 
   Status = gBS->AllocatePages (
@@ -607,15 +593,16 @@ InsertTable (
     //insert into RSDT
     if (Rsdt) {
       UINT32  *Ptr = (UINT32 *)((UINTN)Rsdt + Rsdt->Header.Length);
+
       *Ptr = (UINT32)(UINTN)BufferPtr;
       Rsdt->Header.Length += sizeof (UINT32);
-      //       DBG ("Rsdt->Length = %d\n", Rsdt->Header.Length);
+      //DBG ("Rsdt->Length = %d\n", Rsdt->Header.Length);
     }
 
     //insert into XSDT
     if (Xsdt) {
       UINT64  *XPtr = (UINT64 *)((UINTN)Xsdt + Xsdt->Header.Length);
-     // *XPtr = (UINT64)(UINTN)BufferPtr;
+
       WriteUnaligned64 (XPtr, (UINT64)BufferPtr);
       Xsdt->Header.Length += sizeof (UINT64);
       //DBG ("Xsdt->Length = %d\n", Xsdt->Header.Length);
@@ -758,11 +745,11 @@ DumpChildSsdt (
   UINTN                         *SsdtCount
 ) {
   EFI_STATUS    Status = EFI_SUCCESS;
+  UINTN         adr, len = 0;
   INTN          j, k, pacLen, pacCount;
+  UINT8         *Entry, *End, *pacBody;
   CHAR16        *FileName;
   CHAR8         Signature[5], OemTableId[9];
-  UINTN         adr, len = 0;
-  UINT8         *Entry, *End, *pacBody;
 
   Entry = (UINT8 *)TableEntry;
   End = Entry + TableEntry->Length;
@@ -778,7 +765,7 @@ DumpChildSsdt (
       pacBody = Entry + sizeof (NameSSDT) + (pacLen > 63 ? 2 : 1); // Our packages are not huge
       pacCount = *pacBody++;
 
-      if (pacCount > 0 && pacCount % 3 == 0) {
+      if ((pacCount > 0) && ((pacCount % 3) == 0)) {
         pacCount /= 3;
 
         DBG ("\n Found hidden SSDT %d pcs\n", pacCount);
@@ -807,7 +794,7 @@ DumpChildSsdt (
           DBG ("      * %p: '%a', '%a', Rev: %d, Len: %d  ", adr, Signature, OemTableId,
               ((EFI_ACPI_DESCRIPTION_HEADER *)adr)->Revision, ((EFI_ACPI_DESCRIPTION_HEADER *)adr)->Length);
 
-          for (k=0; k<16; k++){
+          for (k = 0; k < 16; k++){
             DBG ("%02x ", ((UINT8 *)adr)[k]);
           }
 
@@ -868,7 +855,7 @@ DumpChildSsdt (
           DBG ("%02x ", ((UINT8 *)adr)[k]);
         }
 
-        if ((AsciiStrCmp (Signature, "SSDT") == 0) && (len < 0x20000) && DirName != NULL && !IsTableSaved ((VOID *)adr)) {
+        if ((AsciiStrCmp (Signature, "SSDT") == 0) && (len < 0x20000) && (DirName != NULL) && !IsTableSaved ((VOID *)adr)) {
           FileName = PoolPrint (L"%sSSDT-%dx.aml", FileNamePrefix, *SsdtCount);
           Status = SaveBufferToDisk ((VOID *)adr, len, DirName, FileName);
 
@@ -975,7 +962,10 @@ DumpTable (
 
   if (FileName == NULL) {
     // take the name from the signature
-    if (TableEntry->Signature == EFI_ACPI_1_0_SECONDARY_SYSTEM_DESCRIPTION_TABLE_SIGNATURE && SsdtCount != NULL) {
+    if (
+      (TableEntry->Signature == EFI_ACPI_1_0_SECONDARY_SYSTEM_DESCRIPTION_TABLE_SIGNATURE) &&
+      (SsdtCount != NULL)
+    ) {
       // Ssdt counter
       FileName = PoolPrint (L"%sSSDT-%d.aml", FileNamePrefix, *SsdtCount);
       *SsdtCount = *SsdtCount + 1;
@@ -1426,7 +1416,7 @@ SaveOemTables () {
     DBG ("Found UEFI Acpi 1.0 RSDP at %p\n", RsdPtr);
     // if tables already saved, then just print to log
     DumpTables (RsdPtr, Saved ? NULL : AcpiOriginPath);
-//    Saved = TRUE;
+    //Saved = TRUE;
   }
 
   SaveBufferToDisk (MemLogStart, GetMemLogLen () - MemLogStartLen, AcpiOriginPath, L"DumpLog.txt");
@@ -1696,9 +1686,9 @@ PatchACPI (
     //DBG ("Finishing RsdPointer\n");
     RsdPointer->XsdtAddress = (UINT64)(UINTN)Xsdt;
     RsdPointer->Checksum = 0;
-    RsdPointer->Checksum = (UINT8)(256-Checksum8 ((CHAR8 *)RsdPointer, 20));
+    RsdPointer->Checksum = (UINT8)(256 - Checksum8 ((CHAR8 *)RsdPointer, 20));
     RsdPointer->ExtendedChecksum = 0;
-    RsdPointer->ExtendedChecksum = (UINT8)(256-Checksum8 ((CHAR8 *)RsdPointer, RsdPointer->Length));
+    RsdPointer->ExtendedChecksum = (UINT8)(256 - Checksum8 ((CHAR8 *)RsdPointer, RsdPointer->Length));
     DBG ("Xsdt reallocation done\n");
   }
 
@@ -1806,16 +1796,16 @@ PatchACPI (
     if (Rsdt!=NULL) {
       Rsdt->Entry = (UINT32)(UINTN)newFadt;
       Rsdt->Header.Checksum = 0;
-      Rsdt->Header.Checksum = (UINT8)(256-Checksum8 ((CHAR8 *)Rsdt, Rsdt->Header.Length));
+      Rsdt->Header.Checksum = (UINT8)(256 - Checksum8 ((CHAR8 *)Rsdt, Rsdt->Header.Length));
     }
     if (Xsdt!=NULL) {
       Xsdt->Entry = (UINT64)((UINT32)(UINTN)newFadt);
       Xsdt->Header.Checksum = 0;
-      Xsdt->Header.Checksum = (UINT8)(256-Checksum8 ((CHAR8 *)Xsdt, Xsdt->Header.Length));
+      Xsdt->Header.Checksum = (UINT8)(256 - Checksum8 ((CHAR8 *)Xsdt, Xsdt->Header.Length));
     }
 
     FadtPointer->Header.Checksum = 0;
-    FadtPointer->Header.Checksum = (UINT8)(256-Checksum8 ((CHAR8 *)FadtPointer, FadtPointer->Header.Length));
+    FadtPointer->Header.Checksum = (UINT8)(256 - Checksum8 ((CHAR8 *)FadtPointer, FadtPointer->Header.Length));
 
     //if (gSettings.SlpSmiEnable) {
     //  UINT32  *SlpSmiEn = (UINT32 *)((UINTN)(newFadt->Pm1aEvtBlk) + 0x30),
@@ -1884,7 +1874,7 @@ PatchACPI (
       FadtPointer->XDsdt = dsdt;
       // verify checksum
       FadtPointer->Header.Checksum = 0;
-      FadtPointer->Header.Checksum = (UINT8)(256-Checksum8 ((CHAR8 *)FadtPointer,FadtPointer->Header.Length));
+      FadtPointer->Header.Checksum = (UINT8)(256 - Checksum8 ((CHAR8 *)FadtPointer,FadtPointer->Header.Length));
       DsdtLoaded = TRUE;
     }
   }
@@ -1911,7 +1901,7 @@ PatchACPI (
       FadtPointer->XDsdt = dsdt;
       // verify checksum
       FadtPointer->Header.Checksum = 0;
-      FadtPointer->Header.Checksum = (UINT8)(256 - Checksum8 ((CHAR8 *)FadtPointer, FadtPointer->Header.Length));
+      FadtPointer->Header.Checksum = (UINT8)(256   - Checksum8 ((CHAR8 *)FadtPointer, FadtPointer->Header.Length));
     }
   }
 
@@ -1941,8 +1931,7 @@ PatchACPI (
       UnicodeSPrint (DsdtPatchedName, ARRAY_SIZE (DsdtPatchedName), L"%s\\DSDT-pa%d.aml", PathOrigin, Index);
 
       if (!FileExists (SelfRootDir, DsdtPatchedName)){
-        Status = SaveFile (SelfRootDir, DsdtPatchedName,
-                            (UINT8 *)(UINTN)FadtPointer->XDsdt, bufferLen);
+        Status = SaveFile (SelfRootDir, DsdtPatchedName, (UINT8 *)(UINTN)FadtPointer->XDsdt, bufferLen);
 
         if (!EFI_ERROR (Status)) {
           break;
@@ -1967,6 +1956,7 @@ PatchACPI (
         DropTableFromXSDT (DropTable->Signature, DropTable->TableId, DropTable->Length);
         DropTableFromRSDT (DropTable->Signature, DropTable->TableId, DropTable->Length);
       }
+
       DropTable = DropTable->Next;
     }
   }
@@ -1986,15 +1976,18 @@ PatchACPI (
   }
 
   if (ACPIPatchedAML) {
-    DbgHeader ("ACPIPatchedAML");
     CHAR16  FullName[AVALUE_MAX_SIZE];
+
+    DbgHeader ("ACPIPatchedAML");
     MsgLog ("Start: Processing Patched AML (s): ");
 
     if (gSettings.SortedACPICount) {
       MsgLog ("Sorted\n");
 
-      Index = gSettings.SortedACPICount;
-      while (Index--) {
+      //Index = gSettings.SortedACPICount;
+      //while (Index--) {
+
+      for (Index = 0; Index < gSettings.SortedACPICount; Index++) {
         ACPI_PATCHED_AML    *ACPIPatchedAMLTmp = ACPIPatchedAML;
 
         while (ACPIPatchedAMLTmp) {
@@ -2003,6 +1996,7 @@ PatchACPI (
             MsgLog ("Disabled: %s, skip\n", ACPIPatchedAMLTmp->FileName);
             break;
           }
+
           ACPIPatchedAMLTmp = ACPIPatchedAMLTmp->Next;
         }
 
@@ -2018,16 +2012,20 @@ PatchACPI (
                 MsgLog ("wrong table\n");
                 continue;
               }
+
               TableHeader->Checksum = 0;
-              TableHeader->Checksum = (UINT8)(256-Checksum8 ((CHAR8 *)buffer, TableHeader->Length));
+              TableHeader->Checksum = (UINT8)(256 - Checksum8 ((CHAR8 *)buffer, TableHeader->Length));
             }
+
             Status = InsertTable ((VOID *)buffer, bufferLen);
           }
+
           MsgLog ("%r\n", Status);
         }
       }
     } else {
       ACPI_PATCHED_AML    *ACPIPatchedAMLTmp = ACPIPatchedAML;
+
       MsgLog ("Unsorted\n");
       Index = 0;
 
@@ -2045,9 +2043,11 @@ PatchACPI (
                 MsgLog ("wrong table\n");
                 continue;
               }
+
               TableHeader->Checksum = 0;
-              TableHeader->Checksum = (UINT8)(256-Checksum8 ((CHAR8 *)buffer, TableHeader->Length));
+              TableHeader->Checksum = (UINT8)(256 - Checksum8 ((CHAR8 *)buffer, TableHeader->Length));
             }
+
             Status = InsertTable ((VOID *)buffer, bufferLen);
           }
 
@@ -2104,6 +2104,7 @@ PatchACPI (
         break;
       }
     }
+
     //fool proof
     if ((ApicCPUNum == 0) || (ApicCPUNum > 16)) {
       ApicCPUNum = gCPUStructure.Threads;
@@ -2114,11 +2115,7 @@ PatchACPI (
     DBG ("No APIC table Found !!!\n");
   }
 
-  if (gCPUStructure.Threads >= gCPUStructure.Cores) {
-    ApicCPUNum = gCPUStructure.Threads;
-  } else {
-    ApicCPUNum = gCPUStructure.Cores;
-  }
+  ApicCPUNum = (gCPUStructure.Threads >= gCPUStructure.Cores) ? gCPUStructure.Threads : gCPUStructure.Cores;
 
   /*
    At this moment we have CPU numbers from DSDT - acpi_cpu_num
@@ -2162,12 +2159,12 @@ PatchACPI (
 
   if (Rsdt) {
     Rsdt->Header.Checksum = 0;
-    Rsdt->Header.Checksum = (UINT8)(256-Checksum8 ((CHAR8 *)Rsdt, Rsdt->Header.Length));
+    Rsdt->Header.Checksum = (UINT8)(256 - Checksum8 ((CHAR8 *)Rsdt, Rsdt->Header.Length));
   }
 
   if (Xsdt) {
     Xsdt->Header.Checksum = 0;
-    Xsdt->Header.Checksum = (UINT8)(256-Checksum8 ((CHAR8 *)Xsdt, Xsdt->Header.Length));
+    Xsdt->Header.Checksum = (UINT8)(256 - Checksum8 ((CHAR8 *)Xsdt, Xsdt->Header.Length));
   }
 
   if (NeedUpdate) {
@@ -2254,7 +2251,7 @@ LoadAndInjectDSDT (
 
       // and checksum
       FadtPointer->Header.Checksum = 0;
-      FadtPointer->Header.Checksum = (UINT8)(256-Checksum8 ((CHAR8 *)FadtPointer, FadtPointer->Header.Length));
+      FadtPointer->Header.Checksum = (UINT8)(256 - Checksum8 ((CHAR8 *)FadtPointer, FadtPointer->Header.Length));
       DBG ("DSDT at 0x%x injected to FADT 0x%p\n", Dsdt, FadtPointer);
     }
 
@@ -2287,7 +2284,7 @@ LoadAndInjectAcpiTable (
     if (Buffer) {
       TableHeader = (EFI_ACPI_DESCRIPTION_HEADER *)Buffer;
       TableHeader->Checksum = 0;
-      TableHeader->Checksum = (UINT8)(256-Checksum8 ((CHAR8 *)Buffer, TableHeader->Length));
+      TableHeader->Checksum = (UINT8)(256 - Checksum8 ((CHAR8 *)Buffer, TableHeader->Length));
 
       // if this is SLIC, then remove previous SLIC if it is there
       if (TableHeader->Signature == SLIC_SIGN) {
@@ -2334,7 +2331,7 @@ LoadAndInjectAcpiTable (
  * Patches UEFI ACPI tables with tables found in OsSubdir.
  */
 EFI_STATUS
-PatchACPI_OtherOS (
+PatchACPIOS (
   CHAR16      *OsSubdir,
   BOOLEAN     DropSSDT
 ) {
@@ -2468,11 +2465,11 @@ PatchACPI_OtherOS (
   //
   if (Rsdt) {
     Rsdt->Header.Checksum = 0;
-    Rsdt->Header.Checksum = (UINT8)(256-Checksum8 ((CHAR8 *)Rsdt, Rsdt->Header.Length));
+    Rsdt->Header.Checksum = (UINT8)(256 - Checksum8 ((CHAR8 *)Rsdt, Rsdt->Header.Length));
   }
   if (Xsdt) {
     Xsdt->Header.Checksum = 0;
-    Xsdt->Header.Checksum = (UINT8)(256-Checksum8 ((CHAR8 *)Xsdt, Xsdt->Header.Length));
+    Xsdt->Header.Checksum = (UINT8)(256 - Checksum8 ((CHAR8 *)Xsdt, Xsdt->Header.Length));
   }
 
   // release mem

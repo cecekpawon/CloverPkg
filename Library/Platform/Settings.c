@@ -524,7 +524,7 @@ GetVolumeType (
         Prop2 = NULL;
 
         for (i = 0; i < Count; i++) {
-          if (EFI_ERROR (GetElement (Prop, i, &Prop2))) {
+          if (EFI_ERROR (GetElement (Prop, i, Count, &Prop2))) {
             continue;
           }
 
@@ -775,8 +775,6 @@ DuplicateCustomEntry (
     DuplicateEntry->Type          = Entry->Type;
     DuplicateEntry->VolumeType    = Entry->VolumeType;
     DuplicateEntry->KernelScan    = Entry->KernelScan;
-    //DuplicateEntry->CustomBoot  = Entry->CustomBoot;
-    //DuplicateEntry->CustomLogo  = Entry->CustomLogo;
 
     CopyKernelAndKextPatches (
       (KERNEL_AND_KEXT_PATCHES *)(((UINTN)DuplicateEntry) + OFFSET_OF (CUSTOM_LOADER_ENTRY, KernelAndKextPatches)),
@@ -825,6 +823,7 @@ FillinKextPatches (
   //Patches->KPLapicPanic = IsPropertyTrue (GetProperty (DictPointer, "KernelLapic"));
 
   //Patches->KPHaswellE = IsPropertyTrue (GetProperty (DictPointer, "KernelHaswellE"));
+
   if (gSettings.HasGraphics->Ati) {
     Prop = GetProperty (DictPointer, "ATIConnectorsController");
     if (Prop != NULL) {
@@ -892,7 +891,7 @@ FillinKextPatches (
       MsgLog ("ForceKextsToLoad: %d requested\n", Count);
 
       for (i = 0; i < Count; i++) {
-        EFI_STATUS Status = GetElement (Prop, i, &Prop2);
+        EFI_STATUS Status = GetElement (Prop, i, Count, &Prop2);
 
         DBG (" - [%02d]:", i);
 
@@ -942,7 +941,7 @@ FillinKextPatches (
         UINTN     FindLen = 0, ReplaceLen = 0;
         UINT8     *TmpData, *TmpPatch;
 
-        EFI_STATUS Status = GetElement (Prop, i, &Prop2);
+        EFI_STATUS Status = GetElement (Prop, i, Count, &Prop2);
 
         DBG (" - [%02d]:", i);
 
@@ -1049,7 +1048,7 @@ FillinKextPatches (
         CHAR8         *KernelPatchesLabel;
         UINTN         FindLen = 0, ReplaceLen = 0;
         UINT8         *TmpData, *TmpPatch;
-        EFI_STATUS    Status = GetElement (Prop, i, &Prop2);
+        EFI_STATUS    Status = GetElement (Prop, i, Count, &Prop2);
 
         DBG (" - [%02d]:", i);
 
@@ -1428,7 +1427,7 @@ FillinCustomEntry (
 
       if (Count > 0) {
         for (i = 0; i < Count; i++) {
-          if (EFI_ERROR (GetElement (Prop, i, &Dict))) {
+          if (EFI_ERROR (GetElement (Prop, i, Count, &Dict))) {
             continue;
           }
 
@@ -2210,7 +2209,7 @@ GetThemeTagSettings (
     for (i = 0; i < Count; i++) {
       GUI_ANIME   *Anime;
 
-      if (EFI_ERROR (GetElement (Dict, i, &Dict3))) {
+      if (EFI_ERROR (GetElement (Dict, i, Count, &Dict3))) {
         continue;
       }
 
@@ -2752,7 +2751,7 @@ GetEarlyUserSettings (
 
           if (gSettings.HVHideStrings) {
             for (i = 0; i < Count; i++) {
-              if (EFI_ERROR (GetElement (Prop, i, &Dict2))) {
+              if (EFI_ERROR (GetElement (Prop, i, Count, &Dict2))) {
                 continue;
               }
 
@@ -2803,7 +2802,7 @@ GetEarlyUserSettings (
 
           if (Count > 0) {
             for (i = 0; i < Count; i++) {
-              if (EFI_ERROR (GetElement (Prop, i, &Dict3))) {
+              if (EFI_ERROR (GetElement (Prop, i, Count, &Dict3))) {
                 continue;
               }
 
@@ -2829,7 +2828,7 @@ GetEarlyUserSettings (
 
           if (Count > 0) {
             for (i = 0; i < Count; i++) {
-              if (EFI_ERROR (GetElement (Prop, i, &Dict3))) {
+              if (EFI_ERROR (GetElement (Prop, i, Count, &Dict3))) {
                 continue;
               }
 
@@ -2882,7 +2881,7 @@ GetEarlyUserSettings (
 
         for (i = 0; i < Count; i++) {
           if (
-              !EFI_ERROR (GetElement (DictPointer, i, &Prop)) &&
+              !EFI_ERROR (GetElement (DictPointer, i, Count, &Prop)) &&
               (Prop != NULL) &&
               (Prop->type == kTagTypeString)
           ) {
@@ -3308,7 +3307,7 @@ GetUserSettings (
           DBG ("Add %d devices:\n", Count);
           for (Index = 0; Index < Count; Index++) {
             UINTN         DeviceAddr = 0U;
-            EFI_STATUS    Status = GetElement (Prop, Index, &Prop2);
+            EFI_STATUS    Status = GetElement (Prop, Index, Count, &Prop2);
 
             DBG (" - [%02d]:", Index);
 
@@ -3348,7 +3347,7 @@ GetUserSettings (
               for (PropIndex = 0; PropIndex < PropCount; PropIndex++) {
                 UINTN     Size = 0;
 
-                if (!EFI_ERROR (GetElement (Dict2, PropIndex, &Dict3))) {
+                if (!EFI_ERROR (GetElement (Dict2, PropIndex, PropCount, &Dict3))) {
                   DevProp = gSettings.AddProperties;
                   gSettings.AddProperties = AllocateZeroPool (sizeof (DEV_PROPERTY));
                   gSettings.AddProperties->Next = DevProp;
@@ -3393,7 +3392,7 @@ GetUserSettings (
 
             for (i = 0; i < Count; i++) {
               UINTN         Size = 0;
-              EFI_STATUS    Status = GetElement (Prop, i, &Dict2);
+              EFI_STATUS    Status = GetElement (Prop, i, Count, &Dict2);
 
               DBG (" - [%02d]:", i);
 
@@ -3527,7 +3526,7 @@ GetUserSettings (
           for (i = 0; i < Count; i++) {
             UINT32        Signature = 0, TabLength = 0;
             UINT64        TableId = 0;
-            EFI_STATUS    Status = GetElement (Prop, i, &Dict2);
+            EFI_STATUS    Status = GetElement (Prop, i, Count, &Dict2);
 
             MsgLog (" - [%02d]:", i);
 
@@ -3653,53 +3652,81 @@ GetUserSettings (
           }
 
         }
-        DBG (" - final DSDT Fix mask=%08x\n", gSettings.FixDsdt);
+
+        DBG (" - final DSDT Fix mask: %08x\n", gSettings.FixDsdt);
 
         Prop = GetProperty (Dict2, "Patches");
         if (Prop != NULL) {
-          INTN   i, Count = GetTagCount (Prop);
+          INTN  i, Count = GetTagCount (Prop);
 
           if (Count > 0) {
-            gSettings.PatchDsdtNum     = (UINT32)Count;
-            gSettings.PatchDsdtFind    = AllocateZeroPool (Count * sizeof (UINT8 *));
-            gSettings.PatchDsdtReplace = AllocateZeroPool (Count * sizeof (UINT8 *));
-            gSettings.LenToFind        = AllocateZeroPool (Count * sizeof (UINT32));
-            gSettings.LenToReplace     = AllocateZeroPool (Count * sizeof (UINT32));
+            gSettings.PatchDsdt = AllocateZeroPool (Count * sizeof (PATCH_DSDT));
 
             MsgLog ("PatchesDSDT: %d requested\n", Count);
 
             for (i = 0; i < Count; i++) {
-              UINTN   Size = 0;
+            //for (i = Count; i--; ) {
+              DBG (" - [%02d]:", i);
 
-              MsgLog (" - [%02d]:", i);
-
-              Status     = GetElement (Prop, i, &Prop2);
+              Status = GetElement (Prop, i, Count, &Prop2);
 
               if (EFI_ERROR (Status) || (Prop2 == NULL)) {
-                MsgLog (" %r parsing / empty element\n", Status);
-                continue;
+                DBG (" %r parsing / empty element", Status);
+              } else {
+                UINTN       Size = 0;
+                PATCH_DSDT  *PatchDsdt =  AllocateZeroPool (sizeof (PATCH_DSDT));
+
+                PatchDsdt->Find = GetDataSetting (Prop2, "Find", &Size);
+                PatchDsdt->LenToFind = (UINT32)Size;
+                PatchDsdt->Replace = GetDataSetting (Prop2, "Replace", &Size);
+                PatchDsdt->LenToReplace = (UINT32)Size;
+                PatchDsdt->Comment = NULL;
+
+                Prop3 = GetProperty (Prop2, "Comment");
+                if ((Prop3 != NULL) && (Prop3->type == kTagTypeString) && Prop3->string) {
+                  PatchDsdt->Comment = AllocateCopyPool(AsciiStrSize(Prop3->string), Prop3->string);
+                }
+
+                DBG (" (%a)", PatchDsdt->Comment ? PatchDsdt->Comment : "NoLabel");
+
+                if (
+                  !PatchDsdt->LenToFind ||
+                  !PatchDsdt->LenToReplace
+                ) {
+                  DBG (" invalid data", Status);
+                  FreePool (PatchDsdt);
+                } else {
+                  PatchDsdt->Disabled = IsPropertyTrue (GetProperty (Prop2, "Disabled"));
+                  if (PatchDsdt->Disabled) {
+                    DBG (" disabled");
+                  }
+
+                  PatchDsdt->Next = gSettings.PatchDsdt;
+                  gSettings.PatchDsdt = PatchDsdt;
+                  gSettings.PatchDsdtNum++;
+                }
               }
 
-              Prop3 = GetProperty (Prop2, "Comment");
-              if ((Prop3 != NULL) && (Prop3->type == kTagTypeString) && Prop3->string) {
-                MsgLog (" (%a)", Prop3->string);
-              }
+              DBG ("\n");
+            }
 
-              if (IsPropertyTrue (GetProperty (Prop2, "Disabled"))) {
-                MsgLog (" patch disabled, skip\n");
-                continue;
-              }
+            // reverse
+            if (gSettings.PatchDsdtNum && gSettings.PatchDsdt) {
+              PATCH_DSDT  *aTmp = gSettings.PatchDsdt;
 
-              //DBG (" DSDT bin patch #%d ", i);
-              gSettings.PatchDsdtFind[i]    = GetDataSetting (Prop2, "Find",    &Size);
-              MsgLog (" lenToFind: %d", Size);
-              gSettings.LenToFind[i]        = (UINT32)Size;
-              gSettings.PatchDsdtReplace[i] = GetDataSetting (Prop2, "Replace", &Size);
-              MsgLog (", lenToReplace: %d\n", Size);
-              gSettings.LenToReplace[i]     = (UINT32)Size;
+              gSettings.PatchDsdt = 0;
+
+              while (aTmp->Next) {
+                PATCH_DSDT   *next = aTmp->Next;
+
+                aTmp->Next = gSettings.PatchDsdt;
+                gSettings.PatchDsdt = aTmp;
+                aTmp = next;
+              }
             }
           } //if count > 0
         } //if prop PatchesDSDT
+
 
         gSettings.ReuseFFFF = IsPropertyTrue (GetProperty (Dict2, "ReuseFFFF"));
 
@@ -3788,7 +3815,7 @@ GetUserSettings (
 
           for (i = 0; i < Count; i++) {
             if (
-              !EFI_ERROR (GetElement (Prop, i, &Prop2)) &&
+              !EFI_ERROR (GetElement (Prop, i, Count, &Prop2)) &&
               (Prop2 != NULL) &&
               (Prop2->type == kTagTypeString)
             ) {
@@ -3811,7 +3838,7 @@ GetUserSettings (
           if (gSettings.DisabledAML) {
             for (i = 0; i < Count; i++) {
               if (
-                !EFI_ERROR (GetElement (Prop, i, &Prop2)) &&
+                !EFI_ERROR (GetElement (Prop, i, Count, &Prop2)) &&
                 (Prop2 != NULL) &&
                 (Prop2->type == kTagTypeString)
               ) {
@@ -3853,7 +3880,7 @@ GetUserSettings (
             UINT8           Slot = MAX_RAM_SLOTS;
             RAM_SLOT_INFO   *SlotPtr;
 
-            if (EFI_ERROR (GetElement (Prop2, i, &Prop3))) {
+            if (EFI_ERROR (GetElement (Prop2, i, Count, &Prop3))) {
               continue;
             }
 
@@ -3943,7 +3970,7 @@ GetUserSettings (
         Prop3 = NULL;
 
         for (Index = 0; Index < Count; ++Index) {
-          if (EFI_ERROR (GetElement (Prop, Index, &Prop3))) {
+          if (EFI_ERROR (GetElement (Prop, Index, Count, &Prop3))) {
             continue;
           }
 
@@ -4137,11 +4164,11 @@ GetUserSettings (
 
       // CsrActiveConfig
       Prop = GetProperty (DictPointer, "CsrActiveConfig");
-      gSettings.CsrActiveConfig = (UINT32)GetPropertyInteger (Prop, 0x67); //the value 0xFFFF means not set
+      gSettings.CsrActiveConfig = (UINT32)GetPropertyInteger (Prop, gSettings.CsrActiveConfig);
 
       //BooterConfig
       Prop = GetProperty (DictPointer, "BooterConfig");
-      gSettings.BooterConfig = (UINT16)GetPropertyInteger (Prop, 0xFFFF); //the value 0xFFFF means not set
+      gSettings.BooterConfig = (UINT16)GetPropertyInteger (Prop, gSettings.BooterConfig);
     }
 
     if (gSettings.RtROM == NULL) {

@@ -1188,19 +1188,20 @@ EFI_STATUS
 GetElement (
   TagPtr    dict,
   INTN      id,
+  INTN      count,
   TagPtr    *dict1
 ) {
-  INTN    element = 0;
+  //INTN    element = 0;
   TagPtr  child;
 
-  if (!dict || !dict1 || (dict->type != kTagTypeArray)) {
+  if (!count || !dict || !dict1 || (dict->type != kTagTypeArray)) {
     return EFI_UNSUPPORTED;
   }
 
   child = dict->tag;
 
-  while (element < id) {
-    element++;
+  //while (child && (element++ < id)) {
+  while (child && (--count > id)) {
     child = child->tagNext;
   }
 

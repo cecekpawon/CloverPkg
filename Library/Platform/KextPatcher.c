@@ -716,14 +716,14 @@ ParsePrelinkKexts (
   } else {
     DictPointer = GetProperty (KextsDict, kPrelinkInfoDictionaryKey);
     if ((DictPointer != NULL) && (DictPointer->type == kTagTypeArray)) {
-      INTN    Count = GetTagCount (DictPointer), i = 0;
+      INTN    Count = GetTagCount (DictPointer), i = 0,
+              iPrelinkExecutableSourceKey, iPrelinkExecutableSourceKeySize, //KextAddr
+              iPrelinkExecutableSizeKey, iPrelinkExecutableSizeKeySize; //KextSize
       TagPtr  Dict, Prop;
       CHAR8   *sPrelinkExecutableSourceKey, *sPrelinkExecutableSizeKey;
-      INTN    iPrelinkExecutableSourceKey, iPrelinkExecutableSourceKeySize, //KextAddr
-              iPrelinkExecutableSizeKey, iPrelinkExecutableSizeKeySize; //KextSize
 
       while (i < Count) {
-        Status = GetElement (DictPointer, i++, &Prop);
+        Status = GetElement (DictPointer, i++, Count, &Prop);
 
         if (
           EFI_ERROR (Status) ||

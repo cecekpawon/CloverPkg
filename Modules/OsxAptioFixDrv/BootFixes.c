@@ -77,14 +77,7 @@ MachOGetEntryAddress (
   MHdr64 = (struct mach_header_64 *)MachOImage;
   DBG ("MachOImage: %p, magic: %x", MachOImage, MHdr->magic);
 
-/*
-  if ((MHdr->magic == MH_MAGIC) || (MHdr->magic == MH_CIGAM)) {
-    // 32 bit header
-    DBG (" -> 32 bit\n");
-    Is64Bit = FALSE;
-    NCmds = MHdr->ncmds;
-    LCmd = PTR_OFFSET (MachOImage, sizeof (struct mach_header), struct load_command *);
-  } else */ if (MHdr64->magic == MH_MAGIC_64 || MHdr64->magic == MH_CIGAM_64) {
+  if (MHdr64->magic == MH_MAGIC_64 || MHdr64->magic == MH_CIGAM_64) {
     // 64 bit header
     DBG (" -> 64 bit\n");
     Is64Bit = TRUE;
@@ -561,7 +554,7 @@ DefragmentRuntimeServices (
 /** Fixes RT vars in bootArgs, virtualizes and defragments RT blocks. */
 VOID
 RuntimeServicesFix (
-  BootArgs    *BA
+  InternalBootArgs    *BA
 ) {
   EFI_STATUS              Status;
   UINT32                  gRelocBasePage = (UINT32)EFI_SIZE_TO_PAGES (gRelocBase),
@@ -624,7 +617,7 @@ RuntimeServicesFix (
 */
 VOID
 DevTreeFix (
-  BootArgs    *BA
+  InternalBootArgs    *BA
 ) {
           DTEntry                   DevTree, MemMap;
   struct  OpaqueDTPropertyIterator  OPropIter;
@@ -669,9 +662,9 @@ DevTreeFix (
           // yes - fix kext pointers
           KextInfo = (BooterKextFileInfo *)(UINTN)PropValue->Address;
           //DBG (" = KEXT %a at %x ", (CHAR8 *)(UINTN)KextInfo->bundlePathPhysAddr, KextInfo->infoDictPhysAddr);
-          KextInfo->infoDictPhysAddr -= (UINT32)gRelocBase;
-          KextInfo->executablePhysAddr -= (UINT32)gRelocBase;
-          KextInfo->bundlePathPhysAddr -= (UINT32)gRelocBase;
+          KextInfo->infoDictPhysAddr    -= (UINT32)gRelocBase;
+          KextInfo->executablePhysAddr  -= (UINT32)gRelocBase;
+          KextInfo->bundlePathPhysAddr  -= (UINT32)gRelocBase;
           //DBG ("-> %x ", KextInfo->infoDictPhysAddr);
         }
 
@@ -776,7 +769,7 @@ FixBootingWithRelocBlock (
   BOOLEAN   ModeX64
 ) {
   VOID                    *pBootArgs = (VOID *)bootArgs;
-  BootArgs                *BA;
+  InternalBootArgs        *BA;
   UINTN                   MemoryMapSize, DescriptorSize;
   EFI_MEMORY_DESCRIPTOR   *MemoryMap;
   UINT32                  DescriptorVersion;
@@ -824,8 +817,8 @@ FixBootingWithoutRelocBlock (
   UINTN     bootArgs,
   BOOLEAN   ModeX64
 ) {
-  VOID          *pBootArgs = (VOID *)bootArgs;
-  BootArgs      *BA;
+  VOID              *pBootArgs = (VOID *)bootArgs;
+  InternalBootArgs  *BA;
   /*
     UINTN         MemoryMapSize;
     EFI_MEMORY_DESCRIPTOR *MemoryMap;
@@ -899,6 +892,7 @@ FixHibernateWakeWithoutRelocBlock (
       Handoff->type = kIOHibernateHandoffType;
       break;
     }
+
     Handoff = (IOHibernateHandoff *)(UINTN)((UINTN)Handoff + sizeof (Handoff) + Handoff->bytecount);
   }
 

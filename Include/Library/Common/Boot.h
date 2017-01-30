@@ -105,6 +105,7 @@ typedef struct Boot_Video Boot_Video;
 
 /* Values for v_display */
 
+#define VGA_TEXT_MODE           0
 #define GRAPHICS_MODE           1
 #define FB_TEXT_MODE            2
 
@@ -123,7 +124,7 @@ typedef struct Boot_Video Boot_Video;
 #define kBootArgsFlagHiDPI              (1 << 1)
 #define kBootArgsFlagBlack              (1 << 2)
 #define kBootArgsFlagCSRActiveConfig    (1 << 3)
-#define kBootArgsFlagCSRPendingConfig   (1 << 4)
+#define kBootArgsFlagCSRConfigMode      (1 << 4)
 #define kBootArgsFlagCSRBoot            (1 << 5)
 #define kBootArgsFlagBlackBg            (1 << 6)
 #define kBootArgsFlagLoginUI            (1 << 7)
@@ -150,6 +151,13 @@ typedef struct Boot_Video Boot_Video;
                          CSR_ALLOW_UNRESTRICTED_NVRAM | \
                          CSR_ALLOW_DEVICE_CONFIGURATION | \
                          CSR_ALLOW_ANY_RECOVERY_OS)
+
+/* CSR capabilities that a booter can give to the system */
+#define CSR_CAPABILITY_UNLIMITED        (1 << 0)
+#define CSR_CAPABILITY_CONFIG           (1 << 1)
+#define CSR_CAPABILITY_APPLE_INTERNAL   (1 << 2)
+
+#define CSR_VALID_CAPABILITIES (CSR_CAPABILITY_UNLIMITED | CSR_CAPABILITY_CONFIG | CSR_CAPABILITY_APPLE_INTERNAL)
 
 typedef struct {
   UINT16          Revision; /* Revision of boot_args structure */
