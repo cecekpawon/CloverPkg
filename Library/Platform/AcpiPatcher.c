@@ -410,7 +410,7 @@ DropTableFromRSDT (
       Ptr = EntryPtr;
       Ptr2 = Ptr + 1;
 
-      for (Index2 = Index; Index2 < EntryCount-1; Index2++) {
+      for (Index2 = Index; Index2 < EntryCount - 1; Index2++) {
         *Ptr++ = *Ptr2++;
       }
 
@@ -497,7 +497,7 @@ DropTableFromXSDT (
     Ptr = BasePtr;
     Ptr2 = Ptr + sizeof (UINT64);
 
-    for (Index2 = Index; Index2 < EntryCount-1; Index2++) {
+    for (Index2 = Index; Index2 < EntryCount - 1; Index2++) {
       // *Ptr++ = *Ptr2++;
       CopyMem (Ptr, Ptr2, sizeof (UINT64));
       Ptr  += sizeof (UINT64);

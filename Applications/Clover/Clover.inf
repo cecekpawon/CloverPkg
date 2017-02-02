@@ -113,6 +113,7 @@
   gEfiPlatformDriverOverrideProtocolGuid
   gEfiProcessorSubClassGuid
   gEfiScsiIoProtocolGuid
+  gEfiSimpleTextInputExProtocolGuid
   gEfiStatusCodeRuntimeProtocolGuid
   gEfiUnicodeCollation2ProtocolGuid
   gEfiUnicodeCollationProtocolGuid

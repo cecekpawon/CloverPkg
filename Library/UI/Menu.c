@@ -503,7 +503,7 @@ ApplyInputs () {
           }
         } while (*(++ch));
 
-        AsciiSPrint (gSettings.BootArgs, AVALUE_MAX_SIZE-1, "%s ", InputItems[i].SValue);
+        AsciiSPrint (gSettings.BootArgs, AVALUE_MAX_SIZE - 1, "%s ", InputItems[i].SValue);
         break;
 
       case mConfigs:
@@ -681,7 +681,8 @@ VOID
 DecodeOptions (
   LOADER_ENTRY    *Entry
 ) {
-  INTN    i, OsType;
+  INTN      i, OsType;
+  BOOLEAN   State;
 
   if (OSTYPE_IS_OSX_GLOB (Entry->LoaderType)) {
     OsType = OSTYPE_OSX;
@@ -698,12 +699,16 @@ DecodeOptions (
       continue;
     }
 
+    State = OSFLAG_ISSET(gSettings.OptionsBits, OPT_MENU_OPTBIT[i].Bit);
+
     Entry->LoadOptions = ToggleLoadOptions (
-                            (gSettings.OptionsBits & OPT_MENU_OPTBIT[i].Bit),
+                            State,
                             Entry->LoadOptions,
                             OPT_MENU_OPTBIT[i].Args
                           );
   }
+
+  Entry->Flags = (UINT16)OSFLAG_SET(Entry->Flags, (gSettings.OptionsBits + gSettings.FlagsBits));
 }
 
 VOID
@@ -968,7 +973,7 @@ InitScroll (
   } else {
     State->FirstVisible = MIN (Selected, State->MaxFirstVisible);
   }
-  //State->FirstVisible = (Selected > State->MaxFirstVisible)?State->MaxFirstVisible:Selected;
+  //State->FirstVisible = (Selected > State->MaxFirstVisible) ? State->MaxFirstVisible : Selected;
 
   State->IsScrolling = (State->MaxFirstVisible > 0);
   State->PaintAll = TRUE;
@@ -1230,7 +1235,7 @@ InputDialog (
       // For debugging the InputDialog
       PrintAt (0, 0, L"%5d: Buffer:%x MaxSize:%d Line:%3d", Iteration, Buffer, SVALUE_MAX_SIZE, LineSize);
       PrintAt (0, 1, L"%5d: Size:%3d Len:%3d", Iteration, StrSize (Buffer), StrLen (Buffer));
-      PrintAt (0, 2, L"%5d: Pos:%3d Shift:%3d AbsPos:%3d", Iteration, Pos, Item->LineShift, Pos+Item->LineShift);
+      PrintAt (0, 2, L"%5d: Pos:%3d Shift:%3d AbsPos:%3d", Iteration, Pos, Item->LineShift, Pos + Item->LineShift);
       PrintAt (0, 3, L"%5d: KeyCode:%4d KeyChar:%4d", Iteration, key.ScanCode, (UINTN)key.UnicodeChar);
       PrintAt (0, 4, L"%5d: Title:\"%s\"", Iteration, Screen->Entries[State->CurrentSelection]->Title);
       Iteration++;
@@ -1311,7 +1316,7 @@ InputDialog (
           // forward delete
           if (Pos + Item->LineShift < StrLen (Buffer)) {
             for (i = Pos + Item->LineShift; i < StrLen (Buffer); i++) {
-               Buffer[i] = Buffer[i+1];
+               Buffer[i] = Buffer[i + 1];
             }
             /*
             // Commented this out because it looks weird - Forward Delete should not
@@ -1330,7 +1335,7 @@ InputDialog (
         case CHAR_BACKSPACE:
           if (Buffer[0] != CHAR_NULL && Pos != 0) {
             for (i = Pos + Item->LineShift; i <= StrLen (Buffer); i++) {
-               Buffer[i-1] = Buffer[i];
+               Buffer[i - 1] = Buffer[i];
             }
             Item->LineShift > 0 ? Item->LineShift-- : Pos--;
           }
@@ -1349,8 +1354,8 @@ InputDialog (
             (key.UnicodeChar < 0x80)
           ){
             if (StrSize (Buffer) < SVALUE_MAX_SIZE) {
-              for (i = StrLen (Buffer)+1; i > Pos + Item->LineShift; i--) {
-                 Buffer[i] = Buffer[i-1];
+              for (i = StrLen (Buffer) + 1; i > Pos + Item->LineShift; i--) {
+                 Buffer[i] = Buffer[i - 1];
               }
 
               Buffer[i] = key.UnicodeChar;
@@ -1452,18 +1457,24 @@ CheckState (
 
 UINTN
 RunGenericMenu (
-  IN REFIT_MENU_SCREEN    *Screen,
-  IN MENU_STYLE_FUNC      StyleFunc,
-  IN OUT INTN             *DefaultEntryIndex,
+  IN  REFIT_MENU_SCREEN    *Screen,
+  IN  MENU_STYLE_FUNC      StyleFunc,
+  IN  OUT INTN             *DefaultEntryIndex,
   OUT REFIT_MENU_ENTRY    **ChosenEntry
 ) {
-  SCROLL_STATE      State;
-  EFI_STATUS        Status;
-  EFI_INPUT_KEY     key;
-  INTN              ShortcutEntry, TimeoutCountdown = 0;
-  BOOLEAN           HaveTimeout = FALSE;
-  CHAR16            *TimeoutMessage, CurrChar = 0;
-  UINTN             MenuExit, CurrentSelectionTag;
+  SCROLL_STATE                        State;
+  EFI_STATUS                          Status;
+  //EFI_INPUT_KEY                       key;
+  INTN                                ShortcutEntry, TimeoutCountdown = 0;
+  BOOLEAN                             HaveTimeout = FALSE;
+  CHAR16                              *TimeoutMessage, CurrChar = 0;
+  UINTN                               MenuExit, CurrentSelectionTag;
+
+  EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL   *SimpleTextInEx;
+  EFI_KEY_DATA                        KeyData;
+  UINTN                               EventIndex/*, i, HandleCount*/;
+  //EFI_HANDLE                          *HandleBuffer = NULL;
+  BOOLEAN                             AltKeyPressed = FALSE, CtrlKeyPressed = FALSE;
 
   //no default - no timeout!
   if (
@@ -1493,9 +1504,36 @@ RunGenericMenu (
 
   State.ScrollMode = (GlobalConfig.TextOnly || (Screen->ID > SCREEN_MAIN)) ? SCROLL_MODE_LOOP : SCROLL_MODE_NONE;
 
+/*
+  // Locate all SimpleTextInEx protocols
+  Status = gBS->LocateHandleBuffer (ByProtocol, &gEfiSimpleTextInputExProtocolGuid, NULL, &HandleCount, &HandleBuffer);
+  if (EFI_ERROR (Status)) {
+    //DEBUG((-1, "CrScreenshotDxeEntry: gBS->LocateHandleBuffer returned %r\n", Status));
+    return EFI_UNSUPPORTED;
+  }
+
+  // For each instance
+  for (i = 0; i < HandleCount; i++) {
+    Status = gBS->HandleProtocol (HandleBuffer[i], &gEfiSimpleTextInputExProtocolGuid, (VOID **) &SimpleTextInEx);
+    if (!EFI_ERROR (Status)) {
+      break;
+    }
+  }
+*/
+
+  Status = gBS->LocateProtocol (
+                  &gEfiSimpleTextInputExProtocolGuid,
+                  NULL,
+                  (VOID **)&SimpleTextInEx
+                );
+
+  if (!SimpleTextInEx) {
+    return EFI_UNSUPPORTED;
+  }
+
   // exhaust key buffer and be sure no key is pressed to prevent option selection
   // when coming with a key press from timeout=0, for example
-  while (ReadAllKeyStrokes ()) gBS->Stall (500 * 1000);
+  //while (ReadAllKeyStrokes ()) gBS->Stall (500 * 1000);
 
   while (!MenuExit) {
     // update the screen
@@ -1520,8 +1558,8 @@ RunGenericMenu (
       break;
     }
 
-    key.UnicodeChar = 0;
-    key.ScanCode = 0;
+    //key.UnicodeChar = 0;
+    //key.ScanCode = 0;
 
     if (!mGuiReady) {
       mGuiReady = TRUE;
@@ -1545,15 +1583,35 @@ RunGenericMenu (
     }
 
     // read key press (and wait for it if applicable)
-    Status = gST->ConIn->ReadKeyStroke (gST->ConIn, &key);
+    //Status = gST->ConIn->ReadKeyStroke (gST->ConIn, &key);
     //if ((Status == EFI_NOT_READY) && (gAction == ActionNone)) {
+    //if (Status == EFI_NOT_READY) {
+    //  continue;
+    //}
+
+    //if (gAction == ActionNone) {
+    //  ReadAllKeyStrokes (); //clean to avoid doubles
+    //}
+
+    //
+    // just get some key
+    //
+
+    Status = SimpleTextInEx->ReadKeyStrokeEx (SimpleTextInEx, &KeyData);
     if (Status == EFI_NOT_READY) {
+      gBS->WaitForEvent (1, &SimpleTextInEx->WaitForKeyEx, &EventIndex);
       continue;
     }
 
-    //if (gAction == ActionNone) {
-      ReadAllKeyStrokes (); //clean to avoid doubles
-    //}
+    AltKeyPressed = (
+      (KeyData.KeyState.KeyShiftState == (EFI_SHIFT_STATE_VALID | EFI_LEFT_ALT_PRESSED)) ||
+      (KeyData.KeyState.KeyShiftState == (EFI_SHIFT_STATE_VALID | EFI_RIGHT_ALT_PRESSED))
+    );
+
+    CtrlKeyPressed = (
+      (KeyData.KeyState.KeyShiftState == (EFI_SHIFT_STATE_VALID | EFI_LEFT_CONTROL_PRESSED)) ||
+      (KeyData.KeyState.KeyShiftState == (EFI_SHIFT_STATE_VALID | EFI_RIGHT_CONTROL_PRESSED))
+    );
 
     if (HaveTimeout) {
       // the user pressed a key, cancel the timeout
@@ -1562,157 +1620,174 @@ RunGenericMenu (
       HaveTimeout = FALSE;
     }
 
-    //gAction = ActionNone; //do action once
-    // react to key press
-    switch (key.ScanCode) {
-      case SCAN_UP:
-      case SCAN_LEFT:
-        CheckState (Screen, &State, key.ScanCode);
-        UpdateScroll (&State, SCROLL_LINE_UP);
-        break;
+    //if (key.ScanCode != SCAN_NULL) {
+    if (KeyData.Key.ScanCode != SCAN_NULL) {
+      //gAction = ActionNone; //do action once
+      // react to key press
+      //switch (key.ScanCode) {
+      switch (KeyData.Key.ScanCode) {
+        case SCAN_UP:
+        case SCAN_LEFT:
+          //CheckState (Screen, &State, key.ScanCode);
+          CheckState (Screen, &State, KeyData.Key.ScanCode);
+          UpdateScroll (&State, SCROLL_LINE_UP);
+          break;
 
-      case SCAN_DOWN:
-      case SCAN_RIGHT:
-        CheckState (Screen, &State, key.ScanCode);
-        UpdateScroll (&State, SCROLL_LINE_DOWN);
-        break;
+        case SCAN_DOWN:
+        case SCAN_RIGHT:
+          //CheckState (Screen, &State, key.ScanCode);
+          CheckState (Screen, &State, KeyData.Key.ScanCode);
+          UpdateScroll (&State, SCROLL_LINE_DOWN);
+          break;
 
-      case SCAN_HOME:
-        UpdateScroll (&State, SCROLL_FIRST);
-        break;
+        case SCAN_HOME:
+          UpdateScroll (&State, SCROLL_FIRST);
+          break;
 
-      case SCAN_END:
-        UpdateScroll (&State, SCROLL_LAST);
-        break;
+        case SCAN_END:
+          UpdateScroll (&State, SCROLL_LAST);
+          break;
 
-      case SCAN_PAGE_UP:
-        UpdateScroll (&State, SCROLL_PAGE_UP);
-        StyleFunc (Screen, &State, MENU_FUNCTION_INIT, NULL);
-        break;
+        case SCAN_PAGE_UP:
+          UpdateScroll (&State, SCROLL_PAGE_UP);
+          StyleFunc (Screen, &State, MENU_FUNCTION_INIT, NULL);
+          break;
 
-      case SCAN_PAGE_DOWN:
-        UpdateScroll (&State, SCROLL_PAGE_DOWN);
-        StyleFunc (Screen, &State, MENU_FUNCTION_INIT, NULL);
-        break;
+        case SCAN_PAGE_DOWN:
+          UpdateScroll (&State, SCROLL_PAGE_DOWN);
+          StyleFunc (Screen, &State, MENU_FUNCTION_INIT, NULL);
+          break;
 
-      case SCAN_ESC:
-        MenuExit = MENU_EXIT_ESCAPE;
-        break;
+        case SCAN_ESC:
+          MenuExit = MENU_EXIT_ESCAPE;
+          break;
 
-      case SCAN_INSERT:
-        MenuExit = MENU_EXIT_OPTIONS;
-        break;
+        case SCAN_INSERT:
+          MenuExit = MENU_EXIT_OPTIONS;
+          break;
 
-      case SCAN_F1:
-        MenuExit = MENU_EXIT_HELP;
-        break;
+        case SCAN_F1:
+          MenuExit = MENU_EXIT_HELP;
+          break;
 
-      case SCAN_F2:
-        SavePreBootLog = TRUE;
-        //let it be twice
-        Status = SaveBooterLog (SelfRootDir, PREBOOT_LOG);
-        if (EFI_ERROR (Status)) {
-          Status = SaveBooterLog (NULL, PREBOOT_LOG);
-        }
-        break;
-
-      case SCAN_F3:
-         MenuExit = MENU_EXIT_HIDE_TOGGLE;
-         break;
-
-      case SCAN_F4:
-        SaveOemTables ();
-        break;
-
-      case SCAN_F5:
-        SaveOemDsdt (TRUE); //full patch
-        break;
-
-      case SCAN_F6:
-        Status = SaveFile (SelfRootDir, VBIOS_BIN, (UINT8 *)(UINTN)0xc0000, 0x20000);
-        if (EFI_ERROR (Status)) {
-          Status = SaveFile (NULL, VBIOS_BIN, (UINT8 *)(UINTN)0xc0000, 0x20000);
-        }
-        break;
-
-      /* just a sample code
-      case SCAN_F7:
-        Status = MkDir (SelfRootDir,  L"EFI\\CLOVER\\new_folder");
-        DBG ("create folder %r\n", Status);
-        if (!EFI_ERROR (Status)) {
-          Status = SaveFile (SelfRootDir,  L"EFI\\CLOVER\\new_folder\\new_file.txt", (UINT8 *)SomeText, sizeof (*SomeText)+1);
-          DBG ("create file %r\n", Status);
-        }
-        break;
-
-      case SCAN_F8:
-        do {
-          CHAR16 *Str = PoolPrint (L"%s\n%s\n%s", L"ABC", L"123456", L"xy");
-          if (Str != NULL) {
-            AlertMessage (L"Sample message", Str);
-            FreePool (Str);
+        case SCAN_F2:
+          SavePreBootLog = TRUE;
+          //let it be twice
+          Status = SaveBooterLog (SelfRootDir, PREBOOT_LOG);
+          if (EFI_ERROR (Status)) {
+            Status = SaveBooterLog (NULL, PREBOOT_LOG);
           }
-        } while (0);
-        //this way screen is dirty
-        break;
-      */
+          break;
 
-      case SCAN_F9:
-        SetNextScreenMode (1);
-        MenuExit = MENU_EXIT_ESCAPE;
-        break;
+        case SCAN_F3:
+           MenuExit = MENU_EXIT_HIDE_TOGGLE;
+           break;
 
-      case SCAN_F10:
-        ScreenShot ();
-        break;
+        case SCAN_F4:
+          SaveOemTables ();
+          break;
 
-      //case SCAN_F12:
-      //  MenuExit = MENU_EXIT_EJECT;
-      //  State.PaintAll = TRUE;
-      //  break;
-    }
+        case SCAN_F5:
+          SaveOemDsdt (TRUE); //full patch
+          break;
 
-    CurrentSelectionTag = (Screen->Entries[State.CurrentSelection])->Tag;
-
-    //if (key.UnicodeChar >= 'a' && key.UnicodeChar <= 'z') {
-    //  key.UnicodeChar -= ('a' - 'A');
-    //}
-
-    CurrChar = TO_UPPER (key.UnicodeChar);
-
-    switch (CurrChar) {
-      case 'V':
-          if (CurrentSelectionTag == TAG_LOADER) {
-            gSettings.OptionsBits = OSFLAG_SET (gSettings.OptionsBits, OPT_VERBOSE);
-            MenuExit = MENU_EXIT_ENTER;
+        case SCAN_F6:
+          Status = SaveFile (SelfRootDir, VBIOS_BIN, (UINT8 *)(UINTN)0xc0000, 0x20000);
+          if (EFI_ERROR (Status)) {
+            Status = SaveFile (NULL, VBIOS_BIN, (UINT8 *)(UINTN)0xc0000, 0x20000);
           }
-        break;
+          break;
 
-      case CHAR_LINEFEED:
-      case CHAR_CARRIAGE_RETURN:
-      case CHAR_SPACE:
-        if (
-          (CurrentSelectionTag == TAG_INPUT) ||
-          (CurrentSelectionTag == TAG_CHECKBIT)
-        ) {
-          MenuExit = InputDialog (Screen, StyleFunc, &State);
-        } else if (CurrentSelectionTag == TAG_SWITCH) {
-          MenuExit = InputDialog (Screen, StyleFunc, &State);
-          State.PaintAll = TRUE;
-        }/* else if (CurrentSelectionTag == TAG_CLOVER){
-          MenuExit = MENU_EXIT_DETAILS;
-        }*/ else {
-          MenuExit = (key.UnicodeChar == CHAR_SPACE) ? MENU_EXIT_DETAILS : MENU_EXIT_ENTER;
-        }
-        break;
+        /* just a sample code
+        case SCAN_F7:
+          Status = MkDir (SelfRootDir,  L"EFI\\CLOVER\\new_folder");
+          DBG ("create folder %r\n", Status);
+          if (!EFI_ERROR (Status)) {
+            Status = SaveFile (SelfRootDir,  L"EFI\\CLOVER\\new_folder\\new_file.txt", (UINT8 *)SomeText, sizeof (*SomeText) + 1);
+            DBG ("create file %r\n", Status);
+          }
+          break;
 
-      default:
-        ShortcutEntry = FindMenuShortcutEntry (Screen, CurrChar);
-        if (ShortcutEntry >= 0) {
-          State.CurrentSelection = ShortcutEntry;
-          MenuExit = MENU_EXIT_ENTER;
+        case SCAN_F8:
+          do {
+            CHAR16 *Str = PoolPrint (L"%s\n%s\n%s", L"ABC", L"123456", L"xy");
+            if (Str != NULL) {
+              AlertMessage (L"Sample message", Str);
+              FreePool (Str);
+            }
+          } while (0);
+          //this way screen is dirty
+          break;
+        */
+
+        case SCAN_F9:
+          SetNextScreenMode (1);
+          MenuExit = MENU_EXIT_ESCAPE;
+          break;
+
+        case SCAN_F10:
+          ScreenShot ();
+          break;
+
+        //case SCAN_F12:
+        //  MenuExit = MENU_EXIT_EJECT;
+        //  State.PaintAll = TRUE;
+        //  break;
+      }
+    } else {
+      CurrentSelectionTag = (Screen->Entries[State.CurrentSelection])->Tag;
+
+      //CurrChar = TO_UPPER (key.UnicodeChar);
+      CurrChar = TO_UPPER (KeyData.Key.UnicodeChar);
+
+      if (CurrentSelectionTag == TAG_LOADER) {
+        if (AltKeyPressed && !CtrlKeyPressed) {
+          switch (CurrChar) {
+            case 'D':
+              gSettings.DebugKP = TRUE;
+              MenuExit = MENU_EXIT_ENTER;
+              break;
+            case 'S':
+              gSettings.OptionsBits = OSFLAG_SET (gSettings.OptionsBits, OPT_SINGLE_USER);
+              MenuExit = MENU_EXIT_ENTER;
+              break;
+            case 'V':
+              gSettings.OptionsBits = OSFLAG_SET (gSettings.OptionsBits, OPT_VERBOSE);
+              MenuExit = MENU_EXIT_ENTER;
+              break;
+          }
         }
-        break;
+      }
+
+      if (!MenuExit) {
+        switch (CurrChar) {
+          case CHAR_LINEFEED:
+          case CHAR_CARRIAGE_RETURN:
+          case CHAR_SPACE:
+            if (
+              (CurrentSelectionTag == TAG_INPUT) ||
+              (CurrentSelectionTag == TAG_CHECKBIT)
+            ) {
+              MenuExit = InputDialog (Screen, StyleFunc, &State);
+            } else if (CurrentSelectionTag == TAG_SWITCH) {
+              MenuExit = InputDialog (Screen, StyleFunc, &State);
+              State.PaintAll = TRUE;
+            }/* else if (CurrentSelectionTag == TAG_CLOVER){
+              MenuExit = MENU_EXIT_DETAILS;
+            }*/ else {
+              MenuExit = (CurrChar == CHAR_SPACE) ? MENU_EXIT_DETAILS : MENU_EXIT_ENTER;
+            }
+            break;
+
+          default:
+            ShortcutEntry = FindMenuShortcutEntry (Screen, CurrChar);
+            if (ShortcutEntry >= 0) {
+              State.CurrentSelection = ShortcutEntry;
+              MenuExit = MENU_EXIT_ENTER;
+            }
+            break;
+        }
+      }
     }
   }
 
@@ -1723,6 +1798,12 @@ RunGenericMenu (
   }
 
   *DefaultEntryIndex = State.CurrentSelection;
+
+/*
+  if (HandleBuffer) {
+    FreePool (HandleBuffer);
+  }
+*/
 
   return MenuExit;
 }
@@ -2134,7 +2215,7 @@ DrawMenuText (
   }
 
   if (TextBuffer == NULL) {
-    TextBuffer = CreateImage (UGAWidth-XPos, TextHeight, TRUE);
+    TextBuffer = CreateImage (UGAWidth - XPos, TextHeight, TRUE);
   }
 
   FillImage (TextBuffer, &MenuBackgroundPixel);
@@ -2864,7 +2945,7 @@ MainMenuStyle (
       InitScroll (State, row0Count, Screen->EntryCount, MaxItemOnScreen, 0);
 
       row0PosX = (UGAWidth + 8 - (EntriesWidth + EntriesGap) *
-                  ((MaxItemOnScreen < row0Count)?MaxItemOnScreen:row0Count)) >> 1;
+                  ((MaxItemOnScreen < row0Count) ? MaxItemOnScreen : row0Count)) >> 1;
 
       row0PosY = ((UGAHeight - LAYOUT_MAINMENU_HEIGHT) >> 1) + GlobalConfig.LayoutBannerOffset;
 
@@ -2958,7 +3039,7 @@ MainMenuStyle (
           }
         } else {
           DrawMainMenuEntry (
-            Screen->Entries[i], (i == State->CurrentSelection)?1:0,
+            Screen->Entries[i], (i == State->CurrentSelection) ? 1 : 0,
             itemPosX[i], row1PosY
           );
         }
@@ -3449,8 +3530,8 @@ AboutRefit () {
     AboutMenu.AnimeRun = GetAnime (&AboutMenu);
     //AddMenuEntry (&AboutMenu, &MenuEntryReturn);
   } else if (AboutMenu.EntryCount >= 2) {
-    FreePool (AboutMenu.Entries[AboutMenu.EntryCount-2]->Title);
-    AboutMenu.Entries[AboutMenu.EntryCount-2]->Title = PoolPrint (L"  Screen Output: %s", ScreenDescription ());
+    FreePool (AboutMenu.Entries[AboutMenu.EntryCount - 2]->Title);
+    AboutMenu.Entries[AboutMenu.EntryCount - 2]->Title = PoolPrint (L"  Screen Output: %s", ScreenDescription ());
   }
 
   RunMenu (&AboutMenu, NULL);
@@ -3486,7 +3567,9 @@ HelpRefit () {
         AddMenuInfo (&HelpMenu, L"O - Options");
         AddMenuInfo (&HelpMenu, L"R - Soft Reset");
         AddMenuInfo (&HelpMenu, L"X - Exit");
-        AddMenuInfo (&HelpMenu, L"V - Boot verbose");
+        AddMenuInfo (&HelpMenu, L"ALT+D - Boot debug patches");
+        AddMenuInfo (&HelpMenu, L"ALT+S - Boot single-user");
+        AddMenuInfo (&HelpMenu, L"ALT+V - Boot verbose");
         AddMenuInfo (&HelpMenu, L"C - Options - Configs");
         AddMenuInfo (&HelpMenu, L"T - Options - Themes");
         AddMenuInfo (&HelpMenu, L"A - Options - ACPI");
@@ -3557,10 +3640,10 @@ RunMainMenu (
 
       DecodeOptions ((LOADER_ENTRY *)TempChosenEntry);
       gSettings.FlagsBits = ((LOADER_ENTRY *)TempChosenEntry)->Flags;
-      ((LOADER_ENTRY *)TempChosenEntry)->Flags |= (UINT16)(gSettings.FlagsBits & 0x0FFF);
+      //((LOADER_ENTRY *)TempChosenEntry)->Flags |= (UINT16)(gSettings.FlagsBits & 0x0FFF);
 
       MenuExit = RunGenericMenu (TempChosenEntry->SubScreen, Style, &SubMenuIndex, &TempChosenEntry);
-
+/*
       if (
         (
           (MenuExit == MENU_EXIT_ENTER) ||
@@ -3570,14 +3653,14 @@ RunMainMenu (
       ) {
         DecodeOptions ((LOADER_ENTRY *)TempChosenEntry);
         ((LOADER_ENTRY *)TempChosenEntry)->Flags |= (UINT16)(gSettings.FlagsBits & 0x0FFF);
-        AsciiSPrint (gSettings.BootArgs, AVALUE_MAX_SIZE-1, "%s", ((LOADER_ENTRY *)TempChosenEntry)->LoadOptions);
+        AsciiSPrint (gSettings.BootArgs, AVALUE_MAX_SIZE - 1, "%s", ((LOADER_ENTRY *)TempChosenEntry)->LoadOptions);
       }
-
+*/
       if ((MenuExit == MENU_EXIT_ESCAPE) || (TempChosenEntry->Tag == TAG_RETURN)) {
         if (((REFIT_MENU_ENTRY *)TempChosenEntryBkp)->Tag == TAG_LOADER) {
-          DecodeOptions (TempChosenEntryBkp);
-          TempChosenEntryBkp->Flags |= (UINT16)(gSettings.FlagsBits & 0x0FFF);
-          AsciiSPrint (gSettings.BootArgs, AVALUE_MAX_SIZE-1, "%s", TempChosenEntryBkp->LoadOptions);
+          //DecodeOptions (TempChosenEntryBkp);
+          //TempChosenEntryBkp->Flags |= (UINT16)(gSettings.FlagsBits & 0x0FFF);
+          //AsciiSPrint (gSettings.BootArgs, AVALUE_MAX_SIZE - 1, "%s", TempChosenEntryBkp->LoadOptions);
           ESCLoader = TRUE;
         }
 
@@ -3588,14 +3671,17 @@ RunMainMenu (
 
   if (ChosenEntry) {
     if (ESCLoader) {
-      ((LOADER_ENTRY *)TempChosenEntry)->LoadOptions = AllocateCopyPool (
-                                                        StrSize (TempChosenEntryBkp->LoadOptions),
-                                                        TempChosenEntryBkp->LoadOptions
-                                                      );
-      ((LOADER_ENTRY *)TempChosenEntry)->Flags = TempChosenEntryBkp->Flags;
+      //((LOADER_ENTRY *)TempChosenEntry)->LoadOptions = AllocateCopyPool (
+      //                                                  StrSize (TempChosenEntryBkp->LoadOptions),
+      //                                                  TempChosenEntryBkp->LoadOptions
+      //                                                );
+      //((LOADER_ENTRY *)TempChosenEntry)->Flags = TempChosenEntryBkp->Flags;
+      CopyMem (((LOADER_ENTRY *)TempChosenEntry), TempChosenEntryBkp, sizeof (TempChosenEntryBkp));
       FreePool (TempChosenEntryBkp);
     }
 
+    DecodeOptions ((LOADER_ENTRY *)TempChosenEntry);
+    AsciiSPrint (gSettings.BootArgs, AVALUE_MAX_SIZE - 1, "%s", ((LOADER_ENTRY *)TempChosenEntry)->LoadOptions);
     *ChosenEntry = TempChosenEntry;
   }
 

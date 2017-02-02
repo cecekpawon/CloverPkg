@@ -123,10 +123,19 @@ struct DTMemMapEntry {
 };
 typedef struct DTMemMapEntry DTMemMapEntry;
 
-typedef struct _DeviceTreeBuffer {
+typedef struct DeviceTreeBuffer {
   UINT32  paddr;
   UINT32  length;
-} _DeviceTreeBuffer;
+} DeviceTreeBuffer;
+
+typedef struct BooterKextFileInfo {
+  UINT32  infoDictPhysAddr;
+  UINT32  infoDictLength;
+  UINT32  executablePhysAddr;
+  UINT32  executableLength;
+  UINT32  bundlePathPhysAddr;
+  UINT32  bundlePathLength;
+} BooterKextFileInfo;
 
 /*
 -------------------------------------------------------------------------------

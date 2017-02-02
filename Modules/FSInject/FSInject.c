@@ -32,52 +32,6 @@ Module Name:
 
 #include "FSInject.h"
 
-#if 0
-//#define EfiGuidStrMapLen 4
-///** Map of known guids and friendly names. Searchable with GuidStr () */
-//struct {
-//  EFI_GUID  *Guid;
-//  CHAR16    *Str;
-//} EfiGuidStrMap[EfiGuidStrMapLen] = {
-//  {NULL, L"Tmp buffer AE074D26-6E9E-11E1-A5B8-9BFC4824019B"},
-//  {&gEfiFileInfoGuid, L"gEfiFileInfoGuid"},
-//  {&gEfiFileSystemInfoGuid, L"gEfiFileSystemInfoGuid"},
-//  {&gEfiFileSystemVolumeLabelInfoIdGuid, L"gEfiFileSystemVolumeLabelInfoIdGuid"}
-//};
-
-MAP_EFI_GUID_STR FSInjectEfiGuidStrMap[] = {
-  {NULL, L"Tmp buffer AE074D26-6E9E-11E1-A5B8-9BFC4824019B"},
-  {&gEfiFileInfoGuid, L"gEfiFileInfoGuid"},
-  {&gEfiFileSystemInfoGuid, L"gEfiFileSystemInfoGuid"},
-  {&gEfiFileSystemVolumeLabelInfoIdGuid, L"gEfiFileSystemVolumeLabelInfoIdGuid"},
-  {NULL, NULL}
-};
-
-/** Returns GUID as string, with friendly name for known guids. */
-CHAR16 *
-EFIAPI
-FSInjectGuidStr (
-  IN EFI_GUID   *Guid
-) {
-  UINTN     i;
-  CHAR16    *Str = NULL;
-
-  for (i = 1; FSInjectEfiGuidStrMap[i].Guid != NULL; i++) {
-    if (CompareGuid (FSInjectEfiGuidStrMap[i].Guid, Guid)) {
-      Str = FSInjectEfiGuidStrMap[i].Str;
-      break;
-    }
-  }
-
-  if (Str == NULL) {
-    UnicodeSPrint (FSInjectEfiGuidStrMap[0].Str, 47 * 2, L"%g", Guid);
-    Str = FSInjectEfiGuidStrMap[0].Str;
-  }
-
-  return Str;
-}
-#endif
-
 /** Composes file name from Parent and FName. Allocates memory for result which should be released by caller. */
 CHAR16 *
 EFIAPI
@@ -277,8 +231,7 @@ FSI_FP_Open (
   IN CHAR16               *FileName,
   IN UINT64               OpenMode,
   IN UINT64               Attributes
-)
-{
+) {
   EFI_STATUS              Status = EFI_DEVICE_ERROR;
   CHAR16                  *NewFName, *InjFName = NULL;
   FSI_FILE_PROTOCOL       *FSIThis, *FSINew;
@@ -940,8 +893,7 @@ FSInjectionInstall (
   IN CHAR16             *SrcDir,
   IN FSI_STRING_LIST    *Blacklist,
   IN FSI_STRING_LIST    *ForceLoadKexts
-)
-{
+) {
   EFI_STATUS                        Status;
   EFI_SIMPLE_FILE_SYSTEM_PROTOCOL   *TgtFS, *SrcFS;
   FSI_SIMPLE_FILE_SYSTEM_PROTOCOL   *OurFS;
@@ -1060,18 +1012,14 @@ FSInjectionAddStringToList (
   CONST CHAR16            *String
 ) {
   FSI_STRING_LIST_ENTRY   *Entry;
-  //UINTN                   StringSize;
 
   if ((List == NULL) || (String == NULL)) {
     return NULL;
   }
 
-  //StringSize = StrSize (String); // num of bytes, including null terminator
-
-  Entry = AllocateZeroPool (sizeof (FSI_STRING_LIST_ENTRY)/* + StringSize */);
+  Entry = AllocateZeroPool (sizeof (FSI_STRING_LIST_ENTRY));
 
   if (Entry != NULL) {
-    //StrCpyS (Entry->String, SVALUE_MAX_SIZE, String);
     Entry->String = AllocateCopyPool (StrSize (String), String);
     InsertTailList (&List->List, &Entry->List);
 
@@ -1128,6 +1076,10 @@ FSInjectEntrypoint (
   EFI_STATUS          Status;
 #if TEST
   FSI_STRING_LIST     *Blacklist;
+#endif
+
+#ifndef EMBED_FSINJECT
+  DBG ("Starting module: FSInject\n");
 #endif
 
   Status = InstallFSInjectionProtocol ();

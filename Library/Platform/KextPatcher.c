@@ -17,15 +17,16 @@
 #endif
 
 // runtime debug
-#define DBG_ON(entry) \
-  ((entry != NULL) && (entry->KernelAndKextPatches != NULL) && \
-  ((DEBUG_KEXT_PATCH != 0) || OSFLAG_ISSET (entry->Flags, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
-  /*entry->KernelAndKextPatches->KPDebug && \*/
-#define DBG_RT(entry, ...) \
-  if (DBG_ON (entry)) AsciiPrint (__VA_ARGS__)
-#define DBG_PAUSE(entry, s) \
-  if (DBG_ON (entry)) gBS->Stall (s * 1000000)
+#define DBG_ON(Entry) \
+  ((Entry != NULL) && (Entry->KernelAndKextPatches != NULL) && \
+  ((DEBUG_KEXT_PATCH != 0) || OSFLAG_ISSET (Entry->Flags, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
+  /*Entry->KernelAndKextPatches->KPDebug && \*/
+#define DBG_RT(Entry, ...) \
+  if (DBG_ON (Entry)) AsciiPrint (__VA_ARGS__)
+#define DBG_PAUSE(Entry, S) \
+  if (DBG_ON (Entry)) gBS->Stall (S * 1000000)
 
+#ifdef LAZY_PARSE_KEXT_PLIST
 #define PRELINKKEXTLIST_SIGNATURE SIGNATURE_32 ('C','E','X','T')
 
 typedef struct {
@@ -40,6 +41,7 @@ typedef struct {
 
 LIST_ENTRY gPrelinkKextList = INITIALIZE_LIST_HEAD_VARIABLE (gPrelinkKextList)/*,
            gLoadedKextList = INITIALIZE_LIST_HEAD_VARIABLE (gLoadedKextList)*/;
+#endif
 
 //
 // Searches Source for Search pattern of size SearchSize
@@ -160,7 +162,6 @@ SearchAndReplaceTxt (
         AsciiPrint ("\n");
       }
       */
-
     }
 
     if (!Pos) {
@@ -510,7 +511,6 @@ AnyKextPatch (
   UINT32        DriverSize,
   CHAR8         *InfoPlist,
   UINT32        InfoPlistSize,
-  //INT32         N,
   KEXT_PATCH    *KextPatches,
   LOADER_ENTRY  *Entry
 ) {
@@ -581,7 +581,7 @@ AnyKextPatch (
     DBG_RT (Entry, "==> NOT patched!\n");
   }
 
-  //DBG_PAUSE (Entry, 2);
+  DBG_PAUSE (Entry, 1);
 }
 
 //
@@ -681,22 +681,21 @@ PatchKext (
     for (i = 0; i < Entry->KernelAndKextPatches->NrKexts; i++) {
       if (
         Entry->KernelAndKextPatches->KextPatches[i].Patched || // avoid redundant: if unique / isBundle
-        Entry->KernelAndKextPatches->KextPatches[i].Disabled
+        Entry->KernelAndKextPatches->KextPatches[i].Disabled ||
+        !IsPatchNameMatch (BundleIdentifier, Entry->KernelAndKextPatches->KextPatches[i].Name, InfoPlist, &isBundle)
       ) {
         continue;
       }
 
-      if (
-        IsPatchNameMatch (BundleIdentifier, Entry->KernelAndKextPatches->KextPatches[i].Name, InfoPlist, &isBundle)
-      ) {
-        AnyKextPatch (Driver, DriverSize, InfoPlist, InfoPlistSize, &Entry->KernelAndKextPatches->KextPatches[i], Entry);
-        if (isBundle) {
-          Entry->KernelAndKextPatches->KextPatches[i].Patched = TRUE;
-        }
+      AnyKextPatch (Driver, DriverSize, InfoPlist, InfoPlistSize, &Entry->KernelAndKextPatches->KextPatches[i], Entry);
+      if (isBundle) {
+        Entry->KernelAndKextPatches->KextPatches[i].Patched = TRUE;
       }
     }
   }
 }
+
+#ifdef LAZY_PARSE_KEXT_PLIST
 
 EFI_STATUS
 ParsePrelinkKexts (
@@ -704,9 +703,7 @@ ParsePrelinkKexts (
   CHAR8           *WholePlist
 ) {
   TagPtr        KextsDict, DictPointer;
-  EFI_STATUS    Status;
-
-  Status = ParseXML (WholePlist, &KextsDict, 0);
+  EFI_STATUS    Status = ParseXML (WholePlist, &KextsDict, 0);
 
   //DBG_RT (Entry, "Parse %a: %r\n", kPrelinkInfoDictionaryKey, Status);
   //DBG_PAUSE (Entry, 5);
@@ -716,35 +713,35 @@ ParsePrelinkKexts (
   } else {
     DictPointer = GetProperty (KextsDict, kPrelinkInfoDictionaryKey);
     if ((DictPointer != NULL) && (DictPointer->type == kTagTypeArray)) {
-      INTN    Count = GetTagCount (DictPointer), i = 0,
+      INTN    Count = DictPointer->size /* GetTagCount (DictPointer) */, i = 0,
               iPrelinkExecutableSourceKey, iPrelinkExecutableSourceKeySize, //KextAddr
               iPrelinkExecutableSizeKey, iPrelinkExecutableSizeKeySize; //KextSize
       TagPtr  Dict, Prop;
       CHAR8   *sPrelinkExecutableSourceKey, *sPrelinkExecutableSizeKey;
 
       while (i < Count) {
-        Status = GetElement (DictPointer, i++, Count, &Prop);
+        Status = GetElement (DictPointer, i++, Count, &Dict);
 
         if (
           EFI_ERROR (Status) ||
-          (Prop == NULL) ||
-          !Prop->offset ||
-          !Prop->taglen
+          (Dict == NULL) ||
+          !Dict->offset ||
+          !Dict->taglen
         ) {
           //DBG_RT (Entry, " %r parsing / empty element\n", Status);
           //DBG_PAUSE (Entry, 1);
           continue;
         }
 
-        Dict = GetProperty (Prop, kPrelinkExecutableSourceKey);
+        Prop = GetProperty (Dict, kPrelinkExecutableSourceKey);
         if (
-          (Dict == NULL) ||
+          (Prop == NULL) ||
           (
-            (Dict->ref != -1) &&
+            (Prop->ref != -1) &&
             EFI_ERROR (
               GetRefInteger (
                 KextsDict,
-                Dict->ref,
+                Prop->ref,
                 &sPrelinkExecutableSourceKey,
                 &iPrelinkExecutableSourceKey,
                 &iPrelinkExecutableSourceKeySize
@@ -754,18 +751,18 @@ ParsePrelinkKexts (
         ) {
           continue;
         } else {
-          iPrelinkExecutableSourceKey = Dict->integer;
+          iPrelinkExecutableSourceKey = Prop->integer;
         }
 
-        Dict = GetProperty (Prop, kPrelinkExecutableSizeKey);
+        Prop = GetProperty (Dict, kPrelinkExecutableSizeKey);
         if (
-          (Dict == NULL) ||
+          (Prop == NULL) ||
           (
-            (Dict->ref != -1) &&
+            (Prop->ref != -1) &&
             EFI_ERROR (
               GetRefInteger (
                 KextsDict,
-                Dict->ref,
+                Prop->ref,
                 &sPrelinkExecutableSizeKey,
                 &iPrelinkExecutableSizeKey,
                 &iPrelinkExecutableSizeKeySize
@@ -775,40 +772,40 @@ ParsePrelinkKexts (
         ) {
           continue;
         } else {
-          iPrelinkExecutableSizeKey = Dict->integer;
+          iPrelinkExecutableSizeKey = Prop->integer;
         }
 
-        Dict = GetProperty (Prop, kPropCFBundleIdentifier);
+        Prop = GetProperty (Dict, kPropCFBundleIdentifier);
         if (
-          (Dict == NULL) || !Dict->string ||
-          !iPrelinkExecutableSourceKey ||
-          !iPrelinkExecutableSizeKey
+          (Prop != NULL) && Prop->string &&
+          iPrelinkExecutableSourceKey &&
+          iPrelinkExecutableSizeKey
         ) {
-          continue;
-        } else {
           // To speed up process sure we can apply all patches here immediately.
           // By saving all kexts data into list could be useful for other purposes, I hope.
           PRELINKKEXTLIST   *nKext = AllocateZeroPool (sizeof (PRELINKKEXTLIST));
 
           if (nKext) {
             nKext->Signature = PRELINKKEXTLIST_SIGNATURE;
-            nKext->BundleIdentifier = AllocateCopyPool (AsciiStrSize (Dict->string), Dict->string);
+            nKext->BundleIdentifier = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
             nKext->Address = iPrelinkExecutableSourceKey;
             nKext->Size = iPrelinkExecutableSizeKey;
-            nKext->Offset = Prop->offset;
-            nKext->Taglen = Prop->taglen;
+            nKext->Offset = Dict->offset;
+            nKext->Taglen = Dict->taglen;
             InsertTailList (&gPrelinkKextList, (LIST_ENTRY *)(((UINT8 *)nKext) + OFFSET_OF (PRELINKKEXTLIST, Link)));
           }
         }
       }
 
       //DBG_RT (Entry, "Count %d\n", Count);
-      //DBG_PAUSE (Entry, 5);
     } else {
       DBG_RT (Entry, "NO kPrelinkInfoDictionaryKey\n");
       DBG_PAUSE (Entry, 5);
     }
   }
+
+  //DBG_RT (Entry, "%a: done\n", __FUNCTION__);
+  //DBG_PAUSE (Entry, 5);
 
   return IsListEmpty (&gPrelinkKextList) ? EFI_UNSUPPORTED : EFI_SUCCESS;
 }
@@ -879,6 +876,243 @@ PatchPrelinkedKexts (
   }
 }
 
+#else
+
+/** Extracts kext BundleIdentifier from given Plist into gKextBundleIdentifier */
+
+#define PropCFBundleIdentifierKey "<key>" kPropCFBundleIdentifier "</key>"
+
+VOID
+ExtractKextBundleIdentifier (
+  OUT CHAR8   *Res,
+  IN  INTN    Len,
+  IN  CHAR8   *Plist
+) {
+  CHAR8     *Tag, *BIStart, *BIEnd;
+  INTN      DictLevel = 0;
+
+  Res[0] = '\0';
+
+  // start with first <dict>
+  Tag = AsciiStrStr (Plist, "<dict>");
+  if (Tag == NULL) {
+    return;
+  }
+
+  Tag += 6;
+  DictLevel++;
+
+  while (*Tag != '\0') {
+    if (AsciiStrnCmp (Tag, "<dict>", 6) == 0) {
+      // opening dict
+      DictLevel++;
+      Tag += 6;
+    } else if (AsciiStrnCmp (Tag, "</dict>", 7) == 0) {
+      // closing dict
+      DictLevel--;
+      Tag += 7;
+    } else if ((DictLevel == 1) && (AsciiStrnCmp (Tag, PropCFBundleIdentifierKey, 29) == 0)) {
+      // BundleIdentifier is next <string>...</string>
+      BIStart = AsciiStrStr (Tag + 29, "<string>");
+      if (BIStart != NULL) {
+        BIStart += 8; // skip "<string>"
+        BIEnd = AsciiStrStr (BIStart, "</string>");
+        if ((BIEnd != NULL) && ((BIEnd - BIStart + 1) < Len)) {
+          CopyMem (Res, BIStart, BIEnd - BIStart);
+          Res[BIEnd - BIStart] = '\0';
+          break;
+        }
+      }
+      Tag++;
+    } else {
+      Tag++;
+    }
+
+    // advance to next tag
+    while ((*Tag != '<') && (*Tag != '\0')) {
+      Tag++;
+    }
+  }
+}
+
+//
+// Returns parsed hex integer key.
+// Plist - kext pist
+// Key - key to find
+// WholePlist - _PrelinkInfoDictionary, used to find referenced values
+//
+// Searches for Key in Plist and it's value:
+// a) <integer ID="26" size="64">0x2b000</integer>
+//    returns 0x2b000
+// b) <integer IDREF="26"/>
+//    searches for <integer ID="26"... from WholePlist
+//    and returns value from that referenced field
+//
+// Whole function is here since we should avoid ParseXML () and it's
+// memory allocations during ExitBootServices (). And it seems that
+// ParseXML () does not support IDREF.
+// This func is hard to read and debug and probably not reliable,
+// but it seems it works.
+//
+UINT64
+GetPlistHexValue (
+  CHAR8     *Plist,
+  CHAR8     *Key,
+  CHAR8     *WholePlist
+) {
+  UINT64    NumValue = 0;
+  CHAR8     *Value, *IntTag, *IDStart, *IDEnd, Buffer[48];
+  UINTN     IDLen, BufferLen = ARRAY_SIZE (Buffer);
+
+  // search for Key
+  Value = AsciiStrStr (Plist, Key);
+  if (Value == NULL) {
+    return 0;
+  }
+
+  // search for <integer
+  IntTag = AsciiStrStr (Value, "<integer");
+  if (IntTag == NULL) {
+    return 0;
+  }
+
+  // find <integer end
+  Value = AsciiStrStr (IntTag, ">");
+  if (Value == NULL) {
+    return 0;
+  }
+
+  if (Value[-1] != '/') {
+    // normal case: value is here
+    NumValue = AsciiStrHexToUint64 (Value + 1);
+    return NumValue;
+  }
+
+  // it might be a reference: IDREF="173"/>
+  Value = AsciiStrStr (IntTag, "<integer IDREF=\"");
+  if (Value != IntTag) {
+    return 0;
+  }
+
+  // compose <integer ID="xxx" in the Buffer
+  IDStart = AsciiStrStr (IntTag, "\"") + 1;
+  IDEnd = AsciiStrStr (IDStart, "\"");
+  IDLen = IDEnd - IDStart;
+
+  if (IDLen > 8) {
+    return 0;
+  }
+
+  AsciiStrCpyS (Buffer, BufferLen, "<integer ID=\"");
+  AsciiStrnCatS (Buffer, BufferLen, IDStart, IDLen);
+  AsciiStrCatS (Buffer, BufferLen, "\"");
+
+  // and search whole plist for ID
+  IntTag = AsciiStrStr (WholePlist, Buffer);
+  if (IntTag == NULL) {
+    return 0;
+  }
+
+  Value = AsciiStrStr (IntTag, ">");
+  if (Value == NULL) {
+    return 0;
+  }
+
+  if (Value[-1] == '/') {
+    return 0;
+  }
+
+  // we should have value now
+  NumValue = AsciiStrHexToUint64 (Value + 1);
+
+  return NumValue;
+}
+
+VOID
+PatchPrelinkedKexts (
+  LOADER_ENTRY    *Entry
+) {
+  CHAR8     *WholePlist, *DictPtr, *InfoPlistStart = NULL,
+            *InfoPlistEnd = NULL, SavedValue;
+  INTN      DictLevel = 0;
+  UINT32    KextAddr, KextSize;
+
+  WholePlist = (CHAR8 *)(UINTN)KernelInfo->PrelinkInfoAddr;
+
+  //
+  // Detect FakeSMC and if present then
+  // disable kext injection InjectKexts ().
+  // There is some bug in the folowing code that
+  // searches for individual kexts in prelink info
+  // and FakeSMC is not found on my SnowLeo although
+  // it is present in kernelcache.
+  // But searching through the whole prelink info
+  // works and that's the reason why it is here.
+  //
+  //CheckForFakeSMC (WholePlist, Entry);
+
+  DictPtr = WholePlist;
+
+  while ((DictPtr = AsciiStrStr (DictPtr, "dict>")) != NULL) {
+    if (DictPtr[-1] == '<') {
+      // opening dict
+      DictLevel++;
+      if (DictLevel == 2) {
+        // kext start
+        InfoPlistStart = DictPtr - 1;
+      }
+
+    } else if ((DictPtr[-2] == '<') && (DictPtr[-1] == '/')) {
+      // closing dict
+      if ((DictLevel == 2) && (InfoPlistStart != NULL)) {
+        CHAR8   gKextBundleIdentifier[256];
+
+        // kext end
+        InfoPlistEnd = DictPtr + 5 /* "dict>" */;
+
+        // terminate Info.plist with 0
+        SavedValue = *InfoPlistEnd;
+        *InfoPlistEnd = '\0';
+
+        // get kext address from _PrelinkExecutableSourceAddr
+        // truncate to 32 bit to get physical addr
+        KextAddr = (UINT32)GetPlistHexValue (InfoPlistStart, kPrelinkExecutableSourceKey, WholePlist);
+        // KextAddr is always relative to 0x200000
+        // and if KernelSlide is != 0 then KextAddr must be adjusted
+        KextAddr += KernelInfo->Slide;
+        // and adjust for AptioFixDrv's KernelRelocBase
+        KextAddr += (UINT32)KernelInfo->RelocBase;
+
+        KextSize = (UINT32)GetPlistHexValue (InfoPlistStart, kPrelinkExecutableSizeKey, WholePlist);
+
+        ExtractKextBundleIdentifier (gKextBundleIdentifier, ARRAY_SIZE(gKextBundleIdentifier), InfoPlistStart);
+
+        // patch it
+        PatchKext (
+          (UINT8 *)(UINTN)KextAddr,
+          KextSize,
+          InfoPlistStart,
+          (UINT32)(InfoPlistEnd - InfoPlistStart),
+          gKextBundleIdentifier,
+          Entry
+        );
+
+        // return saved char
+        *InfoPlistEnd = SavedValue;
+      }
+
+      DictLevel--;
+    }
+
+    DictPtr += 5;
+  }
+
+  DBG_RT (Entry, "%a: done\n", __FUNCTION__);
+  DBG_PAUSE (Entry, 1);
+}
+
+#endif
+
 //
 // Iterates over kexts loaded by booter
 // and calls PatchKext () for each.
@@ -887,13 +1121,13 @@ VOID
 PatchLoadedKexts (
   LOADER_ENTRY    *Entry
 ) {
-  CHAR8                             *PropName, SavedValue, *InfoPlist;
-  DTEntry                           MMEntry;
-  _BooterKextFileInfo               *KextFileInfo;
-  _DeviceTreeBuffer                 *PropEntry;
-  struct OpaqueDTPropertyIterator   OPropIter;
-  DTPropertyIterator                PropIter = &OPropIter;
-  //UINTN                           DbgCount = 0;
+          CHAR8                             *PropName, SavedValue, *InfoPlist;
+          DTEntry                           MMEntry;
+          BooterKextFileInfo                *KextFileInfo;
+          DeviceTreeBuffer                  *PropEntry;
+  struct  OpaqueDTPropertyIterator          OPropIter;
+          DTPropertyIterator                PropIter = &OPropIter;
+          //UINTN                           DbgCount = 0;
 
   //DBG_RT (Entry, "\nPatchLoadedKexts ... dtRoot = %p\n", dtRoot);
 
@@ -910,22 +1144,27 @@ PatchLoadedKexts (
     while (DTIterateProperties (PropIter, &PropName) == kSuccess) {
       //DBG_RT (Entry, "Prop: %a\n", PropName);
       if (AsciiStrStr (PropName,"Driver-")) {
+#ifdef LAZY_PARSE_KEXT_PLIST
         TagPtr    KextsDict, Dict;
+#else
+        CHAR8   gKextBundleIdentifier[256];
+#endif
 
-        // PropEntry _DeviceTreeBuffer is the value of Driver-XXXXXX property
-        PropEntry = (_DeviceTreeBuffer *)(((UINT8 *)PropIter->currentProperty) + sizeof (DeviceTreeNodeProperty));
+        // PropEntry DeviceTreeBuffer is the value of Driver-XXXXXX property
+        PropEntry = (DeviceTreeBuffer *)(((UINT8 *)PropIter->currentProperty) + sizeof (DeviceTreeNodeProperty));
         //if (DbgCount < 3) {
         //  DBG_RT (Entry, "%a: paddr = %x, length = %x\n", PropName, PropEntry->paddr, PropEntry->length);
         //}
 
-        // PropEntry->paddr points to _BooterKextFileInfo
-        KextFileInfo = (_BooterKextFileInfo *)(UINTN)PropEntry->paddr;
+        // PropEntry->paddr points to BooterKextFileInfo
+        KextFileInfo = (BooterKextFileInfo *)(UINTN)PropEntry->paddr;
 
         // Info.plist should be terminated with 0, but will also do it just in case
         InfoPlist = (CHAR8 *)(UINTN)KextFileInfo->infoDictPhysAddr;
         SavedValue = InfoPlist[KextFileInfo->infoDictLength];
         InfoPlist[KextFileInfo->infoDictLength] = '\0';
 
+#ifdef LAZY_PARSE_KEXT_PLIST
         // TODO: Store into list first & process all later?
         if (!EFI_ERROR (ParseXML (InfoPlist, &KextsDict, 0))) {
           Dict = GetProperty (KextsDict, kPropCFBundleIdentifier);
@@ -940,6 +1179,18 @@ PatchLoadedKexts (
             );
           }
         }
+#else
+        ExtractKextBundleIdentifier (gKextBundleIdentifier, ARRAY_SIZE(gKextBundleIdentifier), InfoPlist);
+
+        PatchKext (
+          (UINT8 *)(UINTN)KextFileInfo->executablePhysAddr,
+          KextFileInfo->executableLength,
+          InfoPlist,
+          KextFileInfo->infoDictLength,
+          gKextBundleIdentifier,
+          Entry
+        );
+#endif
 
         // Check for FakeSMC here
         //CheckForFakeSMC (InfoPlist, Entry);
@@ -970,12 +1221,12 @@ KextPatcherStart (
 
   if (KernelInfo->isCache) {
     DBG_RT (Entry, "Patching kernelcache ...\n");
-    DBG_PAUSE (Entry, 2);
+    //DBG_PAUSE (Entry, 1);
 
     PatchPrelinkedKexts (Entry);
   } else {
     DBG_RT (Entry, "Patching loaded kexts ...\n");
-    DBG_PAUSE (Entry, 2);
+    //DBG_PAUSE (Entry, 1);
 
     PatchLoadedKexts (Entry);
   }

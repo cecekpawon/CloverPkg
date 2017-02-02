@@ -22,8 +22,6 @@
 #include <Library/MemoryAllocationLib.h>
 #include <Library/DebugLib.h>
 
-#include <Library/Common/MemLogLib.h>
-#include <Library/Common/CommonLib.h>
 #if APTIOFIX_VER == 2
 #include <Library/Common/Hibernate.h>
 #endif
@@ -713,6 +711,10 @@ OsxAptioFixDrvEntrypoint (
   APTIOFIX_PROTOCOL       *AptioFix;
   EFI_HANDLE              AptioFixIHandle;
 
+#ifndef EMBED_APTIOFIX
+  DBG ("Starting module: AptioFix (ver %d)\n", APTIOFIX_VER);
+#endif
+
   // install StartImage override
   // all other overrides will be started when boot.efi is started
   gStartImage = gBS->StartImage;
@@ -734,6 +736,7 @@ OsxAptioFixDrvEntrypoint (
 
   if (EFI_ERROR (Status)) {
     DBG ("%a: error installing APTIOFIX_PROTOCOL, Status = %r\n", __FUNCTION__, Status);
+    return Status;
   }
 
   return EFI_SUCCESS;

@@ -88,7 +88,7 @@ GeneratePssSsdt (
     //ultra-mobile
     if (
       (gCPUStructure.BrandString[i] != 'P') &&
-      (gCPUStructure.BrandString[i+1] == 'U')
+      (gCPUStructure.BrandString[i + 1] == 'U')
     ) {
       Aplf = 0;
       break;

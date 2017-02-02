@@ -19,19 +19,6 @@
 #define BOOTER_MKEXT_PREFIX     "DriversPackage-"
 #define BOOTER_RAMDISK_PREFIX   "RAMDisk"
 
-/** Struct at the beginning of every loaded kext.
-  * Pointers to every loaded kext (to this struct) are
-  * properties Driver-<hex addr of DriverInfo> in DevTree /chosen/memory-map
-  */
-typedef struct _BooterKextFileInfo {
-  UINT32  infoDictPhysAddr;
-  UINT32  infoDictLength;
-  UINT32  executablePhysAddr;
-  UINT32  executableLength;
-  UINT32  bundlePathPhysAddr;
-  UINT32  bundlePathLength;
-} BooterKextFileInfo;
-
 extern EFI_PHYSICAL_ADDRESS   gRelocBase;
 extern EFI_PHYSICAL_ADDRESS   gSysTableRtArea;
 extern BOOLEAN                gHibernateWake;
@@ -48,9 +35,9 @@ EFI_STATUS KernelEntryFromMachOPatchJump (VOID *MachOImage, UINTN SlideAddr);
 //EFI_STATUS KernelEntryPatchZero (UINT32 KernelEntry);
 EFI_STATUS
 ExecSetVirtualAddressesToMemMap (
-  IN UINTN      MemoryMapSize,
-  IN UINTN      DescriptorSize,
-  IN UINT32     DescriptorVersion,
+  IN UINTN                  MemoryMapSize,
+  IN UINTN                  DescriptorSize,
+  IN UINT32                 DescriptorVersion,
   IN EFI_MEMORY_DESCRIPTOR  *MemoryMap
 );
 VOID CopyEfiSysTableToSeparateRtDataArea (IN OUT UINT32 *EfiSystemTable);

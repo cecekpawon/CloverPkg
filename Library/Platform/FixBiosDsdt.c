@@ -2158,7 +2158,7 @@ FIXNetwork (
   }
 
   sizeoffset = root->Size;
-  DBG (" - _DSM created, size=%x\n", sizeoffset);
+  DBG (" - _DSM created, size=%d\n", sizeoffset);
   AmlWriteNode (root, network, 0);
   AmlDestroyNode (root);
 

@@ -34,11 +34,6 @@ typedef struct {
 } MEM_LOG;
 
 //
-// Guid for internal protocol for publishing mem log buffer.
-//
-EFI_GUID  mMemLogProtocolGuid = { 0x74B91DA4, 0x2B4C, 0x11E2, {0x99, 0x03, 0x22, 0xF0, 0x61, 0x88, 0x70, 0x9B } };
-
-//
 // Pointer to mem log buffer.
 //
 MEM_LOG   *mMemLog = NULL;
@@ -70,7 +65,7 @@ GetTiming () {
     dTLastSec = DivU64x64Remainder (dTLastMs, 1000, &dTLastMs);
 
     AsciiSPrint (mTimingTxt, sizeof (mTimingTxt),
-                "%ld:%03ld  %ld:%03ld", dTStartSec, dTStartMs, dTLastSec, dTLastMs);
+                "%ld:%03ld (%ld:%03ld)", dTStartSec, dTStartMs, dTLastSec, dTLastMs);
     mMemLog->TscLast = CurrentTsc;
   }
 
@@ -98,7 +93,7 @@ MemLogInit () {
   //
   // Try to use existing MEM_LOG
   //
-  Status = gBS->LocateProtocol (&mMemLogProtocolGuid, NULL, (VOID **)&mMemLog);
+  Status = gBS->LocateProtocol (&gMsgLogProtocolGuid, NULL, (VOID **)&mMemLog);
   if (Status == EFI_SUCCESS && mMemLog != NULL) {
     //
     // We are inited with existing MEM_LOG
@@ -197,16 +192,18 @@ MemLogInit () {
   //
   Status = gBS->InstallMultipleProtocolInterfaces (
                    &gImageHandle,
-                   &mMemLogProtocolGuid,
+                   &gMsgLogProtocolGuid,
                    mMemLog,
                    NULL
                  );
 
-  MemLog (TRUE, 1, "MemLog inited, TSC freq: %ld\n", mMemLog->TscFreqSec);
+#if DEBUG_MEMLOG >= 0
+  MemLog (TRUE, DEBUG_MEMLOG, "MemLog inited, TSC freq: %ld\n", mMemLog->TscFreqSec);
 
   if (InitError[0] != '\0') {
-    MemLog (TRUE, 1, "MemLog was calibrated without ACPI PM Timer: %a\n", InitError);
+    MemLog (TRUE, DEBUG_MEMLOG, "MemLog was calibrated without ACPI PM Timer: %a\n", InitError);
   }
+#endif
 
   return Status;
 }
@@ -279,7 +276,7 @@ MemLogVA (
       DataWritten = AsciiSPrint (
                       mMemLog->Cursor,
                       mMemLog->BufferSize - (mMemLog->Cursor - mMemLog->Buffer),
-                      "%a  ",
+                      "%a | ",
                       GetTiming ()
                     );
 
@@ -294,6 +291,7 @@ MemLogVA (
                    Format,
                    Marker
                  );
+
   mMemLog->Cursor += DataWritten;
 
   //

@@ -17,6 +17,17 @@
 #ifndef _GENERIC_ICH_H_
 #define _GENERIC_ICH_H_
 
+#ifndef DEBUG_ALL
+#ifndef DEBUG_MEMLOG
+#define DEBUG_MEMLOG -1
+#endif
+#else
+#ifdef DEBUG_MEMLOG
+#undef DEBUG_MEMLOG
+#endif
+#define DEBUG_MEMLOG DEBUG_ALL
+#endif
+
 /** GenericIchDefs  Generic ICH Definitions.
 
 Definitions beginning with "R_" are registers.

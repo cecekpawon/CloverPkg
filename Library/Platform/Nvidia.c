@@ -408,16 +408,16 @@ PatchNvidiaROM (
               channel1 |= (0x1 << entries[i].index);
               entries[i].type = TYPE_GROUPED;
 
-              if (entries[i-1].type == 0x0) {
-                channel1 |= (0x1 << entries[i-1].index);
-                entries[i-1].type = TYPE_GROUPED;
+              if (entries[i - 1].type == 0x0) {
+                channel1 |= (0x1 << entries[i - 1].index);
+                entries[i - 1].type = TYPE_GROUPED;
               }
 
               // group TV as well if there is one
-              if (((i+1) < num_outputs) && (entries[i+1].type == 0x1)) {
+              if (((i + 1) < num_outputs) && (entries[i + 1].type == 0x1)) {
                 //  DBG ("group tv1\n");
-                channel1 |= (0x1 << entries[i+1].index);
-                entries[i+1].type = TYPE_GROUPED;
+                channel1 |= (0x1 << entries[i + 1].index);
+                entries[i + 1].type = TYPE_GROUPED;
               }
               break;
 
@@ -427,14 +427,14 @@ PatchNvidiaROM (
               entries[i].type = TYPE_GROUPED;
 
               if (entries[i - 1].type == 0x0) {
-                channel2 |= (0x1 << entries[i-1].index);
-                entries[i-1].type = TYPE_GROUPED;
+                channel2 |= (0x1 << entries[i - 1].index);
+                entries[i - 1].type = TYPE_GROUPED;
               }
               // group TV as well if there is one
-              if (((i+1) < num_outputs) && (entries[i+1].type == 0x1)) {
+              if (((i + 1) < num_outputs) && (entries[i + 1].type == 0x1)) {
                 //  DBG ("group tv2\n");
-                channel2 |= ( 0x1 << entries[i+1].index);
-                entries[i+1].type = TYPE_GROUPED;
+                channel2 |= ( 0x1 << entries[i + 1].index);
+                entries[i + 1].type = TYPE_GROUPED;
               }
               break;
 
@@ -555,7 +555,7 @@ DevpropAddNvidiaTemplate (
 
   for (pnum = 0; pnum < n_ports; pnum++) {
     AsciiSPrint (nkey, 24, "@%d,name", pnum);
-    AsciiSPrint (nval, 24, "NVDA,Display-%c", (65+pnum));
+    AsciiSPrint (nval, 24, "NVDA,Display-%c", (65 + pnum));
     DevpropAddValue (device, nkey, (UINT8 *)nval, 14);
 
     AsciiSPrint (nkey, 24, "@%d,compatible", pnum);
@@ -681,7 +681,7 @@ SetupNvidiaDevprop (
   FreePool (RomPath);
 
   if (EFI_ERROR (Status)) {
-    rom = AllocateZeroPool (NVIDIA_ROM_SIZE+1);
+    rom = AllocateZeroPool (NVIDIA_ROM_SIZE + 1);
     // PRAMIN first
     ReadNvidiaPRAMIN (nvda_dev, rom, nvCardType);
 
@@ -702,14 +702,14 @@ SetupNvidiaDevprop (
       i = 0;
 
       while (i < bufferLen) {
-        //DBG ("%x%x\n", buffer[i], buffer[i+1]);
-        if ((buffer[i] == 0x55) && (buffer[i+1] == 0xaa)) {
+        //DBG ("%x%x\n", buffer[i], buffer[i + 1]);
+        if ((buffer[i] == 0x55) && (buffer[i + 1] == 0xaa)) {
           DBG (" - header found at: %d\n", i);
           bufferLen -= i;
           rom = AllocateZeroPool (bufferLen);
 
           for (j = 0; j < bufferLen; j++) {
-            rom[j] = buffer[i+j];
+            rom[j] = buffer[i + j];
           }
 
           break;
@@ -746,15 +746,15 @@ SetupNvidiaDevprop (
 
     // only search the first 384 bytes
     for (i = 0; i < 0x180; i++) {
-      if ((rom[i] == 0x0D) && (rom[i+1] == 0x0A)) {
+      if ((rom[i] == 0x0D) && (rom[i + 1] == 0x0A)) {
         crlf_count++;
         // second 0x0D0A was found, extract bios version
         if (crlf_count == 2) {
-          if (rom[i-1] == 0x20) {
+          if (rom[i - 1] == 0x20) {
             i--; // strip last " "
           }
 
-          for (version_start = i; version_start > (i-MAX_BIOS_VERSION_LENGTH); version_start--) {
+          for (version_start = i; version_start > (i - MAX_BIOS_VERSION_LENGTH); version_start--) {
             // find start
             if (rom[version_start] == 0x00) {
               version_start++;

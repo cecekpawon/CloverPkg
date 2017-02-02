@@ -12,19 +12,40 @@
 //  gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|0x07
 //  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0xFFFFFFFF
 // in package DSC file
-#define DBG_TO 0
 
-#if DBG_TO == 2
-  #define DBG(...) AsciiPrint(__VA_ARGS__);
-#elif DBG_TO == 1
-  #define DBG(...) DebugPrint(1, __VA_ARGS__);
+#ifndef _APTIOFIX_LIB_H_
+#define _APTIOFIX_LIB_H_
+
+#include <Library/Common/CommonLib.h>
+#include <Library/Common/MemLogLib.h>
+
+// DBG_TO: 0=no debug, 1=serial, 2=console
+// serial requires
+// [PcdsFixedAtBuild]
+//  gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|0x07
+//  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0xFFFFFFFF
+// in package DSC file
+
+#ifdef DEBUG_APTIOFIX
+#define DBG_TO DEBUG_APTIOFIX
 #else
-  #define DBG(...)
+#define DBG_TO -1
+#endif
+
+#if DBG_TO == 4
+#define DBG(...) MemLog(TRUE, 1, __VA_ARGS__)
+#elif DBG_TO == 3
+#define DBG(...) MemLog(FALSE, 0, __VA_ARGS__)
+#elif DBG_TO == 2
+#define DBG(...) AsciiPrint(__VA_ARGS__)
+#elif DBG_TO == 1
+#define DBG(...) DebugPrint(1, __VA_ARGS__)
+#else
+#define DBG(...)
 #endif
 
 // MemMap reversed scan
-#define PREV_MEMORY_DESCRIPTOR(MemoryDescriptor, Size) \
-  ((EFI_MEMORY_DESCRIPTOR *)((UINT8 *)(MemoryDescriptor) - (Size)))
+#define PREV_MEMORY_DESCRIPTOR(MemoryDescriptor, Size) ((EFI_MEMORY_DESCRIPTOR *)((UINT8 *)(MemoryDescriptor) - (Size)))
 
 /** Our internal structure to hold boot args params to make the code independent of the boot args version. */
 typedef struct InternalBootArgs InternalBootArgs;
@@ -116,3 +137,5 @@ VOID                EFIAPI BootArgsPrint  (VOID *bootArgs);
 InternalBootArgs *  EFIAPI GetBootArgs    (VOID *bootArgs);
 VOID                EFIAPI BootArgsFix    (InternalBootArgs *BA, EFI_PHYSICAL_ADDRESS gRellocBase);
 //VOID *            EFIAPI BootArgsFind   (IN EFI_PHYSICAL_ADDRESS Start);
+
+#endif

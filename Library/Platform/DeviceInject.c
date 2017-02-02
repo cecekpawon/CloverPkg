@@ -398,7 +398,7 @@ DevpropAddValue (
   off= 0;
 
   data[off+1] = (UINT8)(((l * 2) + 6) >> 8);
-  data[off] =   ((l * 2) + 6) & 0x00FF;
+  data[off] = ((l * 2) + 6) & 0x00FF;
 
   off += 4;
 
@@ -711,7 +711,7 @@ SetupHdaDevprop (
   } else {
     // HDA - determine layout-id
     layoutId = (UINT32)gSettings.HDALayoutId;
-    MsgLog (" - Layout-id=%d\n", layoutId);
+    MsgLog (" - Layout-id: %d\n", layoutId);
 
     if (gSettings.NrAddProperties != 0xFFFE) {
       for (i = 0; i < gSettings.NrAddProperties; i++) {

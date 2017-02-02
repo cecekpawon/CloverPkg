@@ -162,21 +162,21 @@ CopyScaledImage (
     Dest = NewImage->PixelData;
     for (y = 0; y < NewH; y++) {
       y1 = (y << 4) / Ratio;
-      y0 = ((y1 > 0)?(y1-1):y1) * OldW;
-      y2 = ((y1 < (OldImage->Height - 1))?(y1+1):y1) * OldW;
+      y0 = ((y1 > 0) ? (y1 - 1) : y1) * OldW;
+      y2 = ((y1 < (OldImage->Height - 1)) ? (y1 + 1) : y1) * OldW;
       y1 *= OldW;
 
       for (x = 0; x < NewW; x++) {
         x1 = (x << 4) / Ratio;
-        x0 = (x1 > 0)?(x1-1):x1;
-        x2 = (x1 < (OldW - 1))?(x1+1):x1;
-        Dest->b = (UINT8)(((INTN)Src[x1+y1].b * 2 + Src[x0+y1].b +
-                           Src[x2+y1].b + Src[x1+y0].b + Src[x1+y2].b) / 6);
-        Dest->g = (UINT8)(((INTN)Src[x1+y1].g * 2 + Src[x0+y1].g +
-                           Src[x2+y1].g + Src[x1+y0].g + Src[x1+y2].g) / 6);
-        Dest->r = (UINT8)(((INTN)Src[x1+y1].r * 2 + Src[x0+y1].r +
-                           Src[x2+y1].r + Src[x1+y0].r + Src[x1+y2].r) / 6);
-        Dest->a = Src[x1+y1].a;
+        x0 = (x1 > 0) ? (x1 - 1) : x1;
+        x2 = (x1 < (OldW - 1)) ? (x1 + 1) : x1;
+        Dest->b = (UINT8)(((INTN)Src[x1 + y1].b * 2 + Src[x0 + y1].b +
+                           Src[x2 + y1].b + Src[x1 + y0].b + Src[x1 + y2].b) / 6);
+        Dest->g = (UINT8)(((INTN)Src[x1 + y1].g * 2 + Src[x0 + y1].g +
+                           Src[x2 + y1].g + Src[x1 + y0].g + Src[x1 + y2].g) / 6);
+        Dest->r = (UINT8)(((INTN)Src[x1 + y1].r * 2 + Src[x0 + y1].r +
+                           Src[x2 + y1].r + Src[x1 + y0].r + Src[x1 + y2].r) / 6);
+        Dest->a = Src[x1 + y1].a;
         Dest++;
       }
     }
@@ -310,10 +310,10 @@ ScaleImage (
       x = (i << 12) / f;
       dx = i - ((x * f) >> 12);
       a11 = Src[x + y1];
-      a10 = (y == 0)?a11: Src[x + y1 - W1];
-      a01 = (x == 0)?a11: Src[x + y1 - 1];
-      a21 = (x >= W1)?a11: Src[x + y1 + 1];
-      a12 = (y >= H1)?a11: Src[x + y1 + W1];
+      a10 = (y == 0) ? a11 : Src[x + y1 - W1];
+      a01 = (x == 0) ? a11 : Src[x + y1 - 1];
+      a21 = (x >= W1) ? a11 : Src[x + y1 + 1];
+      a12 = (y >= H1) ? a11 : Src[x + y1 + W1];
 
       if (a11.a == 0) {
         Dest->r = Dest->g = Dest->b = 0x55;
@@ -737,7 +737,7 @@ RawCompose (
   //if TopAlpha=255 then draw Top - non transparent
   //else if TopAlpha=0 then draw Comp - full transparent
   //else draw mixture |-----comp---|--top--|
-  //final alpha =(1-(1-x)*(1-y)) =(255 * 255-(255-topA)*(255-compA))/255
+  //final alpha =(1 - (1 - x) * (1 - y)) =(255 * 255 - (255 - topA) * (255 - compA))/255
 
   for (y = 0; y < Height; y++) {
     TopPtr = TopBasePtr;

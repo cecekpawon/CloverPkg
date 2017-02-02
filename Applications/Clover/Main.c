@@ -508,6 +508,7 @@ StartLoader (
   EFI_LOADED_IMAGE    *LoadedImage;
   CHAR8               *InstallerVersion;
   TagPtr              dict = NULL;
+  BOOLEAN             UseGraphicsMode = TRUE;
 
   DbgHeader ("StartLoader");
 
@@ -661,8 +662,8 @@ StartLoader (
     // If KPDebug is true boot in verbose mode to see the debug messages
     // Also: -x | -s
     if (
-      OSFLAG_ISSET (gSettings.OptionsBits, OPT_SINGLE_USER) ||
-      OSFLAG_ISSET (gSettings.OptionsBits, OPT_SAFE) ||
+      OSFLAG_ISSET (Entry->Flags, OPT_SINGLE_USER) ||
+      OSFLAG_ISSET (Entry->Flags, OPT_SAFE) ||
       (
         (Entry->KernelAndKextPatches != NULL) &&
         (
@@ -672,18 +673,15 @@ StartLoader (
         )
       )
     ) {
-      gSettings.OptionsBits = OSFLAG_SET (gSettings.OptionsBits, OPT_VERBOSE);
+      Entry->Flags = OSFLAG_SET (Entry->Flags, OPT_VERBOSE);
     }
 
-    if (OSFLAG_ISSET (gSettings.OptionsBits, OPT_VERBOSE)) {
-      CHAR16  *TempOptions = AddLoadOption (Entry->LoadOptions, L"-v");
+    UseGraphicsMode = OSFLAG_ISUNSET (Entry->Flags, OPT_VERBOSE);
 
-      FreePool (Entry->LoadOptions);
-      Entry->LoadOptions = TempOptions;
-      Entry->Flags = OSFLAG_UNSET (Entry->Flags, OSFLAG_USEGRAPHICS);
-    } else {
-      Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_USEGRAPHICS);
-    }
+    //Entry->Flags = OSFLAG_UNSET (Entry->Flags, OSFLAG_USEGRAPHICS);
+    //if (UseGraphicsMode) {
+    //  Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_USEGRAPHICS);
+    //}
 
     //DbgHeader ("RestSetupOSX");
 
@@ -757,15 +755,16 @@ StartLoader (
 
   ClosingEventAndLog (Entry);
 
-  //DBG ("BeginExternalScreen\n");
-  BeginExternalScreen (OSFLAG_ISSET (Entry->Flags, OSFLAG_USEGRAPHICS), L"Booting OS");
+  gSettings.OptionsBits = Entry->Flags;
+  DecodeOptions (Entry);
 
-  if (!OSTYPE_IS_WINDOWS_GLOB (Entry->LoaderType)) {
-    if (OSFLAG_ISSET (Entry->Flags, OSFLAG_USEGRAPHICS)) {
-      // save orig OutputString and replace it with null implementation
-      ConOutOutputString = gST->ConOut->OutputString;
-      gST->ConOut->OutputString = NullConOutOutputString;
-    }
+  //DBG ("BeginExternalScreen\n");
+  BeginExternalScreen (UseGraphicsMode, L"Booting OS");
+
+  if (UseGraphicsMode && !OSTYPE_IS_WINDOWS_GLOB (Entry->LoaderType)) {
+    // save orig OutputString and replace it with null implementation
+    ConOutOutputString = gST->ConOut->OutputString;
+    gST->ConOut->OutputString = NullConOutOutputString;
   }
 
   //DBG ("StartEFILoadedImage\n");
@@ -776,7 +775,7 @@ StartLoader (
     NULL
   );
 
-  if (OSFLAG_ISSET (Entry->Flags, OSFLAG_USEGRAPHICS)) {
+  if (UseGraphicsMode) {
     // return back orig OutputString
     gST->ConOut->OutputString = ConOutOutputString;
   }

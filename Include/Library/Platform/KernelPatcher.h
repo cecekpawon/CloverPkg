@@ -67,15 +67,6 @@
 #define kPropIOKitPersonalities             "IOKitPersonalities"
 #define kPropIONameMatch                    "IONameMatch"
 
-typedef struct _BooterKextFileInfo {
-  UINT32  infoDictPhysAddr;
-  UINT32  infoDictLength;
-  UINT32  executablePhysAddr;
-  UINT32  executableLength;
-  UINT32  bundlePathPhysAddr;
-  UINT32  bundlePathLength;
-} _BooterKextFileInfo;
-
 typedef struct KERNEL_INFO {
   UINT32                Slide;
   UINT32                KldAddr;
@@ -140,6 +131,44 @@ typedef struct KERNEL_INFO {
 //extern BootArgs2      *bootArgs2;
 extern CHAR8            *dtRoot;
 extern KERNEL_INFO      *KernelInfo;
+
+typedef enum {
+  kLoadEXEStart,
+  kLoadEXEEnd,
+  kCPUInfoStart,
+  kCPUInfoEnd,
+  kVersion,
+  kVersionMajor,
+  kVersionMinor,
+  kRevision,
+  kXCPMStart,
+  kXCPMEnd,
+  kStartupExtStart,
+  kStartupExtEnd
+} KernelPatchSymbolLookupIndex;
+
+typedef struct KERNEL_PATCH_SYMBOL_LOOKUP
+{
+  KernelPatchSymbolLookupIndex    Index;
+  CHAR8                           *Name;
+} KERNEL_PATCH_SYMBOL_LOOKUP;
+
+STATIC KERNEL_PATCH_SYMBOL_LOOKUP KernelPatchSymbolLookup[] = {
+  { kLoadEXEStart, "__ZN6OSKext14loadExecutableEv" },
+  { kLoadEXEEnd, "__ZN6OSKext23jettisonLinkeditSegmentEv" },
+  { kCPUInfoStart, "_cpuid_set_info" },
+  { kCPUInfoEnd, "_cpuid_info" },
+  { kVersion, "_version" },
+  { kVersionMajor, "_version_major" },
+  { kVersionMinor, "_version_minor" },
+  { kRevision, "_version_revision" },
+  { kXCPMStart, "_xcpm_core_scope_msrs" },
+  { kXCPMEnd, "_xcpm_SMT_scope_msrs" },
+  { kStartupExtStart, "__ZN12KLDBootstrap21readStartupExtensionsEv" },
+  { kStartupExtEnd, "__ZN12KLDBootstrap23readPrelinkedExtensionsEP10section_64" }
+};
+
+STATIC CONST UINTN KernelPatchSymbolLookupCount = ARRAY_SIZE (KernelPatchSymbolLookup);
 
 /////////////////////
 //

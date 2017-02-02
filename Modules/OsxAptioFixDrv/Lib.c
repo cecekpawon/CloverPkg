@@ -14,8 +14,6 @@
 #include <Library/PrintLib.h>
 #include <Library/DevicePathLib.h>
 
-#include <Library/Common/CommonLib.h>
-
 #include <Protocol/LoadedImage.h>
 
 #include "Lib.h"
@@ -73,7 +71,7 @@ FixMemMap (
     // Some UEFIs end up with "reserved" area with EFI_MEMORY_RUNTIME flag set
     // when Intel HD3000 or HD4000 is used. We will remove that flag here.
     //
-    if ((Desc->Attribute & EFI_MEMORY_RUNTIME) != 0 && Desc->Type == EfiReservedMemoryType) {
+    if (((Desc->Attribute & EFI_MEMORY_RUNTIME) != 0) && (Desc->Type == EfiReservedMemoryType)) {
       //EfiMemoryTypeDesc[Desc->Type], Desc->PhysicalStart, Desc->NumberOfPages, Desc->Attribute);
       Desc->Attribute = Desc->Attribute & (~EFI_MEMORY_RUNTIME);
 
@@ -86,11 +84,9 @@ FixMemMap (
       */
     }
 
-    //
-        // Fix by Slice - fixes sleep/wake on GB boards.
-        //
-    //    if ((Desc->PhysicalStart >= 0x9e000) && (Desc->PhysicalStart < 0xa0000)) {
-    if ((Desc->PhysicalStart < 0xa0000) && (PhysicalEnd >= 0x9e000)) {
+    //if ((Desc->PhysicalStart >= 0x9e000) && (Desc->PhysicalStart < 0xa0000)) { //#1
+    if ((Desc->PhysicalStart < 0xa0000) && (PhysicalEnd >= 0x9e000)) { //#2 Fix by Slice - fixes sleep/wake on GB boards.
+    //if ((Desc->PhysicalStart >= 0x9e000) && (PhysicalEnd <= 0xa0000)) {  //#3 @DF
       Desc->Type = EfiACPIMemoryNVS;
       Desc->Attribute = 0;
     }
@@ -104,12 +100,12 @@ FixMemMap (
       // block with RT flag.
       // if it is not RT or MMIO, then report to log
       //
-      if (Desc->Type != EfiRuntimeServicesCode
-        && Desc->Type != EfiRuntimeServicesData
-        && Desc->Type != EfiMemoryMappedIO
-        && Desc->Type != EfiMemoryMappedIOPortSpace
-        )
-      {
+      if (
+        (Desc->Type != EfiRuntimeServicesCode) &&
+        (Desc->Type != EfiRuntimeServicesData) &&
+        (Desc->Type != EfiMemoryMappedIO) &&
+        (Desc->Type != EfiMemoryMappedIOPortSpace)
+      ) {
         DBG (" %s with RT flag: %lx (0x%x) - ???\n", EfiMemoryTypeDesc[Desc->Type], Desc->PhysicalStart, Desc->NumberOfPages);
       }
     } else {
@@ -117,12 +113,12 @@ FixMemMap (
       // block without RT flag.
       // if it is RT or MMIO, then report to log
       //
-      if (Desc->Type == EfiRuntimeServicesCode
-        || Desc->Type == EfiRuntimeServicesData
-        || Desc->Type == EfiMemoryMappedIO
-        || Desc->Type == EfiMemoryMappedIOPortSpace
-        )
-      {
+      if (
+        (Desc->Type == EfiRuntimeServicesCode)
+        (Desc->Type == EfiRuntimeServicesData)
+        (Desc->Type == EfiMemoryMappedIO)
+        (Desc->Type == EfiMemoryMappedIOPortSpace)
+      ) {
         DBG (" %s without RT flag: %lx (0x%x) - ???\n", EfiMemoryTypeDesc[Desc->Type], Desc->PhysicalStart, Desc->NumberOfPages);
       }
     }
@@ -150,28 +146,29 @@ ShrinkMemMap (
   SizeFromDescToEnd = *MemoryMapSize - DescriptorSize;
   *MemoryMapSize = DescriptorSize;
   HasEntriesToRemove = FALSE;
+
   while (SizeFromDescToEnd > 0) {
     Bytes = (((UINTN) PrevDesc->NumberOfPages) * EFI_PAGE_SIZE);
     CanBeJoined = FALSE;
+
     if (
       (Desc->Attribute == PrevDesc->Attribute) &&
-      (PrevDesc->PhysicalStart + Bytes == Desc->PhysicalStart)
+      ((PrevDesc->PhysicalStart + Bytes) == Desc->PhysicalStart)
     ) {
       if (
-        (Desc->Type == EfiBootServicesCode)
-        || (Desc->Type == EfiBootServicesData)
-        //|| (Desc->Type == EfiConventionalMemory)
-        //|| (Desc->Type == EfiLoaderCode)
-        //|| (Desc->Type == EfiLoaderData)
+        (Desc->Type == EfiBootServicesCode) ||
+        (Desc->Type == EfiBootServicesData) /* ||
+        (Desc->Type == EfiConventionalMemory) ||
+        (Desc->Type == EfiLoaderCode) ||
+        (Desc->Type == EfiLoaderData) */
       ) {
         CanBeJoined = (
-                  (PrevDesc->Type == EfiBootServicesCode)
-                  || (PrevDesc->Type == EfiBootServicesData)
-                  //|| (PrevDesc->Type == EfiConventionalMemory)
-                  //|| (PrevDesc->Type == EfiLoaderCode)
-                  //|| (PrevDesc->Type == EfiLoaderData)
-                )
-          ;
+          (PrevDesc->Type == EfiBootServicesCode) ||
+          (PrevDesc->Type == EfiBootServicesData) /* ||
+          (PrevDesc->Type == EfiConventionalMemory) ||
+          (PrevDesc->Type == EfiLoaderCode) ||
+          (PrevDesc->Type == EfiLoaderData) */
+        );
       }
     }
 
@@ -189,8 +186,10 @@ ShrinkMemMap (
         CopyMem (PrevDesc, Desc, SizeFromDescToEnd);
         Desc = PrevDesc;
       }
+
       HasEntriesToRemove = FALSE;
     }
+
     // move to next
     Desc = NEXT_MEMORY_DESCRIPTOR (Desc, DescriptorSize);
     SizeFromDescToEnd -= DescriptorSize;
@@ -228,10 +227,12 @@ PrintMemMap (
     );
 
     Desc = NEXT_MEMORY_DESCRIPTOR (Desc, DescriptorSize);
+
     //if ((Index + 1) % 16 == 0) {
     //  WaitForKeyPress (L"press a key to continue\n");
     //}
   }
+
   //WaitForKeyPress (L"End: press a key to continue\n");
 #endif
 }
@@ -421,7 +422,7 @@ AllocatePagesFromTop (
     if (
       (Desc->Type == EfiConventionalMemory) &&                      // free mem
       (Pages <= Desc->NumberOfPages) &&                             // contains enough space
-      (Desc->PhysicalStart + EFI_PAGES_TO_SIZE (Pages) <= *Memory)   // contains space below specified Memory
+      (Desc->PhysicalStart + EFI_PAGES_TO_SIZE (Pages) <= *Memory)  // contains space below specified Memory
     ) {
       // free block found
       if (Desc->PhysicalStart + EFI_PAGES_TO_SIZE ((UINTN)Desc->NumberOfPages) <= *Memory) {

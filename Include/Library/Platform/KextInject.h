@@ -59,7 +59,7 @@ typedef struct
 {
   UINT32              Signature;
   LIST_ENTRY          Link;
-  _DeviceTreeBuffer   kext;
+  DeviceTreeBuffer    kext;
 } KEXT_ENTRY;
 
 ////////////////////

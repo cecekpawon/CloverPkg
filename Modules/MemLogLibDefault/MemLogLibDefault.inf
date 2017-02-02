@@ -19,3 +19,6 @@
 
 [LibraryClasses]
   PciLib
+
+[Protocols]
+  gMsgLogProtocolGuid

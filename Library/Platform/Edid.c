@@ -112,7 +112,7 @@ GetEdidDiscovered () {
       for (i=0; i<N; i+=16) {
         DBG ("%03d | ", i);
         for (j=0; j<16; j++) {
-          DBG ("%02x%a", EdidDiscovered->Edid[i+j], (j<15) ? " " : "");
+          DBG ("%02x%a", EdidDiscovered->Edid[i + j], (j<15) ? " " : "");
         }
         DBG ("\n");
       }

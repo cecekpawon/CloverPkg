@@ -471,7 +471,7 @@ AmlAddStringBuffer (
     node->Buffer[offset++] = AML_CHUNK_BYTE;
     node->Buffer[offset++] = (CHAR8)(len + 1);
     CopyMem (node->Buffer + offset, StringBuf, len);
-    //node->Buffer[offset+len] = '\0';  //already zero pool
+    //node->Buffer[offset + len] = '\0';  //already zero pool
   }
 
   return node;

@@ -19,7 +19,12 @@ Module Name:
 //  gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|0x07
 //  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0xFFFFFFFF
 // in package DSC file
-#define DBG_TO 4
+
+#ifdef DEBUG_FSINJECT
+#define DBG_TO DEBUG_FSINJECT
+#else
+#define DBG_TO -1
+#endif
 
 #if DBG_TO == 4
 #define DBG(...) MemLog(TRUE, 1, __VA_ARGS__)

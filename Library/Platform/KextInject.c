@@ -12,14 +12,14 @@
 #endif
 
 // runtime debug
-#define DBG_ON(entry) \
-  ((entry != NULL) && (entry->KernelAndKextPatches != NULL) && \
-  ((DEBUG_KEXT_INJECT != 0) || OSFLAG_ISSET (entry->Flags, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
-  /*entry->KernelAndKextPatches->KPDebug && \*/
-#define DBG_RT(entry, ...) \
-  if (DBG_ON (entry)) AsciiPrint (__VA_ARGS__)
-#define DBG_PAUSE(entry, s) \
-  if (DBG_ON (entry)) gBS->Stall (s * 1000000)
+#define DBG_ON(Entry) \
+  ((Entry != NULL) && (Entry->KernelAndKextPatches != NULL) && \
+  ((DEBUG_KEXT_INJECT != 0) || OSFLAG_ISSET (Entry->Flags, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
+  /*Entry->KernelAndKextPatches->KPDebug && \*/
+#define DBG_RT(Entry, ...) \
+  if (DBG_ON (Entry)) AsciiPrint (__VA_ARGS__)
+#define DBG_PAUSE(Entry, S) \
+  if (DBG_ON (Entry)) gBS->Stall (S * 1000000)
 
 ////////////////////
 // globals
@@ -87,11 +87,11 @@ ThinFatFile (
 EFI_STATUS
 EFIAPI
 LoadKext (
-  IN LOADER_ENTRY           *Entry,
-  IN EFI_FILE               *RootDir,
-  IN CHAR16                 *FileName,
-  IN cpu_type_t             archCpuType,
-  IN OUT _DeviceTreeBuffer  *kext
+  IN      LOADER_ENTRY       *Entry,
+  IN      EFI_FILE           *RootDir,
+  IN      CHAR16             *FileName,
+  IN      cpu_type_t         archCpuType,
+  IN OUT  DeviceTreeBuffer   *kext
 ) {
   EFI_STATUS            Status;
   UINT8                 *infoDictBuffer = NULL, *executableFatBuffer = NULL, *executableBuffer = NULL;
@@ -100,7 +100,7 @@ LoadKext (
   CHAR16                TempName[AVALUE_MAX_SIZE], Executable[AVALUE_MAX_SIZE];
   TagPtr                dict = NULL, prop = NULL;
   BOOLEAN               NoContents = FALSE;
-  _BooterKextFileInfo   *infoAddr = NULL;
+  BooterKextFileInfo    *infoAddr = NULL;
 
   UnicodeSPrint (TempName, SVALUE_MAX_SIZE, L"%s\\%s", FileName, L"Contents\\Info.plist");
 
@@ -155,21 +155,21 @@ LoadKext (
   bundlePathBuffer = AllocateZeroPool (bundlePathBufferLength);
   UnicodeStrToAsciiStrS (FileName, bundlePathBuffer, bundlePathBufferLength);
 
-  kext->length = (UINT32)(sizeof (_BooterKextFileInfo) + infoDictBufferLength + executableBufferLength + bundlePathBufferLength);
+  kext->length = (UINT32)(sizeof (BooterKextFileInfo) + infoDictBufferLength + executableBufferLength + bundlePathBufferLength);
 
-  infoAddr = (_BooterKextFileInfo *)AllocatePool (kext->length);
-  infoAddr->infoDictPhysAddr    = sizeof (_BooterKextFileInfo);
+  infoAddr = (BooterKextFileInfo *)AllocatePool (kext->length);
+  infoAddr->infoDictPhysAddr    = sizeof (BooterKextFileInfo);
   infoAddr->infoDictLength      = (UINT32)infoDictBufferLength;
-  infoAddr->executablePhysAddr  = (UINT32)(sizeof (_BooterKextFileInfo) + infoDictBufferLength);
+  infoAddr->executablePhysAddr  = (UINT32)(sizeof (BooterKextFileInfo) + infoDictBufferLength);
   infoAddr->executableLength    = (UINT32)executableBufferLength;
-  infoAddr->bundlePathPhysAddr  = (UINT32)(sizeof (_BooterKextFileInfo) + infoDictBufferLength + executableBufferLength);
+  infoAddr->bundlePathPhysAddr  = (UINT32)(sizeof (BooterKextFileInfo) + infoDictBufferLength + executableBufferLength);
   infoAddr->bundlePathLength    = (UINT32)bundlePathBufferLength;
 
   kext->paddr = (UINT32)(UINTN)infoAddr; // Note that we cannot free infoAddr because of this
 
-  CopyMem ((CHAR8 *)infoAddr + sizeof (_BooterKextFileInfo), infoDictBuffer, infoDictBufferLength);
-  CopyMem ((CHAR8 *)infoAddr + sizeof (_BooterKextFileInfo) + infoDictBufferLength, executableBuffer, executableBufferLength);
-  CopyMem ((CHAR8 *)infoAddr + sizeof (_BooterKextFileInfo) + infoDictBufferLength + executableBufferLength, bundlePathBuffer, bundlePathBufferLength);
+  CopyMem ((CHAR8 *)infoAddr + sizeof (BooterKextFileInfo), infoDictBuffer, infoDictBufferLength);
+  CopyMem ((CHAR8 *)infoAddr + sizeof (BooterKextFileInfo) + infoDictBufferLength, executableBuffer, executableBufferLength);
+  CopyMem ((CHAR8 *)infoAddr + sizeof (BooterKextFileInfo) + infoDictBufferLength + executableBufferLength, bundlePathBuffer, bundlePathBufferLength);
 
   FreePool (infoDictBuffer);
   FreePool (executableFatBuffer);
@@ -379,7 +379,7 @@ LoadKexts (
 
   // reserve space in the device tree
   if (gKextCount > 0) {
-    mm_extra_size = gKextCount * (sizeof (DeviceTreeNodeProperty) + sizeof (_DeviceTreeBuffer));
+    mm_extra_size = gKextCount * (sizeof (DeviceTreeNodeProperty) + sizeof (DeviceTreeBuffer));
     mm_extra = AllocateZeroPool (mm_extra_size - sizeof (DeviceTreeNodeProperty));
     /*Status =  */LogDataHub (&gEfiMiscSubClassGuid, L"mm_extra", mm_extra, (UINT32)(mm_extra_size - sizeof (DeviceTreeNodeProperty)));
     extra_size = gKextSize;
@@ -403,17 +403,17 @@ InjectKexts (
   IN UINT32       *deviceTreeLength,
   LOADER_ENTRY    *Entry
 ) {
-  UINT8                             *dtEntry = (UINT8 *)(UINTN) deviceTreeP, *infoPtr = 0, *extraPtr = 0, *drvPtr = 0;
-  UINTN                             dtLength = (UINTN) *deviceTreeLength, offset = 0, KextBase = 0, Index;
-  DTEntry                           platformEntry, memmapEntry;
-  CHAR8                             *ptr;
-  struct OpaqueDTPropertyIterator   OPropIter;
-  DTPropertyIterator                iter = &OPropIter;
-  DeviceTreeNodeProperty            *prop = NULL;
-  LIST_ENTRY                        *Link;
-  KEXT_ENTRY                        *KextEntry;
-  _DeviceTreeBuffer                 *mm;
-  _BooterKextFileInfo               *drvinfo;
+          UINT8                     *dtEntry = (UINT8 *)(UINTN) deviceTreeP, *infoPtr = 0, *extraPtr = 0, *drvPtr = 0;
+          UINTN                     dtLength = (UINTN)*deviceTreeLength, offset = 0, KextBase = 0, Index;
+          DTEntry                   platformEntry, memmapEntry;
+          CHAR8                     *ptr;
+  struct  OpaqueDTPropertyIterator  OPropIter;
+          DTPropertyIterator        iter = &OPropIter;
+          DeviceTreeNodeProperty    *prop = NULL;
+          LIST_ENTRY                *Link;
+          KEXT_ENTRY                *KextEntry;
+          DeviceTreeBuffer          *mm;
+          BooterKextFileInfo        *drvinfo;
 
   DBG_RT (Entry, "\nInjectKexts: ");
 
@@ -475,12 +475,12 @@ InjectKexts (
   // make space for memory map entries
   platformEntry->nProperties -= 2;
   offset = sizeof (DeviceTreeNodeProperty) + ((DeviceTreeNodeProperty *)infoPtr)->length;
-  CopyMem (drvPtr+offset, drvPtr, infoPtr-drvPtr);
+  CopyMem (drvPtr + offset, drvPtr, infoPtr - drvPtr);
 
   // make space behind device tree
   // platformEntry->nProperties--;
-  offset = sizeof (DeviceTreeNodeProperty)+((DeviceTreeNodeProperty *)extraPtr)->length;
-  CopyMem (extraPtr, extraPtr+offset, dtLength-(UINTN)(extraPtr-dtEntry)-offset);
+  offset = sizeof (DeviceTreeNodeProperty) + ((DeviceTreeNodeProperty *)extraPtr)->length;
+  CopyMem (extraPtr, extraPtr + offset, dtLength - (UINTN)(extraPtr - dtEntry) - offset);
   *deviceTreeLength -= (UINT32)offset;
 
   KextBase = RoundPage (dtEntry + *deviceTreeLength);
@@ -490,20 +490,20 @@ InjectKexts (
       KextEntry = CR (Link, KEXT_ENTRY, Link, KEXT_SIGNATURE);
 
       CopyMem ((VOID *)KextBase, (VOID *)(UINTN)KextEntry->kext.paddr, KextEntry->kext.length);
-      drvinfo = (_BooterKextFileInfo *)KextBase;
+      drvinfo = (BooterKextFileInfo *)KextBase;
       drvinfo->infoDictPhysAddr += (UINT32)KextBase;
       drvinfo->executablePhysAddr += (UINT32)KextBase;
       drvinfo->bundlePathPhysAddr += (UINT32)KextBase;
 
       memmapEntry->nProperties++;
       prop = ((DeviceTreeNodeProperty *)drvPtr);
-      prop->length = sizeof (_DeviceTreeBuffer);
-      mm = (_DeviceTreeBuffer *) (((UINT8 *)prop) + sizeof (DeviceTreeNodeProperty));
+      prop->length = sizeof (DeviceTreeBuffer);
+      mm = (DeviceTreeBuffer *) (((UINT8 *)prop) + sizeof (DeviceTreeNodeProperty));
       mm->paddr = (UINT32)KextBase;
       mm->length = KextEntry->kext.length;
       AsciiSPrint (prop->name, 31, "Driver-%x", KextBase);
 
-      drvPtr += sizeof (DeviceTreeNodeProperty) + sizeof (_DeviceTreeBuffer);
+      drvPtr += sizeof (DeviceTreeNodeProperty) + sizeof (DeviceTreeBuffer);
       KextBase = RoundPage (KextBase + KextEntry->kext.length);
 
       DBG_RT (Entry, " %d - %a\n", Index, (CHAR8 *)(UINTN)drvinfo->bundlePathPhysAddr);
@@ -547,7 +547,7 @@ InjectKexts (
   }
 
   DBG_RT (Entry, "Done.\n");
-  DBG_PAUSE (Entry, 5);
+  //DBG_PAUSE (Entry, 5);
 
   return EFI_SUCCESS;
 }

@@ -413,7 +413,7 @@ ScanVolumeBootcode (
 
       tmp[i] = 0;
       while ((i>0) && (tmp[--i] == 0x20)) {}
-      tmp[i+1] = 0;
+      tmp[i + 1] = 0;
 
       //  if (*p != 0) {
       AsciiStrToUnicodeStrS ((CHAR8 *)&tmp[0], volumeName, ARRAY_SIZE (volumeName));
@@ -628,12 +628,12 @@ ScanVolume (
     Volume->BlockIOOffset = 0x10; // offset already applied for FS but not for blockio
     ScanVolumeBootcode (Volume, &Bootable);
   } else {
-    //DBG ("        Found HD drive\n");
+    //DBG ("         Found HD drive\n");
     Volume->BlockIOOffset = 0;
     // scan for bootcode and MBR table
     ScanVolumeBootcode (Volume, &Bootable);
 
-    //DBG ("        ScanVolumeBootcode success\n");
+    //DBG ("         ScanVolumeBootcode success\n");
 
     // detect device type
     DevicePath = DuplicateDevicePath (Volume->DevicePath);
@@ -644,18 +644,18 @@ ScanVolume (
         (DevicePathType (DevicePath) == MESSAGING_DEVICE_PATH) &&
         ((DevicePathSubType (DevicePath) == MSG_SATA_DP) || (DevicePathSubType (DevicePath) == MSG_ATAPI_DP))
       ) {
-        //DBG ("        HDD volume\n");
+        //DBG ("         HDD volume\n");
         Volume->DiskKind = DISK_KIND_INTERNAL;
         break;
       }
 
       if (
         (DevicePathType (DevicePath) == MESSAGING_DEVICE_PATH) &&
-        (DevicePathSubType (DevicePath) == MSG_USB_DP || DevicePathSubType (DevicePath) == MSG_USB_CLASS_DP)
+        ((DevicePathSubType (DevicePath) == MSG_USB_DP) || (DevicePathSubType (DevicePath) == MSG_USB_CLASS_DP))
       ) {
-        DBG ("        USB volume\n");
+        //DBG ("         USB volume\n");
         Volume->DiskKind = DISK_KIND_EXTERNAL;
-        //break;
+        break;
       }
 
       // FIREWIRE Devices
@@ -663,7 +663,7 @@ ScanVolume (
         (DevicePathType (DevicePath) == MESSAGING_DEVICE_PATH) &&
         ((DevicePathSubType (DevicePath) == MSG_1394_DP) || (DevicePathSubType (DevicePath) == MSG_FIBRECHANNEL_DP))
       ) {
-        //DBG ("        FireWire volume\n");
+        //DBG ("         FireWire volume\n");
         Volume->DiskKind = DISK_KIND_FIREWIRE;
         break;
       }
@@ -673,7 +673,7 @@ ScanVolume (
         (DevicePathType (DevicePath) == MEDIA_DEVICE_PATH) &&
         (DevicePathSubType (DevicePath) == MEDIA_CDROM_DP)
       ) {
-        //DBG ("        CD-ROM volume\n");
+        //DBG ("         CD-ROM volume\n");
         Volume->DiskKind = DISK_KIND_OPTICAL;    //it's impossible
         break;
       }
@@ -683,7 +683,7 @@ ScanVolume (
         (DevicePathType (DevicePath) == MEDIA_DEVICE_PATH) &&
         (DevicePathSubType (DevicePath) == MEDIA_VENDOR_DP)
       ) {
-        //DBG ("        Vendor volume\n");
+        //DBG ("         Vendor volume\n");
         Volume->DiskKind = DISK_KIND_NODISK;
         break;
       }
@@ -693,7 +693,7 @@ ScanVolume (
         (DevicePathType (DevicePath) == BBS_DEVICE_PATH) &&
         ((DevicePathSubType (DevicePath) == BBS_BBS_DP) || (DevicePathSubType (DevicePath) == BBS_TYPE_CDROM))
       ) {
-        //DBG ("        Legacy CD-ROM volume\n");
+        //DBG ("         Legacy CD-ROM volume\n");
         Volume->DiskKind = DISK_KIND_OPTICAL;
         break;
       }
@@ -703,7 +703,7 @@ ScanVolume (
         (DevicePathType (DevicePath) == BBS_DEVICE_PATH) &&
         ((DevicePathSubType (DevicePath) == BBS_BBS_DP) || (DevicePathSubType (DevicePath) == BBS_TYPE_HARDDRIVE))
       ) {
-        //DBG ("        Legacy HDD volume\n");
+        //DBG ("         Legacy HDD volume\n");
         Volume->DiskKind = DISK_KIND_INTERNAL;
         break;
       }
@@ -760,10 +760,10 @@ ScanVolume (
 
       // look at the BlockIO protocol
       Status = gBS->HandleProtocol (
-        WholeDiskHandle,
-        &gEfiBlockIoProtocolGuid,
-        (VOID **)&Volume->WholeDiskBlockIO
-      );
+                      WholeDiskHandle,
+                      &gEfiBlockIoProtocolGuid,
+                      (VOID **)&Volume->WholeDiskBlockIO
+                    );
 
       if (!EFI_ERROR (Status)) {
         //DBG ("WholeDiskBlockIO %x BlockSize=%d\n", Volume->WholeDiskBlockIO, Volume->WholeDiskBlockIO->Media->BlockSize);
@@ -1741,7 +1741,7 @@ Basename (
     UINTN   i, len = StrLen (Path);
 
     for (i = len; i > 0; i--) {
-      if (Path[i-1] == '\\' || Path[i-1] == '/') {
+      if (Path[i - 1] == '\\' || Path[i - 1] == '/') {
         FileName = Path + i;
         break;
       }
@@ -1976,6 +1976,8 @@ VOID
 DbgHeader (
   CHAR8   *str
 ) {
+  DebugLog (1, ":: %a\n", str);
+  /*
   UINTN    len = 60 - AsciiStrSize (str);
 
   if (len <= 3) {
@@ -1989,6 +1991,7 @@ DbgHeader (
     DebugLog (1, "=== [ %a ] %a\n", str, fill);
     FreePool (fill);
   }
+  */
 }
 
 BOOLEAN
@@ -2187,8 +2190,8 @@ EFI_FILE_SYSTEM_INFO *
 EfiLibFileSystemInfo (
   IN EFI_FILE_HANDLE    FHand
 ) {
-  EFI_STATUS    Status;
-  UINTN         Size = 0;
+  EFI_STATUS              Status;
+  UINTN                   Size = 0;
   EFI_FILE_SYSTEM_INFO    *FileSystemInfo = NULL;
 
   Status = FHand->GetInfo (FHand, &gEfiFileSystemInfoGuid, &Size, FileSystemInfo);
@@ -2314,7 +2317,6 @@ StrHToBuf (
   StrLength = BufferLength * sizeof (CHAR16);
 
   for (Index = 0; Index < StrLength; Index++, Str++) {
-
     if ((*Str >= L'a') && (*Str <= L'f')) {
       Digit = (UINT8) (*Str - L'a' + 0x0A);
     } else if ((*Str >= L'A') && (*Str <= L'F')) {

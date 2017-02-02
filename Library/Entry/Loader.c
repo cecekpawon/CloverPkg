@@ -821,15 +821,15 @@ AddLoaderEntry (
         Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_WITHKEXTS);
       }
 
-      if (OSFLAG_ISSET (gSettings.FlagsBits, OSFLAG_DBGPATCHES) || gSettings.DebugKP) {
+      if (gSettings.DebugKP) {
         Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_DBGPATCHES);
       }
 
-      if (OSFLAG_ISSET (gSettings.FlagsBits, OSFLAG_ALLOW_KEXT_PATCHES) || gSettings.KextPatchesAllowed) {
+      if (gSettings.KextPatchesAllowed) {
         Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_ALLOW_KEXT_PATCHES);
       }
 
-      if (OSFLAG_ISSET (gSettings.FlagsBits, OSFLAG_ALLOW_KERNEL_PATCHES) || gSettings.KernelPatchesAllowed) {
+      if (gSettings.KernelPatchesAllowed) {
         Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_ALLOW_KERNEL_PATCHES);
       }
 
@@ -1541,7 +1541,7 @@ DuplicateLoaderEntry (
 
 CHAR16 *
 ToggleLoadOptions (
-      UINT32    State,
+      BOOLEAN   State,
   IN  CHAR16    *LoadOptions,
   IN  CHAR16    *LoadOption
 ) {

@@ -62,7 +62,6 @@ EFIAPI
 MachOGetEntryAddress (
   IN VOID   *MachOImage
 ) {
-  struct  mach_header           *MHdr;
   struct  mach_header_64        *MHdr64;
           BOOLEAN               Is64Bit;
           UINT32                NCmds;
@@ -73,11 +72,10 @@ MachOGetEntryAddress (
           UINTN                 Address;
 
   Address = 0;
-  MHdr = (struct mach_header *)MachOImage;
   MHdr64 = (struct mach_header_64 *)MachOImage;
-  DBG ("MachOImage: %p, magic: %x", MachOImage, MHdr->magic);
+  DBG ("MachOImage: %p, magic: %x", MachOImage, MHdr64->magic);
 
-  if (MHdr64->magic == MH_MAGIC_64 || MHdr64->magic == MH_CIGAM_64) {
+  if ((MHdr64->magic == MH_MAGIC_64) || (MHdr64->magic == MH_CIGAM_64)) {
     // 64 bit header
     DBG (" -> 64 bit\n");
     Is64Bit = TRUE;
@@ -123,7 +121,6 @@ MachOGetEntryAddress (
 
     // next command
     LCmd = PTR_OFFSET (LCmd, LCmd->cmdsize, struct load_command *);
-
   }
 
   DBG ("Address: %lx\n", Address);
@@ -370,7 +367,7 @@ ExecSetVirtualAddressesToMemMap (
       // Remember future physical address for our special relocated
       // efi system table
       BlockSize = EFI_PAGES_TO_SIZE ((UINTN)Desc->NumberOfPages);
-      if (Desc->PhysicalStart <= gSysTableRtArea &&  gSysTableRtArea < (Desc->PhysicalStart + BlockSize)) {
+      if ((Desc->PhysicalStart <= gSysTableRtArea) &&  (gSysTableRtArea < (Desc->PhysicalStart + BlockSize))) {
         // block contains our future sys table - remember new address
         // future physical = VirtualStart & 0x7FFFFFFFFF
         gRelocatedSysTableRtArea = (Desc->VirtualStart & 0x7FFFFFFFFF) + (gSysTableRtArea - Desc->PhysicalStart);
@@ -431,7 +428,7 @@ ProtectRtDataFromRelocation (
     //BlockSize = EFI_PAGES_TO_SIZE ((UINTN)Desc->NumberOfPages);
 
     if ((Desc->Attribute & EFI_MEMORY_RUNTIME) != 0) {
-      if ((Desc->Type == EfiRuntimeServicesData) && Desc->PhysicalStart != gSysTableRtArea) {
+      if ((Desc->Type == EfiRuntimeServicesData) && (Desc->PhysicalStart != gSysTableRtArea)) {
         //DBG (" RT data %lx (0x%x) -> MemMapIO\n", Desc->PhysicalStart, Desc->NumberOfPages);
         Desc->Type = EfiMemoryMappedIO;
       }
@@ -751,7 +748,7 @@ RemoveRTFlagMappings (
   for (Index = 0; Index < NumEntries; Index++) {
     // assign virtual addresses to all EFI_MEMORY_RUNTIME marked pages (including MMIO)
     if ((Desc->Attribute & EFI_MEMORY_RUNTIME) != 0) {
-      if (Desc->Type == EfiRuntimeServicesCode || Desc->Type == EfiRuntimeServicesData) {
+      if ((Desc->Type == EfiRuntimeServicesCode) || (Desc->Type == EfiRuntimeServicesData)) {
         //DBG ("RemoveRTFlagMappings: %lx (%x) -> %lx\n", Desc->VirtualStart, Desc->NumberOfPages, Desc->PhysicalStart);
         Desc->Attribute = Desc->Attribute & (~EFI_MEMORY_RUNTIME);
         Desc->Type = EfiConventionalMemory;

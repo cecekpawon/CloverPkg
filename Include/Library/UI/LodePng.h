@@ -34,7 +34,6 @@ freely, subject to the following restrictions:
 typedef UINTN    size_t;
 //#endif
 
-
 extern EFI_BOOT_SERVICES  *gBS;
 
 //#define LODEPNG_NO_COMPILE_DECODER

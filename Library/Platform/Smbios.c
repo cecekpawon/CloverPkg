@@ -1163,7 +1163,7 @@ GetTableType17 () {
       continue;
     }
 
-    MsgLog ("Type 17 Index = %d\n", Index);
+    DBG ("Type 17 Index = %d\n", Index);
 
     //gDMI->CntMemorySlots++;
     if (SmbiosTable.Type17->MemoryErrorInformationHandle < 0xFFFE) {
@@ -1183,7 +1183,7 @@ GetTableType17 () {
 
         if (newSmbiosTable.Type18->Hdr.Handle == SmbiosTable.Type17->MemoryErrorInformationHandle) {
           Found = TRUE;
-          DBG (" - Found memory information in table 18/%d, type=0x%x, operation=0x%x syndrome=0x%x\n",
+          DBG (" - Found memory information in table 18/%d, type=0x%x, operation=0x%x syndrome=0x%x",
               Index2,
               newSmbiosTable.Type18->ErrorType,
               newSmbiosTable.Type18->ErrorOperation,
@@ -1231,7 +1231,7 @@ GetTableType17 () {
       gRAM.SMBIOS[Index].InUse = TRUE;
       gRAM.SMBIOS[Index].Frequency = SmbiosTable.Type17->Speed;
     } else {
-      MsgLog (" - Ignoring insane frequency value %dMHz\n", SmbiosTable.Type17->Speed);
+      DBG (" - Ignoring insane frequency value %dMHz\n", SmbiosTable.Type17->Speed);
     }
 
     // Fill rest of information if in use
@@ -1582,7 +1582,7 @@ PatchTableType17 () {
     --expectedCount;
   }
 
-  MsgLog ("Channels: %d\n", channels);
+  DBG ("Channels: %d\n", channels);
 
   // Setup interleaved channel map
   if (channels >= 2) {
@@ -1735,14 +1735,14 @@ PatchTableType17 () {
       UpdateSmbiosString (newSmbiosTable, &newSmbiosTable.Type17->BankLocator, (CHAR8 *)&bankLocator[0]);
     }
 
-    MsgLog ("SMBIOS Type 17 Index = %d => %d %d:", gRAMCount, SMBIOSIndex, SPDIndex);
+    DBG ("SMBIOS Type 17 Index = %d => %d %d:", gRAMCount, SMBIOSIndex, SPDIndex);
 
     if (newSmbiosTable.Type17->Size == 0) {
-      MsgLog ("%a %a EMPTY\n", bankLocator, deviceLocator);
+      DBG ("%a %a EMPTY\n", bankLocator, deviceLocator);
       newSmbiosTable.Type17->MemoryType = 0; //MemoryTypeUnknown;
     } else {
       insertingEmpty = FALSE;
-      MsgLog ("%a %a %dMHz %dMB\n", bankLocator, deviceLocator, newSmbiosTable.Type17->Speed, newSmbiosTable.Type17->Size);
+      DBG ("%a %a %dMHz %dMB\n", bankLocator, deviceLocator, newSmbiosTable.Type17->Speed, newSmbiosTable.Type17->Size);
       mTotalSystemMemory += newSmbiosTable.Type17->Size; //Mb
       mMemory17[gRAMCount] = (UINT16)mTotalSystemMemory;
       //DBG ("mTotalSystemMemory = %d\n", mTotalSystemMemory);
@@ -1753,7 +1753,7 @@ PatchTableType17 () {
   }
 
   if (mTotalSystemMemory > 0) {
-    MsgLog ("mTotalSystemMemory = %dMB\n", mTotalSystemMemory);
+    DBG ("mTotalSystemMemory = %dMB\n", mTotalSystemMemory);
   }
 }
 

@@ -303,7 +303,7 @@ InitUISelection () {
           return;
         }
 
-        SelectionImg[i+1].Image = CreateFilledImage (
+        SelectionImg[i + 1].Image = CreateFilledImage (
                                     iSize, iSize,
                                     TRUE, &MenuBackgroundPixel
                                   );

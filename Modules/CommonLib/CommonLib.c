@@ -130,11 +130,12 @@ Base64DecodeBlock (
     while (1) {
       case StepA:
         do {
-          if (CodeChar == Code + Length) {
+          if (CodeChar == (Code + Length)) {
             State->Step = StepA;
             State->PlainChar = *PlainChar;
             return (INT32)(PlainChar - PlainText);
           }
+
           Fragment = Base64DecodeValue (*CodeChar++);
         } while (Fragment < 0);
 
@@ -142,7 +143,7 @@ Base64DecodeBlock (
 
       case StepB:
         do {
-          if (CodeChar == Code+Length) {
+          if (CodeChar == (Code + Length)) {
             State->Step = StepB;
             State->PlainChar = *PlainChar;
             return (INT32)(PlainChar - PlainText);
@@ -156,11 +157,12 @@ Base64DecodeBlock (
 
       case StepC:
         do {
-          if (CodeChar == Code + Length) {
+          if (CodeChar == (Code + Length)) {
             State->Step = StepC;
             State->PlainChar = *PlainChar;
             return (INT32)(PlainChar - PlainText);
           }
+
           Fragment = Base64DecodeValue (*CodeChar++);
         } while (Fragment < 0);
 
@@ -169,12 +171,13 @@ Base64DecodeBlock (
 
       case StepD:
         do {
-          if (CodeChar == Code+Length)
+          if (CodeChar == (Code + Length))
           {
             State->Step = StepD;
             State->PlainChar = *PlainChar;
             return (INT32)(PlainChar - PlainText);
           }
+
           Fragment = Base64DecodeValue (*CodeChar++);
         } while (Fragment < 0);
 
@@ -530,7 +533,7 @@ AsciiTrimSpaces (
   // Remove any spaces and tabs at the beginning of the (*String).
   //
   while (((*String)[0] == ' ') || ((*String)[0] == '\t')) {
-    CopyMem ((*String), (*String)+1, AsciiStrSize ((*String)) - sizeof ((*String)[0]));
+    CopyMem ((*String), (*String) + 1, AsciiStrSize ((*String)) - sizeof ((*String)[0]));
   }
 
   //
@@ -539,11 +542,11 @@ AsciiTrimSpaces (
   while (
     (AsciiStrLen (*String) > 0) &&
     (
-      ((*String)[AsciiStrLen ((*String))-1] == ' ') ||
-      ((*String)[AsciiStrLen ((*String))-1] == '\t')
+      ((*String)[AsciiStrLen ((*String)) - 1] == ' ') ||
+      ((*String)[AsciiStrLen ((*String)) - 1] == '\t')
     )
   ) {
-    (*String)[AsciiStrLen ((*String))-1] = '\0';
+    (*String)[AsciiStrLen ((*String)) - 1] = '\0';
   }
 
   return (EFI_SUCCESS);

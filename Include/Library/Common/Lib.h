@@ -167,15 +167,15 @@ typedef struct {
 #define OSFLAG_ALLOW_KEXT_PATCHES     (1 << 10)
 #define OSFLAG_ALLOW_KERNEL_PATCHES   (1 << 11)
 
-#define OPT_VERBOSE                   (1 << 0)
-#define OPT_SINGLE_USER               (1 << 1)
-#define OPT_SAFE                      (1 << 2)
+#define OPT_VERBOSE                   (1 << 12)
+#define OPT_SINGLE_USER               (1 << 13)
+#define OPT_SAFE                      (1 << 14)
 
-#define OPT_QUIET                     (1 << 3)
-#define OPT_SPLASH                    (1 << 4)
-#define OPT_NOMODESET                 (1 << 5)
-#define OPT_HDD                       (1 << 6)
-#define OPT_CDROM                     (1 << 7)
+#define OPT_QUIET                     (1 << 15)
+#define OPT_SPLASH                    (1 << 16)
+#define OPT_NOMODESET                 (1 << 17)
+#define OPT_HDD                       (1 << 18)
+#define OPT_CDROM                     (1 << 19)
 
 #define IS_EXTENDED_PART_TYPE(type) ((type) == 0x05 || (type) == 0x0f || (type) == 0x85)
 
@@ -804,7 +804,7 @@ VOID      SplitMenuInfo (IN REFIT_MENU_SCREEN *SubScreen, IN CHAR16 *Str, IN ADD
 BOOLEAN   BootArgsExists (IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
 
 UINT32    EncodeOptions (CHAR16 *Options);
-//VOID    DecodeOptions (LOADER_ENTRY *Entry);
+VOID      DecodeOptions (LOADER_ENTRY *Entry);
 VOID      HelpRefit ();
 VOID      AboutRefit ();
 

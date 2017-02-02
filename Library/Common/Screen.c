@@ -133,7 +133,7 @@ GopSetModeAndReconnectTextOut (
   }
 
   Status = GraphicsOutput->SetMode (GraphicsOutput, ModeNumber);
-  MsgLog ("Video mode change to mode #%d: %r\n", ModeNumber, Status);
+  DBG ("Video mode change to mode #%d: %r\n", ModeNumber, Status);
 
   return Status;
 }
@@ -150,7 +150,6 @@ SetMaxResolution () {
     return EFI_UNSUPPORTED;
   }
 
-  MsgLog ("SetMaxResolution: ");
   MaxMode = GraphicsOutput->Mode->MaxMode;
   for (Mode = 0; Mode < MaxMode; Mode++) {
     Status = GraphicsOutput->QueryMode (GraphicsOutput, Mode, &SizeOfInfo, &Info);
@@ -164,7 +163,7 @@ SetMaxResolution () {
     }
   }
 
-  MsgLog ("Found best mode %d: %dx%d\n", BestMode, Width, Height);
+  MsgLog ("SetMaxResolution: found best mode #%d (%dx%d)\n", BestMode, Width, Height);
 
   // check if requested mode is equal to current mode
   if (BestMode == GraphicsOutput->Mode->Mode) {
@@ -211,12 +210,12 @@ SetMode (
     Mode = (Mode < 0) ? ((INT32)MaxMode - 1) : Mode;
     Status = GraphicsOutput->QueryMode (GraphicsOutput, (UINT32)Mode, &SizeOfInfo, &Info);
 
-    MsgLog ("QueryMode %d Status=%r\n", Mode, Status);
+    DBG ("QueryMode %d Status=%r\n", Mode, Status);
 
     if (Status == EFI_SUCCESS) {
       //Status = GraphicsOutput->SetMode (GraphicsOutput, (UINT32)Mode);
       Status = GopSetModeAndReconnectTextOut ((UINT32)Mode);
-      //MsgLog ("SetMode %d Status=%r\n", Mode, Status);
+      //DBG ("SetMode %d Status=%r\n", Mode, Status);
       egScreenWidth = GraphicsOutput->Mode->Info->HorizontalResolution;
       egScreenHeight = GraphicsOutput->Mode->Info->VerticalResolution;
     }
@@ -244,7 +243,7 @@ SetScreenResolution (
     return EFI_INVALID_PARAMETER;
   }
 
-  MsgLog ("SetScreenResolution: %s", WidthHeight);
+  DBG ("SetScreenResolution: %s", WidthHeight);
 
   // we are expecting WidthHeight=L"1024x768"
   // parse Width and Height
@@ -264,7 +263,7 @@ SetScreenResolution (
 
   // check if requested mode is equal to current mode
   if ((GraphicsOutput->Mode->Info->HorizontalResolution == Width) && (GraphicsOutput->Mode->Info->VerticalResolution == Height)) {
-    MsgLog (" - already set\n");
+    DBG (" - already set\n");
     egScreenWidth = GraphicsOutput->Mode->Info->HorizontalResolution;
     egScreenHeight = GraphicsOutput->Mode->Info->VerticalResolution;
 
@@ -277,7 +276,7 @@ SetScreenResolution (
     Status = GraphicsOutput->QueryMode (GraphicsOutput, Mode, &SizeOfInfo, &Info);
     if (Status == EFI_SUCCESS) {
       if ((Width == Info->HorizontalResolution) && (Height == Info->VerticalResolution)) {
-        MsgLog (" - setting Mode %d\n", Mode);
+        DBG (" - setting Mode %d\n", Mode);
 
         //Status = GraphicsOutput->SetMode (GraphicsOutput, Mode);
         Status = GopSetModeAndReconnectTextOut (Mode);
@@ -291,7 +290,7 @@ SetScreenResolution (
     }
   }
 
-  MsgLog (" - not found!\n");
+  DBG (" - not found!\n");
 
   return EFI_UNSUPPORTED;
 }
@@ -1582,7 +1581,7 @@ UpdateAnime (
     if ((x + Screen->Film[0]->Width) > (UGAWidth - MenuWidth) >> 1) {
       if (
         (x + GlobalConfig.LayoutAnimMoveForMenuX >= 0) ||
-        ((UGAWidth-(x + GlobalConfig.LayoutAnimMoveForMenuX + Screen->Film[0]->Width)) <= 100)
+        ((UGAWidth - (x + GlobalConfig.LayoutAnimMoveForMenuX + Screen->Film[0]->Width)) <= 100)
       ) {
         x += GlobalConfig.LayoutAnimMoveForMenuX;
       }
@@ -1656,9 +1655,9 @@ InitAnime (
       //free images in the film
       INTN  i;
 
-      for (i = 0; i <= Screen->Frames; i++) { //really there are N+1 frames
+      for (i = 0; i <= Screen->Frames; i++) { //really there are N + 1 frames
         // free only last occurrence of repeated frames
-        if ((Screen->Film[i] != NULL) && ((i == Screen->Frames) || (Screen->Film[i] != Screen->Film[i+1]))) {
+        if ((Screen->Film[i] != NULL) && ((i == Screen->Frames) || (Screen->Film[i] != Screen->Film[i + 1]))) {
           FreePool (Screen->Film[i]);
         }
       }

@@ -59,8 +59,7 @@ CHAR8       *buffer_start = NULL;
 sREF        *ref_strings = NULL, *ref_integer = NULL;
 
 // intended to look for two versions of the tag; now just for sizeof
-#define MATCHTAG(parsedTag, keyTag) \
-    (!AsciiStrnCmp (parsedTag, keyTag, sizeof (keyTag)-1))
+#define MATCHTAG(parsedTag, keyTag) (!AsciiStrnCmp (parsedTag, keyTag, sizeof (keyTag) - 1))
 
 #if DEBUG_PLIST
 // for debugging parsing failures
@@ -76,7 +75,7 @@ typedef struct XMLEntity {
 } XMLEntity;
 
 /* This is ugly, but better than specifying the lengths by hand */
-#define _e(str,c) {str,sizeof (str)-1,c}
+#define _e(str, c) { str, sizeof (str) - 1, c }
 CONST XMLEntity ents[] = {
   _e ("quot;",'"'), _e ("apos;",'\''),
   _e ("lt;",  '<'), _e ("gt;",  '>'),
@@ -95,8 +94,8 @@ DbgOnce (
     return;
   }
 
-  CopyMem ( subbuff, str, i-1 );
-  subbuff[i-1] = '\0';
+  CopyMem ( subbuff, str, i - 1 );
+  subbuff[i - 1] = '\0';
   MsgLog ("#----- %a: '%a'\n", lbl, subbuff);
   FreePool (subbuff);
 }
@@ -118,7 +117,7 @@ XMLDecode (
   len = AsciiStrLen (src);
 
 #if 0
-  out = AllocateZeroPool (len+1);
+  out = AllocateZeroPool (len + 1);
   if (!out)
     return 0;
 #else // unsafe
@@ -129,8 +128,8 @@ XMLDecode (
   o = out;
   s = src;
 
-  while (s <= src+len) { /* Make sure the terminator is also copied */
-     if ( *s == '&' ) {
+  while (s <= (src + len)) { /* Make sure the terminator is also copied */
+     if (*s == '&') {
       BOOLEAN   entFound = FALSE;
       UINTN     i, aSize = ARRAY_SIZE (ents);
 
@@ -285,10 +284,6 @@ GetRefString (
 ) {
   sREF  *tmp = tag->ref_strings;
 
-  if (tag->ref_strings == NULL) {
-    goto error;
-  }
-
   while (tmp) {
     if (tmp->id == id) {
       *val = AllocateCopyPool (AsciiStrSize (tmp->string), tmp->string);
@@ -298,8 +293,6 @@ GetRefString (
 
     tmp = tmp->next;
   }
-
-  error:
 
   return EFI_UNSUPPORTED;
 }
@@ -314,10 +307,6 @@ GetRefInteger (
 ) {
   sREF  *tmp = tag->ref_integer;
 
-  if (tag->ref_integer == NULL) {
-    goto error;
-  }
-
   while (tmp) {
     if (tmp->id == id) {
       *val = AllocateCopyPool (AsciiStrSize (tmp->string), tmp->string);
@@ -328,8 +317,6 @@ GetRefInteger (
 
     tmp = tmp->next;
   }
-
-  error:
 
   return EFI_UNSUPPORTED;
 }
@@ -372,12 +359,13 @@ NewSymbol (
 
   // Add the new symbol.
   if (symbol == 0) {
-    symbol = AllocateZeroPool (sizeof (Symbol)/* + AsciiStrLen (string)*/);
+    symbol = AllocateZeroPool (sizeof (Symbol));
     if (symbol == 0) return 0;
+
+    AsciiTrimSpaces (&string);
 
     // Set the symbol's data.
     symbol->refCount = 0;
-    //AsciiStrCpy (symbol->string, string);
     symbol->string = AllocateCopyPool (AsciiStrSize (string), string);
 
     // Add the symbol to the list.
@@ -452,7 +440,7 @@ GetNextTag (
   }
 
   if (empty && (cnt2 > 1)) {
-    *empty = buffer[cnt2-1] == '/';
+    *empty = buffer[cnt2 - 1] == '/';
   }
 
   // Fix the tag data.
@@ -626,8 +614,8 @@ ParseTagString (
     return -1;
   }
 
-  string = XMLDecode (buffer);
-  string = NewSymbol (string);
+  //string = NewSymbol (XMLDecode (buffer));
+  string = NewSymbol (buffer);
   if (string == 0) {
     FreeTag (tmpTag);
     return -1;
@@ -717,7 +705,7 @@ ParseTagData (
   tmpTag->type = kTagTypeData;
   tmpTag->string = 0;
   tmpTag->integer = 0;
-  tmpTag->data = (UINT8 *)Base64Decode (string, &tmpTag->size);
+  tmpTag->data = Base64Decode (string, &tmpTag->size);
   tmpTag->tag = 0;
   tmpTag->tagNext = 0;
 
@@ -833,7 +821,7 @@ ParseNextTag (
   }
 
   /* else if (MATCHTAG (tagName, kXMLTagReference) &&
-  (refTag = TagFromRef (tagName, sizeof (kXMLTagReference)-1))) {
+  (refTag = TagFromRef (tagName, sizeof (kXMLTagReference) - 1))) {
       *tag = refTag;
       length = 0;
 
@@ -970,7 +958,7 @@ ParseTagList (
   INT32   type,
   INT32   empty
 ) {
-  INT32   length, pos = 0;
+  INT32   length, pos = 0, size = 0;
   TagPtr  tagList = 0, tmpTag = (TagPtr) - 1;
 
   if (!empty) {
@@ -992,6 +980,7 @@ ParseTagList (
       if (tmpTag != (TagPtr) - 1) {
         tmpTag->tagNext = tagList;
         tagList = tmpTag;
+        size++;
       }
     }
 
@@ -1011,7 +1000,7 @@ ParseTagList (
   tmpTag->string = 0;
   tmpTag->integer = 0;
   tmpTag->data = 0;
-  tmpTag->size = 0;
+  tmpTag->size = size;
   tmpTag->tag = tagList;
   tmpTag->tagNext = 0;
   tmpTag->offset = (UINT32)(buffer_start ? buffer - buffer_start : 0);
@@ -1033,16 +1022,16 @@ ParseXML (
   CHAR8     *fixedBuffer = NULL;
 
   if (bufSize) {
-    bufferSize=bufSize;
+    bufferSize = bufSize;
   } else {
-    bufferSize=(UINT32)AsciiStrLen (buffer);
+    bufferSize = (UINT32)AsciiStrLen (buffer);
   }
 
   if (dict == NULL) {
     return EFI_INVALID_PARAMETER;
   }
 
-  fixedBuffer = AllocateZeroPool (bufferSize+1);
+  fixedBuffer = AllocateZeroPool (bufferSize + 1);
   if (fixedBuffer == NULL) {
     return EFI_OUT_OF_RESOURCES;
   }
@@ -1100,7 +1089,7 @@ ParseXML (
 
 #if DEBUG_PLIST
   } else {
-    DBG ("ParseXML gagged (-1) after '%s' (%d tags); buf+pos: %s\n",
+    DBG ("ParseXML gagged (-1) after '%s' (%d tags); buf + pos: %s\n",
       gLastTag, gTagsParsed, buffer + pos);
 #endif
   }
@@ -1151,6 +1140,8 @@ INTN
 GetTagCount (
   TagPtr    dict
 ) {
+  return dict->size;
+/*
   INTN    count = 0;
   TagPtr  tagList, tag;
 
@@ -1182,6 +1173,7 @@ GetTagCount (
   }
 
   return count;
+*/
 }
 
 EFI_STATUS
@@ -1191,18 +1183,24 @@ GetElement (
   INTN      count,
   TagPtr    *dict1
 ) {
-  //INTN    element = 0;
   TagPtr  child;
 
-  if (!count || !dict || !dict1 || (dict->type != kTagTypeArray)) {
+  if (!dict || !dict1 || (dict->type != kTagTypeArray)) {
     return EFI_UNSUPPORTED;
   }
 
   child = dict->tag;
 
-  //while (child && (element++ < id)) {
-  while (child && (--count > id)) {
-    child = child->tagNext;
+  if (count > id) {
+    while (child && (--count > id)) {
+      child = child->tagNext;
+    }
+  } else {
+    INTN    element = 0;
+
+    while (child && (element++ < id)) {
+      child = child->tagNext;
+    }
   }
 
   *dict1 = child;

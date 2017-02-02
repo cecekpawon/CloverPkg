@@ -257,15 +257,14 @@ GetDataSetting (
 
   Prop = GetProperty (Dict, PropName);
   if (Prop != NULL) {
-    //if (Prop->data != NULL/* && Prop->size > 0 */) { //rehabman: allow zero length data
-    if (Prop->data && Prop->size) { //rehabman: allow zero length data
+    if ((Prop->type == kTagTypeData) && Prop->data && Prop->size) {
       // data property
-      Data = AllocateZeroPool (Prop->size);
-      CopyMem (Data, Prop->data, Prop->size);
+      Data = AllocateCopyPool (Prop->size, Prop->data);
 
-      if (DataLen != NULL) {
+      if (Data != NULL) {
         *DataLen = Prop->size;
       }
+
       /*
         DBG ("Data: %p, Len: %d = ", Data, Prop->size);
         for (i = 0; i < Prop->size; i++) {
@@ -1382,9 +1381,9 @@ FillinCustomEntry (
       if (IsPropertyTrue (Prop)) {
         Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_WITHKEXTS);
       } else if (
-          (Prop->type == kTagTypeString) &&
-          (AsciiStriCmp (Prop->string, "Detect") == 0)
-        ) {
+        (Prop->type == kTagTypeString) &&
+        (AsciiStriCmp (Prop->string, "Detect") == 0)
+      ) {
         Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_WITHKEXTS);
       } else {
         DBG ("** Warning: unknown custom entry InjectKexts value '%a'\n", Prop->string);
@@ -4286,7 +4285,7 @@ LoadUserSettings (
       DBG ("Load plist: '%s' from RootDir ... %r\n", ConfigPlistPath, Status);
     }
 
-    if (EFI_ERROR (Status)) {
+    if (EFI_ERROR (Status) && FileExists (SelfRootDir, ConfigPlistPath)) {
       Status = LoadFile (SelfRootDir, ConfigPlistPath, (UINT8 **)&gConfigPtr, &Size);
       DBG ("Load plist: '%s' from SelfRootDir ... %r\n", ConfigPlistPath, Status);
     }
@@ -4560,7 +4559,7 @@ GetDevices () {
                               &Pci
                             );
 
-        MsgLog ("PCI (%02x|%02x:%02x.%02x) : %04x %04x class=%02x%02x%02x\n",
+        MsgLog ("PCI (%02x|%02x:%02x.%02x) : [%04x:%04x] class=%02x%02x%02x",
           Segment,
           Bus,
           Device,
@@ -4610,7 +4609,7 @@ GetDevices () {
               //gfx->Ports                  = card_configs[info->cfg_name].ports;
               GetAtiModel (&gfx[0], Pci.Hdr.DeviceId);
               //DBG (" (ATI/AMD) %a\n", gfx->Model);
-              MsgLog (" (ATI/AMD)\n");
+              MsgLog (" (ATI/AMD)");
 
               SlotDevice                    = &SlotDevices[0];
               SlotDevice->SegmentGroupNum   = (UINT16)Segment;
@@ -4629,7 +4628,7 @@ GetDevices () {
               gfx->Ports                  = 1;
               //AsciiSPrint (gfx->Model, 64, "%a", get_gma_model (Pci.Hdr.DeviceId));
               //DBG (" (Intel) %a\n", gfx->Model);
-              MsgLog (" (Intel)\n");
+              MsgLog (" (Intel)");
               /*
                 SlotDevice                  = &SlotDevices[2];
                 SlotDevice->SegmentGroupNum = (UINT16)Segment;
@@ -4664,7 +4663,7 @@ GetDevices () {
               //);
 
               //DBG (" (Nvidia) %a\n", gfx->Model);
-              MsgLog (" (Nvidia)\n");
+              MsgLog (" (Nvidia)");
               gfx->Ports                    = 0;
 
               SlotDevice                    = &SlotDevices[1];
@@ -4684,7 +4683,7 @@ GetDevices () {
               AsciiSPrint (gfx->Model, 64, "pci%x,%x", Pci.Hdr.VendorId, Pci.Hdr.DeviceId);
               gfx->Ports  = 1;
               //DBG (" (Unknown) %a\n", gfx->Model);
-              MsgLog (" (Unknown)\n");
+              MsgLog (" (Unknown)");
               break;
           }
 
@@ -4702,7 +4701,7 @@ GetDevices () {
           SlotDevice->SlotID          = 0;
           SlotDevice->SlotType        = SlotTypePciExpressX1;
 
-          MsgLog (" - WIFI\n");
+          MsgLog (" - WIFI");
         } else if (
           (Pci.Hdr.ClassCode[2] == PCI_CLASS_NETWORK) &&
           (Pci.Hdr.ClassCode[1] == PCI_CLASS_NETWORK_ETHERNET)
@@ -4719,7 +4718,7 @@ GetDevices () {
           Bar0                        = Pci.Device.Bar[0];
           gLanMmio[nLanCards++]       = (UINT8 *)(UINTN)(Bar0 & ~0x0f);
 
-          MsgLog (" - LAN\n");
+          MsgLog (" - LAN");
 
           if (nLanCards >= 4) {
             DBG (" - [!] too many LAN card in the system (upto 4 limit exceeded), overriding the last one\n");
@@ -4738,7 +4737,7 @@ GetDevices () {
           SlotDevice->SlotID          = 3;
           SlotDevice->SlotType        = SlotTypePciExpressX4;
 
-          DBG (" - SERIAL\n");
+          DBG (" - SERIAL");
         } else if (
           (Pci.Hdr.ClassCode[2] == PCI_CLASS_MEDIA) &&
           (
@@ -4759,9 +4758,9 @@ GetDevices () {
             SlotDevice->SlotID          = 5;
             SlotDevice->SlotType        = SlotTypePciExpressX4;
           }
-
-          MsgLog ("\n");
         }
+
+        MsgLog ("\n");
       }
     }
   }

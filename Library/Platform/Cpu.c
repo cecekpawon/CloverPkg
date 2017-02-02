@@ -71,7 +71,7 @@ DoCpuid (
   UINT32 selector,
   UINT32 *data
 ) {
-  AsmCpuid (selector, data, data+1, data+2, data+3);
+  AsmCpuid (selector, data, data + 1, data + 2, data + 3);
 }
 
 //

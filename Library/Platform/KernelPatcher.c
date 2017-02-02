@@ -20,14 +20,14 @@
 #endif
 
 // runtime debug
-#define DBG_ON(entry) \
-  ((entry != NULL) && (entry->KernelAndKextPatches != NULL) && \
-  ((DEBUG_KERNEL != 0) || OSFLAG_ISSET (entry->Flags, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
-  /*entry->KernelAndKextPatches->KPDebug && \*/
-#define DBG_RT(entry, ...) \
-  if (DBG_ON (entry)) AsciiPrint (__VA_ARGS__)
-#define DBG_PAUSE(entry, s) \
-  if (DBG_ON (entry)) gBS->Stall (s * 1000000)
+#define DBG_ON(Entry) \
+  ((Entry != NULL) && (Entry->KernelAndKextPatches != NULL) && \
+  ((DEBUG_KERNEL != 0) || OSFLAG_ISSET (Entry->Flags, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
+  /*Entry->KernelAndKextPatches->KPDebug && \*/
+#define DBG_RT(Entry, ...) \
+  if (DBG_ON (Entry)) AsciiPrint (__VA_ARGS__)
+#define DBG_PAUSE(Entry, S) \
+  if (DBG_ON (Entry)) gBS->Stall (S * 1000000)
 
 BootArgs2     *bootArgs2 = NULL;
 CHAR8         *dtRoot = NULL;
@@ -221,7 +221,7 @@ InitKernel (
   }
 
   if (iSectionIndex && (linkeditaddr != 0) && (symoff != 0)) {
-    UINTN     CntPatches = 12; // Max get / patches values. TODO: to use bits like Revoboot
+    UINTN     CntPatches = KernelPatchSymbolLookupCount;
     CHAR8     *symbolName = NULL;
     UINT32    patchLocation;
 
@@ -240,54 +240,54 @@ InitKernel (
         patchLocation = Addr - (UINT32)(UINTN)KernelInfo->Bin + (UINT32)KernelInfo->RelocBase;
 
         if (systabentry->n_sect == KernelInfo->TextIndex) {
-          if (AsciiStrCmp (symbolName, "__ZN6OSKext14loadExecutableEv") == 0) {
+          if (AsciiStrCmp (symbolName, KernelPatchSymbolLookup[kLoadEXEStart].Name) == 0) {
             KernelInfo->LoadEXEStart = patchLocation;
             CntPatches--;
           }
-          else if (AsciiStrCmp (symbolName, "__ZN6OSKext23jettisonLinkeditSegmentEv") == 0) {
+          else if (AsciiStrCmp (symbolName, KernelPatchSymbolLookup[kLoadEXEEnd].Name) == 0) {
             KernelInfo->LoadEXEEnd = patchLocation;
             CntPatches--;
           }
-          else if (AsciiStrCmp (symbolName, "_cpuid_set_info") == 0) {
+          else if (AsciiStrCmp (symbolName, KernelPatchSymbolLookup[kCPUInfoStart].Name) == 0) {
             KernelInfo->CPUInfoStart = patchLocation;
             CntPatches--;
           }
-          else if (AsciiStrCmp (symbolName, "_cpuid_info") == 0) {
+          else if (AsciiStrCmp (symbolName, KernelPatchSymbolLookup[kCPUInfoEnd].Name) == 0) {
             KernelInfo->CPUInfoEnd = patchLocation;
             CntPatches--;
           }
         } else if (systabentry->n_sect == KernelInfo->ConstIndex) {
-          if (AsciiStrCmp (symbolName, "_version") == 0) {
+          if (AsciiStrCmp (symbolName, KernelPatchSymbolLookup[kVersion].Name) == 0) {
             KernelInfo->Version = PTR_OFFSET (Data, patchLocation, CHAR8 *);
             CntPatches--;
           }
-          else if (AsciiStrCmp (symbolName, "_version_major") == 0) {
+          else if (AsciiStrCmp (symbolName, KernelPatchSymbolLookup[kVersionMajor].Name) == 0) {
             KernelInfo->VersionMajor = *(PTR_OFFSET (Data, patchLocation, UINT32 *));
             CntPatches--;
           }
-          else if (AsciiStrCmp (symbolName, "_version_minor") == 0) {
+          else if (AsciiStrCmp (symbolName, KernelPatchSymbolLookup[kVersionMinor].Name) == 0) {
             KernelInfo->VersionMinor = *(PTR_OFFSET (Data, patchLocation, UINT32 *));
             CntPatches--;
           }
-          else if (AsciiStrCmp (symbolName, "_version_revision") == 0) {
+          else if (AsciiStrCmp (symbolName, KernelPatchSymbolLookup[kRevision].Name) == 0) {
             KernelInfo->Revision = *(PTR_OFFSET (Data, patchLocation, UINT32 *));
             CntPatches--;
           }
         } else if (systabentry->n_sect == KernelInfo->DataIndex) {
-          if (AsciiStrCmp (symbolName, "_xcpm_core_scope_msrs") == 0) {
+          if (AsciiStrCmp (symbolName, KernelPatchSymbolLookup[kXCPMStart].Name) == 0) {
             KernelInfo->XCPMStart = patchLocation;
             CntPatches--;
           }
-          else if (AsciiStrCmp (symbolName, "_xcpm_SMT_scope_msrs") == 0) {
+          else if (AsciiStrCmp (symbolName, KernelPatchSymbolLookup[kXCPMEnd].Name) == 0) {
             KernelInfo->XCPMEnd = patchLocation;
             CntPatches--;
           }
         } else if (systabentry->n_sect == KernelInfo->KldIndex) {
-          if (AsciiStrCmp (symbolName, "__ZN12KLDBootstrap21readStartupExtensionsEv") == 0) {
+          if (AsciiStrCmp (symbolName, KernelPatchSymbolLookup[kStartupExtStart].Name) == 0) {
             KernelInfo->StartupExtStart = patchLocation;
             CntPatches--;
           }
-          else if (AsciiStrCmp (symbolName, "__ZN12KLDBootstrap23readPrelinkedExtensionsEP10section_64") == 0) {
+          else if (AsciiStrCmp (symbolName, KernelPatchSymbolLookup[kStartupExtEnd].Name) == 0) {
             KernelInfo->StartupExtEnd = patchLocation;
             CntPatches--;
           }
@@ -600,8 +600,8 @@ FindBootArgs (
       switch (Entry->LoaderType) {
         case OSTYPE_RECOVERY:
         case OSTYPE_OSX_INSTALLER:
-          bootArgs2->flags |=  (kBootArgsFlagCSRConfigMode + kBootArgsFlagCSRBoot);
-          //bootArgs2->flags =  DEF_NOSIP_BOOTER_CONFIG;
+          bootArgs2->flags |= (kBootArgsFlagCSRConfigMode + kBootArgsFlagCSRBoot);
+          //bootArgs2->flags = DEF_NOSIP_BOOTER_CONFIG;
           //bootArgs2->csrActiveConfig = DEF_NOSIP_CSR_ACTIVE_CONFIG;
           break;
         default:
@@ -892,7 +892,7 @@ KernelBooterExtensionsPatch (
   }*/
 
   DBG_RT (Entry, "%a: End\n", __FUNCTION__);
-  DBG_PAUSE (Entry, 5);
+  DBG_PAUSE (Entry, 1);
 }
 
 BOOLEAN
@@ -911,8 +911,7 @@ KernelAndKextPatcherInit (
 
   DBG_RT (Entry, "RelocBase = %lx\n", KernelInfo->RelocBase);
 
-  // Find bootArgs - we need then for proper detection
-  // of kernel Mach-O header
+  // Find bootArgs - we need then for proper detection of kernel Mach-O header
   FindBootArgs (Entry);
 
   if (bootArgs2 == NULL) {
@@ -1087,7 +1086,7 @@ KernelAndKextsPatcherStart (
   // Kext add
   //
 
-  if (/*(Entry != 0) &&*/ OSFLAG_ISSET (Entry->Flags, OSFLAG_WITHKEXTS)) {
+  if (OSFLAG_ISSET (Entry->Flags, OSFLAG_WITHKEXTS)) {
     UINT32        deviceTreeP, deviceTreeLength;
     EFI_STATUS    Status;
     UINTN         DataSize;

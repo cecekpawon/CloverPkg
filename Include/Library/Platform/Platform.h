@@ -206,9 +206,9 @@ typedef enum {
 /* CPU defines */
 #define bit(n)                    (1UL << (n))
 #define _Bit(n)                   (1ULL << (n))
-#define _HBit(n)                  (1ULL << ((n)+32))
+#define _HBit(n)                  (1ULL << ((n) + 32))
 
-#define bitmask(h,l)              ((bit(h)|(bit(h)-1)) & ~(bit(l)-1))
+#define bitmask(h,l)              ((bit(h)|(bit(h) - 1)) & ~(bit(l) - 1))
 #define bitfield(x,h,l)           RShiftU64(((x) & bitmask((h),(l))), (l))
 #define quad(hi,lo)               ((LShiftU64((hi), 32) | (lo)))
 
@@ -1724,7 +1724,7 @@ BOOLEAN IsPatchEnabled (CHAR8 *MatchOSEntry, CHAR8 *CurrOS);
  of the 10.10 OS */
 //BOOLEAN IsOSValid (CHAR8 *MatchOS, CHAR8 *CurrOS);
 
-/** return MatchOSes struct (count+array) with the components of str that contains the given char sep as separator. */
+/** return MatchOSes struct (count + array) with the components of str that contains the given char sep as separator. */
 //struct MatchOSes *GetStrArraySeparatedByChar (CHAR8 *str, CHAR8 sep);
 
 /** free MatchOSes struct and its array. */
@@ -1735,7 +1735,7 @@ BOOLEAN IsPatchEnabled (CHAR8 *MatchOSEntry, CHAR8 *CurrOS);
 
 CHAR16  *AddLoadOption (IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
 CHAR16  *RemoveLoadOption (IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
-CHAR16  *ToggleLoadOptions (UINT32 State, IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
+CHAR16  *ToggleLoadOptions (BOOLEAN State, IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
 
 BOOLEAN IsHDMIAudio (EFI_HANDLE PciDevHandle);
 
