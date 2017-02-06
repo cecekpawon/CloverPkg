@@ -708,7 +708,7 @@ DecodeOptions (
                           );
   }
 
-  Entry->Flags = (UINT16)OSFLAG_SET(Entry->Flags, (gSettings.OptionsBits + gSettings.FlagsBits));
+  AsciiSPrint (gSettings.BootArgs, AVALUE_MAX_SIZE - 1, "%s", Entry->LoadOptions);
 }
 
 VOID
@@ -2235,20 +2235,6 @@ DrawMenuText (
   BltImageAlpha (TextBuffer, XPos, YPos, &MenuBackgroundPixel, 16);
 }
 
-EG_PIXEL
-ToPixel (
-  UINTN   rgba
-) {
-  EG_PIXEL color;
-
-  color.r = (rgba >> 24) & 0XFF;
-  color.g = (rgba >> 16) & 0XFF;
-  color.b = (rgba >> 8) & 0XFF;
-  color.a = rgba & 0XFF;
-
-  return color;
-}
-
 VOID InitSelection () {
   if (!AllowGraphicsMode) {
     return;
@@ -3190,7 +3176,7 @@ SubMenuDevices () {
 
   CreateHeaderEntries (&Entry, &SubScreen, L"Devices", SCREEN_DEVICES, 'D');
 
-  AddMenuInfoLine (SubScreen, PoolPrint (L"Number of VideoCards=%d", NGFX));
+  AddMenuInfoLine (SubScreen, PoolPrint (L"Number of VideoCards: %d", NGFX));
 
   while (i < OptMenuDevicesNum) {
     AddMenuBOOL (SubScreen, OPT_MENU_DEVICES[i].Title, NULL, OPT_MENU_DEVICES[i].ID);
@@ -3639,11 +3625,9 @@ RunMainMenu (
       TempChosenEntryBkp = DuplicateLoaderEntry ((LOADER_ENTRY *)TempChosenEntry);
 
       DecodeOptions ((LOADER_ENTRY *)TempChosenEntry);
-      gSettings.FlagsBits = ((LOADER_ENTRY *)TempChosenEntry)->Flags;
-      //((LOADER_ENTRY *)TempChosenEntry)->Flags |= (UINT16)(gSettings.FlagsBits & 0x0FFF);
 
       MenuExit = RunGenericMenu (TempChosenEntry->SubScreen, Style, &SubMenuIndex, &TempChosenEntry);
-/*
+
       if (
         (
           (MenuExit == MENU_EXIT_ENTER) ||
@@ -3652,14 +3636,11 @@ RunMainMenu (
         (TempChosenEntry->Tag == TAG_LOADER)
       ) {
         DecodeOptions ((LOADER_ENTRY *)TempChosenEntry);
-        ((LOADER_ENTRY *)TempChosenEntry)->Flags |= (UINT16)(gSettings.FlagsBits & 0x0FFF);
-        AsciiSPrint (gSettings.BootArgs, AVALUE_MAX_SIZE - 1, "%s", ((LOADER_ENTRY *)TempChosenEntry)->LoadOptions);
+        //AsciiSPrint (gSettings.BootArgs, AVALUE_MAX_SIZE - 1, "%s", ((LOADER_ENTRY *)TempChosenEntry)->LoadOptions);
       }
-*/
       if ((MenuExit == MENU_EXIT_ESCAPE) || (TempChosenEntry->Tag == TAG_RETURN)) {
         if (((REFIT_MENU_ENTRY *)TempChosenEntryBkp)->Tag == TAG_LOADER) {
-          //DecodeOptions (TempChosenEntryBkp);
-          //TempChosenEntryBkp->Flags |= (UINT16)(gSettings.FlagsBits & 0x0FFF);
+          DecodeOptions (TempChosenEntryBkp);
           //AsciiSPrint (gSettings.BootArgs, AVALUE_MAX_SIZE - 1, "%s", TempChosenEntryBkp->LoadOptions);
           ESCLoader = TRUE;
         }
@@ -3671,17 +3652,10 @@ RunMainMenu (
 
   if (ChosenEntry) {
     if (ESCLoader) {
-      //((LOADER_ENTRY *)TempChosenEntry)->LoadOptions = AllocateCopyPool (
-      //                                                  StrSize (TempChosenEntryBkp->LoadOptions),
-      //                                                  TempChosenEntryBkp->LoadOptions
-      //                                                );
-      //((LOADER_ENTRY *)TempChosenEntry)->Flags = TempChosenEntryBkp->Flags;
       CopyMem (((LOADER_ENTRY *)TempChosenEntry), TempChosenEntryBkp, sizeof (TempChosenEntryBkp));
       FreePool (TempChosenEntryBkp);
     }
 
-    DecodeOptions ((LOADER_ENTRY *)TempChosenEntry);
-    AsciiSPrint (gSettings.BootArgs, AVALUE_MAX_SIZE - 1, "%s", ((LOADER_ENTRY *)TempChosenEntry)->LoadOptions);
     *ChosenEntry = TempChosenEntry;
   }
 

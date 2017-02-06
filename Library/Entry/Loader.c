@@ -616,7 +616,7 @@ CreateLoaderEntry (
 
   if (!GlobalConfig.TextOnly) {
     // Load DriveImage
-    Entry->me.DriveImage = (DriveImage != NULL) ? DriveImage : ScanVolumeDefaultIcon (Volume, Entry->LoaderType);
+    Entry->me.DriveImage = (DriveImage != NULL) ? DriveImage : ScanVolumeDefaultIcon (Volume->DiskKind, Entry->LoaderType);
 
     if (IsEmbeddedTheme ()) {
       goto FINISH;

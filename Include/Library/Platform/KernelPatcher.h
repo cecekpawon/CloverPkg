@@ -174,6 +174,12 @@ STATIC CONST UINTN KernelPatchSymbolLookupCount = ARRAY_SIZE (KernelPatchSymbolL
 //
 // kext_patcher.c
 //
+
+#define KERNEL_MAX_SIZE 40000000
+#define FSearchReplace(Source, Size, Search, Replace) SearchAndReplace((UINT8 *)(UINTN)Source, Size, Search, sizeof(Search), Replace, 1)
+BOOLEAN IsKernelIs64BitOnly (IN LOADER_ENTRY *Entry);
+VOID    DbgHeader (CHAR8 *str);
+
 VOID
 KernelAndKextsPatcherStart (
   IN LOADER_ENTRY   *Entry

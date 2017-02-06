@@ -304,7 +304,7 @@ GetStrArraySeparatedByChar (
     return NULL;
   }
 
-  mo->count = CountOccurrences ( str, sep ) + 1;
+  mo->count = CountOccurrences (str, sep) + 1;
 
   len = (INTN)AsciiStrLen (str);
   doubleSep[0] = sep; doubleSep[1] = sep;
@@ -389,6 +389,7 @@ DeallocMatchOSes (
   FreePool (s);
 }
 
+#if 0
 BOOLEAN
 IsOSValid (
   CHAR8   *MatchOS,
@@ -484,6 +485,95 @@ IsPatchEnabled (
 
   return ret;
 }
+#endif
+
+BOOLEAN
+IsPatchEnabled (
+  CHAR8   *MatchOSEntry,
+  CHAR8   *CurrOS
+) {
+  INTN      i, MatchOSPartFrom, MatchOSPartTo, CurrOSPart;
+  UINT64    ValFrom, ValTo, ValCurrFrom, ValCurrTo;
+  BOOLEAN   ret = FALSE;
+  struct    MatchOSes  *mos;
+
+  if (!MatchOSEntry || !CurrOS) {
+    return TRUE; //undefined matched corresponds to old behavior
+  }
+
+  mos = GetStrArraySeparatedByChar (MatchOSEntry, ',');
+  if (!mos) {
+    return TRUE; //memory fails -> anyway the patch enabled
+  }
+
+  CurrOSPart = CountOccurrences(CurrOS, '.');
+
+  for (i = 0; i < mos->count; ++i) {
+    if (AsciiStrStr (mos->array[i], ".") != NULL) { // MatchOS
+      if (
+        (mos->count == 1) && // only 1 value range allowed, no comma(s)
+        (CountOccurrences(MatchOSEntry, '-') == 1)
+      ) {
+        DeallocMatchOSes (mos);
+        mos = GetStrArraySeparatedByChar (MatchOSEntry, '-');
+        if (mos && (mos->count == 2)) { // do more strict
+          MatchOSPartFrom = CountOccurrences(mos->array[0], '.');
+          MatchOSPartTo = CountOccurrences(mos->array[1], '.');
+
+          if (AsciiStriStr (mos->array[0], "x") != NULL) {
+            MatchOSPartFrom = 1;
+          }
+
+          if (AsciiStriStr (mos->array[1], "x") != NULL) {
+            MatchOSPartTo = 1;
+          }
+
+          CONSTRAIN_MAX (MatchOSPartFrom, CurrOSPart);
+          CONSTRAIN_MAX (MatchOSPartTo, CurrOSPart);
+
+          MatchOSPartFrom++;
+          MatchOSPartTo++;
+
+          ValFrom = AsciiStrVersionToUint64 (mos->array[0], 2, MatchOSPartFrom);
+          ValCurrFrom = AsciiStrVersionToUint64 (CurrOS, 2, MatchOSPartFrom);
+          ValTo = AsciiStrVersionToUint64 (mos->array[1], 2, MatchOSPartTo);
+          ValCurrTo = AsciiStrVersionToUint64 (CurrOS, 2, MatchOSPartTo);
+
+          ret = (/* (ValFrom < ValTo) && */ (ValFrom <= ValCurrFrom) && (ValTo >= ValCurrTo));
+          break;
+        }
+      } else {
+        MatchOSPartFrom = CountOccurrences(mos->array[i], '.');
+
+        if (AsciiStriStr (mos->array[i], "x") != NULL) {
+          MatchOSPartFrom = 1;
+        }
+
+        CONSTRAIN_MAX (MatchOSPartFrom, CurrOSPart);
+
+        MatchOSPartFrom++;
+
+        ValFrom = AsciiStrVersionToUint64 (mos->array[i], 2, MatchOSPartFrom);
+        ValCurrFrom = AsciiStrVersionToUint64 (CurrOS, 2, MatchOSPartFrom);
+
+        if (ValFrom == ValCurrFrom) {
+          ret =  TRUE;
+          break;
+        }
+      }
+    } else if ( // MatchBuild
+      AsciiStrCmp (mos->array[i], CurrOS) == 0 // single unique
+      //AsciiStrStr (mos->array[i], CurrOS) != NULL // saverals MatchBuild by commas
+    ) {
+      ret =  TRUE;
+      break;
+    }
+  }
+
+  DeallocMatchOSes (mos);
+
+  return ret;
+}
 // End of MatchOS
 
 UINT8
@@ -502,6 +592,7 @@ CheckVolumeType (
   } else if (AsciiStriCmp (Prop->string, "FireWire") == 0) {
     VolumeTypeTmp |= VOLTYPE_FIREWIRE;
   }
+
   return VolumeTypeTmp;
 }
 

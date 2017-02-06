@@ -832,5 +832,5 @@ CountOccurrences (
 ) {
   return (*s == '\0')
     ? 0
-    : CountOccurrences ( s + 1, c ) + (*s == c);
+    : CountOccurrences (s + 1, c) + (*s == c);
 }

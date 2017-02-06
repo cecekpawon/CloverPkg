@@ -44,8 +44,8 @@ echo $((EDK2_REVISION + EDK2_REVISION_MAGIC)) > "${F_REV_TXT}"
 source ./edksetup.sh "BaseTools"
 
 MYTOOLCHAIN=GCC5 # GCC49 GCC5 XCLANG XCODE5
-#DEFINED_OPT="-D EMBED_APTIOFIX -D EMBED_FSINJECT"
-DEFINED_OPT=
+#BUILD_OPTIONS="-D EMBED_APTIOFIX -D EMBED_FSINJECT"
+BUILD_OPTIONS=
 
 DEF_REVISION=0
 CUSTOM_CONF_PATH="${CLOVER_PATH}/Conf"
@@ -88,7 +88,7 @@ cd "${CLOVER_PATH}"
 
 # Gen Version.h
 
-gCloverCmd="build -s -p ${CLOVER_DSC} ${DEFINED_OPT} -a X64 -t ${MYTOOLCHAIN} -b RELEASE -n ${NUMBER_OF_PROCESSORS} -j ${CLOVER_LOG}"
+gCloverCmd="build -s -p ${CLOVER_DSC} ${BUILD_OPTIONS} -a X64 -t ${MYTOOLCHAIN} -b RELEASE -n ${NUMBER_OF_PROCESSORS} -j ${CLOVER_LOG}"
 gCloverCmdStr=""
 for c in $gCloverCmd; do gCloverCmdStr="${gCloverCmdStr} ${c##*/}"; done
 read -rd '' gCloverCmdStr <<< "${gCloverCmdStr}"

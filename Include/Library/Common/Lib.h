@@ -37,12 +37,12 @@
 #ifndef __REFITLIB_STANDARD_H__
 #define __REFITLIB_STANDARD_H__
 
-#include <Protocol/BlockIo.h>
-#include <Library/UI/Libeg.h>
+//#include <Protocol/BlockIo.h>
+//#include <Library/UI/Libeg.h>
 
 #define REFIT_DEBUG (2)
+
 #define Print if ((!GlobalConfig.Quiet) || (GlobalConfig.TextOnly)) Print
-//#include "GenericBdsLib.h"
 
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(array) (sizeof (array) / sizeof (array[0]))
@@ -51,48 +51,20 @@
 #define CONSTRAIN_MIN(Variable, MinValue) if (Variable < MinValue) Variable = MinValue
 #define CONSTRAIN_MAX(Variable, MaxValue) if (Variable > MaxValue) Variable = MaxValue
 
-#define CONFIG_FILENAME           L"config"
-
-#define CONFIG_THEME_FILENAME     L"theme"
-#define CONFIG_THEME_RANDOM       L"random"
-#define CONFIG_THEME_EMBEDDED     L"embedded"
-//#define CONFIG_THEME_CHRISTMAS    L"christmas"
-//#define CONFIG_THEME_NEWYEAR      L"newyear"
-
 extern EFI_HANDLE                 gImageHandle;
 extern EFI_SYSTEM_TABLE           *gST;
 extern EFI_BOOT_SERVICES          *gBS;
 extern EFI_RUNTIME_SERVICES       *gRS;
-
-#define TAG_ABOUT                 (1)
-#define TAG_RESET                 (2)
-#define TAG_SHUTDOWN              (3)
-#define TAG_TOOL                  (4)
-#define TAG_LOADER                (5)
-#define TAG_LABEL                 (6)
-#define TAG_INFO                  (7)
-#define TAG_OPTIONS               (8)
-#define TAG_INPUT                 (9)
-#define TAG_HELP                  (10)
-#define TAG_SWITCH                (11)
-#define TAG_CHECKBIT              (12)
-#define TAG_EXIT                  (101)
-#define TAG_RETURN                ((UINTN)(-1))
-
-//#define TAG_LEGACY              (6)
-//#define TAG_SECURE_BOOT         (13)
-//#define TAG_SECURE_BOOT_CONFIG  (14)
-//#define TAG_CLOVER              (100)
 
 //
 // lib module
 //
 
 typedef struct {
-  EFI_STATUS          LastStatus;
-  EFI_FILE            *DirHandle;
-  BOOLEAN             CloseDirHandle;
-  EFI_FILE_INFO       *LastFileInfo;
+  EFI_STATUS      LastStatus;
+  EFI_FILE        *DirHandle;
+  BOOLEAN         CloseDirHandle;
+  EFI_FILE_INFO   *LastFileInfo;
 } REFIT_DIR_ITER;
 
 typedef struct {
@@ -177,12 +149,17 @@ typedef struct {
 #define OPT_HDD                       (1 << 18)
 #define OPT_CDROM                     (1 << 19)
 
+#define VOLTYPE_OPTICAL               (0x0001)
+#define VOLTYPE_EXTERNAL              (0x0002)
+#define VOLTYPE_INTERNAL              (0x0003)
+#define VOLTYPE_FIREWIRE              (0x0004)
+
 #define IS_EXTENDED_PART_TYPE(type) ((type) == 0x05 || (type) == 0x0f || (type) == 0x85)
 
 typedef struct {
-  UINT8                 Type;
-  CHAR16                *IconName;
-  CHAR16                *Name;
+  UINT8     Type;
+  CHAR16    *IconName;
+  CHAR16    *Name;
 } LEGACY_OS;
 
 typedef struct {
@@ -210,174 +187,10 @@ typedef struct {
   UINT64                SleepImageOffset;
 } REFIT_VOLUME;
 
-//GUI types
-typedef enum {
-  BoolValue,
-  Decimal,
-  Hex,
-  ASString,
-  UNIString,
-  RadioSwitch,
-  CheckBit,
-} ITEM_TYPE;
-
 typedef struct {
-  ITEM_TYPE   ItemType; //string, value, boolean
-  BOOLEAN     Valid;
-  BOOLEAN     BValue;
-  UINT32      IValue;
-  //UINT64    UValue;
-  //CHAR8     *AValue;
-  CHAR16      *SValue; // Max Size (see below) so the field can be edit by the GUI
-  UINTN       LineShift;
-  UINTN       ID;
-} INPUT_ITEM;
-
-typedef struct {
-  INTN      CurrentSelection, LastSelection;
-  INTN      MaxScroll, MaxIndex;
-  INTN      FirstVisible, LastVisible, MaxVisible, MaxFirstVisible;
-  INTN      ScrollMode;
-  BOOLEAN   IsScrolling, PaintAll, PaintSelection;
-} SCROLL_STATE;
-
-extern BOOLEAN    ScrollEnabled;
-extern EG_RECT    ScrollStart;
-extern EG_RECT    ScrollEnd;
-
-extern EG_RECT    DownButton;
-extern EG_RECT    ScrollbarBackground;
-extern EG_RECT    Scrollbar;
-
-typedef struct UI_IMG
-{
-  EG_IMAGE    *Image;
-  CHAR16      *Path;
-  CHAR16      *Format;
-} UI_IMG;
-
-typedef enum {
-  kRadioImage,
-  kRadioSelectedImage,
-  kCheckboxImage,
-  kCheckboxCheckedImage,
-} BUTTON_IMG_K;
-
-extern UI_IMG   ButtonsImg[];
-
-typedef enum {
-  kBigImage,
-  kBig2Image,
-  kSmallImage,
-  kSmall2Image,
-  kIndicatorImage,
-  kIndicator2Image,
-} SELECTION_IMG_K;
-
-extern UI_IMG   SelectionImg[];
-//extern INTN    ButtonsImgCount;
-
-#define SCREEN_UNKNOWN      (0)
-#define SCREEN_MAIN         (1)
-#define SCREEN_ABOUT        (2)
-#define SCREEN_HELP         (3)
-#define SCREEN_OPTIONS      (4)
-#define SCREEN_CONFIGS      (5)
-#define SCREEN_DEVICES      (6)
-#define SCREEN_PATCHES      (7)
-#define SCREEN_DEBUG        (8)
-#define SCREEN_TABLES       (9)
-#define SCREEN_DSDT         (10)
-#define SCREEN_THEMES       (11)
-
-//some unreal values
-#define SCREEN_EDGE_LEFT    (50000)
-#define SCREEN_EDGE_TOP     (60000)
-#define SCREEN_EDGE_RIGHT   (70000)
-#define SCREEN_EDGE_BOTTOM  (80000)
-
-#define MAX_ANIME           (41)
-
-typedef struct _refit_menu_screen REFIT_MENU_SCREEN;
-
-typedef struct _refit_menu_entry {
-  UINTN               ID;
-  CHAR16              *Title;
-  UINTN               Tag;
-  UINTN               Row;
-  CHAR16              ShortcutDigit;
-  CHAR16              ShortcutLetter;
-  EG_IMAGE            *Image;
-  EG_IMAGE            *ImageHover;
-  EG_IMAGE            *DriveImage;
-  EG_IMAGE            *BadgeImage;
-  EG_RECT             Place;
-  REFIT_MENU_SCREEN   *SubScreen;
-} REFIT_MENU_ENTRY;
-
-typedef struct _refit_input_dialog {
   REFIT_MENU_ENTRY  Entry;
   INPUT_ITEM        *Item;
 } REFIT_INPUT_DIALOG;
-
-//some unreal values
-#define FILM_CENTRE     40000
-#define INITVALUE       40000
-
-struct _refit_menu_screen {
-  UINTN             ID;
-  CHAR16            *Title;
-  EG_IMAGE          *TitleImage;
-  INTN              InfoLineCount;
-  CHAR16            **InfoLines;
-  INTN              EntryCount;
-  REFIT_MENU_ENTRY  **Entries;
-  INTN              TimeoutSeconds;
-  CHAR16            *TimeoutText;
-  CHAR16            *Theme;
-  BOOLEAN           AnimeRun;
-  BOOLEAN           Once;
-  UINT64            LastDraw;
-  INTN              CurrentFrame;
-  INTN              Frames;
-  UINTN             FrameTime; //ms
-  EG_RECT           FilmPlace;
-  EG_IMAGE          **Film;
-};
-
-#define VOLTYPE_OPTICAL               (0x0001)
-#define VOLTYPE_EXTERNAL              (0x0002)
-#define VOLTYPE_INTERNAL              (0x0003)
-#define VOLTYPE_FIREWIRE              (0x0004)
-
-#define HIDEUI_FLAG_SHELL             (0x0010)
-#define HIDEUI_FLAG_TOOLS             (0x0020)
-#define HIDEUI_FLAG_HELP              (0x0030)
-#define HIDEUI_FLAG_RESET             (0x0040)
-#define HIDEUI_FLAG_SHUTDOWN          (0x0050)
-#define HIDEUI_FLAG_EXIT              (0x0060)
-
-#define HIDEUI_FLAG_BANNER            (0x0100)
-#define HIDEUI_FLAG_FUNCS             (0x0200)
-
-#define HIDEUI_FLAG_LABEL             (0x1000)
-#define HIDEUI_FLAG_MENU_TITLE        (0x2000)
-#define HIDEUI_FLAG_MENU_TITLE_IMAGE  (0x3000)
-#define HIDEUI_FLAG_REVISION_TEXT     (0x4000)
-#define HIDEUI_FLAG_HELP_TEXT         (0x5000)
-
-#define HIDEUI_ALL                    (0XFFFF & (~VOLTYPE_INTERNAL))
-
-#define HDBADGES_SWAP                 (1<<0)
-#define HDBADGES_SHOW                 (1<<1)
-#define HDBADGES_INLINE               (1<<2)
-
-typedef enum {
-  None,
-  Scale,
-  Crop,
-  Tile
-} SCALING;
 
 typedef struct {
   BOOLEAN     TextOnly;
@@ -446,8 +259,10 @@ typedef struct {
   INTN        ScrollButtonsHeight;
   INTN        ScrollBarDecorationsHeight;
   INTN        ScrollScrollDecorationsHeight;
-
 } REFIT_CONFIG;
+
+extern REFIT_CONFIG   GlobalConfig;
+extern REFIT_CONFIG   DefaultConfig;
 
 // types
 
@@ -457,7 +272,6 @@ typedef struct {
   CHAR8     *Filename; // Private
   BOOLEAN   IsPlistPatch;
   INTN      DataLen;
-
   UINT8     *Data;
   UINT8     *Patch;
   CHAR8     *MatchOS;
@@ -477,8 +291,7 @@ typedef struct {
   BOOLEAN   Disabled;
 } KERNEL_PATCH;
 
-typedef struct KERNEL_AND_KEXT_PATCHES
-{
+typedef struct KERNEL_AND_KEXT_PATCHES {
   BOOLEAN         KPDebug;
   //BOOLEAN       KPKernelCpu;
   //BOOLEAN       KPLapicPanic;
@@ -519,21 +332,43 @@ typedef struct {
   CHAR16                    *Settings;
 } LOADER_ENTRY;
 
-#define ANIME_INFINITE      ((UINTN)-1)
+//typedef struct CUSTOM_LOADER_ENTRY CUSTOM_LOADER_ENTRY;
+//struct CUSTOM_LOADER_ENTRY {
+typedef struct CUSTOM_LOADER_ENTRY {
+  struct  CUSTOM_LOADER_ENTRY       *Next;
+  struct  CUSTOM_LOADER_ENTRY       *SubEntries;
+          EG_IMAGE                  *Image;
+          EG_IMAGE                  *DriveImage;
+          CHAR16                    *ImagePath;
+          CHAR16                    *DriveImagePath;
+          CHAR16                    *Volume;
+          CHAR16                    *Path;
+          CHAR16                    *Options;
+          CHAR16                    *FullTitle;
+          CHAR16                    *Title;
+          CHAR16                    *Settings;
+          CHAR16                    Hotkey;
+          BOOLEAN                   CommonSettings;
+          UINT8                     Flags;
+          UINT8                     Type;
+          UINT8                     VolumeType;
+          UINT8                     KernelScan;
+          KERNEL_AND_KEXT_PATCHES   KernelAndKextPatches;
+} CUSTOM_LOADER_ENTRY;
 
-typedef struct GUI_ANIME GUI_ANIME;
-struct GUI_ANIME {
-  UINTN       ID;
-  CHAR16      *Path;
-  UINTN       Frames;
-  UINTN       FrameTime;
-  INTN        FilmX, FilmY;  //relative
-  INTN        ScreenEdgeHorizontal;
-  INTN        ScreenEdgeVertical;
-  INTN        NudgeX, NudgeY;
-  BOOLEAN     Once;
-  GUI_ANIME   *Next;
-};
+typedef struct CUSTOM_TOOL_ENTRY {
+  struct  CUSTOM_TOOL_ENTRY   *Next;
+          EG_IMAGE            *Image;
+          CHAR16              *ImagePath;
+          CHAR16              *Volume;
+          CHAR16              *Path;
+          CHAR16              *Options;
+          CHAR16              *FullTitle;
+          CHAR16              *Title;
+          CHAR16              Hotkey;
+          UINT8               Flags;
+          UINT8               VolumeType;
+} CUSTOM_TOOL_ENTRY;
 
 extern EFI_HANDLE         SelfImageHandle;
 extern EFI_LOADED_IMAGE   *SelfLoadedImage;
@@ -545,58 +380,121 @@ extern CHAR16             *ThemePath;
 extern EFI_FILE           *OEMDir;
 extern CHAR16             *OEMPath;
 
-extern BOOLEAN            MainAnime;
-extern GUI_ANIME          *GuiAnime;
-
 extern REFIT_VOLUME       *SelfVolume;
 extern REFIT_VOLUME       **Volumes;
 extern UINTN              VolumesCount;
 
-extern EG_IMAGE           *Banner;
-extern EG_IMAGE           *BigBack;
-extern EG_IMAGE           *FontImage;
-extern EG_IMAGE           *FontImageHover;
+EFI_STATUS
+InitRefitLib (
+  IN EFI_HANDLE     ImageHandle
+);
 
-extern BOOLEAN            gThemeChanged;
-extern BOOLEAN            gBootChanged;
-extern BOOLEAN            gThemeOptionsChanged;
-extern BOOLEAN            gTextOnly;
+VOID
+UninitRefitLib ();
 
-extern REFIT_MENU_SCREEN  OptionMenu;
+//EFI_STATUS
+//ReinitRefitLib ();
 
-EFI_STATUS    InitRefitLib (IN EFI_HANDLE ImageHandle);
-//EFI_STATUS    GetRootFromPath (IN EFI_DEVICE_PATH_PROTOCOL *DevicePath, OUT EFI_FILE **Root);
-VOID          UninitRefitLib ();
-//EFI_STATUS    ReinitRefitLib ();
-EFI_STATUS    ReinitSelfLib ();
-//VOID          PauseForKey (IN CHAR16 *Msg);
-BOOLEAN       IsEmbeddedTheme ();
+EFI_STATUS
+ReinitSelfLib ();
 
-VOID          CreateList (OUT VOID ***ListPtr, OUT UINTN *ElementCount, IN UINTN InitialElementCount);
-VOID          AddListElement (IN OUT VOID ***ListPtr, IN OUT UINTN *ElementCount, IN VOID *NewElement);
+//VOID
+//PauseForKey (IN CHAR16 *Msg);
+
+BOOLEAN
+IsEmbeddedTheme ();
+
+VOID
+CreateList (
+  OUT VOID    ***ListPtr,
+  OUT UINTN   *ElementCount,
+  IN  UINTN   InitialElementCount
+);
+
+VOID
+AddListElement (
+  IN OUT  VOID    ***ListPtr,
+  IN OUT  UINTN   *ElementCount,
+  IN      VOID    *NewElement
+);
+
 //VOID        FreeList (IN OUT VOID ***ListPtr, IN OUT UINTN *ElementCount /* , IN Callback */);
 
-VOID          GetListOfThemes ();
-VOID          GetListOfACPI ();
-VOID          GetListOfConfigs ();
+VOID
+ScanVolumes ();
 
-VOID          ScanVolumes ();
-REFIT_VOLUME  *FindVolumeByName (IN CHAR16 *VolName);
+REFIT_VOLUME *
+FindVolumeByName (
+  IN CHAR16   *VolName
+);
 
-BOOLEAN       FileExists (IN EFI_FILE *BaseDir, IN CHAR16 *RelativePath);
-BOOLEAN       DeleteFile (IN EFI_FILE *Root, IN CHAR16 *RelativePath);
+BOOLEAN
+FileExists (
+  IN EFI_FILE   *Root,
+  IN CHAR16     *RelativePath
+);
 
-EFI_STATUS    DirNextEntry (IN EFI_FILE *Directory, IN OUT EFI_FILE_INFO **DirEntry, IN UINTN FilterMode);
-VOID          DirIterOpen (IN EFI_FILE *BaseDir, IN CHAR16 *RelativePath OPTIONAL, OUT REFIT_DIR_ITER *DirIter);
-BOOLEAN       DirIterNext (IN OUT REFIT_DIR_ITER *DirIter, IN UINTN FilterMode, IN CHAR16 *FilePattern OPTIONAL, OUT EFI_FILE_INFO **DirEntry);
-EFI_STATUS    DirIterClose (IN OUT REFIT_DIR_ITER *DirIter);
+BOOLEAN
+DeleteFile (
+  IN EFI_FILE   *Root,
+  IN CHAR16     *RelativePath
+);
 
-CHAR16        *Basename (IN CHAR16 *Path);
-CHAR16        *Dirname (IN CHAR16 *Path);
-CHAR16        *ReplaceExtension (IN CHAR16 *Path, IN CHAR16 *Extension);
-CHAR16        *FindExtension (IN CHAR16 *FileName);
+EFI_STATUS
+DirNextEntry (
+  IN      EFI_FILE        *Directory,
+  IN OUT  EFI_FILE_INFO   **DirEntry,
+  IN      UINTN           FilterMode
+);
 
-INTN          FindMem (IN VOID *Buffer, IN UINTN BufferLength, IN VOID *SearchString, IN UINTN SearchStringLength);
+VOID
+DirIterOpen (
+  IN  EFI_FILE        *BaseDir,
+  IN  CHAR16          *RelativePath OPTIONAL,
+  OUT REFIT_DIR_ITER  *DirIter
+);
+
+BOOLEAN
+DirIterNext (
+  IN OUT  REFIT_DIR_ITER  *DirIter,
+  IN      UINTN           FilterMode,
+  IN      CHAR16          *FilePattern OPTIONAL,
+  OUT     EFI_FILE_INFO   **DirEntry
+);
+
+EFI_STATUS
+DirIterClose (
+  IN OUT REFIT_DIR_ITER   *DirIter
+);
+
+CHAR16 *
+Basename (
+  IN CHAR16   *Path
+);
+
+CHAR16 *
+Dirname (
+  IN CHAR16   *Path
+);
+
+CHAR16 *
+ReplaceExtension (
+  IN CHAR16   *Path,
+  IN CHAR16   *Extension
+);
+
+CHAR16 *
+FindExtension (
+  IN CHAR16   *FileName
+);
+
+INTN
+FindMem (
+  IN VOID   *Buffer,
+  IN UINTN  BufferLength,
+  IN VOID   *SearchString,
+  IN UINTN  SearchStringLength
+);
 
 CHAR8 *
 SearchString (
@@ -606,66 +504,18 @@ SearchString (
   IN  UINTN       SearchSize
 );
 
-CHAR16        *FileDevicePathToStr (IN EFI_DEVICE_PATH_PROTOCOL *DevPath);
-CHAR16        *FileDevicePathFileToStr (IN EFI_DEVICE_PATH_PROTOCOL *DevPath);
+CHAR16 *
+FileDevicePathToStr (
+  IN EFI_DEVICE_PATH_PROTOCOL   *DevPath
+);
 
-EFI_STATUS    InitializeUnicodeCollationProtocol ();
+CHAR16 *
+FileDevicePathFileToStr (
+  IN EFI_DEVICE_PATH_PROTOCOL   *DevPath
+);
 
-//
-// screen module
-//
-
-#define ATTR_BASIC                (EFI_LIGHTGRAY | EFI_BACKGROUND_BLACK)
-#define ATTR_ERROR                (EFI_RED | EFI_BACKGROUND_BLACK)
-//#define ATTR_BANNER             (EFI_WHITE | EFI_BACKGROUND_BLACK)
-#define ATTR_BANNER               (EFI_WHITE | EFI_BACKGROUND_GREEN)
-#define ATTR_CHOICE_BASIC         ATTR_BASIC
-#define ATTR_CHOICE_CURRENT       (EFI_WHITE | EFI_BACKGROUND_LIGHTGRAY)
-#define ATTR_SCROLLARROW          (EFI_LIGHTGREEN | EFI_BACKGROUND_BLACK)
-
-#define LAYOUT_TEXT_WIDTH         (500)
-#define LAYOUT_TOTAL_HEIGHT       (376)
-#define LAYOUT_BANNER_HEIGHT      (32)
-
-#define INDICATOR_SIZE            (52)
-
-extern INTN       FontWidth;
-extern INTN       FontHeight;
-extern INTN       TextHeight;
-
-extern UINTN      ConWidth;
-extern UINTN      ConHeight;
-extern CHAR16     *BlankLine;
-
-extern INTN       UGAWidth;
-extern INTN       UGAHeight;
-extern BOOLEAN    AllowGraphicsMode;
-
-//extern EG_PIXEL InputBackgroundPixel;
-extern EG_PIXEL   StdBackgroundPixel;
-extern EG_PIXEL   MenuBackgroundPixel;
-extern EG_PIXEL   BlueBackgroundPixel;
-extern EG_PIXEL   DarkBackgroundPixel;
-extern EG_PIXEL   SelectionBackgroundPixel;
-
-extern EG_RECT    BannerPlace;
-extern EG_IMAGE   *BackgroundImage;
-
-VOID  InitScreen (IN BOOLEAN egSetMaxResolution);
-VOID  SetupScreen ();
-VOID  BeginTextScreen (IN CHAR16 *Title);
-VOID  FinishTextScreen (IN BOOLEAN WaitAlways);
-VOID  BeginExternalScreen (IN BOOLEAN UseGraphicsMode, IN CHAR16 *Title);
-VOID  FinishExternalScreen ();
-VOID  TerminateScreen ();
-VOID  SetNextScreenMode (INT32 Next);
-
-//CHAR16
-//*GetRevisionString (
-//  BOOLEAN   CloverRev
-//);
-
-EG_PIXEL ToPixel (UINTN rgba);
+EFI_STATUS
+InitializeUnicodeCollationProtocol ();
 
 #if REFIT_DEBUG > 0
 VOID DebugPause ();
@@ -675,157 +525,46 @@ VOID DebugPause ();
 
 //VOID EndlessIdleLoop();
 
-BOOLEAN   CheckFatalError (IN EFI_STATUS Status, IN CHAR16 *where);
-BOOLEAN   CheckError (IN EFI_STATUS Status, IN CHAR16 *where);
+BOOLEAN
+CheckFatalError (
+  IN EFI_STATUS   Status,
+  IN CHAR16       *where
+);
 
-VOID  SwitchToGraphicsAndClear ();
-VOID  BltClearScreen (IN BOOLEAN ShowBanner);
-VOID  BltImage (IN EG_IMAGE *Image, IN INTN XPos, IN INTN YPos);
-VOID  BltImageAlpha (IN EG_IMAGE *Image, IN INTN XPos, IN INTN YPos, IN EG_PIXEL *BackgroundPixel, INTN Scale);
-VOID  BltImageComposite (IN EG_IMAGE *BaseImage, IN EG_IMAGE *TopImage, IN INTN XPos, IN INTN YPos);
+BOOLEAN
+CheckError (
+  IN EFI_STATUS   Status,
+  IN CHAR16       *where
+);
 
 VOID
-BltImageCompositeBadge (
-  IN EG_IMAGE   *BaseImage,
-  IN EG_IMAGE   *TopImage,
-  IN EG_IMAGE   *BadgeImage,
-  IN INTN       XPos,
-  IN INTN       YPos,
-  INTN          Scale
+ReinitVolumes ();
+
+BOOLEAN
+BootArgsExists (
+  IN CHAR16   *LoadOptions,
+  IN CHAR16   *LoadOption
 );
 
-BOOLEAN   GetAnime (REFIT_MENU_SCREEN *Screen);
-VOID      InitAnime (REFIT_MENU_SCREEN *Screen);
-VOID      UpdateAnime (REFIT_MENU_SCREEN *Screen, EG_RECT *Place);
-VOID      FreeAnime (GUI_ANIME *Anime);
-
-//
-// icns loader module
-//
-EG_IMAGE *
-LoadOSIcon (
-  IN  CHAR16    *OSIconName OPTIONAL,
-  OUT CHAR16    **OSIconNameHover,
-  IN  CHAR16    *FallbackIconName,
-  IN  UINTN     PixelSize,
-  IN  BOOLEAN   BootLogo,
-  IN  BOOLEAN   WantDummy
+LOADER_ENTRY *
+DuplicateLoaderEntry (
+  IN LOADER_ENTRY   *Entry
 );
 
-EG_IMAGE    *LoadHoverIcon (IN CHAR16 *OSIconName, IN UINTN PixelSize);
-//EG_IMAGE  *LoadIcns (IN EFI_FILE_HANDLE BaseDir, IN CHAR16 *FileName, IN UINTN PixelSize);
-//EG_IMAGE  *LoadIcnsFallback (IN EFI_FILE_HANDLE BaseDir, IN CHAR16 *FileName, IN UINTN PixelSize);
-EG_IMAGE    *DummyImage (IN UINTN PixelSize);
-EG_IMAGE    *BuiltinIcon (IN UINTN Id);
-EG_IMAGE    *GetSmallHover (IN UINTN Id);
-CHAR16      *GetIconsExt (IN CHAR16 *Icon, IN CHAR16 *Def);
-EG_IMAGE    *LoadBuiltinIcon (IN CHAR16 *IconName);
-EG_IMAGE    *ScanVolumeDefaultIcon (REFIT_VOLUME *Volume, IN UINT8 OSType);
+VOID
+AddOptionEntries (
+  REFIT_MENU_SCREEN   *SubScreen,
+  LOADER_ENTRY        *SubEntry
+);
 
-VOID      InitUISelection ();
-VOID      InitBar ();
-VOID      SetBar (IN INTN PosX, IN INTN UpPosY, IN INTN DownPosY, IN SCROLL_STATE *State);
+UINT32
+EncodeOptions (
+  CHAR16  *Options
+);
 
-#define BUILTIN_ICON_FUNC_ABOUT           (0)
-#define BUILTIN_ICON_FUNC_OPTIONS         (1)
-//#define BUILTIN_ICON_FUNC_CLOVER        (2)
-#define BUILTIN_ICON_FUNC_RESET           (2)
-//#define BUILTIN_ICON_FUNC_SHUTDOWN      (3)
-#define BUILTIN_ICON_FUNC_EXIT            (3)
-#define BUILTIN_ICON_FUNC_HELP            (4)
-#define BUILTIN_ICON_TOOL_SHELL           (5)
-//#define BUILTIN_ICON_POINTER            (8)
-#define BUILTIN_ICON_VOL_INTERNAL         (6)
-#define BUILTIN_ICON_VOL_EXTERNAL         (7)
-#define BUILTIN_ICON_VOL_OPTICAL          (8)
-#define BUILTIN_ICON_VOL_FIREWIRE         (9)
-#define BUILTIN_ICON_VOL_BOOTER           (10)
-#define BUILTIN_ICON_VOL_INTERNAL_HFS     (11)
-#define BUILTIN_ICON_VOL_INTERNAL_NTFS    (12)
-#define BUILTIN_ICON_VOL_INTERNAL_EXT3    (13)
-#define BUILTIN_ICON_VOL_INTERNAL_REC     (14)
-#define BUILTIN_ICON_BANNER               (15)
-#define BUILTIN_SELECTION_SMALL           (16)
-#define BUILTIN_SELECTION_BIG             (17)
-#define BUILTIN_ICON_COUNT                (18)
-
-//
-// menu module
-//
-
-#define MENU_EXIT_ENTER                   (1)
-#define MENU_EXIT_ESCAPE                  (2)
-#define MENU_EXIT_DETAILS                 (3)
-#define MENU_EXIT_TIMEOUT                 (4)
-#define MENU_EXIT_OPTIONS                 (5)
-#define MENU_EXIT_HELP                    (6)
-#define MENU_EXIT_HIDE_TOGGLE             (7)
-
-#define MENU_ENTRY_ID_GEN                 (0)
-#define MENU_ENTRY_ID_BOOT                (1)
-
-#define X_IS_LEFT                         (64)
-#define X_IS_RIGHT                        (0)
-#define X_IS_CENTER                       (1)
-#define BADGE_DIMENSION                   (64)
-
-// IconFormat
-#define ICON_FORMAT_DEF                   (0)
-#define ICON_FORMAT_ICNS                  (1)
-#define ICON_FORMAT_PNG                   (2)
-//#define ICON_FORMAT_BMP                 (3)
-
-typedef VOID (*ADD_MENU_INFO)(IN REFIT_MENU_SCREEN *Screen, IN CHAR16 *InfoLine);
-
-VOID      AddMenuInfoLine (IN REFIT_MENU_SCREEN *Screen, IN CHAR16 *InfoLine);
-//VOID    AddMenuInfo (IN REFIT_MENU_SCREEN  *SubScreen, IN CHAR16 *Line);
-VOID      AddMenuEntry (IN REFIT_MENU_SCREEN *Screen, IN REFIT_MENU_ENTRY *Entry);
-//VOID    AddMenuCheck (REFIT_MENU_SCREEN *SubScreen, CONST CHAR8 *Text, UINTN Bit, INTN ItemNum);
-VOID      FreeMenu (IN REFIT_MENU_SCREEN *Screen);
-UINTN     RunMenu (IN REFIT_MENU_SCREEN *Screen, OUT REFIT_MENU_ENTRY **ChosenEntry);
-UINTN     RunMainMenu (IN REFIT_MENU_SCREEN *Screen, IN INTN DefaultSelection, OUT REFIT_MENU_ENTRY **ChosenEntry);
-VOID      AddOptionEntries (REFIT_MENU_SCREEN *SubScreen, LOADER_ENTRY *SubEntry);
-VOID      ReinitVolumes ();
-BOOLEAN   ReadAllKeyStrokes ();
-VOID      OptionsMenu (OUT REFIT_MENU_ENTRY **ChosenEntry);
-VOID      ScrollingBar (IN SCROLL_STATE *State);
-VOID      FreeScrollBar ();
-VOID      FreeButtons ();
-VOID      FreeSelections ();
-VOID      FreeBuiltinIcons ();
-VOID      FreeBanner ();
-VOID      FreeAnims ();
-VOID      DrawFuncIcons ();
-INTN      DrawTextXY (IN CHAR16 *Text, IN INTN XPos, IN INTN YPos, IN UINT8 XAlign);
-VOID      DrawBCSText (IN CHAR16 *Text, IN INTN XPos, IN INTN YPos, IN UINT8 XAlign);
-//VOID    DrawMenuText (IN CHAR16 *Text, IN INTN SelectedWidth, IN INTN XPos, IN INTN YPos, IN INTN Cursor);
-INTN      GetSubMenuCount ();
-VOID      SplitMenuInfo (IN REFIT_MENU_SCREEN *SubScreen, IN CHAR16 *Str, IN ADD_MENU_INFO MenuInfo);
-BOOLEAN   BootArgsExists (IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
-
-UINT32    EncodeOptions (CHAR16 *Options);
-VOID      DecodeOptions (LOADER_ENTRY *Entry);
-VOID      HelpRefit ();
-VOID      AboutRefit ();
-
-LOADER_ENTRY *DuplicateLoaderEntry (IN LOADER_ENTRY *Entry);
-
-//
-// config module
-//
-
-//extern BUILTIN_ICON BuiltinIconTable[];
-extern REFIT_CONFIG   GlobalConfig;
-extern REFIT_CONFIG   DefaultConfig;
-
-VOID ReadConfig (INTN What);
-
-EG_IMAGE *
-EnsureImageSize (
-  IN EG_IMAGE   *Image,
-  IN INTN       Width,
-  IN INTN       Height,
-  IN EG_PIXEL   *Color
+VOID
+DecodeOptions (
+  LOADER_ENTRY  *Entry
 );
 
 EFI_STATUS
@@ -874,18 +613,22 @@ EfiLibFileSystemVolumeLabelInfo (
   IN EFI_FILE_HANDLE    FHand
 );
 
-EFI_FILE_INFO           *EfiLibFileInfo (IN EFI_FILE_HANDLE FHand);
-EFI_FILE_SYSTEM_INFO    *EfiLibFileSystemInfo (IN EFI_FILE_HANDLE Root);
-
-BOOLEAN DumpVariable (CHAR16 *Name, EFI_GUID *Guid, INTN DevicePathAt);
-
-/*
-BOOLEAN
-TimeCompare (
-  IN EFI_TIME    *FirstTime,
-  IN EFI_TIME    *SecondTime
+EFI_FILE_INFO *
+EfiLibFileInfo (
+  IN EFI_FILE_HANDLE  FHand
 );
-*/
+
+EFI_FILE_SYSTEM_INFO *
+EfiLibFileSystemInfo (
+  IN EFI_FILE_HANDLE  Root
+);
+
+BOOLEAN
+DumpVariable (
+  CHAR16    *Name,
+  EFI_GUID  *Guid,
+  INTN      DevicePathAt
+);
 
 INTN
 TimeCompare (
@@ -893,13 +636,121 @@ TimeCompare (
   IN EFI_TIME    *Time2
 );
 
-#define KERNEL_MAX_SIZE 40000000
-#define FSearchReplace(Source, Size, Search, Replace) SearchAndReplace((UINT8 *)(UINTN)Source, Size, Search, sizeof(Search), Replace, 1)
-BOOLEAN IsKernelIs64BitOnly (IN LOADER_ENTRY *Entry);
-VOID    DbgHeader (CHAR8 *str);
+//
+// screen module
+//
+
+#define ATTR_BASIC                (EFI_LIGHTGRAY | EFI_BACKGROUND_BLACK)
+#define ATTR_ERROR                (EFI_RED | EFI_BACKGROUND_BLACK)
+//#define ATTR_BANNER             (EFI_WHITE | EFI_BACKGROUND_BLACK)
+#define ATTR_BANNER               (EFI_WHITE | EFI_BACKGROUND_GREEN)
+#define ATTR_CHOICE_BASIC         ATTR_BASIC
+#define ATTR_CHOICE_CURRENT       (EFI_WHITE | EFI_BACKGROUND_LIGHTGRAY)
+#define ATTR_SCROLLARROW          (EFI_LIGHTGREEN | EFI_BACKGROUND_BLACK)
+
+VOID
+DumpGOPVideoModes ();
+
+EFI_STATUS
+SetMaxResolution ();
+
+EFI_STATUS
+SetScreenResolution (
+  IN CHAR16   *WidthHeight
+);
+
+EFI_STATUS
+InternalSetMode (
+  INT32   Next
+);
+
+VOID
+GetScreenSize (
+  OUT INTN  *ScreenWidth,
+  OUT INTN  *ScreenHeight
+);
+
+CHAR16 *
+ScreenDescription ();
+
+BOOLEAN
+HasGraphicsMode ();
+
+BOOLEAN
+IsGraphicsModeEnabled ();
+
+VOID
+SetGraphicsModeEnabled (
+  IN BOOLEAN  Enable
+);
+
+VOID
+InitScreen (
+  IN BOOLEAN  egSetMaxResolution
+);
+
+VOID
+SetupScreen ();
+
+VOID
+BeginTextScreen (
+  IN CHAR16   *Title
+);
+
+VOID
+FinishTextScreen (
+  IN BOOLEAN  WaitAlways
+);
+
+VOID
+BeginExternalScreen (
+  IN BOOLEAN  UseGraphicsMode,
+  IN CHAR16   *Title
+);
+
+VOID
+FinishExternalScreen ();
+
+VOID
+TerminateScreen ();
+
+VOID
+SetNextScreenMode (
+  INT32 Next
+);
+
+VOID
+SwitchToGraphicsAndClear ();
+
+BOOLEAN
+ReadAllKeyStrokes ();
+
+VOID
+ClearScreen (
+  IN EG_PIXEL     *Color
+);
+
+VOID
+DrawImageArea (
+  IN EG_IMAGE   *Image,
+  IN INTN       AreaPosX,
+  IN INTN       AreaPosY,
+  IN INTN       AreaWidth,
+  IN INTN       AreaHeight,
+  IN INTN       ScreenPosX,
+  IN INTN       ScreenPosY
+);
+
+VOID
+TakeImage (
+  IN  EG_IMAGE    *Image,
+      INTN        ScreenPosX,
+      INTN        ScreenPosY,
+  IN  INTN        AreaWidth,
+  IN  INTN        AreaHeight
+);
+
+EFI_STATUS
+ScreenShot ();
 
 #endif
-
-/*
- EOF
-*/

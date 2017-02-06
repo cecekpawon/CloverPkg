@@ -487,14 +487,13 @@ Finish:
   return Ret;
 }
 
-#define KERNEL_PATCH_PM_NULL    0x0000000000000000ULL
-
 BOOLEAN
 KernelPatchPm (
   IN LOADER_ENTRY   *Entry
 ) {
   UINT8     *Ptr = (UINT8 *)KernelInfo->Bin, *End = NULL;
   BOOLEAN   Found = FALSE, Ret = FALSE;
+  UINT64    KernelPatchPMNull = 0x0000000000000000ULL;
 
   DBG_RT (Entry, "\n\n%a: Start\n", __FUNCTION__);
 
@@ -537,7 +536,7 @@ KernelPatchPm (
 
     if (Found) {
       DBG_RT (Entry, " - found: 0x%lx\n", *((UINT64 *)Ptr));
-      (*((UINT64 *)Ptr)) = KERNEL_PATCH_PM_NULL;
+      (*((UINT64 *)Ptr)) = KernelPatchPMNull;
 
       if (Ret) {
         goto Finish;

@@ -55,41 +55,30 @@
 //
 
 BUILTIN_ICON BuiltinIconTable[BUILTIN_ICON_COUNT] = {
-  { NULL, L"icons\\func_about"        , L"png",  32 },
-  { NULL, L"icons\\func_options"      , L"png",  32 },
-  //{ NULL, L"icons\\func_clover"       , L"png",  32 },
-  { NULL, L"icons\\func_reset"        , L"png",  32 },
-  //{ NULL, L"icons\\func_shutdown"     , L"png",  32 },
-  { NULL, L"icons\\func_exit"         , L"png",  32 },
-  { NULL, L"icons\\func_help"         , L"png",  32 },
-  { NULL, L"icons\\tool_shell"        , L"png",  32 },
-  //{ NULL, L"icons\\pointer"           , L"png",  32 },
+  { NULL, L"icons\\func_about",         L"png",  32 },
+  { NULL, L"icons\\func_options",       L"png",  32 },
+  //{ NULL, L"icons\\func_clover",        L"png",  32 },
+  { NULL, L"icons\\func_reset",         L"png",  32 },
+  //{ NULL, L"icons\\func_shutdown",      L"png",  32 },
+  { NULL, L"icons\\func_exit",          L"png",  32 },
+  { NULL, L"icons\\func_help",          L"png",  32 },
+  { NULL, L"icons\\tool_shell",         L"png",  32 },
+  //{ NULL, L"icons\\pointer",            L"png",  32 },
 
-  { NULL, L"icons\\vol_internal"      , L"icns", 128 },
-  { NULL, L"icons\\vol_external"      , L"icns", 128 },
-  { NULL, L"icons\\vol_optical"       , L"icns", 128 },
-  { NULL, L"icons\\vol_firewire"      , L"icns", 128 },
-  { NULL, L"icons\\vol_clover"        , L"icns", 128 },
-  { NULL, L"icons\\vol_internal_hfs"  , L"icns", 128 },
-  { NULL, L"icons\\vol_internal_ntfs" , L"icns", 128 },
-  { NULL, L"icons\\vol_internal_ext3" , L"icns", 128 },
-  { NULL, L"icons\\vol_recovery"      , L"icns", 128 },
-  { NULL, L"logo"                     , L"png",  128 },
+  { NULL, L"icons\\vol_internal",       L"icns", 128 },
+  { NULL, L"icons\\vol_external",       L"icns", 128 },
+  { NULL, L"icons\\vol_optical",        L"icns", 128 },
+  { NULL, L"icons\\vol_firewire",       L"icns", 128 },
+  { NULL, L"icons\\vol_clover",         L"icns", 128 },
+  { NULL, L"icons\\vol_internal_hfs",   L"icns", 128 },
+  { NULL, L"icons\\vol_internal_ntfs",  L"icns", 128 },
+  { NULL, L"icons\\vol_internal_ext3",  L"icns", 128 },
+  { NULL, L"icons\\vol_recovery",       L"icns", 128 },
+  { NULL, L"logo",                      L"png",  128 },
 
-  { NULL, L"selection_small"          , L"png",  64  },
-  { NULL, L"selection_big"            , L"png",  144 }
+  { NULL, L"selection_small",           L"png",  64  },
+  { NULL, L"selection_big",             L"png",  144 }
 };
-
-typedef enum {
-  kScrollbarBackgroundImage,
-  kBarStartImage,
-  kBarEndImage,
-  kScrollbarImage,
-  kScrollStartImage,
-  kScrollEndImage,
-  kUpButtonImage,
-  kDownButtonImage,
-} SCROLLBAR_IMG_K;
 
 UI_IMG ScrollbarImg[] = {
   { NULL, L"scrollbar\\bar_fill",       L"png" },
@@ -122,25 +111,14 @@ UI_IMG SelectionImg[] = {
   { NULL, NULL, NULL },
 };
 
-CONST INTN    SelectionImgCount = ARRAY_SIZE (SelectionImg);
+CONST INTN      SelectionImgCount = ARRAY_SIZE (SelectionImg);
+      INTN      ScrollbarYMovement;
 
-BOOLEAN ScrollEnabled   = FALSE;
-BOOLEAN IsDragging      = FALSE;
+      BOOLEAN   ScrollEnabled = FALSE, IsDragging = FALSE;
 
-INTN ScrollbarYMovement;
-
-EG_RECT   BarStart;
-EG_RECT   BarEnd;
-EG_RECT   ScrollStart;
-EG_RECT   ScrollEnd;
-EG_RECT   ScrollTotal;
-
-EG_RECT   UpButton;
-EG_RECT   DownButton;
-EG_RECT   ScrollbarBackground;
-EG_RECT   Scrollbar;
-EG_RECT   ScrollbarOldPointerPlace;
-EG_RECT   ScrollbarNewPointerPlace;
+      EG_RECT   BarStart, BarEnd, ScrollStart, ScrollEnd, ScrollTotal,
+                UpButton, DownButton, ScrollbarBackground, Scrollbar,
+                ScrollbarOldPointerPlace, ScrollbarNewPointerPlace;
 
 #define DEC_BUILTIN_ICON(id, ico) BuiltinIconTable[id].Image = DecodePNG (&ico[0], ARRAY_SIZE (ico), 0, TRUE)
 
@@ -304,10 +282,9 @@ InitUISelection () {
         }
 
         SelectionImg[i + 1].Image = CreateFilledImage (
-                                    iSize, iSize,
-                                    TRUE, &MenuBackgroundPixel
-                                  );
-
+                                      iSize, iSize,
+                                      TRUE, &MenuBackgroundPixel
+                                    );
         break;
 
       default:
@@ -728,7 +705,7 @@ EG_IMAGE *
 LoadBuiltinIcon (
   IN CHAR16   *IconName
 ) {
-  UINTN Index = 0;
+  UINTN   Index = 0;
 
   if (IconName == NULL) {
     return NULL;
@@ -746,13 +723,13 @@ LoadBuiltinIcon (
 
 EG_IMAGE *
 ScanVolumeDefaultIcon (
-     REFIT_VOLUME  *Volume,
-  IN UINT8          OSType
+  IN UINTN    DiskKind,
+  IN UINT8    OSType
 ) {
   UINTN   IconNum;
 
   // default volume icon based on disk kind
-  switch (Volume->DiskKind) {
+  switch (DiskKind) {
     case DISK_KIND_INTERNAL:
       switch (OSType) {
         case OSTYPE_OSX:
@@ -944,6 +921,7 @@ DecompressIcnsRLE (
         pp += 4;
       }
     }
+
     pp_left -= len;
   }
 
@@ -973,8 +951,10 @@ DecodeICNS (
   UINT32      BlockLen, DataLen, MaskLen;
   UINTN       FetchPixelSize, PixelCount, i, CompLen;
 
-  if ((FileDataLength < 8) || (FileData == NULL) ||
-      (FileData[0] != 'i') || (FileData[1] != 'c') || (FileData[2] != 'n') || (FileData[3] != 's')) {
+  if (
+    (FileDataLength < 8) || (FileData == NULL) ||
+    (FileData[0] != 'i') || (FileData[1] != 'c') || (FileData[2] != 'n') || (FileData[3] != 's')
+  ) {
     // not an icns file...
     DBG ("not icns\n");
     return NULL;
@@ -1096,5 +1076,3 @@ DecodeICNS (
 
   return NewImage;
 }
-
-/* EOF */

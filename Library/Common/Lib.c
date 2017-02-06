@@ -80,11 +80,6 @@ UINTN                   VolumesCount = 0;
 //
 EFI_UNICODE_COLLATION_PROTOCOL    *mUnicodeCollation = NULL;
 
-// functions
-
-STATIC EFI_STATUS   FinishInitRefitLib ();
-STATIC VOID         UninitVolumes ();
-
 BOOLEAN
 MetaiMatch (
   IN CHAR16   *String,
@@ -106,170 +101,6 @@ DevicePathToStr (
   IN EFI_DEVICE_PATH_PROTOCOL  *DevPath
 ) {
   return ConvertDevicePathToText (DevPath, TRUE, TRUE);
-}
-
-EFI_STATUS
-InitRefitLib (
-  IN EFI_HANDLE     ImageHandle
-) {
-  EFI_STATUS                  Status;
-  CHAR16                      *FilePathAsString;
-  UINTN                       i, DevicePathSize;
-  EFI_DEVICE_PATH_PROTOCOL    *TmpDevicePath;
-
-  SelfImageHandle = ImageHandle;
-
-  Status = gBS->HandleProtocol (
-                  SelfImageHandle,
-                  &gEfiLoadedImageProtocolGuid,
-                  (VOID **)&SelfLoadedImage
-                );
-
-  if (CheckFatalError (Status, L"while getting a LoadedImageProtocol handle")) {
-    return Status;
-  }
-
-  SelfDeviceHandle = SelfLoadedImage->DeviceHandle;
-  TmpDevicePath = DevicePathFromHandle (SelfDeviceHandle);
-  DevicePathSize = GetDevicePathSize (TmpDevicePath);
-  SelfDevicePath = AllocateAlignedPages (EFI_SIZE_TO_PAGES (DevicePathSize), 64);
-  CopyMem (SelfDevicePath, TmpDevicePath, DevicePathSize);
-
-  //DBG ("SelfDevicePath=%s @%x\n", FileDevicePathToStr (SelfDevicePath), SelfDeviceHandle);
-
-  // find the current directory
-  FilePathAsString = FileDevicePathToStr (SelfLoadedImage->FilePath);
-
-  if (FilePathAsString != NULL) {
-    SelfFullDevicePath = FileDevicePath (SelfDeviceHandle, FilePathAsString);
-    for (i = StrLen (FilePathAsString); i > 0 && FilePathAsString[i] != '\\'; i--);
-    if (i > 0) {
-      FilePathAsString[i] = 0;
-    } else {
-      FilePathAsString[0] = L'\\';
-      FilePathAsString[1] = 0;
-    }
-  } else {
-    FilePathAsString = AllocateCopyPool (StrSize (L"\\"), L"\\");
-  }
-
-  SelfDirPath = FilePathAsString;
-
-  //DBG ("SelfDirPath = %s\n", SelfDirPath);
-
-  return FinishInitRefitLib ();
-}
-
-VOID
-UninitRefitLib () {
-  // called before running external programs to close open file handles
-
-  if (SelfDir != NULL) {
-    SelfDir->Close (SelfDir);
-    SelfDir = NULL;
-  }
-
-  if (OEMDir != NULL) {
-    OEMDir->Close (OEMDir);
-    OEMDir = NULL;
-  }
-
-  if (ThemeDir != NULL) {
-    ThemeDir->Close (ThemeDir);
-    ThemeDir = NULL;
-  }
-
-  if (SelfRootDir != NULL) {
-    SelfRootDir->Close (SelfRootDir);
-    SelfRootDir = NULL;
-  }
-
-  UninitVolumes ();
-}
-
-EFI_STATUS
-ReinitRefitLib () {
-  // called after running external programs to re-open file handles
-  //
-  ReinitVolumes ();
-
-  if ((SelfVolume != NULL) && (SelfVolume->RootDir != NULL)) {
-    SelfRootDir = SelfVolume->RootDir;
-  }
-
-  return FinishInitRefitLib ();
-}
-
-EFI_STATUS
-ReinitSelfLib () {
-  // called after reconnect drivers to re-open file handles
-  EFI_STATUS                  Status;
-  EFI_HANDLE                  NewSelfHandle;
-  EFI_DEVICE_PATH_PROTOCOL    *TmpDevicePath;
-
-  //DbgHeader ("ReinitSelfLib");
-
-  if (!SelfDevicePath) {
-    return EFI_NOT_FOUND;
-  }
-
-  TmpDevicePath = DuplicateDevicePath (SelfDevicePath);
-
-  DBG ("reinit: self device path=%s\n", FileDevicePathToStr (TmpDevicePath));
-
-  if (TmpDevicePath == NULL) {
-    return EFI_NOT_FOUND;
-  }
-
-  NewSelfHandle = NULL;
-  Status = gBS->LocateDevicePath (
-                  &gEfiSimpleFileSystemProtocolGuid,
-                  &TmpDevicePath,
-                  &NewSelfHandle
-                );
-
-  CheckError (Status, L"while reopening our self handle");
-  //DBG ("new SelfHandle=%x\n", NewSelfHandle);
-
-  SelfRootDir = EfiLibOpenRoot (NewSelfHandle);
-
-  if (SelfRootDir == NULL) {
-    DBG ("SelfRootDir can't be reopened\n");
-    return EFI_NOT_FOUND;
-  }
-
-  SelfDeviceHandle = NewSelfHandle;
-
-  /*Status  = */  SelfRootDir->Open (SelfRootDir, &ThemeDir, ThemePath,    EFI_FILE_MODE_READ, 0);
-  /*Status  = */  SelfRootDir->Open (SelfRootDir, &OEMDir,   OEMPath,      EFI_FILE_MODE_READ, 0);
-  Status    =     SelfRootDir->Open (SelfRootDir, &SelfDir,  SelfDirPath,  EFI_FILE_MODE_READ, 0);
-
-  CheckFatalError (Status, L"while reopening our installation directory");
-
-  return Status;
-}
-
-STATIC
-EFI_STATUS
-FinishInitRefitLib () {
-  EFI_STATUS      Status;
-
-  if (SelfRootDir == NULL) {
-    SelfRootDir = EfiLibOpenRoot (SelfLoadedImage->DeviceHandle);
-    if (SelfRootDir != NULL) {
-      SelfDeviceHandle = SelfLoadedImage->DeviceHandle;
-    } else {
-      return EFI_LOAD_ERROR;
-    }
-  }
-
-  /*Status  = */  SelfRootDir->Open (SelfRootDir, &ThemeDir, ThemePath,    EFI_FILE_MODE_READ, 0);
-  /*Status  = */  SelfRootDir->Open (SelfRootDir, &OEMDir,   OEMPath,      EFI_FILE_MODE_READ, 0);
-  Status    =     SelfRootDir->Open (SelfRootDir, &SelfDir,  SelfDirPath,  EFI_FILE_MODE_READ, 0);
-
-  CheckFatalError (Status, L"while opening our installation directory");
-
-  return Status;
 }
 
 BOOLEAN
@@ -1283,6 +1114,170 @@ FindVolumeByName (
   return NULL;
 }
 
+STATIC
+EFI_STATUS
+FinishInitRefitLib () {
+  EFI_STATUS      Status;
+
+  if (SelfRootDir == NULL) {
+    SelfRootDir = EfiLibOpenRoot (SelfLoadedImage->DeviceHandle);
+    if (SelfRootDir != NULL) {
+      SelfDeviceHandle = SelfLoadedImage->DeviceHandle;
+    } else {
+      return EFI_LOAD_ERROR;
+    }
+  }
+
+  /*Status  = */  SelfRootDir->Open (SelfRootDir, &ThemeDir, ThemePath,    EFI_FILE_MODE_READ, 0);
+  /*Status  = */  SelfRootDir->Open (SelfRootDir, &OEMDir,   OEMPath,      EFI_FILE_MODE_READ, 0);
+  Status    =     SelfRootDir->Open (SelfRootDir, &SelfDir,  SelfDirPath,  EFI_FILE_MODE_READ, 0);
+
+  CheckFatalError (Status, L"while opening our installation directory");
+
+  return Status;
+}
+
+EFI_STATUS
+InitRefitLib (
+  IN EFI_HANDLE     ImageHandle
+) {
+  EFI_STATUS                  Status;
+  CHAR16                      *FilePathAsString;
+  UINTN                       i, DevicePathSize;
+  EFI_DEVICE_PATH_PROTOCOL    *TmpDevicePath;
+
+  SelfImageHandle = ImageHandle;
+
+  Status = gBS->HandleProtocol (
+                  SelfImageHandle,
+                  &gEfiLoadedImageProtocolGuid,
+                  (VOID **)&SelfLoadedImage
+                );
+
+  if (CheckFatalError (Status, L"while getting a LoadedImageProtocol handle")) {
+    return Status;
+  }
+
+  SelfDeviceHandle = SelfLoadedImage->DeviceHandle;
+  TmpDevicePath = DevicePathFromHandle (SelfDeviceHandle);
+  DevicePathSize = GetDevicePathSize (TmpDevicePath);
+  SelfDevicePath = AllocateAlignedPages (EFI_SIZE_TO_PAGES (DevicePathSize), 64);
+  CopyMem (SelfDevicePath, TmpDevicePath, DevicePathSize);
+
+  //DBG ("SelfDevicePath=%s @%x\n", FileDevicePathToStr (SelfDevicePath), SelfDeviceHandle);
+
+  // find the current directory
+  FilePathAsString = FileDevicePathToStr (SelfLoadedImage->FilePath);
+
+  if (FilePathAsString != NULL) {
+    SelfFullDevicePath = FileDevicePath (SelfDeviceHandle, FilePathAsString);
+    for (i = StrLen (FilePathAsString); i > 0 && FilePathAsString[i] != '\\'; i--);
+    if (i > 0) {
+      FilePathAsString[i] = 0;
+    } else {
+      FilePathAsString[0] = L'\\';
+      FilePathAsString[1] = 0;
+    }
+  } else {
+    FilePathAsString = AllocateCopyPool (StrSize (L"\\"), L"\\");
+  }
+
+  SelfDirPath = FilePathAsString;
+
+  //DBG ("SelfDirPath = %s\n", SelfDirPath);
+
+  return FinishInitRefitLib ();
+}
+
+VOID
+UninitRefitLib () {
+  // called before running external programs to close open file handles
+
+  if (SelfDir != NULL) {
+    SelfDir->Close (SelfDir);
+    SelfDir = NULL;
+  }
+
+  if (OEMDir != NULL) {
+    OEMDir->Close (OEMDir);
+    OEMDir = NULL;
+  }
+
+  if (ThemeDir != NULL) {
+    ThemeDir->Close (ThemeDir);
+    ThemeDir = NULL;
+  }
+
+  if (SelfRootDir != NULL) {
+    SelfRootDir->Close (SelfRootDir);
+    SelfRootDir = NULL;
+  }
+
+  UninitVolumes ();
+}
+
+EFI_STATUS
+ReinitRefitLib () {
+  // called after running external programs to re-open file handles
+  //
+  ReinitVolumes ();
+
+  if ((SelfVolume != NULL) && (SelfVolume->RootDir != NULL)) {
+    SelfRootDir = SelfVolume->RootDir;
+  }
+
+  return FinishInitRefitLib ();
+}
+
+EFI_STATUS
+ReinitSelfLib () {
+  // called after reconnect drivers to re-open file handles
+  EFI_STATUS                  Status;
+  EFI_HANDLE                  NewSelfHandle;
+  EFI_DEVICE_PATH_PROTOCOL    *TmpDevicePath;
+
+  //DbgHeader ("ReinitSelfLib");
+
+  if (!SelfDevicePath) {
+    return EFI_NOT_FOUND;
+  }
+
+  TmpDevicePath = DuplicateDevicePath (SelfDevicePath);
+
+  DBG ("reinit: self device path=%s\n", FileDevicePathToStr (TmpDevicePath));
+
+  if (TmpDevicePath == NULL) {
+    return EFI_NOT_FOUND;
+  }
+
+  NewSelfHandle = NULL;
+  Status = gBS->LocateDevicePath (
+                  &gEfiSimpleFileSystemProtocolGuid,
+                  &TmpDevicePath,
+                  &NewSelfHandle
+                );
+
+  CheckError (Status, L"while reopening our self handle");
+  //DBG ("new SelfHandle=%x\n", NewSelfHandle);
+
+  SelfRootDir = EfiLibOpenRoot (NewSelfHandle);
+
+  if (SelfRootDir == NULL) {
+    DBG ("SelfRootDir can't be reopened\n");
+    return EFI_NOT_FOUND;
+  }
+
+  SelfDeviceHandle = NewSelfHandle;
+
+  /*Status  = */  SelfRootDir->Open (SelfRootDir, &ThemeDir, ThemePath,    EFI_FILE_MODE_READ, 0);
+  /*Status  = */  SelfRootDir->Open (SelfRootDir, &OEMDir,   OEMPath,      EFI_FILE_MODE_READ, 0);
+  Status    =     SelfRootDir->Open (SelfRootDir, &SelfDir,  SelfDirPath,  EFI_FILE_MODE_READ, 0);
+
+  CheckFatalError (Status, L"while reopening our installation directory");
+
+  return Status;
+}
+
 //
 // file and dir functions
 //
@@ -1844,10 +1839,10 @@ FindMem (
 
 CHAR8 *
 SearchString (
-  IN  CHAR8       *Source,
-  IN  UINT64      SourceSize,
-  IN  CHAR8       *Search,
-  IN  UINTN       SearchSize
+  IN  CHAR8     *Source,
+  IN  UINT64    SourceSize,
+  IN  CHAR8     *Search,
+  IN  UINTN     SearchSize
 ) {
   CHAR8   *End = Source + SourceSize;
 

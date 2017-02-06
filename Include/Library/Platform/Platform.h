@@ -5,12 +5,12 @@ Headers collection for procedures
 #ifndef __REFIT_PLATFORM_H__
 #define __REFIT_PLATFORM_H__
 
-// Set all debug options - apianti
-// Uncomment to set all debug options
-// Comment to use source debug options
-//#define DEBUG_ALL 2
-
 #include "Version.h"
+
+#include <PiDxe.h>
+//#include <Base.h>
+//#include <Uefi.h>
+#include <FrameworkDxe.h>
 
 #include <Guid/Acpi.h>
 
@@ -20,21 +20,47 @@ Headers collection for procedures
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 #include <Library/DevicePathLib.h>
+#include <Library/DxeServicesLib.h>
+#include <Library/DxeServicesTableLib.h>
 #include <Library/GenericBdsLib.h>
+#include <Library/HobLib.h>
+#include <Library/IoLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/PcdLib.h>
+#include <Library/PrintLib.h>
 #include <Library/UefiLib.h>
+#include <Library/UefiRuntimeServicesTableLib.h>
 
 #include <Library/Common/MemLogLib.h>
 #include <Library/Common/CommonLib.h>
+
+#include <Protocol/BlockIo.h>
+#include <Protocol/DataHub.h>
+#include <Protocol/EdidDiscovered.h>
+#include <Protocol/EdidOverride.h>
+#include <Protocol/LoadedImage.h>
+#include <Protocol/PciIo.h>
+#include <Protocol/SimpleFileSystem.h>
+#include <Protocol/Smbios.h>
+#include <Protocol/UnicodeCollation.h>
+
+#include <Library/UI/UI.h>
+#include <Library/UI/LodePng.h>
+
+#include <Guid/DataHubRecords.h>
+#include <Guid/FileInfo.h>
+#include <Guid/FileSystemInfo.h>
+#include <Guid/FileSystemVolumeLabelInfo.h>
+
+#include <IndustryStandard/AppleSmBios.h>
+#include <IndustryStandard/Atapi.h>
+#include <IndustryStandard/Bmp.h>
+#include <IndustryStandard/Pci.h>
+
 #include <Library/Common/Lib.h>
 #include <Library/Common/Boot.h>
 #include <Library/Common/IO.h>
 
-#include <IndustryStandard/Atapi.h>
-#include <IndustryStandard/Bmp.h>
-
-#include <Protocol/EdidOverride.h>
 #include <Protocol/FSInjectProtocol.h>
 #include <Protocol/MsgLog.h>
 #include <Protocol/efiConsoleControl.h>
@@ -43,38 +69,54 @@ Headers collection for procedures
 #include <Library/Platform/DeviceInject.h>
 #include <Library/Platform/KextInject.h>
 
-#include <Library/UI/LodePng.h>
+//#include <Library/Platform/Types.h>
+//#include <Library/Platform/Macros.h>
 
-/* XML Tags */
-typedef enum {
-  kTagTypeNone,
-  kTagTypeDict,
-  kTagTypeKey,
-  kTagTypeString,
-  kTagTypeInteger,
-  kTagTypeData,
-  kTagTypeDate,
-  kTagTypeFalse,
-  kTagTypeTrue,
-  kTagTypeArray
-} TAG_TYPE;
 
-#define kXMLTagPList      "plist"
-#define kXMLTagDict       "dict"
-#define kXMLTagKey        "key"
-#define kXMLTagString     "string"
-#define kXMLTagInteger    "integer"
-#define kXMLTagData       "data"
-#define kXMLTagDate       "date"
-#define kXMLTagFalse      "false/"
-#define kXMLTagTrue       "true/"
-#define kXMLTagFalse2     "false /"
-#define kXMLTagTrue2      "true /"
-#define kXMLTagArray      "array"
-#define kXMLTagReference  "reference"
-#define kXMLTagID         "ID="
-#define kXMLTagIDREF      "IDREF="
-#define kXMLTagSIZE       "size="
+
+#define ROUND_PAGE(x)             ((((unsigned)(x)) + EFI_PAGE_SIZE - 1) & ~(EFI_PAGE_SIZE - 1))
+
+#define bit(n)                    (1UL << (n))
+#define _Bit(n)                   (1ULL << (n))
+#define _HBit(n)                  (1ULL << ((n) + 32))
+
+#define bitmask(h,l)              ((bit(h)|(bit(h) - 1)) & ~(bit(l) - 1))
+#define bitfield(x,h,l)           RShiftU64(((x) & bitmask((h),(l))), (l))
+#define quad(hi,lo)               ((LShiftU64((hi), 32) | (lo)))
+
+#define PCIADDR(bus, dev, func)       ((1 << 31) | ((bus) << 16) | ((dev) << 11) | ((func) << 8))
+#define REG8(base, reg)               ((volatile UINT8 *)(UINTN)(base))[(reg)]
+#define REG16(base, reg)              ((volatile UINT16 *)(UINTN)(base))[(reg) >> 1]
+#define REG32(base, reg)              ((volatile UINT32 *)(UINTN)(base))[(reg) >> 2]
+#define WRITEREG32(base, reg, value)  REG32 ((base), (reg)) = value
+
+#define MEDIA_VALID(kind, type) (\
+          ((kind == DISK_KIND_OPTICAL) && (type & VOLTYPE_OPTICAL)) ||\
+          ((kind == DISK_KIND_EXTERNAL) && (type & VOLTYPE_EXTERNAL)) ||\
+          ((kind == DISK_KIND_INTERNAL) && (type & VOLTYPE_INTERNAL)) ||\
+          ((kind == DISK_KIND_FIREWIRE) && (type & VOLTYPE_FIREWIRE))\
+        )
+
+#define MEDIA_INVALID(kind, type) (\
+          ((kind == DISK_KIND_OPTICAL) && ((type & VOLTYPE_OPTICAL) == 0)) ||\
+          ((kind == DISK_KIND_EXTERNAL) && ((type & VOLTYPE_EXTERNAL) == 0)) ||\
+          ((kind == DISK_KIND_INTERNAL) && ((type & VOLTYPE_INTERNAL) == 0)) ||\
+          ((kind == DISK_KIND_FIREWIRE) && ((type & VOLTYPE_FIREWIRE) == 0))\
+        )
+
+//UINT64 AsciiStrVersionToUint64 (CONST CHAR8 *Version, UINT8 MaxDigitByPart, UINT8 MaxParts);
+/* Macro to use the AsciiStrVersionToUint64 for OSX Version strings */
+#define AsciiOSVersionToUint64(version) AsciiStrVersionToUint64 (version, 2, 3)
+
+#define OSX_EQ(OSVersion, CurrVer) (OSVersion && CurrVer && (AsciiOSVersionToUint64 (OSVersion) == AsciiOSVersionToUint64 (CurrVer)))
+#define OSX_LT(OSVersion, CurrVer) (OSVersion && CurrVer && (AsciiOSVersionToUint64 (OSVersion) < AsciiOSVersionToUint64 (CurrVer)))
+#define OSX_LE(OSVersion, CurrVer) (OSVersion && CurrVer && (AsciiOSVersionToUint64 (OSVersion) <= AsciiOSVersionToUint64 (CurrVer)))
+#define OSX_GT(OSVersion, CurrVer) (OSVersion && CurrVer && (AsciiOSVersionToUint64 (OSVersion) > AsciiOSVersionToUint64 (CurrVer)))
+#define OSX_GE(OSVersion, CurrVer) (OSVersion && CurrVer && (AsciiOSVersionToUint64 (OSVersion) >= AsciiOSVersionToUint64 (CurrVer)))
+
+#define DEC_PNG_BUILTIN(ico) DecodePNG (ico, ARRAY_SIZE (ico), 0, TRUE)
+
+
 
 #define MAX_NUM_DEVICES  64
 
@@ -87,7 +129,14 @@ typedef enum {
 
 #define EBDA_BASE_ADDRESS               0x40E
 #define EFI_SYSTEM_TABLE_MAX_ADDRESS    0xFFFFFFFF
-#define ROUND_PAGE(x)                   ((((unsigned)(x)) + EFI_PAGE_SIZE - 1) & ~(EFI_PAGE_SIZE - 1))
+
+#define CONFIG_FILENAME           L"config"
+
+#define CONFIG_THEME_FILENAME     L"theme"
+#define CONFIG_THEME_RANDOM       L"random"
+#define CONFIG_THEME_EMBEDDED     L"embedded"
+//#define CONFIG_THEME_CHRISTMAS    L"christmas"
+//#define CONFIG_THEME_NEWYEAR      L"newyear"
 
 #define DIR_CLOVER          L"\\EFI\\CLOVER"
 
@@ -120,6 +169,8 @@ typedef enum {
 #define DEBUG_LOG           PoolPrint (L"%s\\%s", DIR_MISC, L"debug.log")
 #define DATAHUB_LOG         L"boot-log"
 
+#define OSX_PATH_SLE        L"\\System\\Library\\Extensions"
+
 #ifndef DEBUG_ALL
 #define MsgLog(...)  DebugLog (1, __VA_ARGS__)
 #else
@@ -151,6 +202,67 @@ typedef enum {
 
 #define DEF_NOSIP_CSR_ACTIVE_CONFIG     (CSR_ALLOW_APPLE_INTERNAL + CSR_ALLOW_UNRESTRICTED_NVRAM + CSR_ALLOW_DEVICE_CONFIGURATION + CSR_ALLOW_ANY_RECOVERY_OS)
 #define DEF_NOSIP_BOOTER_CONFIG         (kBootArgsFlagCSRActiveConfig + kBootArgsFlagCSRConfigMode + kBootArgsFlagCSRBoot)
+
+/* XML Tags */
+typedef enum {
+  kTagTypeNone,
+  kTagTypeDict,
+  kTagTypeKey,
+  kTagTypeString,
+  kTagTypeInteger,
+  kTagTypeData,
+  kTagTypeDate,
+  kTagTypeFalse,
+  kTagTypeTrue,
+  kTagTypeArray
+} TAG_TYPE;
+
+#define kXMLTagPList      "plist"
+#define kXMLTagDict       "dict"
+#define kXMLTagKey        "key"
+#define kXMLTagString     "string"
+#define kXMLTagInteger    "integer"
+#define kXMLTagData       "data"
+#define kXMLTagDate       "date"
+#define kXMLTagFalse      "false/"
+#define kXMLTagTrue       "true/"
+#define kXMLTagFalse2     "false /"
+#define kXMLTagTrue2      "true /"
+#define kXMLTagArray      "array"
+#define kXMLTagReference  "reference"
+#define kXMLTagID         "ID="
+#define kXMLTagIDREF      "IDREF="
+#define kXMLTagSIZE       "size="
+
+typedef struct Symbol {
+          UINTN   refCount;
+          CHAR8   *string;
+  struct  Symbol  *next;
+} Symbol , *SymbolPtr;
+
+typedef struct sREF {
+          CHAR8   *string;
+          INT32   id;
+          INTN    integer;
+          INTN    size;
+  struct  sREF    *next;
+} sREF;
+
+typedef struct {
+  UINTN   type;
+  CHAR8   *string;
+  INTN    integer;
+  UINT8   *data;
+  UINTN   size;
+  VOID    *tag;
+  VOID    *tagNext;
+  UINTN   offset;
+  UINTN   taglen;
+  INT32   ref;
+  INT32   id;
+  sREF    *ref_strings;
+  sREF    *ref_integer;
+} TagStruct, *TagPtr;
 
 //#define CPU_MODEL_PENTIUM_M     0x09
 //#define CPU_MODEL_DOTHAN        0x0D
@@ -200,17 +312,6 @@ typedef enum {
 //#define CPU_VENDOR_AMD          0x68747541
 /* Unknown CPU */
 #define CPU_STRING_UNKNOWN        "Unknown CPU Type"
-
-//definitions from Apple XNU
-
-/* CPU defines */
-#define bit(n)                    (1UL << (n))
-#define _Bit(n)                   (1ULL << (n))
-#define _HBit(n)                  (1ULL << ((n) + 32))
-
-#define bitmask(h,l)              ((bit(h)|(bit(h) - 1)) & ~(bit(l) - 1))
-#define bitfield(x,h,l)           RShiftU64(((x) & bitmask((h),(l))), (l))
-#define quad(hi,lo)               ((LShiftU64((hi), 32) | (lo)))
 
 /*
  * The CPUID_FEATURE_XXX values define 64-bit values
@@ -422,6 +523,55 @@ typedef enum {
 #define MAX_CACHE_COUNT               4
 #define CPU_CACHE_LEVEL               3
 
+typedef struct {
+ //values from CPUID
+  UINT32                  CPUID[CPUID_MAX][4];
+  UINT32                  Vendor;
+  UINT32                  Signature;
+  UINT32                  Family;
+  UINT32                  Model;
+  UINT32                  Stepping;
+  UINT32                  Type;
+  UINT32                  Extmodel;
+  UINT32                  Extfamily;
+  UINT64                  Features;
+  UINT64                  ExtFeatures;
+  UINT32                  CoresPerPackage;
+  UINT32                  LogicalPerPackage;
+  CHAR8                   BrandString[48];
+
+  //values from BIOS
+  UINT32                  ExternalClock; //keep this values as kHz
+  UINT32                  MaxSpeed;       //MHz
+  UINT32                  CurrentSpeed;   //MHz
+
+  //calculated from MSR
+  UINT64                  MicroCode;
+  UINT64                  ProcessorFlag;
+  UINT32                  MaxRatio;
+  UINT32                  SubDivider;
+  UINT32                  MinRatio;
+  UINT32                  DynFSB;
+  UINT64                  ProcessorInterconnectSpeed; //MHz
+  UINT64                  FSBFrequency; //Hz
+  UINT64                  CPUFrequency;
+  UINT64                  TSCFrequency;
+  UINT8                   Cores;
+  UINT8                   EnabledCores;
+  UINT8                   Threads;
+  UINT8                   Mobile;  //not for i3-i7
+  BOOLEAN                 Turbo;
+
+  /* Core i7,5,3 */
+  UINT16                  Turbo1; //1 Core
+  UINT16                  Turbo2; //2 Core
+  UINT16                  Turbo3; //3 Core
+  UINT16                  Turbo4; //4 Core
+
+  UINT64                  TSCCalibr;
+  UINT64                  ARTFrequency;
+} CPU_STRUCTURE;
+
 /* PCI */
 #define PCI_BASE_ADDRESS_0            0x10    /* 32 bits */
 #define PCI_BASE_ADDRESS_1            0x14    /* 32 bits [htype 0,1 only] */
@@ -432,13 +582,7 @@ typedef enum {
 
 #define PCI_CLASS_MEDIA_HDA           0x03
 
-#define GEN_PMCON_1                   0xA0
-
-#define PCIADDR(bus, dev, func)       ((1 << 31) | ((bus) << 16) | ((dev) << 11) | ((func) << 8))
-#define REG8(base, reg)               ((volatile UINT8 *)(UINTN)(base))[(reg)]
-#define REG16(base, reg)              ((volatile UINT16 *)(UINTN)(base))[(reg) >> 1]
-#define REG32(base, reg)              ((volatile UINT32 *)(UINTN)(base))[(reg) >> 2]
-#define WRITEREG32(base, reg, value)  REG32 ((base), (reg)) = value
+//#define GEN_PMCON_1                   0xA0
 
 #define EFI_HANDLE_TYPE_UNKNOWN                         0x000
 #define EFI_HANDLE_TYPE_IMAGE_HANDLE                    0x001
@@ -452,6 +596,8 @@ typedef enum {
 #define EFI_HANDLE_TYPE_PARENT_HANDLE                   0x100
 #define EFI_HANDLE_TYPE_CONTROLLER_HANDLE               0x200
 #define EFI_HANDLE_TYPE_CHILD_HANDLE                    0x400
+
+// ACPI/PATCHED/AML
 
 #define AML_CHUNK_NONE          0xff
 #define AML_CHUNK_ZERO          0x00
@@ -495,6 +641,77 @@ typedef enum {
 #define FIX_HDMI        bit (7)
 #define FIX_IMEI        bit (8)
 
+typedef struct ACPI_DROP_TABLE {
+          UINT32            Signature;
+          UINT32            Length;
+          UINT64            TableId;
+          INPUT_ITEM        MenuItem;
+  struct  ACPI_DROP_TABLE   *Next;
+} ACPI_DROP_TABLE;
+
+typedef struct ACPI_PATCHED_AML {
+          CHAR16              *FileName;
+          INPUT_ITEM          MenuItem;
+  struct  ACPI_PATCHED_AML    *Next;
+} ACPI_PATCHED_AML;
+
+typedef struct PATCH_DSDT {
+          UINT8       *Find;
+          UINT32      LenToFind;
+          UINT8       *Replace;
+          UINT32      LenToReplace;
+          BOOLEAN     Disabled;
+          CHAR8       *Comment;
+  struct  PATCH_DSDT  *Next;
+} PATCH_DSDT;
+
+typedef struct AML_CHUNK {
+          UINT8       Type;
+          UINT16      Length;
+          CHAR8       *Buffer;
+          UINT16      Size;
+  struct  AML_CHUNK   *Next;
+  struct  AML_CHUNK   *First;
+  struct  AML_CHUNK   *Last;
+} AML_CHUNK;
+
+struct p_state_vid_fid {
+  UINT8 VID;  // Voltage ID
+  UINT8 FID;  // Frequency ID
+};
+
+typedef struct P_STATE {
+  union {
+            UINT16            Control;
+    struct  p_state_vid_fid   VID_FID;
+  } Control;
+
+  UINT32 CID;   // Compare ID
+  UINT32 Frequency;
+} P_STATE;
+
+typedef struct OPER_REGION {
+          CHAR8         Name[8];
+          UINT32        Address;
+  struct  OPER_REGION   *next;
+} OPER_REGION;
+
+//#pragma pack(push)
+#pragma pack(1)
+
+typedef struct {
+  EFI_ACPI_DESCRIPTION_HEADER   Header;
+  UINT32                        Entry;
+} RSDT_TABLE;
+
+typedef struct {
+  EFI_ACPI_DESCRIPTION_HEADER   Header;
+  UINT64                        Entry;
+} XSDT_TABLE;
+
+//#pragma pack(pop)
+#pragma pack()
+
 //devices
 #define DEV_ATI         bit (0)
 #define DEV_NVIDIA      bit (1)
@@ -512,6 +729,152 @@ typedef enum {
 #define DEV_MCHC        bit (13)
 #define DEV_BY_PCI      bit (31)
 
+typedef struct {
+  UINT16            SegmentGroupNum;
+  UINT8             BusNum;
+  UINT8             DevFuncNum;
+  BOOLEAN           Valid;
+  UINT8             SlotID;
+  UINT8             SlotType;
+  CHAR8             SlotName[31];
+} SLOT_DEVICE;
+
+typedef struct DEV_PROPERTY {
+          UINTN         Device;
+          CHAR8         *Key;
+          CHAR8         *Value;
+          UINTN         ValueLen;
+  struct  DEV_PROPERTY  *Next;
+} DEV_PROPERTY;
+
+// GFX
+
+typedef struct {
+  BOOLEAN     Intel;
+  BOOLEAN     Nvidia;
+  BOOLEAN     Ati;
+} S_HAS_GRAPHICS;
+
+typedef enum {
+  Unknown,
+  Ati,
+  Intel,
+  Nvidia
+} GFX_MANUFACTURER;
+
+typedef struct {
+  GFX_MANUFACTURER  Vendor;
+  UINT8             Ports;
+  UINT16            DeviceID;
+  UINT16            Family;
+  CHAR8             Model[64];
+  CHAR8             Config[64];
+  BOOLEAN           LoadVBios;
+  UINTN             Segment;
+  UINTN             Bus;
+  UINTN             Device;
+  UINTN             Function;
+  EFI_HANDLE        Handle;
+  UINT8             *Mmio;
+} GFX_PROPERTIES;
+
+typedef struct {
+  UINT32            Signature;
+  LIST_ENTRY        Link;
+  CHAR8             Model[64];
+  UINT32            Id;
+  UINT32            SubId;
+  UINT64            VideoRam;
+  UINTN             VideoPorts;
+  BOOLEAN           LoadVBios;
+} CARDLIST;
+
+#define CARDLIST_SIGNATURE SIGNATURE_32('C','A','R','D')
+
+// RAM
+
+typedef struct {
+  BOOLEAN   InUse;
+  UINT8     Type;
+  UINT32    ModuleSize;
+  UINT32    Frequency;
+  CHAR8     *Vendor;
+  CHAR8     *PartNo;
+  CHAR8     *SerialNo;
+} RAM_SLOT_INFO;
+
+// The maximum number of RAM slots to detect
+// even for 3-channels chipset X58 there are no more then 8 slots
+#define MAX_RAM_SLOTS 24
+// The maximum sane frequency for a RAM module
+#define MAX_RAM_FREQUENCY 5000
+
+typedef struct {
+  UINT64    Frequency;
+  UINT32    Divider;
+  UINT8     TRC;
+  UINT8     TRP;
+  UINT8     RAS;
+  UINT8     Channels;
+  UINT8     Slots;
+  UINT8     Type;
+  UINT8     SPDInUse;
+  UINT8     SMBIOSInUse;
+  UINT8     UserInUse;
+  UINT8     UserChannels;
+
+  RAM_SLOT_INFO SPD[MAX_RAM_SLOTS * 4];
+  RAM_SLOT_INFO SMBIOS[MAX_RAM_SLOTS * 4];
+  RAM_SLOT_INFO User[MAX_RAM_SLOTS * 4];
+} MEM_STRUCTURE;
+
+// CONFIG
+
+typedef enum {
+  MacBook11,
+  MacBook21,
+  MacBook41,
+  MacBook52,
+  MacBookPro51,
+  MacBookPro62,
+  MacBookPro81,
+  MacBookPro83,
+  MacBookPro92,
+  MacBookPro101,
+  MacBookPro111,
+  MacBookAir31,
+  MacBookAir52,
+  MacBookAir62,
+  MacMini21,
+  MacMini51,
+  MacMini62,
+  iMac81,
+  iMac101,
+  iMac111,
+  iMac112,
+  iMac113,
+  iMac121,
+  iMac122,
+  iMac131,
+  iMac132,
+  iMac141,
+  iMac142,
+  iMac151,
+  iMac171,
+  MacPro31,
+  MacPro41,
+  MacPro51,
+  MacPro61,
+
+  MaxMachineType
+} MACHINE_TYPES;
+
+typedef struct S_FILES {
+          CHAR16    *FileName;
+          INTN      Index;
+  struct  S_FILES   *Next;
+} S_FILES;
+
 //#define NUM_OF_CONFIGS 3
 
 // Kernel scan states
@@ -524,247 +887,37 @@ typedef enum {
 //#define KERNEL_SCAN_EARLIEST    (6)
 #define KERNEL_SCAN_NONE        (100)
 
-struct aml_chunk
-{
-  UINT8             Type;
-  //UINT8             pad;
-  UINT16            Length;
-  //UINT32            pad2;
-  CHAR8             *Buffer;
-
-  UINT16            Size;
-  //UINT16            pad3[3];
-
-  struct aml_chunk  *Next;
-  struct aml_chunk  *First;
-  struct aml_chunk  *Last;
-};
-
-typedef struct aml_chunk AML_CHUNK;
-
-struct p_state_vid_fid
-{
-  UINT8 VID;  // Voltage ID
-  UINT8 FID;  // Frequency ID
-};
-
-union p_state_control
-{
-  UINT16 Control;
-  struct p_state_vid_fid VID_FID;
-};
-
-struct p_state
-{
-  union p_state_control Control;
-
-  UINT32 CID;   // Compare ID
-  UINT32 Frequency;
-};
-
-typedef struct p_state P_STATE;
-
-struct _oper_region {
-  CHAR8 Name[8];
-  UINT32 Address;
-  struct _oper_region *next;
-};
-
-typedef struct _oper_region OPER_REGION;
-
-typedef struct _DRIVERS_FLAGS {
-  BOOLEAN AptioFixLoaded;
+typedef struct {
   BOOLEAN AptioFixEmbedded;
   BOOLEAN FSInjectEmbedded;
+  BOOLEAN AptioFixLoaded;
   BOOLEAN HFSLoaded;
 } DRIVERS_FLAGS;
 
-#pragma pack(push)
-#pragma pack(1)
-
-struct Symbol {
-  UINTN         refCount;
-  struct Symbol *next;
-  CHAR8         *string;
-};
-
-typedef struct Symbol Symbol, *SymbolPtr;
-
-struct sREF
-{
-  CHAR8   *string;
-  INT32   id;
-  INTN    integer;
-  INTN    size;
-  struct  sREF *next;
-};
-typedef struct sREF sREF;
+typedef enum {
+  english = 0,  //en
+  //indonesian, //id
+  //something else? add, please
+} LANGUAGES;
 
 typedef struct {
-
-  UINTN   type;
-  CHAR8   *string;
-  INTN    integer;
-  UINT8   *data;
-  UINTN   size;
-  VOID    *tag;
-  VOID    *tagNext;
-  UINTN   offset;
-  UINTN   taglen;
-  INT32   ref;
-  INT32   id;
-  sREF    *ref_strings;
-  sREF    *ref_integer;
-
-} TagStruct, *TagPtr;
+  CHAR8   *Title;
+  UINTN   Bit;
+} DEVICES_BIT_K;
 
 typedef struct {
+  CHAR8   *Title;
+  CHAR8   *OptLabel;
+  UINTN   Bit;
+} OPT_MENU_BIT_K;
 
-  EFI_ACPI_DESCRIPTION_HEADER   Header;
-  UINT32                        Entry;
-
-} RSDT_TABLE;
-
-typedef struct {
-
-  EFI_ACPI_DESCRIPTION_HEADER   Header;
-  UINT64                        Entry;
-
-} XSDT_TABLE;
-
-typedef struct DEV_PROPERTY DEV_PROPERTY;
-struct DEV_PROPERTY {
-  UINTN  Device;
-  CHAR8  *Key;
-  CHAR8  *Value;
-  UINTN  ValueLen;
-  DEV_PROPERTY *Next;
-};
-
-//--> entry_scan.h
-
-#define MEDIA_VALID(kind, type) (\
-          ((kind == DISK_KIND_OPTICAL) && (type & VOLTYPE_OPTICAL)) ||\
-          ((kind == DISK_KIND_EXTERNAL) && (type & VOLTYPE_EXTERNAL)) ||\
-          ((kind == DISK_KIND_INTERNAL) && (type & VOLTYPE_INTERNAL)) ||\
-          ((kind == DISK_KIND_FIREWIRE) && (type & VOLTYPE_FIREWIRE))\
-        )
-
-#define MEDIA_INVALID(kind, type) (\
-          ((kind == DISK_KIND_OPTICAL) && ((type & VOLTYPE_OPTICAL) == 0)) ||\
-          ((kind == DISK_KIND_EXTERNAL) && ((type & VOLTYPE_EXTERNAL) == 0)) ||\
-          ((kind == DISK_KIND_INTERNAL) && ((type & VOLTYPE_INTERNAL) == 0)) ||\
-          ((kind == DISK_KIND_FIREWIRE) && ((type & VOLTYPE_FIREWIRE) == 0))\
-        )
-
-extern REFIT_MENU_ENTRY   MenuEntryReturn;
-extern REFIT_MENU_ENTRY   MenuEntryOptions;
-extern REFIT_MENU_ENTRY   MenuEntryAbout;
-extern REFIT_MENU_ENTRY   MenuEntryReset;
-extern REFIT_MENU_ENTRY   MenuEntryShutdown;
-extern REFIT_MENU_ENTRY   MenuEntryHelp;
-extern REFIT_MENU_ENTRY   MenuEntryExit;
-extern REFIT_MENU_SCREEN  MainMenu;
-
-// common
-//CHAR16 *AddLoadOption (IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
-//CHAR16 *RemoveLoadOption (IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
-
-// loader
-VOID ScanLoader ();
-VOID AddCustomEntries ();
-
-// tool
-VOID ScanTool ();
-VOID AddCustomTool ();
-
-//<-- entry_scan.h
-
-typedef struct CUSTOM_LOADER_ENTRY CUSTOM_LOADER_ENTRY;
-struct CUSTOM_LOADER_ENTRY {
-  CUSTOM_LOADER_ENTRY       *Next;
-  CUSTOM_LOADER_ENTRY       *SubEntries;
-  EG_IMAGE                  *Image;
-  EG_IMAGE                  *DriveImage;
-  CHAR16                    *ImagePath;
-  CHAR16                    *DriveImagePath;
-  CHAR16                    *Volume;
-  CHAR16                    *Path;
-  CHAR16                    *Options;
-  CHAR16                    *FullTitle;
-  CHAR16                    *Title;
-  CHAR16                    *Settings;
-  CHAR16                    Hotkey;
-  BOOLEAN                   CommonSettings;
-  UINT8                     Flags;
-  UINT8                     Type;
-  UINT8                     VolumeType;
-  UINT8                     KernelScan;
-  KERNEL_AND_KEXT_PATCHES   KernelAndKextPatches;
-};
-
-typedef struct CUSTOM_TOOL_ENTRY CUSTOM_TOOL_ENTRY;
-struct CUSTOM_TOOL_ENTRY {
-  CUSTOM_TOOL_ENTRY   *Next;
-  EG_IMAGE            *Image;
-  CHAR16              *ImagePath;
-  CHAR16              *Volume;
-  CHAR16              *Path;
-  CHAR16              *Options;
-  CHAR16              *FullTitle;
-  CHAR16              *Title;
-  CHAR16              Hotkey;
-  UINT8               Flags;
-  UINT8               VolumeType;
-};
-
-typedef struct ACPI_DROP_TABLE ACPI_DROP_TABLE;
-struct ACPI_DROP_TABLE
-{
-  ACPI_DROP_TABLE *Next;
-  UINT32          Signature;
-  UINT32          Length;
-  UINT64          TableId;
-  INPUT_ITEM      MenuItem;
-};
-
-// ACPI/PATCHED/AML
-typedef struct ACPI_PATCHED_AML ACPI_PATCHED_AML;
-struct ACPI_PATCHED_AML
-{
-  ACPI_PATCHED_AML    *Next;
-  CHAR16              *FileName;
-  INPUT_ITEM          MenuItem;
-};
-
-typedef struct PATCH_DSDT PATCH_DSDT;
-struct PATCH_DSDT
-{
-  PATCH_DSDT  *Next;
-  UINT8       *Find;
-  UINT32      LenToFind;
-  UINT8       *Replace;
-  UINT32      LenToReplace;
-  BOOLEAN     Disabled;
-  CHAR8       *Comment;
-};
-
-typedef struct S_HAS_GRAPHICS S_HAS_GRAPHICS;
-struct S_HAS_GRAPHICS
-{
-  BOOLEAN     Intel;
-  BOOLEAN     Nvidia;
-  BOOLEAN     Ati;
-};
-
-// CONFIGS
-typedef struct S_FILES S_FILES;
-struct S_FILES
-{
-  S_FILES   *Next;
-  CHAR16    *FileName;
-  INTN      Index;
-};
+// Settings.c
+// Micky1979: Next five functions (+ needed struct) are to split a string like "10.10.5,10.7,10.11.6,10.8.x"
+// in their components separated by comma (in this case)
+typedef struct MatchOSes {
+  INTN    count;
+  CHAR8   *array[100];
+} MatchOSes;
 
 typedef struct {
   // SMBIOS TYPE0
@@ -971,184 +1124,17 @@ typedef struct {
   UINT32                    FlagsBits;
 } SETTINGS_DATA;
 
-typedef struct {
- //values from CPUID
-  UINT32                  CPUID[CPUID_MAX][4];
-  UINT32                  Vendor;
-  UINT32                  Signature;
-  UINT32                  Family;
-  UINT32                  Model;
-  UINT32                  Stepping;
-  UINT32                  Type;
-  UINT32                  Extmodel;
-  UINT32                  Extfamily;
-  UINT64                  Features;
-  UINT64                  ExtFeatures;
-  UINT32                  CoresPerPackage;
-  UINT32                  LogicalPerPackage;
-  CHAR8                   BrandString[48];
 
-  //values from BIOS
-  UINT32                  ExternalClock; //keep this values as kHz
-  UINT32                  MaxSpeed;       //MHz
-  UINT32                  CurrentSpeed;   //MHz
 
-  //calculated from MSR
-  UINT64                  MicroCode;
-  UINT64                  ProcessorFlag;
-  UINT32                  MaxRatio;
-  UINT32                  SubDivider;
-  UINT32                  MinRatio;
-  UINT32                  DynFSB;
-  UINT64                  ProcessorInterconnectSpeed; //MHz
-  UINT64                  FSBFrequency; //Hz
-  UINT64                  CPUFrequency;
-  UINT64                  TSCFrequency;
-  UINT8                   Cores;
-  UINT8                   EnabledCores;
-  UINT8                   Threads;
-  UINT8                   Mobile;  //not for i3-i7
-  BOOLEAN                 Turbo;
+extern REFIT_MENU_ENTRY                 MenuEntryReturn;
+extern REFIT_MENU_ENTRY                 MenuEntryOptions;
+extern REFIT_MENU_ENTRY                 MenuEntryAbout;
+extern REFIT_MENU_ENTRY                 MenuEntryReset;
+extern REFIT_MENU_ENTRY                 MenuEntryShutdown;
+extern REFIT_MENU_ENTRY                 MenuEntryHelp;
+extern REFIT_MENU_ENTRY                 MenuEntryExit;
+extern REFIT_MENU_SCREEN                MainMenu;
 
-  /* Core i7,5,3 */
-  UINT16                  Turbo1; //1 Core
-  UINT16                  Turbo2; //2 Core
-  UINT16                  Turbo3; //3 Core
-  UINT16                  Turbo4; //4 Core
-
-  UINT64                  TSCCalibr;
-  UINT64                  ARTFrequency;
-} CPU_STRUCTURE;
-
-typedef enum {
-
-  MacBook11,
-  MacBook21,
-  MacBook41,
-  MacBook52,
-  MacBookPro51,
-  MacBookPro62,
-  MacBookPro81,
-  MacBookPro83,
-  MacBookPro92,
-  MacBookPro101,
-  MacBookPro111,
-  MacBookAir31,
-  MacBookAir52,
-  MacBookAir62,
-  MacMini21,
-  MacMini51,
-  MacMini62,
-  iMac81,
-  iMac101,
-  iMac111,
-  iMac112,
-  iMac113,
-  iMac121,
-  iMac122,
-  iMac131,
-  iMac132,
-  iMac141,
-  iMac142,
-  iMac151,
-  iMac171,
-  MacPro31,
-  MacPro41,
-  MacPro51,
-  MacPro61,
-
-  MaxMachineType
-
-} MACHINE_TYPES;
-
-typedef struct {
-  BOOLEAN InUse;
-  UINT8   Type;
-  UINT32  ModuleSize;
-  UINT32  Frequency;
-  CHAR8   *Vendor;
-  CHAR8   *PartNo;
-  CHAR8   *SerialNo;
-} RAM_SLOT_INFO;
-
-// The maximum number of RAM slots to detect
-// even for 3-channels chipset X58 there are no more then 8 slots
-#define MAX_RAM_SLOTS 24
-// The maximum sane frequency for a RAM module
-#define MAX_RAM_FREQUENCY 5000
-
-typedef struct {
-  UINT64        Frequency;
-  UINT32        Divider;
-  UINT8         TRC;
-  UINT8         TRP;
-  UINT8         RAS;
-  UINT8         Channels;
-  UINT8         Slots;
-  UINT8         Type;
-  UINT8         SPDInUse;
-  UINT8         SMBIOSInUse;
-  UINT8         UserInUse;
-  UINT8         UserChannels;
-
-  RAM_SLOT_INFO SPD[MAX_RAM_SLOTS * 4];
-  RAM_SLOT_INFO SMBIOS[MAX_RAM_SLOTS * 4];
-  RAM_SLOT_INFO User[MAX_RAM_SLOTS * 4];
-} MEM_STRUCTURE;
-
-typedef enum {
-  english = 0,  //en
-  //indonesian, //id
-  //something else? add, please
-} LANGUAGES;
-
-typedef enum {
-  Unknown,
-  Ati,
-  Intel,
-  Nvidia
-} GFX_MANUFACTERER;
-
-typedef struct {
-  GFX_MANUFACTERER  Vendor;
-  UINT8             Ports;
-  UINT16            DeviceID;
-  UINT16            Family;
-  CHAR8             Model[64];
-  CHAR8             Config[64];
-  BOOLEAN           LoadVBios;
-  UINTN             Segment;
-  UINTN             Bus;
-  UINTN             Device;
-  UINTN             Function;
-  EFI_HANDLE        Handle;
-  UINT8             *Mmio;
-} GFX_PROPERTIES;
-
-typedef struct {
-  UINT16            SegmentGroupNum;
-  UINT8             BusNum;
-  UINT8             DevFuncNum;
-  BOOLEAN           Valid;
-  UINT8             SlotID;
-  UINT8             SlotType;
-  CHAR8             SlotName[31];
-} SLOT_DEVICE;
-
-typedef struct {
-  UINT32            Signature;
-  LIST_ENTRY        Link;
-  CHAR8             Model[64];
-  UINT32            Id;
-  UINT32            SubId;
-  UINT64            VideoRam;
-  UINTN             VideoPorts;
-  BOOLEAN           LoadVBios;
-} CARDLIST;
-
-#define CARDLIST_SIGNATURE SIGNATURE_32('C','A','R','D')
-
-#pragma pack(pop)
 //extern CHAR8                          *msgbuf;
 //extern CHAR8                          *msgCursor;
 extern APPLE_SMBIOS_STRUCTURE_POINTER   SmbiosTable;
@@ -1224,22 +1210,39 @@ extern S_FILES                          *aThemes;
 extern UINTN                            ACPIDropTablesNum;
 extern UINTN                            ACPIPatchedAMLNum;
 
-typedef struct {
-  CHAR8   *Title;
-  UINTN   Bit;
-} DEVICES_BIT_K;
-
 extern DEVICES_BIT_K                    ADEVICES[];
 extern INTN                             OptDevicesBitNum;
 
-typedef struct {
-  CHAR8   *Title;
-  CHAR8   *OptLabel;
-  UINTN   Bit;
-} OPT_MENU_BIT_K;
-
 extern OPT_MENU_BIT_K                   OPT_MENU_DSDTBIT[];
 extern INTN                             OptMenuDSDTBitNum;
+
+extern CONST CHAR16                     *OsxPathLCaches[];
+extern CONST UINTN                      OsxPathLCachesCount;
+
+extern CHAR8                            *OsVerUndetected;
+
+extern BOOLEAN                          GraphicsScreenDirty;
+
+// common
+//CHAR16 *
+//AddLoadOption (
+//  IN CHAR16 *LoadOptions,
+//  IN CHAR16 *LoadOption
+//);
+
+//CHAR16 *
+//RemoveLoadOption (
+//  IN CHAR16 *LoadOptions,
+//  IN CHAR16 *LoadOption
+//);
+
+// loader
+VOID ScanLoader ();
+VOID AddCustomEntries ();
+
+// tool
+VOID ScanTool ();
+VOID AddCustomTool ();
 
 //-----------------------------------
 
@@ -1252,21 +1255,21 @@ FixBiosDsdt (
 
 VOID
 GetBiosRegions (
-  EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE *fadt
+  EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE   *fadt
 );
 
 INT32
 FindBin (
-  UINT8  *Array,
-  UINT32 ArrayLen,
-  UINT8  *Pattern,
-  UINT32 PatternLen
+  UINT8   *Array,
+  UINT32  ArrayLen,
+  UINT8   *Pattern,
+  UINT32  PatternLen
 );
 
 EFI_STATUS
 WaitForInputEventPoll (
-  REFIT_MENU_SCREEN *Screen,
-  UINTN             TimeoutDefault
+  REFIT_MENU_SCREEN   *Screen,
+  UINTN               TimeoutDefault
 );
 
 VOID
@@ -1279,33 +1282,34 @@ SetupBooterLog (
 
 EFI_STATUS
 SaveBooterLog (
-  IN  EFI_FILE_HANDLE BaseDir  OPTIONAL,
-  IN  CHAR16 *FileName
+  IN  EFI_FILE_HANDLE   BaseDir  OPTIONAL,
+  IN  CHAR16            *FileName
 );
 
 VOID
 EFIAPI
 DebugLog (
-  IN INTN DebugMode,
-  IN CONST CHAR8 *FormatString,
+  IN        INTN    DebugMode,
+  IN CONST  CHAR8   *FormatString,
   ...
 );
 
 /** Prints series of bytes. */
 VOID
 PrintBytes (
-  IN  VOID *Bytes,
-  IN  UINTN Number
+  IN  VOID    *Bytes,
+  IN  UINTN   Number
 );
 
 VOID
 SetDMISettingsForModel (
-  MACHINE_TYPES Model,
-  BOOLEAN Redefine
+  MACHINE_TYPES   Model,
+  BOOLEAN         Redefine
 );
 
-MACHINE_TYPES GetModelFromString (
-  CHAR8 *ProductName
+MACHINE_TYPES
+GetModelFromString (
+  CHAR8   *ProductName
 );
 
 VOID
@@ -1313,7 +1317,7 @@ GetDefaultSettings ();
 
 VOID
 FillInputs (
-  BOOLEAN New
+  BOOLEAN   New
 );
 
 VOID
@@ -1321,7 +1325,7 @@ ApplyInputs ();
 
 BOOLEAN
 IsValidGuidAsciiString (
-  IN CHAR8 *Str
+  IN CHAR8  *Str
 );
 
 EFI_STATUS
@@ -1380,17 +1384,17 @@ GetAdvancedCpuType ();
 
 CHAR8 *
 GetOSVersion (
-  IN  LOADER_ENTRY *Entry
+  IN  LOADER_ENTRY  *Entry
 );
 
 CHAR16 *
 GetOSIconName (
-  IN  CHAR8 *OSVersion
+  IN  CHAR8   *OSVersion
 );
 
 EFI_STATUS
 GetRootUUID (
-  IN  REFIT_VOLUME *Volume
+  IN  REFIT_VOLUME  *Volume
 );
 
 EFI_STATUS
@@ -1407,8 +1411,8 @@ GetUserSettings (
 
 EFI_STATUS
 InitTheme (
-  BOOLEAN  UseThemeDefinedInNVRam,
-  EFI_TIME *Time
+  BOOLEAN   UseThemeDefinedInNVRam,
+  EFI_TIME  *Time
 );
 
 EFI_STATUS
@@ -1421,7 +1425,7 @@ GetOtherKextsDir ();
 
 CHAR16 *
 GetOSVersionKextsDir (
-  CHAR8 *OSVersion
+  CHAR8   *OSVersion
 );
 
 EFI_STATUS
@@ -1438,6 +1442,7 @@ ParseLoadOptions (
 //
 // Nvram.c
 //
+
 VOID *
 GetNvramVariable (
   IN   CHAR16     *VariableName,
@@ -1466,8 +1471,8 @@ SetNvramVariable (
 
 EFI_STATUS
 DeleteNvramVariable (
-  IN  CHAR16   *VariableName,
-  IN  EFI_GUID *VendorGuid
+  IN  CHAR16    *VariableName,
+  IN  EFI_GUID  *VendorGuid
 );
 
 EFI_STATUS
@@ -1475,7 +1480,7 @@ GetEfiBootDeviceFromNvram ();
 
 EFI_GUID *
 FindGPTPartitionGuidInDevicePath (
-  IN  EFI_DEVICE_PATH_PROTOCOL *DevicePath
+  IN  EFI_DEVICE_PATH_PROTOCOL  *DevicePath
 );
 
 VOID
@@ -1486,19 +1491,20 @@ GetMacAddress ();
 
 INTN
 FindStartupDiskVolume (
-  REFIT_MENU_SCREEN *MainMenu
+  REFIT_MENU_SCREEN   *MainMenu
 );
 
 EFI_STATUS
 SetStartupDiskVolume (
-  IN  REFIT_VOLUME *Volume,
-  IN  CHAR16       *LoaderPath
+  IN  REFIT_VOLUME  *Volume,
+  IN  CHAR16        *LoaderPath
 );
 
 VOID
 RemoveStartupDiskVolume ();
 
-EFI_STATUS EFIAPI
+EFI_STATUS
+EFIAPI
 LogDataHub (
   IN  EFI_GUID  *TypeGuid,
   IN  CHAR16    *Name,
@@ -1506,10 +1512,12 @@ LogDataHub (
   IN  UINT32    DataSize
 );
 
-EFI_STATUS EFIAPI
+EFI_STATUS
+EFIAPI
 SetVariablesForOSX ();
 
-VOID EFIAPI
+VOID
+EFIAPI
 SetupDataForOSX ();
 
 EFI_STATUS
@@ -1532,7 +1540,7 @@ SetupAtiDevprop (
 VOID
 GetAtiModel (
   OUT GFX_PROPERTIES  *gfx,
-  IN UINT32           device_id
+  IN  UINT32          device_id
 );
 
 BOOLEAN
@@ -1583,7 +1591,7 @@ Checksum8 (
 
 VOID
 SaveOemDsdt (
-  BOOLEAN FullPatch
+  BOOLEAN   FullPatch
 );
 
 VOID
@@ -1596,7 +1604,7 @@ FixAny (
   UINT8   *ToFind,
   UINT32  LenTF,
   UINT8   *ToReplace,
-  UINT32 LenTR
+  UINT32  LenTR
 );
 
 VOID
@@ -1604,19 +1612,19 @@ GetAcpiTablesList ();
 
 EFI_STATUS
 EventsInitialize (
-  IN LOADER_ENTRY *Entry
+  IN LOADER_ENTRY   *Entry
 );
 
 CHAR8 *
 XMLDecode (
-  CHAR8 *src
+  CHAR8   *src
 );
 
 EFI_STATUS
 ParseXML (
-  CHAR8  *buffer,
-  TagPtr *dict,
-  UINT32 bufSize
+  CHAR8   *buffer,
+  TagPtr  *dict,
+  UINT32  bufSize
 );
 
 TagPtr
@@ -1627,8 +1635,8 @@ GetProperty (
 
 EFI_STATUS
 GetRefInteger (
-   IN TagPtr  tag,
-   IN INT32   id,
+  IN  TagPtr  tag,
+  IN  INT32   id,
   OUT CHAR8   **val,
   OUT INTN    *decval,
   OUT INTN    *size
@@ -1707,37 +1715,33 @@ TimeDiff (
 VOID
 SetCPUProperties ();
 
-// Settings.c
-// Micky1979: Next five functions (+ needed struct) are to split a string like "10.10.5,10.7,10.11.6,10.8.x"
-// in their components separated by comma (in this case)
-typedef struct MatchOSes MatchOSes;
-struct MatchOSes {
-  INTN    count;
-  CHAR8   *array[100];
-};
+BOOLEAN
+IsPatchEnabled (
+  CHAR8   *MatchOSEntry,
+  CHAR8   *CurrOS
+);
 
-/** Returns a boolean and then enable disable the patch if MachOSEntry have a match for the booted OS. */
-BOOLEAN IsPatchEnabled (CHAR8 *MatchOSEntry, CHAR8 *CurrOS);
+CHAR16  *
+AddLoadOption (
+  IN CHAR16   *LoadOptions,
+  IN CHAR16   *LoadOption
+);
 
-/** return true if a given os contains '.' as separator,
- and then match components of the current booted OS. Also allow 10.10.x format meaning all revisions
- of the 10.10 OS */
-//BOOLEAN IsOSValid (CHAR8 *MatchOS, CHAR8 *CurrOS);
+CHAR16  *
+RemoveLoadOption (
+  IN CHAR16   *LoadOptions,
+  IN CHAR16   *LoadOption
+);
+CHAR16  *ToggleLoadOptions (
+  BOOLEAN     State,
+  IN CHAR16   *LoadOptions,
+  IN CHAR16   *LoadOption
+);
 
-/** return MatchOSes struct (count + array) with the components of str that contains the given char sep as separator. */
-//struct MatchOSes *GetStrArraySeparatedByChar (CHAR8 *str, CHAR8 sep);
-
-/** free MatchOSes struct and its array. */
-//VOID deallocMatchOSes (struct MatchOSes *s);
-
-/** count occurrences of a given char in a char * string. */
-//INTN CountOccurrences (CHAR8 *s, CHAR8 c);
-
-CHAR16  *AddLoadOption (IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
-CHAR16  *RemoveLoadOption (IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
-CHAR16  *ToggleLoadOptions (BOOLEAN State, IN CHAR16 *LoadOptions, IN CHAR16 *LoadOption);
-
-BOOLEAN IsHDMIAudio (EFI_HANDLE PciDevHandle);
+BOOLEAN
+IsHDMIAudio (
+  EFI_HANDLE  PciDevHandle
+);
 
 //
 // PlatformDriverOverride.c
@@ -1748,7 +1752,7 @@ BOOLEAN IsHDMIAudio (EFI_HANDLE PciDevHandle);
  */
 VOID
 RegisterDriversToHighestPriority (
-  IN EFI_HANDLE    *PriorityDrivers
+  IN EFI_HANDLE   *PriorityDrivers
 );
 
 EFI_STATUS
@@ -1786,88 +1790,25 @@ PrepareHibernation (
   IN REFIT_VOLUME *Volume
 );
 
-//UINT64 AsciiStrVersionToUint64 (CONST CHAR8 *Version, UINT8 MaxDigitByPart, UINT8 MaxParts);
-/* Macro to use the AsciiStrVersionToUint64 for OSX Version strings */
-#define AsciiOSVersionToUint64(version) AsciiStrVersionToUint64 (version, 2, 3)
-
-#define OSX_LT(OSVersion, CurrVer) (OSVersion && (AsciiOSVersionToUint64 (OSVersion) < AsciiOSVersionToUint64 (CurrVer)))
-#define OSX_LE(OSVersion, CurrVer) (OSVersion && (AsciiOSVersionToUint64 (OSVersion) <= AsciiOSVersionToUint64 (CurrVer)))
-#define OSX_GT(OSVersion, CurrVer) (OSVersion && (AsciiOSVersionToUint64 (OSVersion) > AsciiOSVersionToUint64 (CurrVer)))
-#define OSX_GE(OSVersion, CurrVer) (OSVersion && (AsciiOSVersionToUint64 (OSVersion) >= AsciiOSVersionToUint64 (CurrVer)))
-
-UINT8 GetOSTypeFromPath (IN  CHAR16 *Path);
-
-extern CONST CHAR16 *OsxPathLCaches[];
-extern CONST UINTN  OsxPathLCachesCount;
-
-#define OSX_PATH_SLE L"\\System\\Library\\Extensions"
-
-extern CHAR8  *OsVerUndetected;
-
-//
-//  LibegInt.h
-//
-
-#define PLPTR(imagevar, colorname) ((UINT8 *) &((imagevar)->PixelData->colorname))
-
-/* types */
-
-typedef EG_IMAGE * (*EG_DECODE_FUNC)(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha);
-
-/* functions */
-
-VOID
-RestrictImageArea (
-  IN EG_IMAGE   *Image,
-  IN INTN       AreaPosX,
-  IN INTN       AreaPosY,
-  IN OUT INTN   *AreaWidth,
-  IN OUT INTN   *AreaHeight
+UINT8 GetOSTypeFromPath (
+  IN  CHAR16  *Path
 );
 
-VOID
-RawCopy (
-  IN OUT EG_PIXEL   *CompBasePtr,
-  IN EG_PIXEL       *TopBasePtr,
-  IN INTN           Width,
-  IN INTN           Height,
-  IN INTN           CompLineOffset,
-  IN INTN           TopLineOffset
-);
-
-VOID
-RawCompose (
-  IN OUT EG_PIXEL   *CompBasePtr,
-  IN EG_PIXEL       *TopBasePtr,
-  IN INTN           Width,
-  IN INTN           Height,
-  IN INTN           CompLineOffset,
-  IN INTN           TopLineOffset
-);
-
-VOID
-RawComposeOnFlat (
-  IN OUT EG_PIXEL   *CompBasePtr,
-  IN EG_PIXEL       *TopBasePtr,
-  IN INTN           Width,
-  IN INTN           Height,
-  IN INTN           CompLineOffset,
-  IN INTN           TopLineOffset
-);
-
-VOID DecompressIcnsRLE (IN OUT UINT8 **CompData, IN OUT UINTN *CompLen, IN UINT8 *DestPlanePtr, IN UINTN PixelCount);
-VOID InsertPlane (IN UINT8 *SrcDataPtr, IN UINT8 *DestPlanePtr, IN UINTN PixelCount);
-VOID SetPlane (IN UINT8 *DestPlanePtr, IN UINT8 Value, IN UINT64 PixelCount);
-VOID CopyPlane (IN UINT8 *SrcPlanePtr, IN UINT8 *DestPlanePtr, IN UINTN PixelCount);
-
-EG_IMAGE * DecodeBMP (IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha);
-EG_IMAGE * DecodeICNS (IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha);
-EG_IMAGE * DecodePNG (IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha);
-
-VOID EncodeBMP (IN EG_IMAGE *Image, OUT UINT8 **FileData, OUT UINTN *FileDataLength);
-
-#define DEC_PNG_BUILTIN(ico) DecodePNG (ico, ARRAY_SIZE (ico), 0, TRUE)
+VOID  GetListOfThemes ();
+VOID  GetListOfACPI ();
+VOID  GetListOfConfigs ();
 
 VOID hehe ();
+
+MatchOSes *
+GetStrArraySeparatedByChar (
+  CHAR8   *str,
+  CHAR8   sep
+);
+
+VOID
+DeallocMatchOSes (
+  struct MatchOSes    *s
+);
 
 #endif

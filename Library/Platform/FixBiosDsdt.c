@@ -2672,7 +2672,6 @@ AddHDEF (
   if (!AddProperties (pack, DEV_HDA)) {
     if (
       (gSettings.HDALayoutId > 0) ||
-      //((OSVersion != NULL) && AsciiOSVersionToUint64 (OSVersion) < AsciiOSVersionToUint64 ("10.8"))
       OSX_LT (OSVersion, "10.8")
     ) {
       AmlAddString (pack, "layout-id");

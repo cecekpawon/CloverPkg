@@ -542,6 +542,10 @@ StartLoader (
     gCPUStructure.MaxSpeed
   );
 
+  // Unified
+  Entry->Flags |= (gSettings.OptionsBits | gSettings.FlagsBits);
+  gSettings.OptionsBits = gSettings.FlagsBits = Entry->Flags;
+
   //DumpKernelAndKextPatches (Entry->KernelAndKextPatches);
 
   // Load image into memory (will be started later)
@@ -753,10 +757,13 @@ StartLoader (
     RemoveStartupDiskVolume ();
   }
 
-  ClosingEventAndLog (Entry);
-
+  // re-Unified
   gSettings.OptionsBits = Entry->Flags;
   DecodeOptions (Entry);
+
+  MsgLog ("Options: %s\n", Entry->LoadOptions);
+
+  ClosingEventAndLog (Entry);
 
   //DBG ("BeginExternalScreen\n");
   BeginExternalScreen (UseGraphicsMode, L"Booting OS");
