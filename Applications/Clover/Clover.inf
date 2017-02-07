@@ -87,6 +87,7 @@
   MemLogLib
   MemoryAllocationLib
   NetLib
+  PeCoffLib
   UefiApplicationEntryPoint
   UefiBootServicesTableLib
   UefiLib

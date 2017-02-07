@@ -428,9 +428,9 @@ GetCPUProperties () {
 
           //----test C3 patch
           msr = AsmReadMsr64 (MSR_PKG_CST_CONFIG_CONTROL); //0xE2
-          MsgLog ("MSR 0xE2: %08x (before patch)\n", msr);
+          DBG ("MSR 0xE2: %08x (before patch)\n", msr);
           if (msr & 0x8000) {
-            MsgLog (" - is locked, PM patches will be turned on\n");
+            DBG (" - is locked, PM patches will be turned on\n");
             NeedPMfix = TRUE;
           }
 
@@ -438,10 +438,10 @@ GetCPUProperties () {
           //        msr = AsmReadMsr64 (MSR_PKG_CST_CONFIG_CONTROL);
           //        MsgLog ("MSR 0xE2 after  patch %08x\n", msr);
           msr = AsmReadMsr64 (MSR_PMG_IO_CAPTURE_BASE);
-          MsgLog ("MSR 0xE4: %08x\n", msr);
+          DBG ("MSR 0xE4: %08x\n", msr);
           //------------
           msr = AsmReadMsr64 (MSR_PLATFORM_INFO);       //0xCE
-          MsgLog ("MSR 0xCE: %08x_%08x\n", (msr>>32), msr);
+          DBG ("MSR 0xCE: %08x_%08x\n", (msr>>32), msr);
           gCPUStructure.MaxRatio = (UINT8)RShiftU64 (msr, 8) & 0xff;
           gCPUStructure.MinRatio = (UINT8)MultU64x32 (RShiftU64 (msr, 40) & 0xff, 10);
           msr = AsmReadMsr64 (MSR_FLEX_RATIO);   //0x194

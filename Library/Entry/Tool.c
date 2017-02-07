@@ -102,6 +102,7 @@ AddToolEntry (
   Entry->DevicePathString   = FileDevicePathToStr (Entry->DevicePath);
   Entry->LoadOptions        = NULL;
   Entry->ToolOptions        = Options ? Options : NULL;
+  //Entry->Flags              = 0;
 
   MsgLog ("- %s\n", LoaderPath);
   AddMenuEntry (&MainMenu, (REFIT_MENU_ENTRY *)Entry);
