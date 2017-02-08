@@ -713,7 +713,7 @@ ParsePrelinkKexts (
   } else {
     DictPointer = GetProperty (KextsDict, kPrelinkInfoDictionaryKey);
     if ((DictPointer != NULL) && (DictPointer->type == kTagTypeArray)) {
-      INTN    Count = DictPointer->size /* GetTagCount (DictPointer) */, i = 0,
+      INTN    Count = DictPointer->size, i = 0,
               iPrelinkExecutableSourceKey, iPrelinkExecutableSourceKeySize, //KextAddr
               iPrelinkExecutableSizeKey, iPrelinkExecutableSizeKeySize; //KextSize
       TagPtr  Dict, Prop;

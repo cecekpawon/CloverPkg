@@ -96,16 +96,7 @@ GetDeviceProps (
   IN     CHAR8                   *Buffer,
   IN OUT UINT32                  *BufferSize
 ) {
-  if (!gSettings.StringInjector && (mProperties != NULL) && (mPropSize > 1)) {
-    if (*BufferSize < mPropSize) {
-      *BufferSize = mPropSize;
-      return EFI_BUFFER_TOO_SMALL;
-    }
-
-    *BufferSize = mPropSize;
-    CopyMem (Buffer, mProperties,  mPropSize);
-    return EFI_SUCCESS;
-  } else if ((cProperties != NULL) && (cPropSize > 1)) {
+  if (gSettings.EFIStringInjector && (cProperties != NULL) && (cPropSize > 1)) {
     if (*BufferSize < cPropSize) {
       *BufferSize = cPropSize;
       return EFI_BUFFER_TOO_SMALL;
@@ -113,6 +104,15 @@ GetDeviceProps (
 
     *BufferSize = cPropSize;
     CopyMem (Buffer, cProperties,  cPropSize);
+    return EFI_SUCCESS;
+  } else if (/* !gSettings.EFIStringInjector && */ (mProperties != NULL) && (mPropSize > 1)) {
+    if (*BufferSize < mPropSize) {
+      *BufferSize = mPropSize;
+      return EFI_BUFFER_TOO_SMALL;
+    }
+
+    *BufferSize = mPropSize;
+    CopyMem (Buffer, mProperties,  mPropSize);
     return EFI_SUCCESS;
   }
 
@@ -183,7 +183,7 @@ SetPrivateVarProto () {
 
 DevPropString *
 DevpropCreateString () {
-  //  DBG ("Begin creating strings for devices:\n");
+  //DBG ("Begin creating strings for devices:\n");
   string = (DevPropString *)AllocateZeroPool (sizeof (DevPropString));
 
   if (string == NULL) {
@@ -392,10 +392,11 @@ DevpropAddValue (
   l = AsciiStrLen (nm);
   length = (UINT32)((l * 2) + len + (2 * sizeof (UINT32)) + 2);
   data = (UINT8 *)AllocateZeroPool (length);
-  if (!data)
+  if (!data) {
     return FALSE;
+  }
 
-  off= 0;
+  off = 0;
 
   data[off+1] = (UINT8)(((l * 2) + 6) >> 8);
   data[off] = ((l * 2) + 6) & 0x00FF;
@@ -531,7 +532,7 @@ DevpropFreeString (
 
   FreePool (StringBuf->entries);
   FreePool (StringBuf);
-  //  StringBuf = NULL;
+  //StringBuf = NULL;
 }
 
 // Ethernet built-in device injection
@@ -703,7 +704,7 @@ SetupHdaDevprop (
 
     if (Injected) {
       DBG (" - custom HDMI properties injected, continue\n");
-      //    return TRUE;
+      //return TRUE;
     } else if (gSettings.UseIntelHDMI) {
       DBG (" - HDMI Audio, setting hda-gfx=onboard-1\n");
       DevpropAddValue (device, "hda-gfx", (UINT8 *)"onboard-1", 10);

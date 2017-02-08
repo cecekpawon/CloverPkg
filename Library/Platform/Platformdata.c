@@ -14,7 +14,8 @@ CHAR8   *BiosVendor             = "Apple Inc.";
 
 CHAR8   *AppleManufacturer      = "Apple Computer, Inc."; //Old name, before 2007
 
-UINT32  gFwFeatures             = 0xE001f537;             //default values for iMac13,1
+UINT32  gFwFeatures             = 0xE003F536;
+UINT32  gFwFeaturesMask         = 0xE003FF37;
 
 CHAR8   *AppleFirmwareVersion[] =
 {

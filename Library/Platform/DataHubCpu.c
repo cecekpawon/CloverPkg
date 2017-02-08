@@ -134,7 +134,7 @@ EFI_STATUS
 EFIAPI
 SetVariablesForOSX () {
   // The variable names used should be made global constants to prevent them being allocated multiple times
-  UINT32    Attributes, FwFeaturesMask; //, Color
+  UINT32    Attributes; //, Color
 
   //
   // firmware Variables
@@ -183,14 +183,12 @@ SetVariablesForOSX () {
     &gFwFeatures
   );
 
-  // Download-Fritz: Should be added to SMBIOS or at least to some other config section
-  FwFeaturesMask = 0xC003ffff;
   AddNvramVariable (
     L"FirmwareFeaturesMask",
     &gEfiAppleNvramGuid,
     Attributes,
-    sizeof (FwFeaturesMask),
-    &FwFeaturesMask
+    sizeof (gFwFeaturesMask),
+    &gFwFeaturesMask
   );
 
   //

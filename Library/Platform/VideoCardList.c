@@ -78,17 +78,17 @@ AddCard (
         UINTN     VideoPorts,
         BOOLEAN   LoadVBios
 ) {
-  CARDLIST    *new_card = AllocateZeroPool (sizeof (CARDLIST));
+  CARDLIST    *NewCard = AllocateZeroPool (sizeof (CARDLIST));
 
-  if (new_card) {
-    new_card->Signature = CARDLIST_SIGNATURE;
-    new_card->Id = Id;
-    new_card->SubId = SubId;
-    new_card->VideoRam = VideoRam;
-    new_card->VideoPorts = VideoPorts;
-    new_card->LoadVBios = LoadVBios;
-    AsciiSPrint (new_card->Model, ARRAY_SIZE (new_card->Model), "%a", Model);
-    InsertTailList (&gCardList, (LIST_ENTRY *)(((UINT8 *)new_card) + OFFSET_OF (CARDLIST, Link)));
+  if (NewCard) {
+    NewCard->Signature = CARDLIST_SIGNATURE;
+    NewCard->Id = Id;
+    NewCard->SubId = SubId;
+    NewCard->VideoRam = VideoRam;
+    NewCard->VideoPorts = VideoPorts;
+    NewCard->LoadVBios = LoadVBios;
+    AsciiSPrint (NewCard->Model, ARRAY_SIZE (NewCard->Model), "%a", Model);
+    InsertTailList (&gCardList, (LIST_ENTRY *)(((UINT8 *)NewCard) + OFFSET_OF (CARDLIST, Link)));
   }
 }
 
@@ -98,14 +98,13 @@ FindCardWithIds (
   UINT32    SubId
 ) {
   LIST_ENTRY    *Link;
-  CARDLIST      *entry;
-  //FillCardList (); //moved to GetUserSettings
+  CARDLIST      *Entry;
 
   if (!IsListEmpty (&gCardList)) {
     for (Link = gCardList.ForwardLink; Link != &gCardList; Link = Link->ForwardLink) {
-      entry = CR (Link, CARDLIST, Link, CARDLIST_SIGNATURE);
-      if (entry->Id == Id) {
-        return entry;
+      Entry = CR (Link, CARDLIST, Link, CARDLIST_SIGNATURE);
+      if (Entry->Id == Id) {
+        return Entry;
       }
     }
   }
@@ -120,53 +119,51 @@ FillCardList (
   if (IsListEmpty (&gCardList) && (CfgDict != NULL)) {
     CHAR8     *VEN[] = { "NVIDIA",  "ATI" };
     INTN      Index, VenCount = ARRAY_SIZE (VEN);
-    TagPtr    prop;
+    TagPtr    Prop;
 
     for (Index = 0; Index < VenCount; Index++) {
-      CHAR8     *key = VEN[Index];
+      CHAR8     *Key = VEN[Index];
 
-      prop = GetProperty (CfgDict, key);
+      Prop = GetProperty (CfgDict, Key);
 
-      if (prop && (prop->type == kTagTypeArray)) {
-        INTN      i, Count = GetTagCount (prop);
-        TagPtr    element = 0, prop2 = 0;
+      if (Prop && (Prop->type == kTagTypeArray)) {
+        INTN      i, Count = Prop->size;
+        TagPtr    Element = 0, Prop2 = 0;
 
         for (i = 0; i < Count; i++) {
-          CHAR8         *model_name = NULL;
-          UINT32        dev_id = 0, subdev_id = 0;
+          CHAR8         *ModelName = NULL;
+          UINT32        DevID = 0, SubDevID = 0;
           UINT64        VramSize  = 0;
           UINTN         VideoPorts  = 0;
           BOOLEAN       LoadVBios = FALSE;
-          EFI_STATUS    status = GetElement (prop, i, Count, &element);
+          EFI_STATUS    Status = GetElement (Prop, i, Count, &Element);
 
-          if (element && (status == EFI_SUCCESS)) {
-            if ((prop2 = GetProperty (element, "Model")) != 0) {
-              model_name = prop2->string;
+          if (!EFI_ERROR(Status) && Element) {
+            if ((Prop2 = GetProperty (Element, "Model")) != 0) {
+              ModelName = Prop2->string;
             } else {
-              model_name = "VideoCard";
+              ModelName = "VideoCard";
             }
 
-            prop2 = GetProperty (element, "IOPCIPrimaryMatch");
-            dev_id = (UINT32)GetPropertyInteger (prop2, 0);
+            Prop2 = GetProperty (Element, "IOPCIPrimaryMatch");
+            DevID = (UINT32)GetPropertyInteger (Prop2, 0);
 
-            prop2 = GetProperty (element, "IOPCISubDevId");
-            subdev_id = (UINT32)GetPropertyInteger (prop2, 0);
+            Prop2 = GetProperty (Element, "IOPCISubDevId");
+            SubDevID = (UINT32)GetPropertyInteger (Prop2, 0);
 
-            prop2 = GetProperty (element, "VRAM");
-            VramSize = LShiftU64 ((UINTN)GetPropertyInteger (prop2, (INTN)VramSize), 20); //Mb -> bytes
+            Prop2 = GetProperty (Element, "VRAM");
+            VramSize = LShiftU64 ((UINTN)GetPropertyInteger (Prop2, (INTN)VramSize), 20); //Mb -> bytes
 
-            prop2 = GetProperty (element, "VideoPorts");
-            VideoPorts = (UINT16)GetPropertyInteger (prop2, VideoPorts);
+            Prop2 = GetProperty (Element, "VideoPorts");
+            VideoPorts = (UINT16)GetPropertyInteger (Prop2, VideoPorts);
 
-            prop2 = GetProperty (element, "LoadVBios");
+            Prop2 = GetProperty (Element, "LoadVBios");
 
-            if ((prop2 != NULL) && IsPropertyTrue (prop2)) {
-              LoadVBios = TRUE;
-            }
+            LoadVBios = GetPropertyBool (Prop2, FALSE);
 
-            DBG ("FillCardList: %a | \"%a\" (%08x, %08x)\n", key, model_name, dev_id, subdev_id);
+            DBG ("FillCardList: %a | \"%a\" (%08x, %08x)\n", Key, ModelName, DevID, SubDevID);
 
-            AddCard (model_name, dev_id, subdev_id, VramSize, VideoPorts, LoadVBios);
+            AddCard (ModelName, DevID, SubDevID, VramSize, VideoPorts, LoadVBios);
           }
         }
       }

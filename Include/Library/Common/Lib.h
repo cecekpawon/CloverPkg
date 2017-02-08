@@ -332,8 +332,6 @@ typedef struct {
   CHAR16                    *Settings;
 } LOADER_ENTRY;
 
-//typedef struct CUSTOM_LOADER_ENTRY CUSTOM_LOADER_ENTRY;
-//struct CUSTOM_LOADER_ENTRY {
 typedef struct CUSTOM_LOADER_ENTRY {
   struct  CUSTOM_LOADER_ENTRY       *Next;
   struct  CUSTOM_LOADER_ENTRY       *SubEntries;
@@ -418,7 +416,10 @@ AddListElement (
   IN      VOID    *NewElement
 );
 
-//VOID        FreeList (IN OUT VOID ***ListPtr, IN OUT UINTN *ElementCount /* , IN Callback */);
+//FreeList (
+//  IN OUT VOID     ***ListPtr,
+//  IN OUT UINTN    *ElementCount
+//);
 
 VOID
 ScanVolumes ();

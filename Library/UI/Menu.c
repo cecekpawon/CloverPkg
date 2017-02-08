@@ -177,7 +177,7 @@ OPT_MENU_GEN OPT_MENU_DEVICES[] = {
   { mInjectATI,             L"Inject ATI"          },
   { mInjectIntel,           L"Inject Intel"        },
   { mInjectEDID,            L"Inject EDID"         },
-  { mInjectEFIStrings,      L"Inject EFIStrings"   },
+  { mInjectEFIStrings,      L"Inject EFIString"   },
   { mNoDefaultProperties,   L"NoDefaultProperties" },
   { mLoadVBios,             L"LoadVBios"           },
 };
@@ -458,7 +458,7 @@ FillInputs (
   FillInputBool (mInjectATI, gSettings.InjectATI);
   FillInputBool (mInjectIntel, gSettings.InjectIntel);
   FillInputBool (mInjectEDID, gSettings.InjectEDID);
-  FillInputBool (mInjectEFIStrings, gSettings.StringInjector);
+  FillInputBool (mInjectEFIStrings, gSettings.EFIStringInjector);
   FillInputBool (mNoDefaultProperties, gSettings.NoDefaultProperties);
   FillInputBool (mLoadVBios, gSettings.LoadVBios);
 
@@ -597,7 +597,7 @@ ApplyInputs () {
         break;
 
       case mInjectEFIStrings:
-        gSettings.StringInjector = ApplyInputBool (i);
+        gSettings.EFIStringInjector = ApplyInputBool (i);
         break;
 
       case mNoDefaultProperties:
