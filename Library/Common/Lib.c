@@ -804,7 +804,8 @@ ScanExtendedPartition (
   gBS->FreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)SectorBuffer, 1);
 }
 
-VOID ScanVolumes () {
+VOID
+ScanVolumes () {
   EFI_STATUS                  Status;
   EFI_HANDLE                  *Handles = NULL;
   //EFI_DEVICE_PATH_PROTOCOL  *VolumeDevicePath;

@@ -212,7 +212,7 @@ GetPropertyInteger (
   if (Prop->type == kTagTypeInteger) {
     return Prop->integer; //(INTN)Prop->string;
   } else if ((Prop->type == kTagTypeString) && Prop->string) {
-    if ((Prop->string[1] == 'x') || (Prop->string[1] == 'X')) {
+    if ((Prop->string[0] == '0') && (TO_UPPER (Prop->string[1]) == 'X')) {
       return (INTN)AsciiStrHexToUintn (Prop->string);
     }
 
@@ -224,27 +224,6 @@ GetPropertyInteger (
   }
 
   return Default;
-}
-
-//
-// returns binary setting in a new allocated buffer and data length in dataLen.
-// data can be specified in <data></data> base64 encoded
-// or in <string></string> hex encoded
-//
-VOID *
-StringDataToHex (
-  IN   CHAR8    *Val,
-  OUT  UINTN    *DataLen
-) {
-  UINT8     *Data = NULL;
-  UINT32    Len;
-
-  Len = (UINT32)AsciiStrLen (Val) >> 1; // number of hex digits
-  Data = AllocateZeroPool (Len); // 2 chars per byte, one more byte for odd number
-  Len  = Hex2Bin (Val, Data, Len);
-  *DataLen = Len;
-
-  return Data;
 }
 
 VOID *
@@ -297,9 +276,9 @@ GetStrArraySeparatedByChar (
   CHAR8   *str,
   CHAR8   sep
 ) {
-  struct    MatchOSes   *mo;
-  INTN      len = 0, i = 0, inc = 1, newLen = 0;
-  CHAR8     doubleSep[2];
+  MatchOSes   *mo;
+  INTN        len = 0, i = 0, inc = 1, newLen = 0;
+  CHAR8       doubleSep[2];
 
   mo = AllocatePool (sizeof (struct MatchOSes));
   if (!mo) {
@@ -374,7 +353,7 @@ GetStrArraySeparatedByChar (
 
 VOID
 DeallocMatchOSes (
-  struct MatchOSes    *s
+  MatchOSes    *s
 ) {
   INTN    i;
 
@@ -497,7 +476,7 @@ IsPatchEnabled (
   INTN      i, MatchOSPartFrom, MatchOSPartTo, CurrOSPart;
   UINT64    ValFrom, ValTo, ValCurrFrom, ValCurrTo;
   BOOLEAN   ret = FALSE;
-  struct    MatchOSes  *mos;
+  MatchOSes  *mos;
 
   if (!MatchOSEntry || !CurrOS) {
     return TRUE; //undefined matched corresponds to old behavior
@@ -536,10 +515,10 @@ IsPatchEnabled (
           MatchOSPartFrom++;
           MatchOSPartTo++;
 
-          ValFrom = AsciiStrVersionToUint64 (mos->array[0], 2, MatchOSPartFrom);
-          ValCurrFrom = AsciiStrVersionToUint64 (CurrOS, 2, MatchOSPartFrom);
-          ValTo = AsciiStrVersionToUint64 (mos->array[1], 2, MatchOSPartTo);
-          ValCurrTo = AsciiStrVersionToUint64 (CurrOS, 2, MatchOSPartTo);
+          ValFrom = AsciiStrVersionToUint64 (mos->array[0], 2, (UINT8)MatchOSPartFrom);
+          ValCurrFrom = AsciiStrVersionToUint64 (CurrOS, 2, (UINT8)MatchOSPartFrom);
+          ValTo = AsciiStrVersionToUint64 (mos->array[1], 2, (UINT8)MatchOSPartTo);
+          ValCurrTo = AsciiStrVersionToUint64 (CurrOS, 2, (UINT8)MatchOSPartTo);
 
           ret = (/* (ValFrom < ValTo) && */ (ValFrom <= ValCurrFrom) && (ValTo >= ValCurrTo));
           break;
@@ -555,8 +534,8 @@ IsPatchEnabled (
 
         MatchOSPartFrom++;
 
-        ValFrom = AsciiStrVersionToUint64 (mos->array[i], 2, MatchOSPartFrom);
-        ValCurrFrom = AsciiStrVersionToUint64 (CurrOS, 2, MatchOSPartFrom);
+        ValFrom = AsciiStrVersionToUint64 (mos->array[i], 2, (UINT8)MatchOSPartFrom);
+        ValCurrFrom = AsciiStrVersionToUint64 (CurrOS, 2, (UINT8)MatchOSPartFrom);
 
         if (ValFrom == ValCurrFrom) {
           ret =  TRUE;
@@ -742,6 +721,7 @@ CopyKernelAndKextPatches (
       Dst->KPATIConnectorsDataLen = Src->KPATIConnectorsDataLen;
       Dst->KPATIConnectorsData    = AllocateCopyPool (Src->KPATIConnectorsDataLen, Src->KPATIConnectorsData);
       Dst->KPATIConnectorsPatch   = AllocateCopyPool (Src->KPATIConnectorsDataLen, Src->KPATIConnectorsPatch);
+      Dst->KPATIConnectorsWildcard = Src->KPATIConnectorsWildcard;
     }
   }
 
@@ -781,6 +761,8 @@ CopyKernelAndKextPatches (
       Dst->KextPatches[Dst->NrKexts].Disabled       = Src->KextPatches[i].Disabled;
       Dst->KextPatches[Dst->NrKexts].IsPlistPatch   = Src->KextPatches[i].IsPlistPatch;
       Dst->KextPatches[Dst->NrKexts].DataLen        = Src->KextPatches[i].DataLen;
+      Dst->KextPatches[Dst->NrKexts].Wildcard       = Src->KextPatches[i].Wildcard;
+      Dst->KextPatches[Dst->NrKexts].Count          = Src->KextPatches[i].Count;
       Dst->KextPatches[Dst->NrKexts].Data           = AllocateCopyPool (Src->KextPatches[i].DataLen, Src->KextPatches[i].Data);
       Dst->KextPatches[Dst->NrKexts].Patch          = AllocateCopyPool (Src->KextPatches[i].DataLen, Src->KextPatches[i].Patch);
       Dst->KextPatches[Dst->NrKexts].MatchOS        = AllocateCopyPool (AsciiStrSize (Src->KextPatches[i].MatchOS), Src->KextPatches[i].MatchOS);
@@ -807,12 +789,40 @@ CopyKernelAndKextPatches (
 
       Dst->KernelPatches[Dst->NrKernels].Disabled   = Src->KernelPatches[i].Disabled;
       Dst->KernelPatches[Dst->NrKernels].DataLen    = Src->KernelPatches[i].DataLen;
+      Dst->KernelPatches[Dst->NrKernels].Wildcard   = Src->KernelPatches[i].Wildcard;
       Dst->KernelPatches[Dst->NrKernels].Data       = AllocateCopyPool (Src->KernelPatches[i].DataLen, Src->KernelPatches[i].Data);
       Dst->KernelPatches[Dst->NrKernels].Patch      = AllocateCopyPool (Src->KernelPatches[i].DataLen, Src->KernelPatches[i].Patch);
       Dst->KernelPatches[Dst->NrKernels].Count      = Src->KernelPatches[i].Count;
       Dst->KernelPatches[Dst->NrKernels].MatchOS    = AllocateCopyPool (AsciiStrSize (Src->KernelPatches[i].MatchOS), Src->KernelPatches[i].MatchOS);
       Dst->KernelPatches[Dst->NrKernels].MatchBuild = AllocateCopyPool (AsciiStrSize (Src->KernelPatches[i].MatchBuild), Src->KernelPatches[i].MatchBuild);
       ++(Dst->NrKernels);
+    }
+  }
+
+  if ((Src->NrBooters > 0) && (Src->BooterPatches != NULL)) {
+    Dst->BooterPatches = AllocatePool (Src->NrBooters * sizeof (BOOTER_PATCH));
+
+    for (i = 0; i < Src->NrBooters; i++) {
+      if (
+        (Src->BooterPatches[i].DataLen <= 0) ||
+        (Src->BooterPatches[i].Data == NULL) ||
+        (Src->BooterPatches[i].Patch == NULL)
+      ) {
+        continue;
+      }
+
+      if (Src->BooterPatches[i].Label) {
+        Dst->BooterPatches[Dst->NrBooters].Label    = (CHAR8 *)AllocateCopyPool (AsciiStrSize (Src->BooterPatches[i].Label), Src->BooterPatches[i].Label);
+      }
+
+      Dst->BooterPatches[Dst->NrBooters].Disabled   = Src->BooterPatches[i].Disabled;
+      Dst->BooterPatches[Dst->NrBooters].DataLen    = Src->BooterPatches[i].DataLen;
+      Dst->BooterPatches[Dst->NrBooters].Wildcard   = Src->BooterPatches[i].Wildcard;
+      Dst->BooterPatches[Dst->NrBooters].Data       = AllocateCopyPool (Src->BooterPatches[i].DataLen, Src->BooterPatches[i].Data);
+      Dst->BooterPatches[Dst->NrBooters].Patch      = AllocateCopyPool (Src->BooterPatches[i].DataLen, Src->BooterPatches[i].Patch);
+      Dst->BooterPatches[Dst->NrBooters].Count      = Src->BooterPatches[i].Count;
+      Dst->BooterPatches[Dst->NrBooters].MatchOS    = AllocateCopyPool (AsciiStrSize (Src->BooterPatches[i].MatchOS), Src->BooterPatches[i].MatchOS);
+      ++(Dst->NrBooters);
     }
   }
 
@@ -919,7 +929,7 @@ FillinKextPatches (
   if (gSettings.HasGraphics->Ati) {
     Prop = GetProperty (DictPointer, "ATIConnectorsController");
     if (Prop != NULL) {
-      UINTN   len = 0, i=0;
+      UINTN   len = 0, i = 0;
 
       // ATIConnectors patch
       len = (AsciiStrnLenS (Prop->string, 255) * sizeof (CHAR16) + 2);
@@ -963,6 +973,7 @@ FillinKextPatches (
   Patches->KPATIConnectorsData       = NULL;
   Patches->KPATIConnectorsPatch      = NULL;
   Patches->KPATIConnectorsDataLen    = 0;
+  Patches->KPATIConnectorsWildcard   = 0xFF;
 
   PatchesNext:
 
@@ -983,11 +994,11 @@ FillinKextPatches (
       MsgLog ("ForceKextsToLoad: %d requested\n", Count);
 
       for (i = 0; i < Count; i++) {
-        EFI_STATUS Status = GetElement (Prop, i, Count, &Prop2);
+        EFI_STATUS  Status = GetElement (Prop, i, Count, &Prop2);
 
         DBG (" - [%02d]:", i);
 
-        if (EFI_ERROR (Status) || (Prop2 == NULL) ) {
+        if (EFI_ERROR (Status) || (Prop2 == NULL)) {
           DBG (" %r parsing / empty element\n", Status);
           continue;
         }
@@ -1087,6 +1098,8 @@ FillinKextPatches (
         Patches->KextPatches[Patches->NrKexts].Patched    = FALSE;
         Patches->KextPatches[Patches->NrKexts].Name       = AllocateCopyPool (AsciiStrnLenS (KextPatchesName, 255) + 1, KextPatchesName);
         Patches->KextPatches[Patches->NrKexts].Label      = AllocateCopyPool (AsciiStrnLenS (KextPatchesLabel, 255) + 1, KextPatchesLabel);
+        Patches->KextPatches[Patches->NrKexts].Count      = GetPropertyInteger (GetProperty (Prop2, "Count"), 0);
+        Patches->KextPatches[Patches->NrKexts].Wildcard   = (UINT8)GetPropertyInteger (GetProperty (Prop2, "Wildcard"), 0xFF);
 
         FreePool (TmpData);
         FreePool (TmpPatch);
@@ -1108,6 +1121,15 @@ FillinKextPatches (
 
         // check if this is Info.plist patch or kext binary patch
         Patches->KextPatches[Patches->NrKexts].IsPlistPatch = GetPropertyBool (GetProperty (Prop2, "InfoPlistPatch"), FALSE);
+
+        Dict = GetProperty (Prop2, "Wildcard");
+        if (Dict != NULL) {
+          if (Patches->KextPatches[Patches->NrKexts].IsPlistPatch && (Dict->type == kTagTypeString)) {
+            Patches->KextPatches[Patches->NrKexts].Wildcard = (UINT8)*Prop->string;
+          } else {
+            Patches->KextPatches[Patches->NrKexts].Wildcard = (UINT8)GetPropertyInteger (Dict, 0xFF);
+          }
+        }
 
         DBG (" | %a | len: %d\n",
           Patches->KextPatches[Patches->NrKexts].IsPlistPatch ? "PlistPatch" : "BinPatch",
@@ -1174,16 +1196,12 @@ FillinKextPatches (
         Patches->KernelPatches[Patches->NrKernels].Data       = AllocateCopyPool (FindLen, TmpData);
         Patches->KernelPatches[Patches->NrKernels].DataLen    = FindLen;
         Patches->KernelPatches[Patches->NrKernels].Patch      = AllocateCopyPool (FindLen, TmpPatch);
-        Patches->KernelPatches[Patches->NrKernels].Count      = 0;
         Patches->KernelPatches[Patches->NrKernels].MatchOS    = NULL;
         Patches->KernelPatches[Patches->NrKernels].MatchBuild = NULL;
         Patches->KernelPatches[Patches->NrKernels].Disabled   = FALSE;
         Patches->KernelPatches[Patches->NrKernels].Label      = AllocateCopyPool (AsciiStrSize (KernelPatchesLabel), KernelPatchesLabel);
-
-        Dict = GetProperty (Prop2, "Count");
-        if (Dict != NULL) {
-          Patches->KernelPatches[Patches->NrKernels].Count = GetPropertyInteger (Dict, 0);
-        }
+        Patches->KernelPatches[Patches->NrKernels].Count      = GetPropertyInteger (GetProperty (Prop2, "Count"), 0);
+        Patches->KernelPatches[Patches->NrKernels].Wildcard   = (UINT8)GetPropertyInteger (GetProperty (Prop2, "Wildcard"), 0xFF);
 
         FreePool (TmpData);
         FreePool (TmpPatch);
@@ -1205,6 +1223,85 @@ FillinKextPatches (
         DBG (" | len: %d\n", Patches->KernelPatches[Patches->NrKernels].DataLen);
 
         Patches->NrKernels++;
+      }
+    }
+  }
+
+  Prop = GetProperty (DictPointer, "BooterToPatch");
+  if (Prop != NULL) {
+    INTN    i, Count = Prop->size;
+
+    //delete old and create new
+    if (Patches->BooterPatches) {
+      Patches->NrBooters = 0;
+      FreePool (Patches->BooterPatches);
+    }
+
+    if (Count > 0) {
+      TagPtr          Prop2 = NULL, Dict = NULL;
+      BOOTER_PATCH    *newPatches = AllocateZeroPool (Count * sizeof (BOOTER_PATCH));
+
+      Patches->BooterPatches = newPatches;
+      MsgLog ("BooterToPatch: %d requested\n", Count);
+
+      for (i = 0; i < Count; i++) {
+        CHAR8         *BooterPatchesLabel;
+        UINTN         FindLen = 0, ReplaceLen = 0;
+        UINT8         *TmpData, *TmpPatch;
+        EFI_STATUS    Status = GetElement (Prop, i, Count, &Prop2);
+
+        DBG (" - [%02d]:", i);
+
+        if (EFI_ERROR (Status) || (Prop2 == NULL)) {
+          DBG (" %r parsing / empty element\n", Status);
+          continue;
+        }
+
+        Dict = GetProperty (Prop2, "Comment");
+        if (Dict != NULL) {
+          BooterPatchesLabel = AllocateCopyPool (AsciiStrSize (Dict->string), Dict->string);
+        } else {
+          BooterPatchesLabel = AllocateCopyPool (8, "NoLabel");
+        }
+
+        DBG (" %a", BooterPatchesLabel);
+
+        if (GetPropertyBool (GetProperty (Prop2, "Disabled"), FALSE)) {
+          DBG (" | patch disabled, skip\n");
+          continue;
+        }
+
+        TmpData   = GetDataSetting (Prop2, "Find", &FindLen);
+        TmpPatch  = GetDataSetting (Prop2, "Replace", &ReplaceLen);
+
+        if (!FindLen || !ReplaceLen || (FindLen != ReplaceLen)) {
+          DBG (" | invalid Find/Replace data, skip\n");
+          continue;
+        }
+
+        Patches->BooterPatches[Patches->NrBooters].Data       = AllocateCopyPool (FindLen, TmpData);
+        Patches->BooterPatches[Patches->NrBooters].DataLen    = FindLen;
+        Patches->BooterPatches[Patches->NrBooters].Patch      = AllocateCopyPool (FindLen, TmpPatch);
+        Patches->BooterPatches[Patches->NrBooters].MatchOS    = NULL;
+        Patches->BooterPatches[Patches->NrBooters].Disabled   = FALSE;
+        Patches->BooterPatches[Patches->NrBooters].Label      = AllocateCopyPool (AsciiStrSize (BooterPatchesLabel), BooterPatchesLabel);
+        Patches->BooterPatches[Patches->NrBooters].Count      = GetPropertyInteger (GetProperty (Prop2, "Count"), 0);
+        Patches->BooterPatches[Patches->NrBooters].Wildcard   = (UINT8)GetPropertyInteger (GetProperty (Prop2, "Wildcard"), 0xFF);
+
+        FreePool (TmpData);
+        FreePool (TmpPatch);
+        FreePool (BooterPatchesLabel);
+
+        // check enable/disabled patch (OS based) by Micky1979
+        Dict = GetProperty (Prop2, "MatchOS");
+        if ((Dict != NULL) && (Dict->type == kTagTypeString)) {
+          Patches->BooterPatches[Patches->NrBooters].MatchOS = AllocateCopyPool (AsciiStrSize (Dict->string), Dict->string);
+          DBG (" | MatchOS: %a", Patches->BooterPatches[Patches->NrBooters].MatchOS);
+        }
+
+        DBG (" | len: %d\n", Patches->BooterPatches[Patches->NrBooters].DataLen);
+
+        Patches->NrBooters++;
       }
     }
   }
@@ -2802,7 +2899,11 @@ GetEarlyUserSettings (
     }
 
     // KernelAndKextPatches
-    DictPointer = GetProperty (Dict, "KernelAndKextPatches");
+
+    DictPointer = GetProperty (Dict, "Patches"); // more generic, will rename it soon
+    if (DictPointer == NULL) {
+      DictPointer = GetProperty (Dict, "KernelAndKextPatches");
+    }
     if (DictPointer != NULL) {
       FillinKextPatches (
         (KERNEL_AND_KEXT_PATCHES *)(((UINTN)&gSettings) + OFFSET_OF (SETTINGS_DATA, KernelAndKextPatches)),
@@ -3180,9 +3281,12 @@ GetDefaultSettings () {
   gSettings.WithKexts = TRUE;
   gSettings.KextPatchesAllowed = TRUE;
   gSettings.KernelPatchesAllowed = TRUE;
+  gSettings.BooterPatchesAllowed = TRUE;
   gSettings.LinuxScan = TRUE;
   gSettings.AndroidScan = TRUE;
   gSettings.NvidiaSingle = TRUE;
+
+  gSettings.FlagsBits = OSFLAG_DEFAULTS;
 
   //gLanguage = english;
   Model = GetDefaultModel ();
@@ -3421,7 +3525,7 @@ GetUserSettings (
 
               DBG (" - [%02d]:", Index);
 
-               if (EFI_ERROR (Status) || (Prop2 == NULL) ) {
+               if (EFI_ERROR (Status) || (Prop2 == NULL)) {
                 DBG (" %r parsing / empty element\n", Status);
                 continue;
               }

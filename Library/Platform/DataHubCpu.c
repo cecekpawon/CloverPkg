@@ -255,7 +255,7 @@ SetVariablesForOSX () {
 
   if (gSettings.BooterConfig != 0xFFFF) {
     SetNvramVariable (
-      L"bootercfg",
+      L"bootercfg", //-once
       &gEfiAppleBootGuid,
       Attributes,
       sizeof (gSettings.BooterConfig),

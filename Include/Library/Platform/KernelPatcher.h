@@ -176,7 +176,7 @@ STATIC CONST UINTN KernelPatchSymbolLookupCount = ARRAY_SIZE (KernelPatchSymbolL
 //
 
 #define KERNEL_MAX_SIZE 40000000
-#define FSearchReplace(Source, Size, Search, Replace) SearchAndReplace((UINT8 *)(UINTN)Source, Size, Search, sizeof(Search), Replace, 1)
+#define FSearchReplace(Source, Size, Search, Replace) SearchAndReplace((UINT8 *)(UINTN)Source, Size, Search, sizeof(Search), Replace, 0)
 BOOLEAN IsKernelIs64BitOnly (IN LOADER_ENTRY *Entry);
 VOID    DbgHeader (CHAR8 *str);
 
@@ -232,6 +232,18 @@ SearchAndReplace (
   UINT8     *Search,
   UINTN     SearchSize,
   UINT8     *Replace,
+  UINT8     Wildcard,
+  INTN      MaxReplaces
+);
+
+UINTN
+SearchAndReplaceTxt (
+  UINT8     *Source,
+  UINT32    SourceSize,
+  UINT8     *Search,
+  UINTN     SearchSize,
+  UINT8     *Replace,
+  UINT8     Wildcard,
   INTN      MaxReplaces
 );
 
@@ -246,7 +258,6 @@ AnyKextPatch (
   UINT32        DriverSize,
   CHAR8         *InfoPlist,
   UINT32        InfoPlistSize,
-  //INT32         N,
   KEXT_PATCH    *KextPatches,
   LOADER_ENTRY  *Entry
 );

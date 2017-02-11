@@ -221,6 +221,7 @@ InternalSetMode (
       egScreenWidth = GraphicsOutput->Mode->Info->HorizontalResolution;
       egScreenHeight = GraphicsOutput->Mode->Info->VerticalResolution;
     }
+
     Index++;
   }
 

@@ -76,6 +76,30 @@ SearchAndCount (
 // Replace should have the same size as Search.
 // Returns number of replaces done.
 //
+BOOLEAN
+FindWildcardPattern (
+  UINT8     *Source,
+  UINT8     *Search,
+  UINTN     SearchSize,
+  UINT8     Wildcard
+) {
+  UINTN     i, SearchCount = 0;
+
+  for (i = 0; i < SearchSize; i++) {
+    //if ((Search[i] == Wildcard) || (Search[i] != Source[i])) {
+    if ((Search[i] != Wildcard) && (Search[i] != Source[i])) {
+      //SearchCount++;
+      break;
+    }
+
+    SearchCount++;
+  }
+
+  //DBG ("SearchSize: %d | SearchCount: %d\n", SearchSize, SearchCount);
+
+  return (SearchSize == SearchCount);
+}
+
 UINTN
 SearchAndReplace (
   UINT8     *Source,
@@ -83,6 +107,7 @@ SearchAndReplace (
   UINT8     *Search,
   UINTN     SearchSize,
   UINT8     *Replace,
+  UINT8     Wildcard,
   INTN      MaxReplaces
 ) {
   UINTN     NumReplaces = 0;
@@ -94,7 +119,10 @@ SearchAndReplace (
   }
 
   while ((Source < End) && (NoReplacesRestriction || (MaxReplaces > 0))) {
-    if (CompareMem (Source, Search, SearchSize) == 0) {
+    if (
+      ((Wildcard != 0xFF) && FindWildcardPattern (Source, Search, SearchSize, Wildcard)) ||
+      (CompareMem (Source, Search, SearchSize) == 0)
+    ) {
       CopyMem (Source, Replace, SearchSize);
       NumReplaces++;
       MaxReplaces--;
@@ -114,6 +142,7 @@ SearchAndReplaceTxt (
   UINT8     *Search,
   UINTN     SearchSize,
   UINT8     *Replace,
+  UINT8     Wildcard,
   INTN      MaxReplaces
 ) {
   BOOLEAN   NoReplacesRestriction = (MaxReplaces <= 0);
@@ -140,7 +169,7 @@ SearchAndReplaceTxt (
           continue;
         }
 
-        if (*Source != *Pos) {
+        if ((*Source != *Pos) && ((Wildcard != 0xFF) && (Wildcard != *Pos))) {
           break;
         }
 
@@ -302,30 +331,13 @@ ATIConnectorsPatchRegisterKexts (
 VOID
 ATIConnectorsPatch (
   UINT8         *Driver,
-  UINT32        DriverSize,/*
-  CHAR8         *InfoPlist,
-  UINT32        InfoPlistSize,*/
+  UINT32        DriverSize,
   LOADER_ENTRY  *Entry
 ) {
   UINTN   Num = 0;
 
   DBG_RT (Entry, "\nATIConnectorsPatch: driverAddr = %x, driverSize = %x\nController = %s\n",
          Driver, DriverSize, Entry->KernelAndKextPatches->KPATIConnectorsController);
-
-  // number of occurences od Data should be 1
-  //Num = SearchAndCount (
-  //        Driver,
-  //        DriverSize,
-  //        Entry->KernelAndKextPatches->KPATIConnectorsData,
-  //        Entry->KernelAndKextPatches->KPATIConnectorsDataLen
-  //      );
-
-  //if (Num > 1) {
-  //  // error message - shoud always be printed
-  //  DBG_RT (Entry, "==> KPATIConnectorsData found %d times - skip patching!\n", Num);
-  //  //DBG_PAUSE (Entry, 5);
-  //  return;
-  //}
 
   // patch
   Num = SearchAndReplace (
@@ -334,6 +346,7 @@ ATIConnectorsPatch (
           Entry->KernelAndKextPatches->KPATIConnectorsData,
           Entry->KernelAndKextPatches->KPATIConnectorsDataLen,
           Entry->KernelAndKextPatches->KPATIConnectorsPatch,
+          Entry->KernelAndKextPatches->KPATIConnectorsWildcard,
           1
         );
 
@@ -515,7 +528,7 @@ AnyKextPatch (
   LOADER_ENTRY  *Entry
 ) {
   UINTN   Num = 0;
-  //INTN    Ind;
+  //INTN    Index;
 
   DBG_RT (Entry, "\nAnyKextPatch: driverAddr = %x, driverSize = %x\nAnyKext = %a\n",
          Driver, DriverSize, KextPatches->Label);
@@ -531,15 +544,15 @@ AnyKextPatch (
     /*
       DBG_RT (Entry, "Info.plist data : '");
 
-      for (Ind = 0; Ind < KextPatches->DataLen; Ind++) {
-        DBG_RT (Entry, "%c", KextPatches->Data[Ind]);
+      for (Ind = 0; Index < KextPatches->DataLen; Index++) {
+        DBG_RT (Entry, "%c", KextPatches->Data[Index]);
       }
 
       DBG_RT (Entry, "' ->\n");
       DBG_RT (Entry, "Info.plist patch: '");
 
-      for (Ind = 0; Ind < KextPatches->DataLen; Ind++) {
-        DBG_RT (Entry, "%c", KextPatches->Patch[Ind]);
+      for (Index = 0; Index < KextPatches->DataLen; Index++) {
+        DBG_RT (Entry, "%c", KextPatches->Patch[Index]);
       }
 
       DBG_RT (Entry, "' \n");
@@ -551,18 +564,19 @@ AnyKextPatch (
             KextPatches->Data,
             KextPatches->DataLen,
             KextPatches->Patch,
-            -1
+            KextPatches->Wildcard,
+            KextPatches->Count
           );
   } else { // kext binary patch
-    UINT32    addr, size, off;
+    UINT32    Addr, Size, Off;
 
-    GetText (Driver, &addr, &size, &off, Entry);
+    GetText (Driver, &Addr, &Size, &Off, Entry);
 
     DBG_RT (Entry, "Binary patch\n");
 
-    if (off && size) {
-      Driver += off;
-      DriverSize = size;
+    if (Off && Size) {
+      Driver += Off;
+      DriverSize = Size;
     }
 
     Num = SearchAndReplace (
@@ -571,7 +585,8 @@ AnyKextPatch (
             KextPatches->Data,
             KextPatches->DataLen,
             KextPatches->Patch,
-            -1
+            KextPatches->Wildcard,
+            KextPatches->Count
           );
   }
 

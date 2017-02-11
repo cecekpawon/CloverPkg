@@ -154,6 +154,7 @@ typedef enum {
   // Patch
   mKextPatchesAllowed,
   mKernelPatchesAllowed,
+  mBooterPatchesAllowed,
   mKPKernelPm,
   mKPAsusAICPUPM,
 
@@ -185,8 +186,9 @@ OPT_MENU_GEN OPT_MENU_DEVICES[] = {
 INTN    OptMenuDevicesNum = ARRAY_SIZE (OPT_MENU_DEVICES);
 
 OPT_MENU_GEN OPT_MENU_PATCHES[] = {
-  { mKextPatchesAllowed,    L"Allow Kext Patches"   },
-  { mKernelPatchesAllowed,  L"Allow Kernel Patches" },
+  //{ mKextPatchesAllowed,    L"Allow Kext Patches"   },
+  //{ mKernelPatchesAllowed,  L"Allow Kernel Patches" },
+  //{ mBooterPatchesAllowed,  L"Allow Booter Patches" },
   { mKPKernelPm,            L"KernelPM Patch"       },
   { mKPAsusAICPUPM,         L"AsusAICPUPM Patch"    },
 };
@@ -216,35 +218,38 @@ OPT_MENU_GEN OPT_MENU_DEBUG[] = {
 INTN    OptMenuDebugNum = ARRAY_SIZE (OPT_MENU_DEBUG);
 
 typedef struct {
-  CHAR16  *Title;
-  CHAR16  *Args;
-  UINTN   Bit;
-  INTN    OsType;
+  OPT_MENU_K  ID;
+  CHAR16      *Title;
+  CHAR16      *Args;
+  UINTN       Bit;
+  INTN        OsType;
+  //BOOLEAN     InOption;
 } OPT_MENU_OPTBIT_K;
 
 OPT_MENU_OPTBIT_K OPT_MENU_OPTBIT[] = {
-  { L"Verbose",       L"-v",          OPT_VERBOSE,        OSTYPE_OSX },
-  { L"Single User",   L"-s",          OPT_SINGLE_USER,    OSTYPE_OSX },
-  { L"Safe Mode",     L"-x",          OPT_SAFE,           OSTYPE_OSX },
-  { L"Quiet",         L"quiet",       OPT_QUIET,          OSTYPE_LIN },
-  { L"Splash",        L"splash",      OPT_SPLASH,         OSTYPE_LIN },
-  { L"Nomodeset",     L"nomodeset",   OPT_NOMODESET,      OSTYPE_LIN },
-  { L"Verbose",       L"-v",          OPT_VERBOSE,        OSTYPE_WIN },
-  { L"Single User",   L"-s",          OPT_SINGLE_USER,    OSTYPE_WIN },
-  { L"Hard Disk",     L"-h",          OPT_HDD,            OSTYPE_WIN },
-  { L"CD-ROM",        L"-c",          OPT_CDROM,          OSTYPE_WIN },
+  { 0,  L"Verbose",       L"-v",          OPT_VERBOSE,        OSTYPE_OSX },
+  { 0,  L"Single User",   L"-s",          OPT_SINGLE_USER,    OSTYPE_OSX },
+  { 0,  L"Safe Mode",     L"-x",          OPT_SAFE,           OSTYPE_OSX },
+  { 0,  L"Quiet",         L"quiet",       OPT_QUIET,          OSTYPE_LIN },
+  { 0,  L"Splash",        L"splash",      OPT_SPLASH,         OSTYPE_LIN },
+  { 0,  L"Nomodeset",     L"nomodeset",   OPT_NOMODESET,      OSTYPE_LIN },
+  { 0,  L"Verbose",       L"-v",          OPT_VERBOSE,        OSTYPE_WIN },
+  { 0,  L"Single User",   L"-s",          OPT_SINGLE_USER,    OSTYPE_WIN },
+  { 0,  L"Hard Disk",     L"-h",          OPT_HDD,            OSTYPE_WIN },
+  { 0,  L"CD-ROM",        L"-c",          OPT_CDROM,          OSTYPE_WIN }
 };
 
 INTN    OptMenuOptBitNum = ARRAY_SIZE (OPT_MENU_OPTBIT);
 
 OPT_MENU_OPTBIT_K OPT_MENU_FLAGBIT[] = {
-  { L"Hibernate wake",        NULL,   OSFLAG_HIBERNATED,            OSTYPE_OSX },
-  { L"Without caches",        NULL,   OSFLAG_NOCACHES,              OSTYPE_OSX },
-  { L"With injected kexts",   NULL,   OSFLAG_WITHKEXTS,             OSTYPE_OSX },
-  { L"No SIP",                NULL,   OSFLAG_NOSIP,                 OSTYPE_OSX },
-  { L"Debug Patches",         NULL,   OSFLAG_DBGPATCHES,            OSTYPE_OSX },
-  { L"Allow Kext Patches",    NULL,   OSFLAG_ALLOW_KEXT_PATCHES,    OSTYPE_OSX },
-  { L"Allow Kernel Patches",  NULL,   OSFLAG_ALLOW_KERNEL_PATCHES,  OSTYPE_OSX },
+  { 0,                      L"Hibernate wake",        NULL,   OSFLAG_HIBERNATED,            OSTYPE_OSX },
+  { 0,                      L"Without caches",        NULL,   OSFLAG_NOCACHES,              OSTYPE_OSX },
+  { 0,                      L"With injected kexts",   NULL,   OSFLAG_WITHKEXTS,             OSTYPE_OSX },
+  { 0,                      L"No SIP",                NULL,   OSFLAG_NOSIP,                 OSTYPE_OSX },
+  { 0,                      L"Debug Patches",         NULL,   OSFLAG_DBGPATCHES,            OSTYPE_OSX },
+  { mKextPatchesAllowed,    L"Allow Kext Patches",    NULL,   OSFLAG_ALLOW_KEXT_PATCHES,    OSTYPE_OSX },
+  { mKernelPatchesAllowed,  L"Allow Kernel Patches",  NULL,   OSFLAG_ALLOW_KERNEL_PATCHES,  OSTYPE_OSX },
+  { mBooterPatchesAllowed,  L"Allow Booter Patches",  NULL,   OSFLAG_ALLOW_BOOTER_PATCHES,  OSTYPE_OSX }
 };
 
 INTN    OptMenuFlagBitNum = ARRAY_SIZE (OPT_MENU_FLAGBIT);
@@ -421,6 +426,16 @@ FillInputs (
   BOOLEAN   New
 ) {
   if (New) {
+    INTN    i, FlagsOptCount = 0;
+
+    for (i = 0; i < OptMenuFlagBitNum; i++) {
+      if (!OPT_MENU_FLAGBIT[i].ID) {
+        continue;
+      }
+
+      FlagsOptCount++;
+    }
+
     OptMenuItemsNum = (
       1 + // mBootArgs
       1 + // mConfigs
@@ -434,6 +449,7 @@ FillInputs (
       1 + // mThemes
       1 + // mOptionsBits
       1 + // mFlagsBits
+      FlagsOptCount + // FlagsBits inside global option
       0
     );
 
@@ -465,6 +481,7 @@ FillInputs (
   // Patch
   FillInputBool (mKextPatchesAllowed, gSettings.KextPatchesAllowed);
   FillInputBool (mKernelPatchesAllowed, gSettings.KernelPatchesAllowed);
+  FillInputBool (mBooterPatchesAllowed, gSettings.BooterPatchesAllowed);
   FillInputBool (mKPKernelPm, gSettings.KernelAndKextPatches.KPKernelPm);
   FillInputBool (mKPAsusAICPUPM, gSettings.KernelAndKextPatches.KPAsusAICPUPM);
 
@@ -609,7 +626,8 @@ ApplyInputs () {
         break;
 
       // Patch
-      case mKextPatchesAllowed:
+/*
+     case mKextPatchesAllowed:
         gSettings.KextPatchesAllowed = ApplyInputBool (i);
         break;
 
@@ -617,6 +635,10 @@ ApplyInputs () {
         gSettings.KernelPatchesAllowed = ApplyInputBool (i);
         break;
 
+      case mBooterPatchesAllowed:
+        gSettings.BooterPatchesAllowed = ApplyInputBool (i);
+        break;
+*/
       case mKPKernelPm:
         gSettings.KernelAndKextPatches.KPKernelPm = ApplyInputBool (i);
         break;
@@ -853,8 +875,7 @@ AddOptionEntries (
   REFIT_MENU_SCREEN   *SubScreen,
   LOADER_ENTRY        *SubEntry
 ) {
-  BOOLEAN     FlagsExists = FALSE;
-  INTN        i, OsType;
+  INTN  i, OsType, FlagsOptCount = 0;
 
   if (OSTYPE_IS_OSX_GLOB (SubEntry->LoaderType)) {
     OsType = OSTYPE_OSX;
@@ -877,10 +898,10 @@ AddOptionEntries (
       ? OSFLAG_SET (gSettings.FlagsBits, OPT_MENU_FLAGBIT[i].Bit)
       : OSFLAG_UNSET (gSettings.FlagsBits, OPT_MENU_FLAGBIT[i].Bit));
 
-    FlagsExists = TRUE;
+    FlagsOptCount++;
   }
 
-  if (FlagsExists) {
+  if (FlagsOptCount) {
     FillInputInt (mFlagsBits, gSettings.FlagsBits);
     AddSeparator (SubScreen, "boot-args");
   }
@@ -3200,9 +3221,16 @@ SubMenuPatches () {
   AddMenuInfoLine (SubScreen, PoolPrint (L"%a", gCPUStructure.BrandString));
   AddMenuInfoLine (SubScreen, PoolPrint (L"Real CPUID: 0x%06x", gCPUStructure.Signature));
 
-  while (i < OptMenuPatchesNum) {
+  for (i = 0; i < OptMenuPatchesNum; i++) {
     AddMenuBOOL (SubScreen, OPT_MENU_PATCHES[i].Title, NULL, OPT_MENU_PATCHES[i].ID);
-    i++;
+  }
+
+  for (i = 0; i < OptMenuFlagBitNum; i++) {
+    if (!OPT_MENU_FLAGBIT[i].ID) {
+      continue;
+    }
+
+    AddMenuCheck (SubScreen, OPT_MENU_FLAGBIT[i].Title, OPT_MENU_FLAGBIT[i].Bit, mFlagsBits);
   }
 
   AddMenuEntry (SubScreen, &MenuEntryReturn);

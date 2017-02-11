@@ -631,6 +631,13 @@ AsciiStrStriN (
   return Found;
 }
 
+BOOLEAN
+IsHexDigit (
+  CHAR8   c
+) {
+  return (IS_DIGIT (c) || (IS_HEX (c))) ? TRUE : FALSE;
+}
+
 UINT8
 EFIAPI
 HexStrToUint8 (
@@ -658,13 +665,6 @@ HexStrToUint8 (
   return i;
 }
 
-BOOLEAN
-IsHexDigit (
-  CHAR8   c
-) {
-  return (IS_DIGIT (c) || (IS_HEX (c))) ? TRUE : FALSE;
-}
-
 //out value is a number of byte. If len is even then out = len/2
 
 UINT32
@@ -684,6 +684,10 @@ Hex2Bin (
 
   buf[2] = '\0';
   p = (CHAR8 *)hex;
+
+  if ((p[0] == '0') && (TO_UPPER (p[1]) == 'X')) {
+    p += 2;
+  }
 
   for (i = 0; i < len; i++) {
     while ((*p == 0x20) || (*p == ',')) {
@@ -708,6 +712,29 @@ Hex2Bin (
   //bin[outlen] = 0;
 
   return outlen;
+}
+
+//
+// returns binary setting in a new allocated buffer and data length in dataLen.
+// data can be specified in <data></data> base64 encoded
+// or in <string></string> hex encoded
+//
+
+VOID *
+EFIAPI
+StringDataToHex (
+  IN   CHAR8    *Val,
+  OUT  UINTN    *DataLen
+) {
+  UINT8     *Data = NULL;
+  UINT32    Len;
+
+  Len = (UINT32)AsciiStrLen (Val) >> 1; // number of hex digits
+  Data = AllocateZeroPool (Len); // 2 chars per byte, one more byte for odd number
+  Len  = Hex2Bin (Val, Data, Len);
+  *DataLen = Len;
+
+  return Data;
 }
 
 CHAR8 *

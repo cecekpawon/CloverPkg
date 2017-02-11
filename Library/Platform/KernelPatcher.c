@@ -672,6 +672,7 @@ KernelUserPatch (
       Entry->KernelAndKextPatches->KernelPatches[i].Data,
       Entry->KernelAndKextPatches->KernelPatches[i].DataLen,
       Entry->KernelAndKextPatches->KernelPatches[i].Patch,
+      Entry->KernelAndKextPatches->KernelPatches[i].Wildcard,
       Entry->KernelAndKextPatches->KernelPatches[i].Count
     );
 

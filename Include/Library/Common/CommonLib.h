@@ -64,6 +64,13 @@ Hex2Bin (
   IN  UINT32  len
 );
 
+VOID *
+EFIAPI
+StringDataToHex (
+  IN   CHAR8    *Val,
+  OUT  UINTN    *DataLen
+);
+
 UINT8
 EFIAPI
 HexStrToUint8 (

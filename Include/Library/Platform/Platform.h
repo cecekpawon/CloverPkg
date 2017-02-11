@@ -1059,6 +1059,7 @@ typedef struct {
   KERNEL_AND_KEXT_PATCHES   KernelAndKextPatches;
   BOOLEAN                   KextPatchesAllowed;
   BOOLEAN                   KernelPatchesAllowed; //From GUI: Only for user patches, not internal Clover
+  BOOLEAN                   BooterPatchesAllowed;
 
   // SysVariables
   CHAR8                     *RtMLB;
@@ -1810,7 +1811,7 @@ GetStrArraySeparatedByChar (
 
 VOID
 DeallocMatchOSes (
-  struct MatchOSes    *s
+  MatchOSes    *s
 );
 
 #endif

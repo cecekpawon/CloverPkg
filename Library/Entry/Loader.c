@@ -833,6 +833,10 @@ AddLoaderEntry (
         Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_ALLOW_KERNEL_PATCHES);
       }
 
+      if (gSettings.BooterPatchesAllowed) {
+        Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_ALLOW_BOOTER_PATCHES);
+      }
+
       if (gSettings.NoCaches) {
         Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_NOCACHES);
       }

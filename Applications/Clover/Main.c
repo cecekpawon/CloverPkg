@@ -521,14 +521,14 @@ ParseLoaderHeader (
 
     DosHdr = NULL;
   } else {
-    PeHdr = (EFI_IMAGE_OPTIONAL_HEADER_UNION *)(FileBuffer + DosHdr->e_lfanew);
+    PeHdr = (EFI_IMAGE_OPTIONAL_HEADER_UNION *)((UINT8 *)FileBuffer + DosHdr->e_lfanew);
     if (PeHdr->Pe32.Signature != EFI_IMAGE_NT_SIGNATURE) {
       DBG ("PE header signature was not found.\n");
       goto Finish;
     }
   }
 
-  SectionHeader = (EFI_IMAGE_SECTION_HEADER *) ((UINT8 *) &(PeHdr->Pe32.OptionalHeader) + PeHdr->Pe32.FileHeader.SizeOfOptionalHeader);
+  SectionHeader = (EFI_IMAGE_SECTION_HEADER *)((UINT8 *)&(PeHdr->Pe32.OptionalHeader) + PeHdr->Pe32.FileHeader.SizeOfOptionalHeader);
 
   if (PeHdr->Pe32.FileHeader.NumberOfSections) {
     Ret = AllocateZeroPool (sizeof (BOOT_EFI_HEADER));
@@ -561,6 +561,58 @@ ParseLoaderHeader (
 
 STATIC
 VOID
+PatchBooter (
+  IN LOADER_ENTRY       *Entry,
+  IN EFI_LOADED_IMAGE   *LoadedImage,
+  IN BOOT_EFI_HEADER    *BootEfiHeader,
+  IN CHAR8              *OSVer
+) {
+  if (
+    gSettings.BooterPatchesAllowed &&
+    (Entry->KernelAndKextPatches->BooterPatches != NULL) &&
+    Entry->KernelAndKextPatches->NrBooters
+  ) {
+    INTN  i = 0, Num = 0;
+
+    MsgLog ("Start BooterPatches:\n");
+
+    for (; i < Entry->KernelAndKextPatches->NrBooters; ++i) {
+      MsgLog (" - [%02d]: %a | [MatchOS: %a]",
+        i,
+        Entry->KernelAndKextPatches->BooterPatches[i].Label,
+        Entry->KernelAndKextPatches->BooterPatches[i].MatchOS
+          ? Entry->KernelAndKextPatches->BooterPatches[i].MatchOS
+          : "All"
+      );
+
+      Entry->KernelAndKextPatches->BooterPatches[i].Disabled = !IsPatchEnabled (
+        Entry->KernelAndKextPatches->BooterPatches[i].MatchOS, OSVer);
+
+      MsgLog (" ==> %a\n", Entry->KernelAndKextPatches->BooterPatches[i].Disabled ? "not allowed" : "allowed");
+
+      if (Entry->KernelAndKextPatches->BooterPatches[i].Disabled) {
+        continue;
+      }
+
+      Num = (INTN)SearchAndReplace (
+        (UINT8 *)LoadedImage->ImageBase,
+        LoadedImage->ImageSize,
+        Entry->KernelAndKextPatches->BooterPatches[i].Data,
+        Entry->KernelAndKextPatches->BooterPatches[i].DataLen,
+        Entry->KernelAndKextPatches->BooterPatches[i].Patch,
+        Entry->KernelAndKextPatches->BooterPatches[i].Wildcard,
+        Entry->KernelAndKextPatches->BooterPatches[i].Count
+      );
+
+      MsgLog ("  - Patching %a : %d replaces done\n", Num ? "Success" : "Error", Num);
+    }
+
+    MsgLog ("End BooterPatches\n");
+  }
+}
+
+STATIC
+VOID
 StartLoader (
   IN LOADER_ENTRY   *Entry
 ) {
@@ -568,7 +620,6 @@ StartLoader (
   EFI_TEXT_STRING     ConOutOutputString = 0;
   EFI_HANDLE          ImageHandle = NULL;
   EFI_LOADED_IMAGE    *LoadedImage;
-  CHAR8               *InstallerVersion;
   TagPtr              dict = NULL;
   BOOLEAN             UseGraphicsMode = TRUE;
 
@@ -589,10 +640,6 @@ StartLoader (
         if ((gSettings.CpuFreqMHz > 100) && (gSettings.CpuFreqMHz < 20000)) {
           gCPUStructure.MaxSpeed = gSettings.CpuFreqMHz;
         }
-        //CopyMem (Entry->KernelAndKextPatches,
-        //         &gSettings.KernelAndKextPatches,
-        //         sizeof (KERNEL_AND_KEXT_PATCHES));
-        //DBG ("Custom KernelAndKextPatches copyed to started entry\n");
       }
     } else {
       DBG (" - [!] LoadUserSettings failed: %r\n", Status);
@@ -605,7 +652,7 @@ StartLoader (
   );
 
   // Unified
-  Entry->Flags |= (gSettings.OptionsBits | gSettings.FlagsBits);
+  Entry->Flags = (gSettings.OptionsBits | gSettings.FlagsBits);
   gSettings.OptionsBits = gSettings.FlagsBits = Entry->Flags;
 
   //DumpKernelAndKextPatches (Entry->KernelAndKextPatches);
@@ -623,10 +670,14 @@ StartLoader (
     return; // no reason to continue if loading image failed
   }
 
-  ClearScreen (&DarkBackgroundPixel);
+  ClearScreen (&DarkBackgroundPixel); //StdBackgroundPixel
 
   if (OSTYPE_IS_OSX_GLOB (Entry->LoaderType)) {
-    BOOT_EFI_HEADER   *BootEfiHeader = NULL;
+    CHAR8   *BooterOSVersion = NULL;
+
+    gSettings.BooterPatchesAllowed = OSFLAG_ISSET (Entry->Flags, OSFLAG_ALLOW_BOOTER_PATCHES);
+    gSettings.KextPatchesAllowed = OSFLAG_ISSET (Entry->Flags, OSFLAG_ALLOW_KEXT_PATCHES);
+    gSettings.KernelPatchesAllowed = OSFLAG_ISSET (Entry->Flags, OSFLAG_ALLOW_KERNEL_PATCHES);
 
     Status = gBS->HandleProtocol (
                     ImageHandle,
@@ -635,7 +686,38 @@ StartLoader (
                   );
 
     if (!EFI_ERROR (Status)) {
-      BootEfiHeader = ParseLoaderHeader (LoadedImage->ImageBase);
+      BOOT_EFI_HEADER   *BootEfiHeader = ParseLoaderHeader (LoadedImage->ImageBase);
+
+      if (BootEfiHeader) {
+        // version in boot.efi appears as "Mac OS X 10.?"
+        /*
+          Start OSName Mac OS X 10.12 End OSName Start OSVendor Apple Inc. End
+        */
+        BooterOSVersion = SearchString ((CHAR8 *)LoadedImage->ImageBase + BootEfiHeader->TextOffset, BootEfiHeader->TextSize, "Mac OS X ", 9);
+
+        if (BooterOSVersion != NULL) { // string was found
+          BooterOSVersion += 9; // advance to version location
+
+          if (
+            AsciiStrnCmp (BooterOSVersion, "10.", 3) /* &&
+            AsciiStrnCmp (BooterOSVersion, "11.", 3) &&
+            AsciiStrnCmp (BooterOSVersion, "12.", 3) */
+          ) {
+            DBG ("NO BooterOSVersion\n");
+            FreePool (BooterOSVersion);
+            BooterOSVersion = NULL;
+          } else { // known version was found in image
+            MsgLog ("Found BooterOSVersion: %a\n", BooterOSVersion);
+
+            PatchBooter (
+              Entry,
+              LoadedImage,
+              BootEfiHeader,
+              BooterOSVersion
+            );
+          }
+        }
+      }
     }
 
     MsgLog ("Darwin Version:");
@@ -643,45 +725,20 @@ StartLoader (
     // Correct OSVersion if it was not found
     // This should happen only for 10.7-10.9 OSTYPE_OSX_INSTALLER
     // For these cases, take OSVersion from loaded boot.efi image in memory
-    if (OSTYPE_IS_OSX_INSTALLER (Entry->LoaderType) || !Entry->OSVersion) {
-      if (BootEfiHeader) {
-        // version in boot.efi appears as "Mac OS X 10.?"
-        /*
-          Start OSName Mac OS X 10.12 End OSName Start OSVendor Apple Inc. End
-        */
-        //InstallerVersion = SearchString (LoadedImage->ImageBase, LoadedImage->ImageSize, "Mac OS X ", 9);
-        InstallerVersion = SearchString (LoadedImage->ImageBase + BootEfiHeader->TextOffset, BootEfiHeader->TextSize, "Mac OS X ", 9);
+    if (/* OSTYPE_IS_OSX_INSTALLER (Entry->LoaderType) || */ !Entry->OSVersion && BooterOSVersion) {
+      UINTN   Len = AsciiStrLen (BooterOSVersion);
 
-        if (InstallerVersion != NULL) { // string was found
-          InstallerVersion += 9; // advance to version location
+      Entry->OSVersion = AllocateCopyPool ((Len + 1), BooterOSVersion);
+      Entry->OSVersion[Len] = '\0';
 
-          if (
-            AsciiStrnCmp (InstallerVersion, "10.", 3) /*&&   //
-            AsciiStrnCmp (InstallerVersion, "11.", 3) &&     // When Tim Cook migrate to Windoze
-            AsciiStrnCmp (InstallerVersion, "12.", 3)*/      //
-          ) {
-            InstallerVersion = NULL; // flag known version was not found
-          }
+      //if (Entry->BuildVersion != NULL) {
+      //  FreePool (Entry->BuildVersion);
+      //  Entry->BuildVersion = NULL;
+      //}
+    }
 
-          if (InstallerVersion != NULL) { // known version was found in image
-            UINTN   Len = AsciiStrLen (InstallerVersion);
-
-            if (Entry->OSVersion != NULL) {
-              FreePool (Entry->OSVersion);
-            }
-
-            Entry->OSVersion = AllocateCopyPool ((Len + 1), InstallerVersion);
-            Entry->OSVersion[Len] = '\0';
-            //DBG ("Corrected OSVersion: %a\n", Entry->OSVersion);
-            FreePool (InstallerVersion);
-          }
-        }
-      }
-
-      if (Entry->BuildVersion != NULL) {
-        FreePool (Entry->BuildVersion);
-        Entry->BuildVersion = NULL;
-      }
+    if (BooterOSVersion != NULL) {
+      FreePool (BooterOSVersion);
     }
 
     if (Entry->BuildVersion != NULL) {
@@ -697,14 +754,6 @@ StartLoader (
       }
 
       ReadSIPCfg ();
-    }
-
-    if (OSFLAG_ISUNSET (Entry->Flags, OSFLAG_ALLOW_KEXT_PATCHES)) {
-      gSettings.KextPatchesAllowed = FALSE;
-    }
-
-    if (OSFLAG_ISUNSET (Entry->Flags, OSFLAG_ALLOW_KERNEL_PATCHES)) {
-      gSettings.KernelPatchesAllowed = FALSE;
     }
 
     FilterKextPatches (Entry);
@@ -750,12 +799,11 @@ StartLoader (
       Entry->Flags = OSFLAG_SET (Entry->Flags, OPT_VERBOSE);
     }
 
+    Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_USEGRAPHICS);
     UseGraphicsMode = OSFLAG_ISUNSET (Entry->Flags, OPT_VERBOSE);
-
-    //Entry->Flags = OSFLAG_UNSET (Entry->Flags, OSFLAG_USEGRAPHICS);
-    //if (UseGraphicsMode) {
-    //  Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_USEGRAPHICS);
-    //}
+    if (!UseGraphicsMode) {
+      Entry->Flags = OSFLAG_UNSET (Entry->Flags, OSFLAG_USEGRAPHICS);
+    }
 
     //DbgHeader ("RestSetupOSX");
 

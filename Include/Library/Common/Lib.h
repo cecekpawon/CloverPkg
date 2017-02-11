@@ -138,21 +138,30 @@ typedef struct {
 #define OSFLAG_DBGPATCHES             (1 << 9)
 #define OSFLAG_ALLOW_KEXT_PATCHES     (1 << 10)
 #define OSFLAG_ALLOW_KERNEL_PATCHES   (1 << 11)
+#define OSFLAG_ALLOW_BOOTER_PATCHES   (1 << 12)
 
-#define OPT_VERBOSE                   (1 << 12)
-#define OPT_SINGLE_USER               (1 << 13)
-#define OPT_SAFE                      (1 << 14)
+#define OPT_VERBOSE                   (1 << 13)
+#define OPT_SINGLE_USER               (1 << 14)
+#define OPT_SAFE                      (1 << 15)
 
-#define OPT_QUIET                     (1 << 15)
-#define OPT_SPLASH                    (1 << 16)
-#define OPT_NOMODESET                 (1 << 17)
-#define OPT_HDD                       (1 << 18)
-#define OPT_CDROM                     (1 << 19)
+#define OPT_QUIET                     (1 << 16)
+#define OPT_SPLASH                    (1 << 17)
+#define OPT_NOMODESET                 (1 << 18)
+#define OPT_HDD                       (1 << 19)
+#define OPT_CDROM                     (1 << 20)
 
 #define VOLTYPE_OPTICAL               (0x0001)
 #define VOLTYPE_EXTERNAL              (0x0002)
 #define VOLTYPE_INTERNAL              (0x0003)
 #define VOLTYPE_FIREWIRE              (0x0004)
+
+#define OSFLAG_DEFAULTS               (\
+                                        OSFLAG_USEGRAPHICS          | \
+                                        OSFLAG_WITHKEXTS            | \
+                                        OSFLAG_ALLOW_KEXT_PATCHES   | \
+                                        OSFLAG_ALLOW_KERNEL_PATCHES | \
+                                        OSFLAG_ALLOW_BOOTER_PATCHES \
+                                      )
 
 #define IS_EXTENDED_PART_TYPE(type) ((type) == 0x05 || (type) == 0x0f || (type) == 0x85)
 
@@ -274,10 +283,12 @@ typedef struct {
   INTN      DataLen;
   UINT8     *Data;
   UINT8     *Patch;
+  UINT8     Wildcard;
   CHAR8     *MatchOS;
   CHAR8     *MatchBuild;
   BOOLEAN   Disabled;
   BOOLEAN   Patched;
+  INTN      Count;
 } KEXT_PATCH;
 
 typedef struct {
@@ -286,10 +297,22 @@ typedef struct {
   UINT8     *Data;
   UINT8     *Patch;
   INTN      Count;
+  UINT8     Wildcard;
   CHAR8     *MatchOS;
   CHAR8     *MatchBuild;
   BOOLEAN   Disabled;
 } KERNEL_PATCH;
+
+typedef struct {
+  CHAR8     *Label;
+  INTN      DataLen;
+  UINT8     *Data;
+  UINT8     *Patch;
+  INTN      Count;
+  UINT8     Wildcard;
+  CHAR8     *MatchOS;
+  BOOLEAN   Disabled;
+} BOOTER_PATCH;
 
 typedef struct KERNEL_AND_KEXT_PATCHES {
   BOOLEAN         KPDebug;
@@ -300,10 +323,13 @@ typedef struct KERNEL_AND_KEXT_PATCHES {
   //BOOLEAN       KPAppleRTC;
   BOOLEAN         KPKernelPm;
   UINT32          FakeCPUID;
+
   CHAR16          *KPATIConnectorsController;
   UINT8           *KPATIConnectorsData;
   UINTN           KPATIConnectorsDataLen;
   UINT8           *KPATIConnectorsPatch;
+  UINT8           KPATIConnectorsWildcard;
+
   INT32           NrKexts;
   KEXT_PATCH      *KextPatches;
 
@@ -312,6 +338,9 @@ typedef struct KERNEL_AND_KEXT_PATCHES {
 
   INT32           NrKernels;
   KERNEL_PATCH    *KernelPatches;
+
+  INT32           NrBooters;
+  BOOTER_PATCH    *BooterPatches;
 } KERNEL_AND_KEXT_PATCHES;
 
 typedef struct {
