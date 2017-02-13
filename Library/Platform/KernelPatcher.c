@@ -850,7 +850,7 @@ KernelBooterExtensionsPatchBruteForce (
 ) {
   UINTN   Num = 0;
 
-  if (!KernelInfo->is64Bit) {
+  if (!KernelInfo->A64Bit) {
     return;
   }
 
@@ -899,6 +899,8 @@ BOOLEAN
 KernelAndKextPatcherInit (
   IN LOADER_ENTRY   *Entry
 ) {
+  UINT32  Magic;
+
   if (KernelInfo->PatcherInited) {
     goto Finish;
   }
@@ -926,9 +928,11 @@ KernelAndKextPatcherInit (
   KernelInfo->Bin = (VOID *)(UINTN)(KernelInfo->Slide + KernelInfo->RelocBase + 0x00200000);
 
   // check that it is Mach-O header and detect architecture
-  if (MACH_GET_MAGIC (KernelInfo->Bin) == MH_MAGIC_64) { // (MACH_GET_MAGIC (KernelInfo->Bin) == MH_CIGAM_64)
+  Magic = MACH_GET_MAGIC (KernelInfo->Bin);
+  //if (MACH_GET_MAGIC (KernelInfo->Bin) == MH_MAGIC_64) { // (MACH_GET_MAGIC (KernelInfo->Bin) == MH_CIGAM_64)
+  if ((Magic == MH_MAGIC_64) || (Magic == MH_CIGAM_64)) {
     DBG_RT (Entry, "Found 64 bit kernel at 0x%p\n", KernelInfo->Bin);
-    KernelInfo->is64Bit = TRUE;
+    KernelInfo->A64Bit = TRUE;
   } else {
     // not valid Mach-O header - exiting
     DBG_RT (Entry, "64Bit Kernel not found at 0x%p - skipping patches!", KernelInfo->Bin);
@@ -938,18 +942,18 @@ KernelAndKextPatcherInit (
 
   InitKernel (Entry);
 
-  KernelInfo->isCache = ((KernelInfo->PrelinkTextSize > 0) && (KernelInfo->PrelinkInfoSize > 0));
-  DBG_RT (Entry, "Darwin: Version = %a | VersionMajor: %d | VersionMinor: %d | Revision: %d\n",
+  KernelInfo->Cached = ((KernelInfo->PrelinkTextSize > 0) && (KernelInfo->PrelinkInfoSize > 0));
+  DBG_RT (Entry, "Darwin Version: %a | VersionMajor: %d | VersionMinor: %d | Revision: %d\n",
     KernelInfo->Version, KernelInfo->VersionMajor, KernelInfo->VersionMinor, KernelInfo->Revision
   );
 
-  DBG_RT (Entry, "isCache: %s\n", KernelInfo->isCache ? L"Yes" : L"No");
+  DBG_RT (Entry, "Cached: %s\n", KernelInfo->Cached ? L"Yes" : L"No");
   DBG_RT (Entry, "%a: End\n", __FUNCTION__);
   //DBG_PAUSE (Entry, 10);
 
 Finish:
 
-  return (KernelInfo->is64Bit && (KernelInfo->Bin != NULL));
+  return (KernelInfo->A64Bit && (KernelInfo->Bin != NULL));
 }
 
 VOID
@@ -963,64 +967,14 @@ KernelAndKextsPatcherStart (
     return;
   }
 
-  KernelInfo = AllocateZeroPool (sizeof (KERNEL_INFO));
-
-  KernelInfo->Slide = 0;
-  KernelInfo->KldAddr = 0;
-  KernelInfo->KldSize = 0;
-  KernelInfo->KldOff = 0;
-  KernelInfo->KldIndex = 0;
-  KernelInfo->TextAddr = 0;
-  KernelInfo->TextSize = 0;
-  KernelInfo->TextOff = 0;
-  KernelInfo->TextIndex = 0;
-  KernelInfo->ConstAddr = 0;
-  KernelInfo->ConstSize = 0;
-  KernelInfo->ConstOff = 0;
-  KernelInfo->ConstIndex = 0;
-  //KernelInfo->CStringAddr = 0;
-  //KernelInfo->CStringSize = 0;
-  //KernelInfo->CStringOff = 0;
-  KernelInfo->DataAddr = 0;
-  KernelInfo->DataSize = 0;
-  KernelInfo->DataOff = 0;
-  KernelInfo->DataIndex = 0;
-  KernelInfo->PrelinkTextAddr = 0;
-  KernelInfo->PrelinkTextSize = 0;
-  KernelInfo->PrelinkTextOff = 0;
-  KernelInfo->PrelinkTextIndex = 0;
-  KernelInfo->PrelinkInfoAddr = 0;
-  KernelInfo->PrelinkInfoSize = 0;
-  KernelInfo->PrelinkInfoOff = 0;
-  KernelInfo->PrelinkInfoIndex = 0;
-  KernelInfo->LoadEXEStart = 0;
-  KernelInfo->LoadEXEEnd = 0;
-  KernelInfo->LoadEXESize = 0;
-  KernelInfo->StartupExtStart = 0;
-  KernelInfo->StartupExtEnd = 0;
-  KernelInfo->StartupExtSize = 0;
-  KernelInfo->XCPMStart = 0;
-  KernelInfo->XCPMEnd = 0;
-  KernelInfo->XCPMSize = 0;
-  KernelInfo->CPUInfoStart = 0;
-  KernelInfo->CPUInfoEnd = 0;
-  KernelInfo->CPUInfoSize = 0;
-  KernelInfo->VersionMajor = 0;
-  KernelInfo->VersionMinor = 0;
-  KernelInfo->Revision = 0;
-  KernelInfo->Version = NULL;
-  KernelInfo->isCache = FALSE;
-  KernelInfo->is64Bit = FALSE;
-  KernelInfo->PatcherInited = FALSE;
-  KernelInfo->RelocBase = 0;
-  KernelInfo->Bin = NULL;
-
   KextPatchesNeeded = (
     Entry->KernelAndKextPatches->KPAsusAICPUPM ||
     //Entry->KernelAndKextPatches->KPAppleRTC ||
     (Entry->KernelAndKextPatches->KPATIConnectorsPatch != NULL) ||
     ((Entry->KernelAndKextPatches->NrKexts > 0) && (Entry->KernelAndKextPatches->KextPatches != NULL))
   );
+
+  KernelInfo = AllocateZeroPool (sizeof (KERNEL_INFO));
 
   //
   // KernelToPatch

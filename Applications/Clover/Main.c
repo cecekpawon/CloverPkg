@@ -720,7 +720,7 @@ StartLoader (
       }
     }
 
-    MsgLog ("Darwin Version:");
+    MsgLog ("OS Version:");
 
     // Correct OSVersion if it was not found
     // This should happen only for 10.7-10.9 OSTYPE_OSX_INSTALLER
@@ -879,7 +879,7 @@ StartLoader (
   gSettings.OptionsBits = Entry->Flags;
   DecodeOptions (Entry);
 
-  MsgLog ("Options: %s\n", Entry->LoadOptions);
+  MsgLog ("LoadOptions: %s\n", Entry->LoadOptions);
 
   ClosingEventAndLog (Entry);
 

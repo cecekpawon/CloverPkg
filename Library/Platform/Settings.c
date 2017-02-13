@@ -1090,7 +1090,7 @@ FillinKextPatches (
 
         Patches->KextPatches[Patches->NrKexts].Data       = AllocateCopyPool (FindLen, TmpData);
         Patches->KextPatches[Patches->NrKexts].DataLen    = FindLen;
-        Patches->KextPatches[Patches->NrKexts].Patch      = AllocateCopyPool (FindLen, TmpPatch);
+        Patches->KextPatches[Patches->NrKexts].Patch      = AllocateCopyPool (ReplaceLen, TmpPatch);
         Patches->KextPatches[Patches->NrKexts].MatchOS    = NULL;
         Patches->KextPatches[Patches->NrKexts].MatchBuild = NULL;
         Patches->KextPatches[Patches->NrKexts].Filename   = NULL;
@@ -1099,7 +1099,7 @@ FillinKextPatches (
         Patches->KextPatches[Patches->NrKexts].Name       = AllocateCopyPool (AsciiStrnLenS (KextPatchesName, 255) + 1, KextPatchesName);
         Patches->KextPatches[Patches->NrKexts].Label      = AllocateCopyPool (AsciiStrnLenS (KextPatchesLabel, 255) + 1, KextPatchesLabel);
         Patches->KextPatches[Patches->NrKexts].Count      = GetPropertyInteger (GetProperty (Prop2, "Count"), 0);
-        Patches->KextPatches[Patches->NrKexts].Wildcard   = (UINT8)GetPropertyInteger (GetProperty (Prop2, "Wildcard"), 0xFF);
+        Patches->KextPatches[Patches->NrKexts].Wildcard   = 0xFF;
 
         FreePool (TmpData);
         FreePool (TmpPatch);
@@ -1195,7 +1195,7 @@ FillinKextPatches (
 
         Patches->KernelPatches[Patches->NrKernels].Data       = AllocateCopyPool (FindLen, TmpData);
         Patches->KernelPatches[Patches->NrKernels].DataLen    = FindLen;
-        Patches->KernelPatches[Patches->NrKernels].Patch      = AllocateCopyPool (FindLen, TmpPatch);
+        Patches->KernelPatches[Patches->NrKernels].Patch      = AllocateCopyPool (ReplaceLen, TmpPatch);
         Patches->KernelPatches[Patches->NrKernels].MatchOS    = NULL;
         Patches->KernelPatches[Patches->NrKernels].MatchBuild = NULL;
         Patches->KernelPatches[Patches->NrKernels].Disabled   = FALSE;
@@ -1281,7 +1281,7 @@ FillinKextPatches (
 
         Patches->BooterPatches[Patches->NrBooters].Data       = AllocateCopyPool (FindLen, TmpData);
         Patches->BooterPatches[Patches->NrBooters].DataLen    = FindLen;
-        Patches->BooterPatches[Patches->NrBooters].Patch      = AllocateCopyPool (FindLen, TmpPatch);
+        Patches->BooterPatches[Patches->NrBooters].Patch      = AllocateCopyPool (ReplaceLen, TmpPatch);
         Patches->BooterPatches[Patches->NrBooters].MatchOS    = NULL;
         Patches->BooterPatches[Patches->NrBooters].Disabled   = FALSE;
         Patches->BooterPatches[Patches->NrBooters].Label      = AllocateCopyPool (AsciiStrSize (BooterPatchesLabel), BooterPatchesLabel);

@@ -81,23 +81,39 @@ FindWildcardPattern (
   UINT8     *Source,
   UINT8     *Search,
   UINTN     SearchSize,
+  UINT8     *Replace,
+  UINT8     **NewReplace,
   UINT8     Wildcard
 ) {
-  UINTN     i, SearchCount = 0;
+  UINTN     i, SearchCount = 0, ReplaceCount = 0;
+  UINT8     *TmpReplace = AllocateZeroPool (SearchSize);
+  BOOLEAN   Ret;
 
   for (i = 0; i < SearchSize; i++) {
-    //if ((Search[i] == Wildcard) || (Search[i] != Source[i])) {
     if ((Search[i] != Wildcard) && (Search[i] != Source[i])) {
-      //SearchCount++;
+      SearchCount = 0;
       break;
+    }
+
+    if (Replace[i] == Wildcard) {
+      TmpReplace[i] = Source[i];
+      ReplaceCount++;
+    } else {
+      TmpReplace[i] = Replace[i];
     }
 
     SearchCount++;
   }
 
-  //DBG ("SearchSize: %d | SearchCount: %d\n", SearchSize, SearchCount);
+  Ret = (SearchSize == SearchCount);
 
-  return (SearchSize == SearchCount);
+  if (!Ret || !ReplaceCount) {
+    FreePool (TmpReplace);
+  } else {
+    *NewReplace = TmpReplace;
+  }
+
+  return Ret;
 }
 
 UINTN
@@ -119,11 +135,19 @@ SearchAndReplace (
   }
 
   while ((Source < End) && (NoReplacesRestriction || (MaxReplaces > 0))) {
+    UINT8   *NewReplace = NULL;
+
     if (
-      ((Wildcard != 0xFF) && FindWildcardPattern (Source, Search, SearchSize, Wildcard)) ||
+      ((Wildcard != 0xFF) && FindWildcardPattern (Source, Search, SearchSize, Replace, &NewReplace, Wildcard)) ||
       (CompareMem (Source, Search, SearchSize) == 0)
     ) {
-      CopyMem (Source, Replace, SearchSize);
+      if (NewReplace != NULL) {
+        CopyMem (Source, NewReplace, SearchSize);
+        FreePool (NewReplace);
+      } else {
+        CopyMem (Source, Replace, SearchSize);
+      }
+
       NumReplaces++;
       MaxReplaces--;
       Source += SearchSize;
@@ -157,6 +181,9 @@ SearchAndReplaceTxt (
     ((Source + SearchSize) <= End) &&
     (NoReplacesRestriction || (MaxReplaces > 0))
   ) { // num replaces
+    UINT8   *NewReplace = Replace;
+    UINTN   i = 0;
+
     while (*Source != '\0') {  //comparison
       Pos = Search;
       FirstMatch = Source;
@@ -166,16 +193,24 @@ SearchAndReplaceTxt (
         if (*Source <= 0x20) { //skip invisibles in sources
           Source++;
           Skip++;
+          i++;
           continue;
         }
 
-        if ((*Source != *Pos) && ((Wildcard != 0xFF) && (Wildcard != *Pos))) {
-          break;
+        if (Wildcard != 0xFF) {
+          if ((*Source != *Pos) && (Wildcard != *Pos)) {
+            break;
+          }
+
+          if (Wildcard == NewReplace[i]) {
+            NewReplace[i] = *Source;
+          }
         }
 
         //AsciiPrint ("%c", *Source);
         Source++;
         Pos++;
+        i++;
       }
 
       if (Pos == SearchEnd) { // pattern found
@@ -197,7 +232,7 @@ SearchAndReplaceTxt (
       break;
     }
 
-    CopyMem (Pos, Replace, SearchSize);
+    CopyMem (Pos, NewReplace, SearchSize);
     SetMem (Pos + SearchSize, Skip, 0x20); //fill skip places with spaces
     NumReplaces++;
     MaxReplaces--;
@@ -1234,7 +1269,7 @@ KextPatcherStart (
 ) {
   DBG_RT (Entry, "\n\n%a: Start\n", __FUNCTION__);
 
-  if (KernelInfo->isCache) {
+  if (KernelInfo->Cached) {
     DBG_RT (Entry, "Patching kernelcache ...\n");
     //DBG_PAUSE (Entry, 1);
 

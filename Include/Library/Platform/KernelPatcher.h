@@ -120,8 +120,8 @@ typedef struct KERNEL_INFO {
   UINT32                VersionMinor;
   UINT32                Revision;
   CHAR8                 *Version;
-  BOOLEAN               isCache;
-  BOOLEAN               is64Bit;
+  BOOLEAN               Cached;
+  BOOLEAN               A64Bit;
   //BOOLEAN               SSSE3,
   BOOLEAN               PatcherInited;
   EFI_PHYSICAL_ADDRESS  RelocBase;

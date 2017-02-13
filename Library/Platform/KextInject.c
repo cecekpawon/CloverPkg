@@ -547,7 +547,7 @@ InjectKexts (
   }
 
   DBG_RT (Entry, "Done.\n");
-  //DBG_PAUSE (Entry, 5);
+  DBG_PAUSE (Entry, 2);
 
   return EFI_SUCCESS;
 }
