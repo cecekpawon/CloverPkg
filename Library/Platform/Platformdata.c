@@ -183,7 +183,7 @@ CHAR8 *AppleFamilies[] =
   "MacBookPro",
   "MacBookPro",
   "MacBookPro",
-  "Mac",
+  "MacBookPro",
   "MacBookAir",
   "MacBookAir",
   "MacBookAir",

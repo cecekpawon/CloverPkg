@@ -264,6 +264,36 @@ typedef struct {
   sREF    *ref_integer;
 } TagStruct, *TagPtr;
 
+// NVRAM
+
+#define NVRAM_ATTR_BS        EFI_VARIABLE_BOOTSERVICE_ACCESS
+#define NVRAM_ATTR_RT_BS     (NVRAM_ATTR_BS | EFI_VARIABLE_RUNTIME_ACCESS)
+#define NVRAM_ATTR_RT_BS_NV  (NVRAM_ATTR_RT_BS | EFI_VARIABLE_NON_VOLATILE)
+
+typedef enum {
+  kSystemID,
+  kMLB,
+  kHWMLB,
+  kROM,
+  kHWROM,
+  kFirmwareFeatures,
+  kFirmwareFeaturesMask,
+  kSBoardID,
+  kSystemSerialNumber,
+  kPlatformUUID,
+  kBacklightLevel,
+  kCsrActiveConfig,
+  kBootercfg,
+} NVRAM_KEY;
+
+typedef struct NVRAM_DATA
+{
+  NVRAM_KEY   Key;
+  CHAR16      *VariableName;
+  EFI_GUID    *Guid;
+  UINT32      Attribute;
+} NVRAM_DATA;
+
 //#define CPU_MODEL_PENTIUM_M     0x09
 //#define CPU_MODEL_DOTHAN        0x0D
 //#define CPU_MODEL_YONAH         0x0E
@@ -1225,6 +1255,8 @@ extern CHAR8                            *OsVerUndetected;
 
 extern BOOLEAN                          GraphicsScreenDirty;
 
+extern CONST NVRAM_DATA                 NvramData[];
+
 // common
 //CHAR16 *
 //AddLoadOption (
@@ -1472,10 +1504,26 @@ SetNvramVariable (
 );
 
 EFI_STATUS
+SetOrDeleteNvramVariable (
+  IN  CHAR16    *VariableName,
+  IN  EFI_GUID  *VendorGuid,
+  IN  UINT32    Attributes,
+  IN  UINTN     DataSize,
+  IN  VOID      *Data,
+  IN  BOOLEAN   State
+);
+
+EFI_STATUS
 DeleteNvramVariable (
   IN  CHAR16    *VariableName,
   IN  EFI_GUID  *VendorGuid
 );
+
+EFI_STATUS
+ResetNvram ();
+
+VOID
+DoResetNvram ();
 
 EFI_STATUS
 GetEfiBootDeviceFromNvram ();

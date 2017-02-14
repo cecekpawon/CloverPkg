@@ -688,7 +688,7 @@ GetIconDetail (
   Width   = BaseImg->Width + 16;
   Height  = BaseImg->Height + 16;
 
-  rImage = CreateFilledImage (Width, Height, TRUE, &MenuBackgroundPixel);
+  rImage = CreateFilledImage (Width, Height, TRUE, &TransparentBackgroundPixel);
 
   ComposeImage (rImage, BaseImg, 8, 8);
 

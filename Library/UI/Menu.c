@@ -1481,21 +1481,17 @@ RunGenericMenu (
   IN  REFIT_MENU_SCREEN    *Screen,
   IN  MENU_STYLE_FUNC      StyleFunc,
   IN  OUT INTN             *DefaultEntryIndex,
-  OUT REFIT_MENU_ENTRY    **ChosenEntry
+  OUT REFIT_MENU_ENTRY     **ChosenEntry
 ) {
   SCROLL_STATE                        State;
   EFI_STATUS                          Status;
-  //EFI_INPUT_KEY                       key;
   INTN                                ShortcutEntry, TimeoutCountdown = 0;
   BOOLEAN                             HaveTimeout = FALSE;
   CHAR16                              *TimeoutMessage, CurrChar = 0;
-  UINTN                               MenuExit, CurrentSelectionTag;
-
+  UINTN                               MenuExit, CurrentSelectionTag, EventIndex;
   EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL   *SimpleTextInEx;
   EFI_KEY_DATA                        KeyData;
-  UINTN                               EventIndex/*, i, HandleCount*/;
-  //EFI_HANDLE                          *HandleBuffer = NULL;
-  BOOLEAN                             AltKeyPressed = FALSE, CtrlKeyPressed = FALSE;
+  BOOLEAN                             AltKeyPressed = FALSE, CtrlKeyPressed = FALSE /* , CtrlAltKeyPressed = FALSE */;
 
   //no default - no timeout!
   if (
@@ -1524,23 +1520,6 @@ RunGenericMenu (
   //    State.CurrentSelection, MenuExit);
 
   State.ScrollMode = (GlobalConfig.TextOnly || (Screen->ID > SCREEN_MAIN)) ? SCROLL_MODE_LOOP : SCROLL_MODE_NONE;
-
-/*
-  // Locate all SimpleTextInEx protocols
-  Status = gBS->LocateHandleBuffer (ByProtocol, &gEfiSimpleTextInputExProtocolGuid, NULL, &HandleCount, &HandleBuffer);
-  if (EFI_ERROR (Status)) {
-    //DEBUG((-1, "CrScreenshotDxeEntry: gBS->LocateHandleBuffer returned %r\n", Status));
-    return EFI_UNSUPPORTED;
-  }
-
-  // For each instance
-  for (i = 0; i < HandleCount; i++) {
-    Status = gBS->HandleProtocol (HandleBuffer[i], &gEfiSimpleTextInputExProtocolGuid, (VOID **) &SimpleTextInEx);
-    if (!EFI_ERROR (Status)) {
-      break;
-    }
-  }
-*/
 
   Status = gBS->LocateProtocol (
                   &gEfiSimpleTextInputExProtocolGuid,
@@ -1579,9 +1558,6 @@ RunGenericMenu (
       break;
     }
 
-    //key.UnicodeChar = 0;
-    //key.ScanCode = 0;
-
     if (!mGuiReady) {
       mGuiReady = TRUE;
       MsgLog ("GUI ready\n");
@@ -1600,19 +1576,9 @@ RunGenericMenu (
           TimeoutCountdown--;
         }
       }
+
       continue;
     }
-
-    // read key press (and wait for it if applicable)
-    //Status = gST->ConIn->ReadKeyStroke (gST->ConIn, &key);
-    //if ((Status == EFI_NOT_READY) && (gAction == ActionNone)) {
-    //if (Status == EFI_NOT_READY) {
-    //  continue;
-    //}
-
-    //if (gAction == ActionNone) {
-    //  ReadAllKeyStrokes (); //clean to avoid doubles
-    //}
 
     //
     // just get some key
@@ -1637,26 +1603,20 @@ RunGenericMenu (
     if (HaveTimeout) {
       // the user pressed a key, cancel the timeout
       StyleFunc (Screen, &State, MENU_FUNCTION_PAINT_TIMEOUT, L"");
-      //HidePointer (); //ycr.ru
       HaveTimeout = FALSE;
     }
 
-    //if (key.ScanCode != SCAN_NULL) {
     if (KeyData.Key.ScanCode != SCAN_NULL) {
-      //gAction = ActionNone; //do action once
       // react to key press
-      //switch (key.ScanCode) {
       switch (KeyData.Key.ScanCode) {
         case SCAN_UP:
         case SCAN_LEFT:
-          //CheckState (Screen, &State, key.ScanCode);
           CheckState (Screen, &State, KeyData.Key.ScanCode);
           UpdateScroll (&State, SCROLL_LINE_UP);
           break;
 
         case SCAN_DOWN:
         case SCAN_RIGHT:
-          //CheckState (Screen, &State, key.ScanCode);
           CheckState (Screen, &State, KeyData.Key.ScanCode);
           UpdateScroll (&State, SCROLL_LINE_DOWN);
           break;
@@ -1758,11 +1718,20 @@ RunGenericMenu (
     } else {
       CurrentSelectionTag = (Screen->Entries[State.CurrentSelection])->Tag;
 
-      //CurrChar = TO_UPPER (key.UnicodeChar);
       CurrChar = TO_UPPER (KeyData.Key.UnicodeChar);
 
-      if (CurrentSelectionTag == TAG_LOADER) {
-        if (AltKeyPressed && !CtrlKeyPressed) {
+      if (CtrlKeyPressed) {
+        switch (CurrChar) {
+          case 'R':
+            DoResetNvram ();
+            (Screen->Entries[State.CurrentSelection])->Tag = TAG_RESET;
+            MenuExit = MENU_EXIT_OTHER;
+            break;
+        }
+      }
+
+      if (!MenuExit && (CurrentSelectionTag == TAG_LOADER)) {
+        if (AltKeyPressed) {
           switch (CurrChar) {
             case 'D':
               gSettings.DebugKP = TRUE;
@@ -1777,10 +1746,14 @@ RunGenericMenu (
               MenuExit = MENU_EXIT_ENTER;
               break;
           }
+        } else if (CtrlKeyPressed) {
+          //
+        } else {
+          //
         }
       }
 
-      if (!MenuExit) {
+      if (!MenuExit && !CtrlKeyPressed && !AltKeyPressed) {
         switch (CurrChar) {
           case CHAR_LINEFEED:
           case CHAR_CARRIAGE_RETURN:
@@ -1793,9 +1766,7 @@ RunGenericMenu (
             } else if (CurrentSelectionTag == TAG_SWITCH) {
               MenuExit = InputDialog (Screen, StyleFunc, &State);
               State.PaintAll = TRUE;
-            }/* else if (CurrentSelectionTag == TAG_CLOVER){
-              MenuExit = MENU_EXIT_DETAILS;
-            }*/ else {
+            } else {
               MenuExit = (CurrChar == CHAR_SPACE) ? MENU_EXIT_DETAILS : MENU_EXIT_ENTER;
             }
             break;
@@ -2121,8 +2092,8 @@ DrawTextXY (
   }
 
   //TextBufferXY = CreateImage (TextWidth, TextHeight, TRUE);
-  //egFillImage (TextBufferXY, &MenuBackgroundPixel);
-  TextBufferXY = CreateFilledImage (TextWidth, TextHeight, TRUE, &MenuBackgroundPixel);
+  //egFillImage (TextBufferXY, &TransparentBackgroundPixel);
+  TextBufferXY = CreateFilledImage (TextWidth, TextHeight, TRUE, &TransparentBackgroundPixel);
   // render the text
   TextWidth = RenderText (Text, TextBufferXY, 0, 0, 0xFFFF, FALSE);
 
@@ -2130,7 +2101,7 @@ DrawTextXY (
     XText = XPos - (TextWidth >> XAlign);
   }
 
-  BltImageAlpha (TextBufferXY, XText, YPos,  &MenuBackgroundPixel, 16);
+  BltImageAlpha (TextBufferXY, XText, YPos,  &TransparentBackgroundPixel, 16);
   FreeImage (TextBufferXY);
 
   return TextWidth;
@@ -2170,7 +2141,7 @@ DrawBCSText (
 
   // render the text
 
-  TextBufferXY = CreateFilledImage (TextWidth, FontHeight, TRUE, &MenuBackgroundPixel);
+  TextBufferXY = CreateFilledImage (TextWidth, FontHeight, TRUE, &TransparentBackgroundPixel);
 
   if (XAlign == X_IS_LEFT) {
     TextWidth = UGAWidth - XPos - 1;
@@ -2205,7 +2176,7 @@ DrawBCSText (
     XText = XPos - (TextWidth >> XAlign);
   }
 
-  BltImageAlpha (TextBufferXY, XText, YPos,  &MenuBackgroundPixel, 16);
+  BltImageAlpha (TextBufferXY, XText, YPos,  &TransparentBackgroundPixel, 16);
   FreeImage (TextBufferXY);
 }
 
@@ -2239,7 +2210,7 @@ DrawMenuText (
     TextBuffer = CreateImage (UGAWidth - XPos, TextHeight, TRUE);
   }
 
-  FillImage (TextBuffer, &MenuBackgroundPixel);
+  FillImage (TextBuffer, &TransparentBackgroundPixel);
 
   if (SelectedWidth > 0) {
     // draw selection bar background
@@ -2253,7 +2224,7 @@ DrawMenuText (
     ComposeImage (TextBuffer, Button, TEXT_XMARGIN, PlaceCentre);
   }
 
-  BltImageAlpha (TextBuffer, XPos, YPos, &MenuBackgroundPixel, 16);
+  BltImageAlpha (TextBuffer, XPos, YPos, &TransparentBackgroundPixel, 16);
 }
 
 VOID InitSelection () {
@@ -2351,7 +2322,7 @@ GraphicsMenuStyle (
         INTN    FilmXPos = (INTN)(EntriesPosX - (Screen->TitleImage->Width + TITLEICON_SPACING)),
                 FilmYPos = (INTN)EntriesPosY;
 
-        BltImageAlpha (Screen->TitleImage, FilmXPos, FilmYPos, &MenuBackgroundPixel, 16);
+        BltImageAlpha (Screen->TitleImage, FilmXPos, FilmYPos, &TransparentBackgroundPixel, 16);
 
         // Update FilmPlace only if not set by InitAnime
         if ((Screen->FilmPlace.Width == 0) || (Screen->FilmPlace.Height == 0)) {
@@ -2732,7 +2703,7 @@ DrawMainMenuEntry (
       row0PosY + GlobalConfig.row0TileSize + ((GlobalConfig.HideUIFlags & HIDEUI_FLAG_LABEL)
         ? 10
         : (FontHeight - TEXT_YMARGIN + 20)),
-      &MenuBackgroundPixel, Scale
+      &TransparentBackgroundPixel, Scale
     );
   }
 
@@ -2791,7 +2762,7 @@ DrawMainMenuLabel (
 
   //Clear old text
   if (OldTextWidth > TextWidth) {
-    FillRectAreaOfScreen (OldX, OldY, OldTextWidth, TextHeight, &MenuBackgroundPixel, X_IS_CENTER);
+    FillRectAreaOfScreen (OldX, OldY, OldTextWidth, TextHeight, &TransparentBackgroundPixel, X_IS_CENTER);
   }
 
   if (
@@ -2806,7 +2777,7 @@ DrawMainMenuLabel (
       NULL,
       (OldX - (OldTextWidth >> 1) - (BADGE_DIMENSION + 16)),
       (OldY - ((BADGE_DIMENSION - TextHeight) >> 1)),
-      &MenuBackgroundPixel,
+      &TransparentBackgroundPixel,
       BADGE_DIMENSION >> 3
     );
   }
@@ -2824,7 +2795,7 @@ DrawMainMenuLabel (
       ((LOADER_ENTRY *)Screen->Entries[State->CurrentSelection])->me.Image,
       (XPos - (TextWidth >> 1) - (BADGE_DIMENSION + 16)),
       (YPos - ((BADGE_DIMENSION - TextHeight) >> 1)),
-      &MenuBackgroundPixel,
+      &TransparentBackgroundPixel,
       BADGE_DIMENSION >> 3
     );
   }
@@ -3033,7 +3004,7 @@ MainMenuStyle (
               // clear the screen
               FillRectAreaOfScreen (
                 itemPosX[i - State->FirstVisible] + (GlobalConfig.row0TileSize / 2), textPosY,
-                EntriesWidth + GlobalConfig.TileXSpace, TextHeight, &MenuBackgroundPixel,
+                EntriesWidth + GlobalConfig.TileXSpace, TextHeight, &TransparentBackgroundPixel,
                 X_IS_CENTER
               );
 
@@ -3061,7 +3032,7 @@ MainMenuStyle (
       ) {
         FillRectAreaOfScreen (
           (UGAWidth >> 1), FunctextPosY,
-          OldTextWidth, TextHeight, &MenuBackgroundPixel, X_IS_CENTER
+          OldTextWidth, TextHeight, &TransparentBackgroundPixel, X_IS_CENTER
         );
       }
 
@@ -3149,7 +3120,7 @@ MainMenuStyle (
       if (!(GlobalConfig.HideUIFlags & HIDEUI_FLAG_LABEL)) {
         FillRectAreaOfScreen (
           (UGAWidth >> 1), FunctextPosY + TextHeight * i,
-          OldTimeoutTextWidth, TextHeight, &MenuBackgroundPixel, X_IS_CENTER
+          OldTimeoutTextWidth, TextHeight, &TransparentBackgroundPixel, X_IS_CENTER
         );
         OldTimeoutTextWidth = DrawTextXY (ParamText, (UGAWidth >> 1), FunctextPosY + TextHeight * i, X_IS_CENTER);
       }
@@ -3584,6 +3555,7 @@ HelpRefit () {
         AddMenuInfo (&HelpMenu, L"ALT+D - Boot debug patches");
         AddMenuInfo (&HelpMenu, L"ALT+S - Boot single-user");
         AddMenuInfo (&HelpMenu, L"ALT+V - Boot verbose");
+        AddMenuInfo (&HelpMenu, L"CTRL+R - Reset NVRAM");
         AddMenuInfo (&HelpMenu, L"C - Options - Configs");
         AddMenuInfo (&HelpMenu, L"T - Options - Themes");
         AddMenuInfo (&HelpMenu, L"A - Options - ACPI");

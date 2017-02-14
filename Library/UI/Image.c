@@ -1108,12 +1108,12 @@ BltClearScreen (
       // Banner is not loaded yet
       if (IsEmbeddedTheme ()) {
         Banner = BuiltinIcon (BUILTIN_ICON_BANNER);
-        CopyMem (&BlueBackgroundPixel, &StdBackgroundPixel, sizeof (EG_PIXEL));
+        CopyMem (&TmpBackgroundPixel, &GrayBackgroundPixel, sizeof (EG_PIXEL));
       } else  {
         Banner = LoadImage (ThemeDir, GlobalConfig.BannerFileName, FALSE);
         if (Banner) {
           // Banner was changed, so copy into BlueBackgroundBixel first pixel of banner
-          CopyMem (&BlueBackgroundPixel, &Banner->PixelData[0], sizeof (EG_PIXEL));
+          CopyMem (&TmpBackgroundPixel, &Banner->PixelData[0], sizeof (EG_PIXEL));
         } else {
           DBG ("banner file not read\n");
         }
@@ -1185,7 +1185,7 @@ BltClearScreen (
   }
 
   if (BackgroundImage == NULL) {
-    BackgroundImage = CreateFilledImage (UGAWidth, UGAHeight, FALSE, &BlueBackgroundPixel);
+    BackgroundImage = CreateFilledImage (UGAWidth, UGAHeight, FALSE, &TmpBackgroundPixel);
   }
 
   if (BigBack != NULL) {
@@ -1250,12 +1250,12 @@ BltClearScreen (
   if (BackgroundImage) {
     BltImage (BackgroundImage, 0, 0); //if NULL then do nothing
   } else {
-    ClearScreen (&StdBackgroundPixel);
+    ClearScreen (IsEmbeddedTheme () ? &GrayBackgroundPixel : &BlackBackgroundPixel);
   }
 
   // Draw banner
   if (Banner && ShowBanner) {
-    BltImageAlpha (Banner, BannerPlace.XPos, BannerPlace.YPos, &MenuBackgroundPixel, 16);
+    BltImageAlpha (Banner, BannerPlace.XPos, BannerPlace.YPos, &TransparentBackgroundPixel, 16);
   }
 
   GraphicsScreenDirty = FALSE;
@@ -1369,7 +1369,7 @@ BltImageComposite (
 
   // blit to screen and clean up
   //egDrawImageArea (CompImage, 0, 0, TotalWidth, TotalHeight, XPos, YPos);
-  BltImageAlpha (CompImage, XPos, YPos, &MenuBackgroundPixel, 16);
+  BltImageAlpha (CompImage, XPos, YPos, &TransparentBackgroundPixel, 16);
   FreeImage (CompImage);
 
   GraphicsScreenDirty = TRUE;
@@ -1420,7 +1420,7 @@ BltImageCompositeBadge (
                 (CompWidth > TotalWidth) ? CompWidth : TotalWidth,
                 (CompHeight > TotalHeight) ? CompHeight : TotalHeight,
                 TRUE,
-                &MenuBackgroundPixel
+                &TransparentBackgroundPixel
               );
 
   if (!CompImage) {
@@ -1501,7 +1501,7 @@ BltImageCompositeBadge (
     }
   }
 
-  BltImageAlpha (CompImage, XPos, YPos, &MenuBackgroundPixel, (GlobalConfig.NonSelectedGrey && !Selected) ? -16 : 16);
+  BltImageAlpha (CompImage, XPos, YPos, &TransparentBackgroundPixel, (GlobalConfig.NonSelectedGrey && !Selected) ? -16 : 16);
 
   FreeImage (CompImage);
   FreeImage (NewBaseImage);
@@ -1585,7 +1585,7 @@ UpdateAnime (
 
   if (Screen->LastDraw == 0) {
     //first start, we should save background into last frame
-    FillImageArea (AnimeImage, 0, 0, AnimeImage->Width, AnimeImage->Height, &MenuBackgroundPixel);
+    FillImageArea (AnimeImage, 0, 0, AnimeImage->Width, AnimeImage->Height, &TransparentBackgroundPixel);
     TakeImage (
       Screen->Film[Screen->Frames],
       x, y,

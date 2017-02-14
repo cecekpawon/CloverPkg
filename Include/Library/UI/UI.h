@@ -153,6 +153,7 @@
 #define MENU_EXIT_OPTIONS                 (5)
 #define MENU_EXIT_HELP                    (6)
 #define MENU_EXIT_HIDE_TOGGLE             (7)
+#define MENU_EXIT_OTHER                   (8) // Just Exit
 
 #define MENU_ENTRY_ID_GEN                 (0)
 #define MENU_ENTRY_ID_BOOT                (1)
@@ -854,12 +855,14 @@ extern INTN                 UGAWidth;
 extern INTN                 UGAHeight;
 extern BOOLEAN              AllowGraphicsMode;
 
-//extern EG_PIXEL           InputBackgroundPixel;
-extern EG_PIXEL             StdBackgroundPixel;
-extern EG_PIXEL             MenuBackgroundPixel;
+extern EG_PIXEL             BlackBackgroundPixel;
 extern EG_PIXEL             BlueBackgroundPixel;
-extern EG_PIXEL             DarkBackgroundPixel;
+extern EG_PIXEL             GrayBackgroundPixel;
+extern EG_PIXEL             GreenBackgroundPixel;
+extern EG_PIXEL             RedBackgroundPixel;
 extern EG_PIXEL             SelectionBackgroundPixel;
+extern EG_PIXEL             TmpBackgroundPixel;
+extern EG_PIXEL             TransparentBackgroundPixel;
 
 extern EG_RECT              BannerPlace;
 extern EG_IMAGE             *BackgroundImage;

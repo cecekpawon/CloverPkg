@@ -670,7 +670,7 @@ StartLoader (
     return; // no reason to continue if loading image failed
   }
 
-  ClearScreen (&DarkBackgroundPixel); //StdBackgroundPixel
+  ClearScreen (&BlackBackgroundPixel); //GrayBackgroundPixel
 
   if (OSTYPE_IS_OSX_GLOB (Entry->LoaderType)) {
     CHAR8   *BooterOSVersion = NULL;
@@ -920,7 +920,7 @@ StartTool (
 ) {
   DBG ("StartTool: %s\n", Entry->LoaderPath);
   //SaveBooterLog (SelfRootDir, PREBOOT_LOG);
-  ClearScreen (&DarkBackgroundPixel);
+  ClearScreen (&BlackBackgroundPixel);
   // assumes "Start <title>" as assigned below
   //BeginExternalScreen (OSFLAG_ISSET (Entry->Flags, OSFLAG_USEGRAPHICS), Entry->me.Title + 6);
 
@@ -1362,6 +1362,18 @@ SetVariablesFromNvram () {
   FreePool (tmpString);
   FreePool (arg);
   FreePool (lBootArgs);
+}
+
+VOID
+DoResetNvram () {
+  ClearScreen (&BlueBackgroundPixel);
+  gBS->Stall (1 * 1000000);
+  ClearScreen (&GreenBackgroundPixel);
+  gBS->Stall (1 * 1000000);
+  ClearScreen (&RedBackgroundPixel);
+  gBS->Stall (1 * 1000000);
+
+  ResetNvram ();
 }
 
 VOID

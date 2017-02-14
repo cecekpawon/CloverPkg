@@ -34,10 +34,28 @@ CHAR16                      *gEfiBootLoaderPath;
                             // contains GPT GUID from gEfiBootDeviceData or gBootCampHD (if exists)
 EFI_GUID                    *gEfiBootDeviceGuid;
 
+CONST NVRAM_DATA   NvramData[] = {
+  { kSystemID,             L"system-id",               &gEfiAppleNvramGuid, NVRAM_ATTR_BS },
+
+  { kMLB,                  L"MLB",                     &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS },
+  { kHWMLB,                L"HW_MLB",                  &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS },
+  { kROM,                  L"ROM",                     &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS },
+  { kHWROM,                L"HW_ROM",                  &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS },
+  { kFirmwareFeatures,     L"FirmwareFeatures",        &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS },
+  { kFirmwareFeaturesMask, L"FirmwareFeaturesMask",    &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS },
+  { kSBoardID,             L"HW_BID",                  &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS },
+  { kSystemSerialNumber,   L"SSN",                     &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS },
+
+  { kPlatformUUID,         L"platform-uuid",           &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV },
+  { kBacklightLevel,       L"backlight-level",         &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV },
+  { kCsrActiveConfig,      L"csr-active-config",       &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV },
+  { kBootercfg,            L"bootercfg" /* -once */,   &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV }
+};
+
 #if 0
-///
-//  Print all fakesmc variables, i.e. SMC keys
-///
+//
+/  Print all fakesmc variables, i.e. SMC keys
+//
 
 VOID
 GetSmcKeys () {
@@ -187,7 +205,6 @@ SetNvramVariable (
   //return Status;
 
   return gRT->SetVariable (VariableName, VendorGuid, Attributes, DataSize, Data);
-
 }
 
 /** Sets NVRAM variable. Does nothing if variable with the same name already exists. */
@@ -213,6 +230,24 @@ AddNvramVariable (
   }
 }
 
+/** Sets NVRAM variable. Or delete if State == FALSE. */
+EFI_STATUS
+SetOrDeleteNvramVariable (
+  IN  CHAR16      *VariableName,
+  IN  EFI_GUID    *VendorGuid,
+  IN  UINT32      Attributes,
+  IN  UINTN       DataSize,
+  IN  VOID        *Data,
+  IN  BOOLEAN     State
+) {
+  if (!State) {
+    DeleteNvramVariable (VariableName, VendorGuid);
+    return EFI_ABORTED;
+  }
+
+  return SetNvramVariable (VariableName, VendorGuid, Attributes, DataSize, Data);
+}
+
 /** Deletes NVRAM variable. */
 EFI_STATUS
 DeleteNvramVariable (
@@ -228,10 +263,22 @@ DeleteNvramVariable (
   return Status;
 }
 
+EFI_STATUS
+ResetNvram () {
+  EFI_STATUS    Status;
+  UINTN         Index, NvramDataCount = ARRAY_SIZE (NvramData);
+
+  for (Index = 0; Index < NvramDataCount; Index++) {
+    Status = DeleteNvramVariable (NvramData[Index].VariableName, NvramData[Index].Guid);
+  }
+
+  return Status;
+}
+
 /** Searches for GPT HDD dev path node and return pointer to partition GUID or NULL. */
 EFI_GUID *
 FindGPTPartitionGuidInDevicePath (
-  IN EFI_DEVICE_PATH_PROTOCOL *DevicePath
+  IN EFI_DEVICE_PATH_PROTOCOL   *DevicePath
 ) {
   HARDDRIVE_DEVICE_PATH   *HDDDevPath;
   EFI_GUID                *Guid = NULL;

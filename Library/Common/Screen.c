@@ -62,11 +62,14 @@ BOOLEAN   GraphicsScreenDirty;
 
 EG_RECT   BannerPlace = {0, 0, 0, 0};
 
-EG_PIXEL  StdBackgroundPixel           = { 0xbf, 0xbf, 0xbf, 0xff },
-          MenuBackgroundPixel          = { 0x00, 0x00, 0x00, 0x00 },
-          BlueBackgroundPixel          = { 0x7f, 0x0f, 0x0f, 0xff },
-          DarkBackgroundPixel          = { 0x00, 0x00, 0x00, 0xFF },
-          SelectionBackgroundPixel     = { 0xef, 0xef, 0xef, 0xff }; //non-trasparent
+EG_PIXEL  BlackBackgroundPixel        = { 0x00, 0x00, 0x00, 0xFF },
+          BlueBackgroundPixel         = { 0xFF, 0x00, 0x00, 0xFF },
+          GrayBackgroundPixel         = { 0xBF, 0xBF, 0xBF, 0xFF },
+          GreenBackgroundPixel        = { 0x00, 0x80, 0x00, 0xFF },
+          RedBackgroundPixel          = { 0x00, 0x00, 0xFF, 0xFF },
+          SelectionBackgroundPixel    = { 0xEF, 0xEF, 0xEF, 0xFF }, //non-trasparent
+          TmpBackgroundPixel          = { 0x00, 0x00, 0x00, 0xFF },
+          TransparentBackgroundPixel  = { 0x00, 0x00, 0x00, 0x00 };
 
 EG_IMAGE  *BackgroundImage = NULL, *Banner = NULL, *BigBack = NULL;
 
@@ -883,7 +886,7 @@ DrawScreenHeader (
 ) {
   UINTN     i;
 
-  ClearScreen (&DarkBackgroundPixel);
+  ClearScreen (&BlackBackgroundPixel);
   // clear to black background
   gST->ConOut->SetAttribute (gST->ConOut, ATTR_BASIC);
   //gST->ConOut->ClearScreen (gST->ConOut);

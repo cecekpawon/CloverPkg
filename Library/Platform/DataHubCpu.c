@@ -1,10 +1,10 @@
 //
-/// @file rEFIt_UEFI/Platform/DataHubCpu.c
-///
-/// VirtualBox CPU descriptors
-///
-/// VirtualBox CPU descriptors also used to set OS X-used NVRAM variables and DataHub data
-///
+// @file rEFIt_UEFI/Platform/DataHubCpu.c
+//
+// VirtualBox CPU descriptors
+//
+// VirtualBox CPU descriptors also used to set OS X-used NVRAM variables and DataHub data
+//
 
 // Copyright (C) 2009-2010 Oracle Corporation
 //
@@ -42,15 +42,15 @@
 #define EFI_CPU_DATA_MAXIMUM_LENGTH   0x100
 
 // gDataHub
-/// A pointer to the DataHubProtocol
+// A pointer to the DataHubProtocol
 EFI_DATA_HUB_PROTOCOL     *gDataHub;
 
 EFI_SUBCLASS_TYPE1_HEADER mCpuDataRecordHeader = {
-  EFI_PROCESSOR_SUBCLASS_VERSION,       // Version
-  sizeof (EFI_SUBCLASS_TYPE1_HEADER),    // Header Size
-  0,                                    // Instance (initialize later)
-  EFI_SUBCLASS_INSTANCE_NON_APPLICABLE, // SubInstance
-  0                                     // RecordType (initialize later)
+  EFI_PROCESSOR_SUBCLASS_VERSION,         // Version
+  sizeof (EFI_SUBCLASS_TYPE1_HEADER),     // Header Size
+  0,                                      // Instance (initialize later)
+  EFI_SUBCLASS_INSTANCE_NON_APPLICABLE,   // SubInstance
+  0                                       // RecordType (initialize later)
 };
 
 typedef union {
@@ -59,25 +59,25 @@ typedef union {
 } EFI_CPU_DATA_RECORD_BUFFER;
 
 // PLATFORM_DATA
-/// The struct passed to "LogDataHub" holing key and value to be added
+// The struct passed to "LogDataHub" holing key and value to be added
 #pragma pack (1)
 typedef struct {
-  EFI_SUBCLASS_TYPE1_HEADER   Hdr;     /// 0x48
-  UINT32                      NameLen; /// 0x58 (in bytes)
-  UINT32                      ValLen;  /// 0x5c
-  UINT8                       Data[1]; /// 0x60 Name Value
+  EFI_SUBCLASS_TYPE1_HEADER   Hdr;      // 0x48
+  UINT32                      NameLen;  // 0x58 (in bytes)
+  UINT32                      ValLen;   // 0x5c
+  UINT8                       Data[1];  // 0x60 Name Value
 } PLATFORM_DATA;
 #pragma pack ()
 
 // CopyRecord
-/// Copy the data provided in arguments into a PLATFORM_DATA buffer
-///
-/// @param Rec    The buffer the data should be copied into
-/// @param Name   The value for the member "name"
-/// @param Val    The data the object should have
-/// @param ValLen The length of the parameter "Val"
-///
-/// @return The size of the new PLATFORM_DATA object is returned
+// Copy the data provided in arguments into a PLATFORM_DATA buffer
+//
+// @param Rec    The buffer the data should be copied into
+// @param Name   The value for the member "name"
+// @param Val    The data the object should have
+// @param ValLen The length of the parameter "Val"
+//
+// @return The size of the new PLATFORM_DATA object is returned
 UINT32 EFIAPI
 CopyRecord (
   IN        PLATFORM_DATA   *Rec,
@@ -95,7 +95,7 @@ CopyRecord (
 }
 
 // LogDataHub
-/// Adds a key-value-pair to the DataHubProtocol
+// Adds a key-value-pair to the DataHubProtocol
 EFI_STATUS
 EFIAPI
 LogDataHub (
@@ -129,12 +129,11 @@ LogDataHub (
 }
 
 // SetVariablesForOSX
-/// Sets the volatile and non-volatile variables used by OS X
+// Sets the volatile and non-volatile variables used by OS X
 EFI_STATUS
 EFIAPI
 SetVariablesForOSX () {
   // The variable names used should be made global constants to prevent them being allocated multiple times
-  UINT32    Attributes; //, Color
 
   //
   // firmware Variables
@@ -142,133 +141,133 @@ SetVariablesForOSX () {
 
   // As found on a real Mac, the system-id variable solely has the BS flag
   SetNvramVariable (
-    L"system-id",
-    &gEfiAppleNvramGuid,
-    EFI_VARIABLE_BOOTSERVICE_ACCESS,
+    NvramData[kSystemID].VariableName,
+    NvramData[kSystemID].Guid,
+    NvramData[kSystemID].Attribute,
     sizeof (gUuid),
     &gUuid
   );
 
-  Attributes = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS;
+  SetOrDeleteNvramVariable (
+    NvramData[kMLB].VariableName,
+    NvramData[kMLB].Guid,
+    NvramData[kMLB].Attribute,
+    AsciiStrLen (gSettings.RtMLB),
+    gSettings.RtMLB,
+    (gSettings.RtMLB && (AsciiStrLen (gSettings.RtMLB) == 17))
+  );
 
-  if (gSettings.RtMLB != NULL) {
-    if (AsciiStrLen (gSettings.RtMLB) != 17) {
-      DBG ("** Warning: Your MLB is not suitable for iMessage (must be 17 chars long) !\n");
-    }
+  SetOrDeleteNvramVariable (
+    NvramData[kHWMLB].VariableName,
+    NvramData[kHWMLB].Guid,
+    NvramData[kHWMLB].Attribute,
+    AsciiStrLen (gSettings.RtMLB),
+    gSettings.RtMLB,
+    (gSettings.RtMLB && (AsciiStrLen (gSettings.RtMLB) == 17))
+  );
 
-    SetNvramVariable (
-      L"MLB",
-      &gEfiAppleNvramGuid,
-      Attributes,
-      AsciiStrLen (gSettings.RtMLB),
-      gSettings.RtMLB
-    );
-  }
+  SetOrDeleteNvramVariable (
+    NvramData[kROM].VariableName,
+    NvramData[kROM].Guid,
+    NvramData[kROM].Attribute,
+    gSettings.RtROMLen,
+    gSettings.RtROM,
+    (gSettings.RtROM != NULL)
+  );
 
-  if (gSettings.RtROM != NULL) {
-    SetNvramVariable (
-      L"ROM",
-      &gEfiAppleNvramGuid,
-      Attributes,
-      gSettings.RtROMLen,
-      gSettings.RtROM
-    );
-  }
+  SetOrDeleteNvramVariable (
+    NvramData[kHWROM].VariableName,
+    NvramData[kHWROM].Guid,
+    NvramData[kHWROM].Attribute,
+    gSettings.RtROMLen,
+    gSettings.RtROM,
+    (gSettings.RtROM != NULL)
+  );
+
+  // Force store variables with default / fallback value
 
   SetNvramVariable (
-    L"FirmwareFeatures",
-    &gEfiAppleNvramGuid,
-    Attributes,
+    NvramData[kFirmwareFeatures].VariableName,
+    NvramData[kFirmwareFeatures].Guid,
+    NvramData[kFirmwareFeatures].Attribute,
     sizeof (gFwFeatures),
     &gFwFeatures
   );
 
-  AddNvramVariable (
-    L"FirmwareFeaturesMask",
-    &gEfiAppleNvramGuid,
-    Attributes,
+  SetNvramVariable (
+    NvramData[kFirmwareFeaturesMask].VariableName,
+    NvramData[kFirmwareFeaturesMask].Guid,
+    NvramData[kFirmwareFeaturesMask].Attribute,
     sizeof (gFwFeaturesMask),
     &gFwFeaturesMask
+  );
+
+  SetNvramVariable (
+    NvramData[kSBoardID].VariableName,
+    NvramData[kSBoardID].Guid,
+    NvramData[kSBoardID].Attribute,
+    AsciiStrLen(gSettings.BoardNumber),
+    gSettings.BoardNumber
+  );
+
+  SetNvramVariable (
+    NvramData[kSystemSerialNumber].VariableName,
+    NvramData[kSystemSerialNumber].Guid,
+    NvramData[kSystemSerialNumber].Attribute,
+    AsciiStrLen(gSettings.SerialNr),
+    gSettings.SerialNr
   );
 
   //
   // OS X non-volatile Variables
   //
 
-  Attributes |= EFI_VARIABLE_NON_VOLATILE;
-
   // we should have two UUID: platform and system
   // NO! Only Platform is the best solution
+  SetOrDeleteNvramVariable (
+    NvramData[kPlatformUUID].VariableName,
+    NvramData[kPlatformUUID].Guid,
+    NvramData[kPlatformUUID].Attribute,
+    16,
+    &gUuid,
+    (!gSettings.InjectSystemID && gSettings.SmUUIDConfig)
+  );
 
-  if (!gSettings.InjectSystemID) {
-    if (gSettings.SmUUIDConfig) {
-      SetNvramVariable (
-        L"platform-uuid",
-        &gEfiAppleBootGuid,
-        Attributes,
-        16,
-        &gUuid
-      );
-    } else {
-      AddNvramVariable (
-        L"platform-uuid",
-        &gEfiAppleBootGuid,
-        Attributes,
-        16,
-        &gUuid
-      );
-    }
-  }
-
-  // Download-Fritz: Do not mess with BacklightLevel; it's OS X's business
-  if (gMobile) {
-    if (gSettings.BacklightLevelConfig) {
-      SetNvramVariable (
-        L"backlight-level",
-        &gEfiAppleBootGuid,
-        Attributes,
-        sizeof (gSettings.BacklightLevel),
-        &gSettings.BacklightLevel
-      );
-    } else {
-      AddNvramVariable (
-        L"backlight-level",
-        &gEfiAppleBootGuid,
-        Attributes,
-        sizeof (gSettings.BacklightLevel),
-        &gSettings.BacklightLevel
-      );
-    }
-  }
+  SetOrDeleteNvramVariable (
+    NvramData[kBacklightLevel].VariableName,
+    NvramData[kBacklightLevel].Guid,
+    NvramData[kBacklightLevel].Attribute,
+    sizeof (gSettings.BacklightLevel),
+    &gSettings.BacklightLevel,
+    (gMobile && gSettings.BacklightLevelConfig)
+  );
 
 #ifndef NO_NVRAM_SIP
   //Hack for recovery by Asgorath
-  if (gSettings.CsrActiveConfig != 0xFFFF) {
-    SetNvramVariable (
-      L"csr-active-config",
-      &gEfiAppleBootGuid,
-      Attributes,
-      sizeof (gSettings.CsrActiveConfig),
-      &gSettings.CsrActiveConfig
-    );
-  }
+  SetOrDeleteNvramVariable (
+    NvramData[kCsrActiveConfig].VariableName,
+    NvramData[kCsrActiveConfig].Guid,
+    NvramData[kCsrActiveConfig].Attribute,
+    sizeof (gSettings.CsrActiveConfig),
+    &gSettings.CsrActiveConfig,
+    (!gSettings.CsrActiveConfig || (gSettings.CsrActiveConfig != 0xFFFF))
+  );
 
-  if (gSettings.BooterConfig != 0xFFFF) {
-    SetNvramVariable (
-      L"bootercfg", //-once
-      &gEfiAppleBootGuid,
-      Attributes,
-      sizeof (gSettings.BooterConfig),
-      &gSettings.BooterConfig
-    );
-  }
+  SetOrDeleteNvramVariable (
+    NvramData[kBootercfg].VariableName,
+    NvramData[kBootercfg].Guid,
+    NvramData[kBootercfg].Attribute,
+    sizeof (gSettings.BooterConfig),
+    &gSettings.BooterConfig,
+    (!gSettings.BooterConfig || (gSettings.BooterConfig != 0xFFFF))
+  );
 #endif
 
   return EFI_SUCCESS;
 }
 
 // SetupDataForOSX
-/// Sets the DataHub data used by OS X
+// Sets the DataHub data used by OS X
 VOID
 EFIAPI
 SetupDataForOSX () {

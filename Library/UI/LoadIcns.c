@@ -269,12 +269,12 @@ InitUISelection () {
             SelectionImg[i].Image = DEC_PNG_BUILTIN (emb_selection_indicator);
           }
 
-          CopyMem (&BlueBackgroundPixel, &StdBackgroundPixel, sizeof (EG_PIXEL));
+          CopyMem (&TmpBackgroundPixel, IsEmbeddedTheme () ? &GrayBackgroundPixel : &BlackBackgroundPixel, sizeof (EG_PIXEL));
         }
 
         SelectionImg[i].Image = EnsureImageSize (
                                   SelectionImg[i].Image,
-                                  iSize, iSize, &MenuBackgroundPixel
+                                  iSize, iSize, &TransparentBackgroundPixel
                                 );
 
         if (SelectionImg[i].Image == NULL) {
@@ -283,7 +283,7 @@ InitUISelection () {
 
         SelectionImg[i + 1].Image = CreateFilledImage (
                                       iSize, iSize,
-                                      TRUE, &MenuBackgroundPixel
+                                      TRUE, &TransparentBackgroundPixel
                                     );
         break;
 
@@ -499,7 +499,7 @@ ScrollingBar (
 
   ScrollEnabled = (State->MaxFirstVisible != 0);
   if (ScrollEnabled) {
-    Total = CreateFilledImage (ScrollTotal.Width, ScrollTotal.Height, TRUE, &MenuBackgroundPixel);
+    Total = CreateFilledImage (ScrollTotal.Width, ScrollTotal.Height, TRUE, &TransparentBackgroundPixel);
     for (i = 0; i < ScrollbarBackground.Height; i++) {
       ComposeImage (
         Total,
@@ -560,7 +560,7 @@ ScrollingBar (
       ScrollEnd.YPos - ScrollTotal.YPos
     );
 
-    BltImageAlpha (Total, ScrollTotal.XPos, ScrollTotal.YPos, &MenuBackgroundPixel, GlobalConfig.ScrollWidth);
+    BltImageAlpha (Total, ScrollTotal.XPos, ScrollTotal.YPos, &TransparentBackgroundPixel, GlobalConfig.ScrollWidth);
     FreeImage (Total);
   }
 }
@@ -680,7 +680,7 @@ GET_EMBEDDED:
 
   if (!BuiltinIconTable[Id].Image) {
     TextBuffer = CreateImage (Size, Size, TRUE);
-    FillImage (TextBuffer, &MenuBackgroundPixel);
+    FillImage (TextBuffer, &TransparentBackgroundPixel);
     p = StrStr (BuiltinIconTable[Id].Path, L"_"); p++;
     Text = (CHAR16 *)AllocateCopyPool (30, (VOID *)p);
     p = StrStr (Text, L".");
