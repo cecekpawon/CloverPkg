@@ -945,9 +945,9 @@ DrawFuncIcons () {
     MenuEntryReset.Image = BuiltinIcon (BUILTIN_ICON_FUNC_RESET);
     MenuEntryReset.ImageHover = GetSmallHover (BUILTIN_ICON_FUNC_RESET);
     AddMenuEntry (&MainMenu, &MenuEntryReset);
-    MenuEntryExit.Image = BuiltinIcon (BUILTIN_ICON_FUNC_EXIT);
-    MenuEntryExit.ImageHover = GetSmallHover (BUILTIN_ICON_FUNC_EXIT);
-    AddMenuEntry (&MainMenu, &MenuEntryExit);
+    //MenuEntryExit.Image = BuiltinIcon (BUILTIN_ICON_FUNC_EXIT);
+    //MenuEntryExit.ImageHover = GetSmallHover (BUILTIN_ICON_FUNC_EXIT);
+    //AddMenuEntry (&MainMenu, &MenuEntryExit);
   }
 }
 
@@ -1058,7 +1058,6 @@ UpdateScroll (
           State->FirstVisible++;
           CONSTRAIN_MAX (State->FirstVisible, State->MaxFirstVisible);
         }
-        //DBG ("SCROLL_LINE_DOWN\n");
       } else if (State->ScrollMode == SCROLL_MODE_LOOP) {
         State->CurrentSelection = State->FirstVisible = State->MaxIndex;
         UpdateScroll (State, SCROLL_FIRST);
@@ -1416,7 +1415,7 @@ InputDialog (
   FreePool (Backup);
 
   if (Item->SValue) {
-    MsgLog ("EDITED: %s\n", Item->SValue);
+    DBG ("EDITED: %s\n", Item->SValue);
   }
 
   return 0;
@@ -1433,18 +1432,38 @@ CheckState (
 
   switch (ScanCode) {
     case SCAN_UP:
+      if (Screen->ID == SCREEN_MAIN) {
+        if (State->CurrentSelection >= State->InitialRow1) {
+          if (State->MaxIndex > State->InitialRow1) {
+            State->CurrentSelection = State->FirstVisible + (State->LastVisible - State->FirstVisible) *
+                                      (State->CurrentSelection - State->InitialRow1) /
+                                      (State->MaxIndex - State->InitialRow1);
+          }
+
+          State->PaintAll = TRUE;
+          break;
+        }
+      }
     case SCAN_LEFT:
-    //case SCAN_PAGE_UP:
-    //case SCAN_HOME:
       Index = State->CurrentSelection - 1;
       CONSTRAIN_MAX (Index, State->MaxIndex);
       Allow = (Index >= 0);
       break;
 
     case SCAN_DOWN:
+      if (Screen->ID == SCREEN_MAIN) {
+        if (State->CurrentSelection <= State->InitialRow1) {
+          if (State->LastVisible > State->FirstVisible) {
+            State->CurrentSelection = State->InitialRow1 + (State->MaxIndex - State->InitialRow1) *
+                                      (State->CurrentSelection - State->FirstVisible) /
+                                      (State->LastVisible - State->FirstVisible);
+          }
+
+          State->PaintAll = TRUE;
+          break;
+        }
+      }
     case SCAN_RIGHT:
-    //case SCAN_PAGE_DOWN:
-    //case SCAN_END:
       Index = State->CurrentSelection + 1;
       CONSTRAIN_MAX (Index, State->MaxIndex);
       Allow = (Index < State->MaxIndex);
@@ -1458,7 +1477,6 @@ CheckState (
   if (((State->CurrentSelection == State->MaxIndex) && (Screen->Entries[0])->Tag == TAG_LABEL) && Down) {
     State->CurrentSelection = State->FirstVisible = 0;
     State->PaintAll = TRUE;
-    //return;
   } else if (((Screen->Entries[Index])->Tag == TAG_LABEL) && Allow) {
     if ((Index == (State->LastVisible + 1)) && Down) {
       State->FirstVisible++;
@@ -1473,6 +1491,29 @@ CheckState (
 
     State->CurrentSelection = Index;
     State->PaintAll = TRUE;
+  }
+}
+
+// Identify the end of row 0 and the beginning of row 1; store the results in the
+// appropriate fields in State. Also reduce MaxVisible if that value is greater
+// than the total number of row-0 tags and if we're in an icon-based screen
+STATIC
+VOID
+IdentifyRows (
+  IN SCROLL_STATE       *State,
+  IN REFIT_MENU_SCREEN  *Screen
+) {
+  UINTN i;
+
+  State->FinalRow0 = 0;
+  State->InitialRow1 = State->MaxIndex;
+
+  for (i = 0; i <= State->MaxIndex; i++) {
+    if (Screen->Entries[i]->Row == 0) {
+      State->FinalRow0 = i;
+    } else if ((Screen->Entries[i]->Row == 1) && (State->InitialRow1 > i)) {
+      State->InitialRow1 = i;
+    }
   }
 }
 
@@ -1520,6 +1561,10 @@ RunGenericMenu (
   //    State.CurrentSelection, MenuExit);
 
   State.ScrollMode = (GlobalConfig.TextOnly || (Screen->ID > SCREEN_MAIN)) ? SCROLL_MODE_LOOP : SCROLL_MODE_NONE;
+
+  if (State.ScrollMode == SCROLL_MODE_NONE) {
+    IdentifyRows (&State, Screen);
+  }
 
   Status = gBS->LocateProtocol (
                   &gEfiSimpleTextInputExProtocolGuid,
@@ -1579,10 +1624,6 @@ RunGenericMenu (
 
       continue;
     }
-
-    //
-    // just get some key
-    //
 
     Status = SimpleTextInEx->ReadKeyStrokeEx (SimpleTextInEx, &KeyData);
     if (Status == EFI_NOT_READY) {

@@ -298,7 +298,8 @@ typedef struct {
   INTN      CurrentSelection, LastSelection,
             MaxScroll, MaxIndex,
             FirstVisible, LastVisible, MaxVisible, MaxFirstVisible,
-            ScrollMode;
+            ScrollMode, FinalRow0, InitialRow1;
+
   BOOLEAN   IsScrolling, PaintAll, PaintSelection;
 } SCROLL_STATE;
 

@@ -596,7 +596,7 @@ PatchBooter (
 
       Num = (INTN)SearchAndReplace (
         (UINT8 *)LoadedImage->ImageBase,
-        LoadedImage->ImageSize,
+        (UINT32)LoadedImage->ImageSize,
         Entry->KernelAndKextPatches->BooterPatches[i].Data,
         Entry->KernelAndKextPatches->BooterPatches[i].DataLen,
         Entry->KernelAndKextPatches->BooterPatches[i].Patch,
@@ -652,7 +652,7 @@ StartLoader (
   );
 
   // Unified
-  Entry->Flags = (gSettings.OptionsBits | gSettings.FlagsBits);
+  Entry->Flags = (UINT16)(gSettings.OptionsBits | gSettings.FlagsBits);
   gSettings.OptionsBits = gSettings.FlagsBits = Entry->Flags;
 
   //DumpKernelAndKextPatches (Entry->KernelAndKextPatches);

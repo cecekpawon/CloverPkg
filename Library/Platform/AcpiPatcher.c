@@ -1919,7 +1919,7 @@ PatchACPI (
   // native DSDT or loaded we want to apply autoFix to this
   // if (gSettings.FixDsdt) { //fix even with zero mask because we want to know PCIRootUID and CPUBase and count (?)
   //DBG ("Apply DsdtFixMask=0x%08x %a way\n", gSettings.FixDsdt, (gSettings.FixDsdt & FIX_NEW_WAY)?"new":"old");
-  MsgLog ("Apply DsdtFixMask=0x%08x\n", gSettings.FixDsdt);
+  MsgLog ("Apply DsdtFixMask: 0x%08x\n", gSettings.FixDsdt);
   DBG (" - drop _DSM mask=0x%04x\n", gSettings.DropOEM_DSM);//dropDSM
 
   FixBiosDsdt ((UINT8 *)(UINTN)FadtPointer->XDsdt, FadtPointer, OSVersion);

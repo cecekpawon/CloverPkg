@@ -57,7 +57,7 @@
 //#define DBG(...) DebugLog (DEBUG_COMMON, __VA_ARGS__)
 
 #if DEBUG_COMMON > 0
-#define DBG(...) MemLog(TRUE, 1, __VA_ARGS__)
+#define DBG(...) MemLog (TRUE, 1, __VA_ARGS__)
 #else
 #define DBG(...)
 #endif
@@ -646,7 +646,7 @@ HexStrToUint8 (
   INT8  i = 0;
 
   if (IS_DIGIT (buf[0])) {
-    i = buf[0]-'0';
+    i = buf[0] - '0';
   } else if (IS_HEX (buf[0])) {
     i = (buf[0] | 0x20) - 'a' + 10;
   }
@@ -657,7 +657,7 @@ HexStrToUint8 (
 
   i <<= 4;
   if (IS_DIGIT (buf[1])) {
-    i += buf[1]-'0';
+    i += buf[1] - '0';
   } else if (IS_HEX (buf[1])) {
     i += (buf[1] | 0x20) - 'a' + 10;
   }
