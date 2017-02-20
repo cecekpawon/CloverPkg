@@ -59,7 +59,6 @@ Headers collection for procedures
 
 #include <Library/Common/Lib.h>
 #include <Library/Common/Boot.h>
-#include <Library/Common/IO.h>
 
 #include <Protocol/FSInjectProtocol.h>
 #include <Protocol/MsgLog.h>
@@ -71,8 +70,6 @@ Headers collection for procedures
 
 //#include <Library/Platform/Types.h>
 //#include <Library/Platform/Macros.h>
-
-
 
 #define ROUND_PAGE(x)             ((((unsigned)(x)) + EFI_PAGE_SIZE - 1) & ~(EFI_PAGE_SIZE - 1))
 
@@ -1016,6 +1013,7 @@ typedef struct {
   //BOOLEAN                   MemoryFix;
   BOOLEAN                   WithKexts;
   BOOLEAN                   NoCaches;
+  BOOLEAN                   FakeSMCOverrides;
 
   // GUI parameters
   BOOLEAN                   DebugKP;
@@ -1056,7 +1054,6 @@ typedef struct {
 
   //Graphics
   UINT16                    PCIRootUID;
-  BOOLEAN                   GraphicsInjector;
   BOOLEAN                   InjectIntel;
   BOOLEAN                   InjectATI;
   BOOLEAN                   InjectNVidia;
@@ -1347,7 +1344,7 @@ GetModelFromString (
 );
 
 VOID
-GetDefaultSettings ();
+SyncDefaultSettings ();
 
 VOID
 FillInputs (
@@ -1813,11 +1810,6 @@ LoadUserSettings (
      TagPtr    *dict
 );
 
-VOID
-ParseSMBIOSSettings (
-  TagPtr dictPointer
-);
-
 BOOLEAN
 CopyKernelAndKextPatches (
   IN OUT KERNEL_AND_KEXT_PATCHES   *Dst,
@@ -1849,17 +1841,15 @@ VOID  GetListOfThemes ();
 VOID  GetListOfACPI ();
 VOID  GetListOfConfigs ();
 
-VOID hehe ();
-
 MatchOSes *
 GetStrArraySeparatedByChar (
-  CHAR8   *str,
-  CHAR8   sep
+  CHAR8   *Str,
+  CHAR8   Sep
 );
 
 VOID
 DeallocMatchOSes (
-  MatchOSes    *s
+  MatchOSes   *S
 );
 
 #endif

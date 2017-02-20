@@ -540,8 +540,8 @@ DrawImageArea (
 VOID
 TakeImage (
   IN EG_IMAGE     *Image,
-  INTN            ScreenPosX,
-  INTN            ScreenPosY,
+  IN INTN         ScreenPosX,
+  IN INTN         ScreenPosY,
   IN INTN         AreaWidth,
   IN INTN         AreaHeight
 ) {

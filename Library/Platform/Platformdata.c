@@ -52,7 +52,6 @@ CHAR8   *AppleFirmwareVersion[] =
   "MP31.88Z.006C.B05.0802291410",
   "MP41.88Z.0081.B07.0903051113",
   "MP51.88Z.007F.B03.1010071432",   //007F.B00.1008031144"
-  //"MP61.88Z.0116.B21.1610201524",
   "MP61.88Z.0116.B22.1612151901"
 };
 
@@ -447,8 +446,6 @@ SetDMISettingsForModel (
   MACHINE_TYPES   Model,
   BOOLEAN         Redefine
 ) {
-  UINTN   Len = 0;
-
   AsciiStrCpyS (gSettings.VendorName,             ARRAY_SIZE (gSettings.VendorName), BiosVendor);
   AsciiStrCpyS (gSettings.RomVersion,             ARRAY_SIZE (gSettings.RomVersion), AppleFirmwareVersion[Model]);
   AsciiStrCpyS (gSettings.ReleaseDate,            ARRAY_SIZE (gSettings.ReleaseDate), AppleReleaseDate[Model]);
@@ -545,46 +542,48 @@ SetDMISettingsForModel (
       break;
   }
 
-  Len = ARRAY_SIZE (gSettings.RPlt);
-
   //smc helper
-  if (SmcPlatform[Model][0] != 'N') {
-    AsciiStrCpyS (gSettings.RPlt, Len, SmcPlatform[Model]);
-  } else {
-    switch (gCPUStructure.Model) {
-      case CPU_MODEL_SANDY_BRIDGE:
-        if (gSettings.Mobile) {
-          AsciiStrCpyS (gSettings.RPlt, Len, "k90i");
-        } else {
-          AsciiStrCpyS (gSettings.RPlt, Len, "k60");
-        }
-        break;
+  if (gSettings.FakeSMCOverrides) {
+    UINTN   Len = ARRAY_SIZE (gSettings.RPlt);
 
-      case CPU_MODEL_IVY_BRIDGE:
-        AsciiStrCpyS (gSettings.RPlt, Len, "j30");
-        break;
+    if (SmcPlatform[Model][0] != 'N') {
+      AsciiStrCpyS (gSettings.RPlt, Len, SmcPlatform[Model]);
+    } else {
+      switch (gCPUStructure.Model) {
+        case CPU_MODEL_SANDY_BRIDGE:
+          if (gSettings.Mobile) {
+            AsciiStrCpyS (gSettings.RPlt, Len, "k90i");
+          } else {
+            AsciiStrCpyS (gSettings.RPlt, Len, "k60");
+          }
+          break;
 
-      case CPU_MODEL_IVY_BRIDGE_E5:
-        AsciiStrCpyS (gSettings.RPlt, Len, "j90");
-        break;
+        case CPU_MODEL_IVY_BRIDGE:
+          AsciiStrCpyS (gSettings.RPlt, Len, "j30");
+          break;
 
-      case CPU_MODEL_HASWELL_ULT:
-        AsciiStrCpyS (gSettings.RPlt, Len, "j44");
-        break;
+        case CPU_MODEL_IVY_BRIDGE_E5:
+          AsciiStrCpyS (gSettings.RPlt, Len, "j90");
+          break;
 
-      case CPU_MODEL_SKYLAKE_S:
-        AsciiStrCpyS (gSettings.RPlt, Len, "j95");
-        break;
+        case CPU_MODEL_HASWELL_ULT:
+          AsciiStrCpyS (gSettings.RPlt, Len, "j44");
+          break;
 
-      default:
-        AsciiStrCpyS (gSettings.RPlt, Len, "T9");
-        break;
+        case CPU_MODEL_SKYLAKE_S:
+          AsciiStrCpyS (gSettings.RPlt, Len, "j95");
+          break;
+
+        default:
+          AsciiStrCpyS (gSettings.RPlt, Len, "T9");
+          break;
+      }
     }
-  }
 
-  CopyMem (gSettings.REV,  SmcRevision[Model], 6);
-  AsciiStrCpyS (gSettings.RBr, ARRAY_SIZE (gSettings.RBr),  gSettings.RPlt); //SmcBranch[Model]); // as no other ideas
-  CopyMem (gSettings.EPCI, &SmcConfig[Model],  4);
+    CopyMem (gSettings.REV, SmcRevision[Model], 6);
+    AsciiStrCpyS (gSettings.RBr, ARRAY_SIZE (gSettings.RBr), gSettings.RPlt); //SmcBranch[Model]); // as no other ideas
+    CopyMem (gSettings.EPCI, &SmcConfig[Model], 4);
+  }
 }
 
 //Other info

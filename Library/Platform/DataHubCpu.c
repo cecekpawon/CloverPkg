@@ -272,86 +272,46 @@ VOID
 EFIAPI
 SetupDataForOSX () {
   EFI_STATUS  Status;
-  UINT32      DevPathSupportedVal;
-  UINT64      FrontSideBus, CpuSpeed, TscFrequency, ARTFrequency;
-  CHAR16      *ProductName, *SerialNumber;
-
-  // fool proof
-  FrontSideBus = gCPUStructure.FSBFrequency;
-  if ((FrontSideBus < (50 * Mega)) || (FrontSideBus > (1000 * Mega))) {
-    DBG ("Wrong FrontSideBus=%d, set to 100MHz\n", FrontSideBus);
-    FrontSideBus = 100 * Mega;
-  }
-
-  if (gSettings.QEMU) {/*
-    FrontSideBus = gCPUStructure.TSCFrequency;
-    switch (gCPUStructure.Model) {
-      case CPU_MODEL_DOTHAN:
-      case CPU_MODEL_YONAH:
-      case CPU_MODEL_MEROM:
-        FrontSideBus = DivU64x32 (FrontSideBus, 4);
-        break;
-      default:
-        break;
-    }*/
-    DBG ("Using QEMU FrontSideBus=%d\n", FrontSideBus);
-  }
-
-  // Save values into gSettings for the genconfig aim
-  gSettings.BusSpeed = (UINT32)DivU64x32 (FrontSideBus, kilo);
-
-  CpuSpeed = gCPUStructure.CPUFrequency;
-  gSettings.CpuFreqMHz = (UINT32)DivU64x32 (CpuSpeed, Mega);
+  UINT32      DevPathSupportedVal = 1;
 
   // Locate DataHub Protocol
   Status = gBS->LocateProtocol (&gEfiDataHubProtocolGuid, NULL, (VOID **)&gDataHub);
   if (!EFI_ERROR (Status)) {
-    UINTN   Len;
-
-    Len = ARRAY_SIZE (gSettings.ProductName);
-    ProductName = AllocateZeroPool (Len);
-    AsciiStrToUnicodeStrS (gSettings.ProductName, ProductName, Len);
-
-    Len = ARRAY_SIZE (gSettings.SerialNr);
-    SerialNumber = AllocateZeroPool (Len);
-    AsciiStrToUnicodeStrS (gSettings.SerialNr, SerialNumber, Len);
-
-    LogDataHub (&gEfiProcessorSubClassGuid,    L"FSBFrequency",          &FrontSideBus,          sizeof (UINT64));
+    LogDataHub (&gEfiMiscSubClassGuid,  L"FSBFrequency",  &gCPUStructure.FSBFrequency,  sizeof (UINT64));
 
     if (gCPUStructure.ARTFrequency && gSettings.UseARTFreq) {
-      ARTFrequency = gCPUStructure.ARTFrequency;
-      LogDataHub (&gEfiProcessorSubClassGuid,  L"ARTFrequency",          &ARTFrequency,          sizeof (UINT64));
+      LogDataHub (&gEfiMiscSubClassGuid,  L"ARTFrequency",  &gCPUStructure.ARTFrequency,  sizeof (UINT64));
     }
 
-    TscFrequency = gCPUStructure.TSCFrequency;
-    LogDataHub (&gEfiProcessorSubClassGuid,    L"InitialTSC",            &TscFrequency,          sizeof (UINT64));
-    LogDataHub (&gEfiProcessorSubClassGuid,    L"CPUFrequency",          &CpuSpeed,              sizeof (UINT64));
+    LogDataHub (&gEfiMiscSubClassGuid,  L"InitialTSC",            &gCPUStructure.TSCFrequency,  sizeof (UINT64));
+    LogDataHub (&gEfiMiscSubClassGuid,  L"CPUFrequency",          &gCPUStructure.CPUFrequency,  sizeof (UINT64));
 
-    DevPathSupportedVal = 1;
-    LogDataHub (&gEfiMiscSubClassGuid,         L"DevicePathsSupported",  &DevPathSupportedVal,   sizeof (UINT32));
-    LogDataHub (&gEfiMiscSubClassGuid,         L"Model",                 ProductName,            (UINT32)StrSize (ProductName));
-    LogDataHub (&gEfiMiscSubClassGuid,         L"SystemSerialNumber",    SerialNumber,           (UINT32)StrSize (SerialNumber));
+    LogDataHub (&gEfiMiscSubClassGuid,  L"DevicePathsSupported",  &DevPathSupportedVal,         sizeof (UINT32));
+    LogDataHub (&gEfiMiscSubClassGuid,  L"Model",                 gSettings.ProductName,        ARRAY_SIZE (gSettings.ProductName));
+    LogDataHub (&gEfiMiscSubClassGuid,  L"SystemSerialNumber",    gSettings.SerialNr,           ARRAY_SIZE (gSettings.SerialNr));
 
     if (gSettings.InjectSystemID) {
-      LogDataHub (&gEfiMiscSubClassGuid,       L"system-id",             &gUuid,                 sizeof (EFI_GUID));
+      LogDataHub (&gEfiMiscSubClassGuid,  L"system-id", &gUuid, sizeof (EFI_GUID));
     }
 
-    //LogDataHub (&gEfiProcessorSubClassGuid,    L"clovergui-revision",    &Revision,              sizeof (UINT32));
+    //LogDataHub (&gEfiMiscSubClassGuid, L"clovergui-revision", &Revision, sizeof (UINT32));
 
-    // collect info about real hardware
-    LogDataHub (&gEfiMiscSubClassGuid,         L"OEMVendor",             &gSettings.OEMVendor,  (UINT32)AsciiTrimStrLen (gSettings.OEMVendor,  64) + 1);
-    LogDataHub (&gEfiMiscSubClassGuid,         L"OEMProduct",            &gSettings.OEMProduct, (UINT32)AsciiTrimStrLen (gSettings.OEMProduct, 64) + 1);
-    LogDataHub (&gEfiMiscSubClassGuid,         L"OEMBoard",              &gSettings.OEMBoard,   (UINT32)AsciiTrimStrLen (gSettings.OEMBoard,   64) + 1);
+    // collect info about real hardware (read by FakeSMC)
+    LogDataHub (&gEfiMiscSubClassGuid,  L"OEMVendor",   &gSettings.OEMVendor,   (UINT32)AsciiTrimStrLen (gSettings.OEMVendor,  64) + 1);
+    LogDataHub (&gEfiMiscSubClassGuid,  L"OEMProduct",  &gSettings.OEMProduct,  (UINT32)AsciiTrimStrLen (gSettings.OEMProduct, 64) + 1);
+    LogDataHub (&gEfiMiscSubClassGuid,  L"OEMBoard",    &gSettings.OEMBoard,    (UINT32)AsciiTrimStrLen (gSettings.OEMBoard,   64) + 1);
 
     // SMC helper
-    LogDataHub (&gEfiMiscSubClassGuid,         L"RPlt",                  &gSettings.RPlt,        8);
-    LogDataHub (&gEfiMiscSubClassGuid,         L"RBr",                   &gSettings.RBr,         8);
-    LogDataHub (&gEfiMiscSubClassGuid,         L"EPCI",                  &gSettings.EPCI,        4);
-    LogDataHub (&gEfiMiscSubClassGuid,         L"REV",                   &gSettings.REV,         6);
-    LogDataHub (&gEfiMiscSubClassGuid,         L"BEMB",                  &gSettings.Mobile,      1);
+    if (gSettings.FakeSMCOverrides) {
+      LogDataHub (&gEfiMiscSubClassGuid,  L"RPlt",  &gSettings.RPlt,    8);
+      LogDataHub (&gEfiMiscSubClassGuid,  L"RBr",   &gSettings.RBr,     8);
+      LogDataHub (&gEfiMiscSubClassGuid,  L"EPCI",  &gSettings.EPCI,    4);
+      LogDataHub (&gEfiMiscSubClassGuid,  L"REV",   &gSettings.REV,     6);
+      LogDataHub (&gEfiMiscSubClassGuid,  L"BEMB",  &gSettings.Mobile,  1);
+    }
 
-    // all current settings
-    //LogDataHub (&gEfiMiscSubClassGuid,         L"Settings",              &gSettings,             sizeof (gSettings));
+    // all current settings (we could dump settings in plain text instead below)
+    //LogDataHub (&gEfiMiscSubClassGuid,  L"Settings",  &gSettings, sizeof (gSettings));
   } else {
     // this is the error message that we want user to see on the screen!
     //Print (L"DataHubProtocol is not found! Load the module DataHubDxe manually!\n");

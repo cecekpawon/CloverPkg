@@ -745,6 +745,32 @@ PatchKext (
   }
 }
 
+///////////////////////////////////
+//
+// InjectKexts if no FakeSMC: Detect FakeSMC and if present then
+// disable kext injection InjectKexts ()
+//
+
+VOID
+CheckForFakeSMC (
+  CHAR8         *InfoPlist,
+  LOADER_ENTRY  *Entry
+) {
+  if (
+    OSFLAG_ISSET (Entry->Flags, OSFLAG_CHECKFAKESMC) &&
+    OSFLAG_ISSET (Entry->Flags, OSFLAG_WITHKEXTS)
+  ) {
+    if (
+      (AsciiStrStr (InfoPlist, "<string>org.netkas.driver.FakeSMC</string>") != NULL) ||
+      (AsciiStrStr (InfoPlist, "<string>org.netkas.FakeSMC</string>") != NULL)
+    ) {
+      Entry->Flags = OSFLAG_UNSET (Entry->Flags, OSFLAG_WITHKEXTS);
+      DBG_RT (Entry, "\nFakeSMC found\n");
+      DBG_PAUSE (Entry, 5);
+    }
+  }
+}
+
 #ifdef LAZY_PARSE_KEXT_PLIST
 
 EFI_STATUS
@@ -892,6 +918,8 @@ PatchPrelinkedKexts (
   LOADER_ENTRY    *Entry
 ) {
   CHAR8   *WholePlist = (CHAR8 *)(UINTN)KernelInfo->PrelinkInfoAddr;
+
+  //CheckForFakeSMC (WholePlist, Entry);
 
   if (!EFI_ERROR (ParsePrelinkKexts (Entry, WholePlist))) {
     LIST_ENTRY    *Link;
@@ -1099,6 +1127,7 @@ PatchPrelinkedKexts (
   // But searching through the whole prelink info
   // works and that's the reason why it is here.
   //
+
   //CheckForFakeSMC (WholePlist, Entry);
 
   DictPtr = WholePlist;
@@ -1135,7 +1164,7 @@ PatchPrelinkedKexts (
 
         KextSize = (UINT32)GetPlistHexValue (InfoPlistStart, kPrelinkExecutableSizeKey, WholePlist);
 
-        ExtractKextBundleIdentifier (gKextBundleIdentifier, ARRAY_SIZE(gKextBundleIdentifier), InfoPlistStart);
+        ExtractKextBundleIdentifier (gKextBundleIdentifier, ARRAY_SIZE (gKextBundleIdentifier), InfoPlistStart);
 
         // patch it
         PatchKext (
@@ -1230,7 +1259,7 @@ PatchLoadedKexts (
           }
         }
 #else
-        ExtractKextBundleIdentifier (gKextBundleIdentifier, ARRAY_SIZE(gKextBundleIdentifier), InfoPlist);
+        ExtractKextBundleIdentifier (gKextBundleIdentifier, ARRAY_SIZE (gKextBundleIdentifier), InfoPlist);
 
         PatchKext (
           (UINT8 *)(UINTN)KextFileInfo->executablePhysAddr,

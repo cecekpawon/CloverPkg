@@ -117,11 +117,10 @@ typedef struct OpaqueDTPropertyIterator {
   UINT32                  currentIndex;
 } *RealDTPropertyIterator;
 
-struct DTMemMapEntry {
+typedef struct DTMemMapEntry {
   UINT32  Address;
   UINT32  Length;
-};
-typedef struct DTMemMapEntry DTMemMapEntry;
+} DTMemMapEntry;
 
 typedef struct DeviceTreeBuffer {
   UINT32  paddr;

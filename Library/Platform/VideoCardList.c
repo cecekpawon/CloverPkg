@@ -138,7 +138,7 @@ FillCardList (
           BOOLEAN       LoadVBios = FALSE;
           EFI_STATUS    Status = GetElement (Prop, i, Count, &Element);
 
-          if (!EFI_ERROR(Status) && Element) {
+          if (!EFI_ERROR (Status) && Element) {
             if ((Prop2 = GetProperty (Element, "Model")) != 0) {
               ModelName = Prop2->string;
             } else {

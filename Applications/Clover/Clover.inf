@@ -61,9 +61,7 @@
   ../../Library/Platform/StateGenerator.c
   ../../Library/Platform/VideoCardList.c
 
-  ../../Library/Common/IO.c
   ../../Library/Common/Lib.c
-  #../../Library/Common/lzvn.c
   ../../Library/Common/Screen.c
 
   Main.c
@@ -112,7 +110,6 @@
   gEfiMiscSubClassGuid
   gEfiPciIoProtocolGuid
   gEfiPlatformDriverOverrideProtocolGuid
-  gEfiProcessorSubClassGuid
   gEfiScsiIoProtocolGuid
   gEfiSimpleTextInputExProtocolGuid
   gEfiStatusCodeRuntimeProtocolGuid

@@ -127,28 +127,28 @@ typedef struct {
 
 #define OSFLAG_USEGRAPHICS            (1 << 0)
 #define OSFLAG_WITHKEXTS              (1 << 1)
-//#define OSFLAG_CHECKFAKESMC         (1 << 2)
-#define OSFLAG_NOCACHES               (1 << 2)
-#define OSFLAG_NODEFAULTARGS          (1 << 3)
-#define OSFLAG_NODEFAULTMENU          (1 << 4)
-#define OSFLAG_HIDDEN                 (1 << 5)
-#define OSFLAG_DISABLED               (1 << 6)
-#define OSFLAG_HIBERNATED             (1 << 7)
-#define OSFLAG_NOSIP                  (1 << 8)
-#define OSFLAG_DBGPATCHES             (1 << 9)
-#define OSFLAG_ALLOW_KEXT_PATCHES     (1 << 10)
-#define OSFLAG_ALLOW_KERNEL_PATCHES   (1 << 11)
-#define OSFLAG_ALLOW_BOOTER_PATCHES   (1 << 12)
+#define OSFLAG_CHECKFAKESMC           (1 << 2)
+#define OSFLAG_NOCACHES               (1 << 3)
+#define OSFLAG_NODEFAULTARGS          (1 << 4)
+#define OSFLAG_NODEFAULTMENU          (1 << 5)
+#define OSFLAG_HIDDEN                 (1 << 6)
+#define OSFLAG_DISABLED               (1 << 7)
+#define OSFLAG_HIBERNATED             (1 << 8)
+#define OSFLAG_NOSIP                  (1 << 9)
+#define OSFLAG_DBGPATCHES             (1 << 10)
+#define OSFLAG_ALLOW_KEXT_PATCHES     (1 << 11)
+#define OSFLAG_ALLOW_KERNEL_PATCHES   (1 << 12)
+#define OSFLAG_ALLOW_BOOTER_PATCHES   (1 << 13)
 
-#define OPT_VERBOSE                   (1 << 13)
-#define OPT_SINGLE_USER               (1 << 14)
-#define OPT_SAFE                      (1 << 15)
+#define OPT_VERBOSE                   (1 << 14)
+#define OPT_SINGLE_USER               (1 << 15)
+#define OPT_SAFE                      (1 << 16)
 
-#define OPT_QUIET                     (1 << 16)
-#define OPT_SPLASH                    (1 << 17)
-#define OPT_NOMODESET                 (1 << 18)
-#define OPT_HDD                       (1 << 19)
-#define OPT_CDROM                     (1 << 20)
+#define OPT_QUIET                     (1 << 17)
+#define OPT_SPLASH                    (1 << 18)
+#define OPT_NOMODESET                 (1 << 19)
+#define OPT_HDD                       (1 << 20)
+#define OPT_CDROM                     (1 << 21)
 
 #define VOLTYPE_OPTICAL               (0x0001)
 #define VOLTYPE_EXTERNAL              (0x0002)
@@ -158,6 +158,7 @@ typedef struct {
 #define OSFLAG_DEFAULTS               (\
                                         OSFLAG_USEGRAPHICS          | \
                                         OSFLAG_WITHKEXTS            | \
+                                        OSFLAG_CHECKFAKESMC         | \
                                         OSFLAG_ALLOW_KEXT_PATCHES   | \
                                         OSFLAG_ALLOW_KERNEL_PATCHES | \
                                         OSFLAG_ALLOW_BOOTER_PATCHES \
@@ -773,14 +774,26 @@ DrawImageArea (
 
 VOID
 TakeImage (
-  IN  EG_IMAGE    *Image,
-      INTN        ScreenPosX,
-      INTN        ScreenPosY,
-  IN  INTN        AreaWidth,
-  IN  INTN        AreaHeight
+  IN EG_IMAGE     *Image,
+  IN INTN         ScreenPosX,
+  IN INTN         ScreenPosY,
+  IN INTN         AreaWidth,
+  IN INTN         AreaHeight
 );
 
 EFI_STATUS
 ScreenShot ();
+
+//
+// IO
+//
+
+#define PoolPrint(...) CatSPrint(NULL, __VA_ARGS__)
+
+//EFI_STATUS
+//WaitForSingleEvent (
+//  IN EFI_EVENT    Event,
+//  IN UINT64       Timeout OPTIONAL
+//);
 
 #endif

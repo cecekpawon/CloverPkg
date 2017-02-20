@@ -66,14 +66,9 @@ typedef FSI_STRING_LIST *
  * FSINJECTION_PROTOCOL that can be used to install FSInjection to some existing volume handle
  */
 typedef struct _FSINJECTION_PROTOCOL {
-  FSINJECTION_INSTALL       Install;      // installs FSInjection EFI_SIMPLE_FILE_SYSTEM_PROTOCOL
+  FSINJECTION_INSTALL             Install;      // installs FSInjection EFI_SIMPLE_FILE_SYSTEM_PROTOCOL
   FSINJECTION_CREATE_STRING_LIST  CreateStringList; // creates new string list
   FSINJECTION_ADD_STRING_TO_LIST  AddStringToList;  // adds list to string
 } FSINJECTION_PROTOCOL;
-
-#define FSINJECTION_PROTOCOL_GUID \
-  { \
-    0x3F048284, 0x6D4C, 0x11E1, {0xA4, 0xD7, 0x37, 0xE3, 0x48, 0x24, 0x01, 0x9B } \
-  }
 
 #endif

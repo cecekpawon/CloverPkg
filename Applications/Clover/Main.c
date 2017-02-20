@@ -409,7 +409,7 @@ FilterKernelPatches (
 }
 
 VOID
-ReadSIPCfg () {
+ReadCsrCfg () {
   UINT32    csrCfg = gSettings.CsrActiveConfig & CSR_VALID_FLAGS;
   CHAR16    *csrLog = AllocateZeroPool (SVALUE_MAX_SIZE);
 
@@ -753,7 +753,7 @@ StartLoader (
         gSettings.BooterConfig = (UINT16)DEF_NOSIP_BOOTER_CONFIG;
       }
 
-      ReadSIPCfg ();
+      ReadCsrCfg ();
     }
 
     FilterKextPatches (Entry);
@@ -1456,7 +1456,6 @@ RefitMain (
   ZeroMem ((VOID *)&gGraphics[0], sizeof (GFX_PROPERTIES) * 4);
 
   //DbgHeader ("RefitMain");
-  //hehe ();
 
   if ((Now.TimeZone < 0) || (Now.TimeZone > 24)) {
     MsgLog ("Now is %d.%d.%d, %d:%d:%d (GMT)\n",
@@ -1524,7 +1523,7 @@ RefitMain (
   GetDevices ();
 
   DbgHeader ("LoadSettings");
-  GetDefaultSettings ();
+  SyncDefaultSettings ();
 
   gSettings.ConfigName = /*gSettings.MainConfigName =*/ PoolPrint (CONFIG_FILENAME);
   SetOEMPath (gSettings.ConfigName);
