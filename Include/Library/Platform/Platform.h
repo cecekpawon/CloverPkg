@@ -137,36 +137,39 @@ Headers collection for procedures
 
 #define DIR_CLOVER          L"\\EFI\\CLOVER"
 
-#define DIR_DRIVERS         PoolPrint (L"%s\\drivers", DIR_CLOVER)
-#define DIR_DRIVERS64       PoolPrint (L"%s\\drivers64UEFI", DIR_CLOVER)
-#define DIR_MISC            PoolPrint (L"%s\\misc", DIR_CLOVER)
-#define DIR_OEM             PoolPrint (L"%s\\oem", DIR_CLOVER)
-//#define DIR_ROM             PoolPrint (L"%s\\rom", DIR_CLOVER)
-#define DIR_THEMES          PoolPrint (L"%s\\themes", DIR_CLOVER)
-#define DIR_TOOLS           PoolPrint (L"%s\\tools", DIR_CLOVER)
-#define DIR_FONTS           PoolPrint (L"%s\\fonts", DIR_CLOVER)
+#define DIR_DRIVERS         DIR_CLOVER L"\\drivers"
+#define DIR_DRIVERS64       DIR_CLOVER L"\\drivers64UEFI"
+#define DIR_MISC            DIR_CLOVER L"\\misc"
+#define DIR_OEM             DIR_CLOVER L"\\oem"
+//#define DIR_ROM           DIR_CLOVER L"\\rom
+#define DIR_THEMES          DIR_CLOVER L"\\themes"
+#define DIR_TOOLS           DIR_CLOVER L"\\tools"
+#define DIR_FONTS           DIR_CLOVER L"\\fonts"
 
 #define DIR_ACPI            L"%s\\acpi"
-#define DIR_ACPI_PATCHED    PoolPrint (L"%s\\patched", DIR_ACPI)
-#define DIR_ACPI_ORIGIN     PoolPrint (L"%s\\origin", DIR_ACPI)
+#define DIR_ACPI_PATCHED    DIR_ACPI L"\\patched"
+#define DIR_ACPI_ORIGIN     DIR_ACPI L"\\origin"
 
-#define DSDT_ORIGIN         PoolPrint (L"%s\\DSDT-or.aml", DIR_ACPI)
+#define DSDT_ORIGIN         DIR_ACPI L"\\DSDT-or.aml"
 
 #define DIR_ROM             L"%s\\rom"
 
-//#define DIR_UEFI          PoolPrint (L"%s\\uefi", DIR_CLOVER)
+//#define DIR_UEFI          DIR_CLOVER L"%s\\uefi"
 #define DIR_KEXTS           L"%s\\kexts"
-#define DIR_KEXTS_OTHER     PoolPrint (L"%s\\other", DIR_KEXTS)
+#define DIR_KEXTS_OTHER     DIR_KEXTS "\\other"
 
-#define VBIOS_BIN           PoolPrint (L"%s\\c0000.bin", DIR_MISC)
+#define VBIOS_BIN           DIR_MISC L"\\c0000.bin"
+
+#define PREBOOT_LOG         DIR_MISC L"\\preboot.log"
+#define DEBUG_LOG           DIR_MISC L"\\debug.log"
+
+#define DATAHUB_LOG         L"boot-log"
 
 #define MSG_LOG_SIZE        (256 * 1024)
 
-#define PREBOOT_LOG         PoolPrint (L"%s\\%s", DIR_MISC, L"preboot.log")
-#define DEBUG_LOG           PoolPrint (L"%s\\%s", DIR_MISC, L"debug.log")
-#define DATAHUB_LOG         L"boot-log"
-
 #define OSX_PATH_SLE        L"\\System\\Library\\Extensions"
+
+#define DSDT_NAME           L"DSDT.aml"
 
 #ifndef DEBUG_ALL
 #define MsgLog(...)  DebugLog (1, __VA_ARGS__)
@@ -197,8 +200,8 @@ Headers collection for procedures
   #define CLOVER_BUILDINFOS_STR "Unknown"
 #endif
 
-#define DEF_NOSIP_CSR_ACTIVE_CONFIG     (CSR_ALLOW_APPLE_INTERNAL + CSR_ALLOW_UNRESTRICTED_NVRAM + CSR_ALLOW_DEVICE_CONFIGURATION + CSR_ALLOW_ANY_RECOVERY_OS)
-#define DEF_NOSIP_BOOTER_CONFIG         (kBootArgsFlagCSRActiveConfig + kBootArgsFlagCSRConfigMode + kBootArgsFlagCSRBoot)
+#define DEF_NOSIP_CSR_ACTIVE_CONFIG   (CSR_ALLOW_APPLE_INTERNAL + CSR_ALLOW_UNRESTRICTED_NVRAM + CSR_ALLOW_DEVICE_CONFIGURATION + CSR_ALLOW_ANY_RECOVERY_OS)
+#define DEF_NOSIP_BOOTER_CONFIG       (kBootArgsFlagCSRActiveConfig + kBootArgsFlagCSRConfigMode + kBootArgsFlagCSRBoot)
 
 /* XML Tags */
 typedef enum {
@@ -552,51 +555,51 @@ typedef struct NVRAM_DATA
 
 typedef struct {
  //values from CPUID
-  UINT32                  CPUID[CPUID_MAX][4];
-  UINT32                  Vendor;
-  UINT32                  Signature;
-  UINT32                  Family;
-  UINT32                  Model;
-  UINT32                  Stepping;
-  UINT32                  Type;
-  UINT32                  Extmodel;
-  UINT32                  Extfamily;
-  UINT64                  Features;
-  UINT64                  ExtFeatures;
-  UINT32                  CoresPerPackage;
-  UINT32                  LogicalPerPackage;
-  CHAR8                   BrandString[48];
+  UINT32    CPUID[CPUID_MAX][4];
+  UINT32    Vendor;
+  UINT32    Signature;
+  UINT32    Family;
+  UINT32    Model;
+  UINT32    Stepping;
+  UINT32    Type;
+  UINT32    Extmodel;
+  UINT32    Extfamily;
+  UINT64    Features;
+  UINT64    ExtFeatures;
+  UINT32    CoresPerPackage;
+  UINT32    LogicalPerPackage;
+  CHAR8     BrandString[48];
 
   //values from BIOS
-  UINT32                  ExternalClock; //keep this values as kHz
-  UINT32                  MaxSpeed;       //MHz
-  UINT32                  CurrentSpeed;   //MHz
+  UINT32    ExternalClock; //keep this values as kHz
+  UINT32    MaxSpeed;       //MHz
+  UINT32    CurrentSpeed;   //MHz
 
   //calculated from MSR
-  UINT64                  MicroCode;
-  UINT64                  ProcessorFlag;
-  UINT32                  MaxRatio;
-  UINT32                  SubDivider;
-  UINT32                  MinRatio;
-  UINT32                  DynFSB;
-  UINT64                  ProcessorInterconnectSpeed; //MHz
-  UINT64                  FSBFrequency; //Hz
-  UINT64                  CPUFrequency;
-  UINT64                  TSCFrequency;
-  UINT8                   Cores;
-  UINT8                   EnabledCores;
-  UINT8                   Threads;
-  UINT8                   Mobile;  //not for i3-i7
-  BOOLEAN                 Turbo;
+  UINT64    MicroCode;
+  UINT64    ProcessorFlag;
+  UINT32    MaxRatio;
+  UINT32    SubDivider;
+  UINT32    MinRatio;
+  UINT32    DynFSB;
+  UINT64    ProcessorInterconnectSpeed; //MHz
+  UINT64    FSBFrequency; //Hz
+  UINT64    CPUFrequency;
+  UINT64    TSCFrequency;
+  UINT8     Cores;
+  UINT8     EnabledCores;
+  UINT8     Threads;
+  UINT8     Mobile;  //not for i3-i7
+  BOOLEAN   Turbo;
 
   /* Core i7,5,3 */
-  UINT16                  Turbo1; //1 Core
-  UINT16                  Turbo2; //2 Core
-  UINT16                  Turbo3; //3 Core
-  UINT16                  Turbo4; //4 Core
+  UINT16    Turbo1; //1 Core
+  UINT16    Turbo2; //2 Core
+  UINT16    Turbo3; //3 Core
+  UINT16    Turbo4; //4 Core
 
-  UINT64                  TSCCalibr;
-  UINT64                  ARTFrequency;
+  UINT64    TSCCalibr;
+  UINT64    ARTFrequency;
 } CPU_STRUCTURE;
 
 /* PCI */

@@ -657,7 +657,10 @@ FINISH:
   return Entry;
 }
 
-BOOLEAN IsKernelIs64BitOnly (IN LOADER_ENTRY *Entry) {
+BOOLEAN
+IsKernelIs64BitOnly (
+  IN LOADER_ENTRY   *Entry
+) {
   return OSX_GE (Entry->OSVersion, "10.8");
 }
 

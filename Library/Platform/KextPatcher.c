@@ -771,6 +771,61 @@ CheckForFakeSMC (
   }
 }
 
+/** Extracts kext BundleIdentifier from given Plist into gKextBundleIdentifier */
+
+VOID
+ExtractKextBundleIdentifier (
+  OUT CHAR8   *Res,
+  IN  INTN    Len,
+  IN  CHAR8   *Plist
+) {
+  CHAR8     *Tag, *BIStart, *BIEnd;
+  INTN      DictLevel = 0;
+
+  Res[0] = '\0';
+
+  // start with first <dict>
+  Tag = AsciiStrStr (Plist, "<dict>");
+  if (Tag == NULL) {
+    return;
+  }
+
+  Tag += 6;
+  DictLevel++;
+
+  while (*Tag != '\0') {
+    if (AsciiStrnCmp (Tag, "<dict>", 6) == 0) {
+      // opening dict
+      DictLevel++;
+      Tag += 6;
+    } else if (AsciiStrnCmp (Tag, "</dict>", 7) == 0) {
+      // closing dict
+      DictLevel--;
+      Tag += 7;
+    } else if ((DictLevel == 1) && (AsciiStrnCmp (Tag, PropCFBundleIdentifierKey, 29) == 0)) {
+      // BundleIdentifier is next <string>...</string>
+      BIStart = AsciiStrStr (Tag + 29, "<string>");
+      if (BIStart != NULL) {
+        BIStart += 8; // skip "<string>"
+        BIEnd = AsciiStrStr (BIStart, "</string>");
+        if ((BIEnd != NULL) && ((BIEnd - BIStart + 1) < Len)) {
+          CopyMem (Res, BIStart, BIEnd - BIStart);
+          Res[BIEnd - BIStart] = '\0';
+          break;
+        }
+      }
+      Tag++;
+    } else {
+      Tag++;
+    }
+
+    // advance to next tag
+    while ((*Tag != '<') && (*Tag != '\0')) {
+      Tag++;
+    }
+  }
+}
+
 #ifdef LAZY_PARSE_KEXT_PLIST
 
 EFI_STATUS
@@ -955,63 +1010,6 @@ PatchPrelinkedKexts (
 }
 
 #else
-
-/** Extracts kext BundleIdentifier from given Plist into gKextBundleIdentifier */
-
-#define PropCFBundleIdentifierKey "<key>" kPropCFBundleIdentifier "</key>"
-
-VOID
-ExtractKextBundleIdentifier (
-  OUT CHAR8   *Res,
-  IN  INTN    Len,
-  IN  CHAR8   *Plist
-) {
-  CHAR8     *Tag, *BIStart, *BIEnd;
-  INTN      DictLevel = 0;
-
-  Res[0] = '\0';
-
-  // start with first <dict>
-  Tag = AsciiStrStr (Plist, "<dict>");
-  if (Tag == NULL) {
-    return;
-  }
-
-  Tag += 6;
-  DictLevel++;
-
-  while (*Tag != '\0') {
-    if (AsciiStrnCmp (Tag, "<dict>", 6) == 0) {
-      // opening dict
-      DictLevel++;
-      Tag += 6;
-    } else if (AsciiStrnCmp (Tag, "</dict>", 7) == 0) {
-      // closing dict
-      DictLevel--;
-      Tag += 7;
-    } else if ((DictLevel == 1) && (AsciiStrnCmp (Tag, PropCFBundleIdentifierKey, 29) == 0)) {
-      // BundleIdentifier is next <string>...</string>
-      BIStart = AsciiStrStr (Tag + 29, "<string>");
-      if (BIStart != NULL) {
-        BIStart += 8; // skip "<string>"
-        BIEnd = AsciiStrStr (BIStart, "</string>");
-        if ((BIEnd != NULL) && ((BIEnd - BIStart + 1) < Len)) {
-          CopyMem (Res, BIStart, BIEnd - BIStart);
-          Res[BIEnd - BIStart] = '\0';
-          break;
-        }
-      }
-      Tag++;
-    } else {
-      Tag++;
-    }
-
-    // advance to next tag
-    while ((*Tag != '<') && (*Tag != '\0')) {
-      Tag++;
-    }
-  }
-}
 
 //
 // Returns parsed hex integer key.

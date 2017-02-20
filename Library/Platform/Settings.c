@@ -185,7 +185,7 @@ GetDefaultConfig () {
   //gSettings.HDAInjection         = TRUE;
   //gSettings.USBInjection         = TRUE; // enabled by default to have the same behavior as before
 
-  StrCpyS (gSettings.DsdtName, ARRAY_SIZE (gSettings.DsdtName), L"DSDT.aml");
+  StrCpyS (gSettings.DsdtName, ARRAY_SIZE (gSettings.DsdtName), DSDT_NAME);
 
   gSettings.BacklightLevel       = 0xFFFF; //0x0503; -- the value from MBA52
   //gSettings.BacklightLevelConfig = FALSE;
@@ -269,6 +269,12 @@ GetPropertyInteger (
 
   return Default;
 }
+
+//
+// returns binary setting in a new allocated buffer and data length in dataLen.
+// data can be specified in <data></data> base64 encoded
+// or in <string></string> hex encoded
+//
 
 VOID *
 GetDataSetting (

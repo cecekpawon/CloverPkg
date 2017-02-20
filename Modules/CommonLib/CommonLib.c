@@ -679,7 +679,7 @@ Hex2Bin (
 
   if ((hex == NULL) || (bin == NULL) || (len <= 0 )|| (AsciiStrLen (hex) < len * 2)) {
     //DBG ("[ERROR] bin2hex input error\n"); //this is not error, this is empty value
-    return FALSE;
+    return 0;
   }
 
   buf[2] = '\0';
@@ -714,12 +714,6 @@ Hex2Bin (
   return outlen;
 }
 
-//
-// returns binary setting in a new allocated buffer and data length in dataLen.
-// data can be specified in <data></data> base64 encoded
-// or in <string></string> hex encoded
-//
-
 VOID *
 EFIAPI
 StringDataToHex (
@@ -733,6 +727,11 @@ StringDataToHex (
   Data = AllocateZeroPool (Len); // 2 chars per byte, one more byte for odd number
   Len  = Hex2Bin (Val, Data, Len);
   *DataLen = Len;
+
+  if (!Len) {
+    FreePool (Data);
+    return (UINT8 *)Val;
+  }
 
   return Data;
 }

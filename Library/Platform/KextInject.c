@@ -453,39 +453,59 @@ InjectKexts (
 
       DBG_RT (Entry, " %d - %a\n", Index, (CHAR8 *)(UINTN)Drvinfo->bundlePathPhysAddr);
 
-#if 0
       if (
         gSettings.KextPatchesAllowed &&
         Entry->KernelAndKextPatches->NrKexts &&
         KernelAndKextPatcherInit (Entry)
       ) {
-        INT32   i;
-        CHAR8   SavedValue, *InfoPlist = (CHAR8 *)(UINTN)Drvinfo->infoDictPhysAddr,
-                *gKextBundleIdentifier = ExtractKextBundleIdentifier (InfoPlist);
+        INT32       i, isBundle;
+        CHAR8       SavedValue, *InfoPlist = (CHAR8 *)(UINTN)Drvinfo->infoDictPhysAddr,
+                    gKextBundleIdentifier[256];
+#ifdef LAZY_PARSE_KEXT_PLIST
+        TagPtr      KextsDict, DictPointer;
+#endif
 
         SavedValue = InfoPlist[Drvinfo->infoDictLength];
         InfoPlist[Drvinfo->infoDictLength] = '\0';
 
+#ifdef LAZY_PARSE_KEXT_PLIST
+        if (EFI_ERROR (ParseXML (InfoPlist, &KextsDict, 0))) {
+          continue;
+        }
+
+        DictPointer = GetProperty (KextsDict, kPropCFBundleIdentifier);
+        if ((DictPointer != NULL) && DictPointer->string) {
+          AsciiStrCpyS (gKextBundleIdentifier, ARRAY_SIZE (gKextBundleIdentifier), DictPointer->string);
+        }
+#else
+        ExtractKextBundleIdentifier (gKextBundleIdentifier, ARRAY_SIZE (gKextBundleIdentifier), InfoPlist);
+#endif
+
         for (i = 0; i < Entry->KernelAndKextPatches->NrKexts; i++) {
           if (
-            IsPatchNameMatch (gKextBundleIdentifier, Entry->KernelAndKextPatches->KextPatches[i].Name, InfoPlist)
+            !Entry->KernelAndKextPatches->KextPatches[i].Patched &&
+            IsPatchNameMatch (gKextBundleIdentifier, Entry->KernelAndKextPatches->KextPatches[i].Name, InfoPlist, &isBundle)
           ) {
-            DBG_RT (Entry, "Kext: %a\n", gKextBundleIdentifier);
+            //DBG_RT (Entry, "Kext: %a\n", gKextBundleIdentifier);
+
             AnyKextPatch (
               (UINT8 *)(UINTN)Drvinfo->executablePhysAddr,
               Drvinfo->executableLength,
               InfoPlist,
               Drvinfo->infoDictLength,
-              i,
+              &Entry->KernelAndKextPatches->KextPatches[i],
               Entry
             );
+
+            if (isBundle) {
+              Entry->KernelAndKextPatches->KextPatches[i].Patched = TRUE;
+            }
           }
         }
 
         InfoPlist[Drvinfo->infoDictLength] = SavedValue;
         FreePool (gKextBundleIdentifier);
       }
-#endif
 
       Index++;
     }
