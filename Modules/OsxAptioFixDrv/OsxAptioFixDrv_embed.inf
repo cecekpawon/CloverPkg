@@ -31,9 +31,6 @@
   X64/AsmFuncsX64.asm | MSFT
   X64/AsmFuncsX64.nasm | GCC
 
-[LibraryClasses]
-  MemLogLib
-
 [Guids]
   gEfiAppleBootGuid
   gEfiGlobalVariableGuid

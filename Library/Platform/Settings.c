@@ -146,11 +146,14 @@ OPT_MENU_BIT_K OPT_MENU_DSDTBIT[] = {
 
 INTN    OptMenuDSDTBitNum = ARRAY_SIZE (OPT_MENU_DSDTBIT);
 
-CHAR16    *SystemPlists[] = {
+CHAR16    *DarwinSystemPlists[] = {
   L"\\System\\Library\\CoreServices\\SystemVersion.plist", // OS X Regular
   L"\\System\\Library\\CoreServices\\ServerVersion.plist", // OS X Server
   NULL
 };
+
+CHAR16    *DarwinInstallerSystemPlists = L"\\.IABootFilesSystemVersion.plist";
+CHAR16    *DarwinRecoverySystemPlists = L"\\com.apple.recovery.boot\\SystemVersion.plist";
 
 VOID
 GetDefaultConfig () {
@@ -169,7 +172,11 @@ GetDefaultConfig () {
 
   gSettings.FlagsBits = OSFLAG_DEFAULTS;
 
-/*
+  ZeroMem (gSettings.DarwinDiskTemplate, ARRAY_SIZE (gSettings.DarwinDiskTemplate));
+  ZeroMem (gSettings.DarwinRecoveryDiskTemplate, ARRAY_SIZE (gSettings.DarwinRecoveryDiskTemplate));
+  ZeroMem (gSettings.DarwinInstallerDiskTemplate, ARRAY_SIZE (gSettings.DarwinInstallerDiskTemplate));
+
+  /*
   gSettings.InjectIntel         = FALSE;
   gSettings.InjectATI           = FALSE;
   gSettings.InjectNVidia        = FALSE;
@@ -177,7 +184,7 @@ GetDefaultConfig () {
   gSettings.HasGraphics->Intel  = FALSE;
   gSettings.HasGraphics->Nvidia = FALSE;
   gSettings.HasGraphics->Ati    = FALSE;
-*/
+  */
 
   //gSettings.CustomEDID           = NULL; //no sense to assign 0 as the structure is zeroed
   gSettings.DualLink             = 0;
@@ -1466,11 +1473,11 @@ FillinCustomEntry (
   Prop = GetProperty (DictPointer, "Type");
   if (Prop != NULL && (Prop->type == kTagTypeString)) {
     if (AsciiStriCmp (Prop->string, "OSX") == 0) {
-      Entry->Type = OSTYPE_OSX;
+      Entry->Type = OSTYPE_DARWIN;
     } else if (AsciiStriCmp (Prop->string, "OSXInstaller") == 0) {
-      Entry->Type = OSTYPE_OSX_INSTALLER;
+      Entry->Type = OSTYPE_DARWIN_INSTALLER;
     } else if (AsciiStriCmp (Prop->string, "OSXRecovery") == 0) {
-      Entry->Type = OSTYPE_RECOVERY;
+      Entry->Type = OSTYPE_DARWIN_RECOVERY;
     } else if (AsciiStriCmp (Prop->string, "Windows") == 0) {
       Entry->Type = OSTYPE_WINEFI;
     } else if (AsciiStriCmp (Prop->string, "Linux") == 0) {
@@ -1495,27 +1502,27 @@ FillinCustomEntry (
   }
 
   if (Entry->Title == NULL) {
-    if (OSTYPE_IS_OSX_RECOVERY (Entry->Type)) {
+    if (OSTYPE_IS_DARWIN_RECOVERY (Entry->Type)) {
       Entry->Title = PoolPrint (L"Recovery");
-    } else if (OSTYPE_IS_OSX_INSTALLER (Entry->Type)) {
+    } else if (OSTYPE_IS_DARWIN_INSTALLER (Entry->Type)) {
       Entry->Title = PoolPrint (L"Install OSX");
     }
   }
 
   if ((Entry->Image == NULL) && (Entry->ImagePath == NULL)) {
-    if (OSTYPE_IS_OSX_RECOVERY (Entry->Type)) {
+    if (OSTYPE_IS_DARWIN_RECOVERY (Entry->Type)) {
       Entry->ImagePath = L"mac";
     }
   }
 
   if ((Entry->DriveImage == NULL) && (Entry->DriveImagePath == NULL)) {
-    if (OSTYPE_IS_OSX_RECOVERY (Entry->Type)) {
+    if (OSTYPE_IS_DARWIN_RECOVERY (Entry->Type)) {
       Entry->DriveImagePath = L"recovery";
     }
   }
 
   // OS Specific flags
-  if (OSTYPE_IS_OSX_GLOB (Entry->Type)) {
+  if (OSTYPE_IS_DARWIN_GLOB (Entry->Type)) {
     // InjectKexts default values
     Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_WITHKEXTS);
 
@@ -3000,6 +3007,27 @@ GetEarlyUserSettings (
           }
         }
       }
+
+      Prop = GetProperty (DictPointer, "DarwinDiskTemplate");
+      if (Prop != NULL) {
+        if ((Prop->type == kTagTypeString) && Prop->string) {
+          AsciiStrToUnicodeStrS (Prop->string, gSettings.DarwinDiskTemplate, ARRAY_SIZE (gSettings.DarwinDiskTemplate));
+        }
+      }
+
+      Prop = GetProperty (DictPointer, "DarwinRecoveryDiskTemplate");
+      if (Prop != NULL) {
+        if ((Prop->type == kTagTypeString) && Prop->string) {
+          AsciiStrToUnicodeStrS (Prop->string, gSettings.DarwinRecoveryDiskTemplate, ARRAY_SIZE (gSettings.DarwinRecoveryDiskTemplate));
+        }
+      }
+
+      Prop = GetProperty (DictPointer, "DarwinInstallerDiskTemplate");
+      if (Prop != NULL) {
+        if ((Prop->type == kTagTypeString) && Prop->string) {
+          AsciiStrToUnicodeStrS (Prop->string, gSettings.DarwinInstallerDiskTemplate, ARRAY_SIZE (gSettings.DarwinInstallerDiskTemplate));
+        }
+      }
     }
 
     DictPointer = GetProperty (Dict, "Graphics");
@@ -4405,117 +4433,88 @@ LoadUserSettings (
   return Status;
 }
 
-CHAR8 *
-GetOSVersion (
-  IN LOADER_ENTRY   *Entry
+BOOLEAN
+CheckDarwinVersion (
+  IN LOADER_ENTRY   **Entry,
+  IN CHAR16         *Plist
 ) {
-  EFI_STATUS    Status = EFI_NOT_FOUND;
-  CHAR8         *OSVersion  = NULL, *PlistBuffer = NULL;
+  EFI_STATUS    Status = EFI_INCOMPATIBLE_VERSION;
+  CHAR8         *PlistBuffer = NULL;
   UINTN         PlistLen, i = 0;
   TagPtr        Dict = NULL,  Prop = NULL;
-  //BOOLEAN       OsInstallerVer = FALSE;
 
-  if (!Entry || !Entry->Volume  || !Entry->LoaderType || !OSTYPE_IS_OSX_GLOB (Entry->LoaderType)) {
-    return OSVersion;
+  if ((*Entry)->OSVersion != NULL) {
+    FreePool ((*Entry)->OSVersion);
   }
 
-  if (OSTYPE_IS_OSX (Entry->LoaderType)) {
-    // Detect exact version for Mac OS X Regular/Server
-    while ((SystemPlists[i] != NULL) && !FileExists (Entry->Volume->RootDir, SystemPlists[i])) {
-      i++;
-    }
-
-    if (SystemPlists[i] != NULL) { // found OSX System
-      Status = LoadFile (Entry->Volume->RootDir, SystemPlists[i], (UINT8 **)&PlistBuffer, &PlistLen);
-
-      if (!EFI_ERROR (Status) && (PlistBuffer != NULL) && !EFI_ERROR (ParseXML (PlistBuffer, &Dict, 0))) {
-        Prop = GetProperty (Dict, "ProductVersion");
-        if ((Prop != NULL) && (Prop->string != NULL) && (Prop->string[0] != '\0')) {
-          OSVersion = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
-        }
-
-        Prop = GetProperty (Dict, "ProductBuildVersion");
-        if ((Prop != NULL) && (Prop->string != NULL) && (Prop->string[0] != '\0')) {
-          Entry->BuildVersion = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
-        }
-      }
-    }
+  if (Plist != NULL) {
+    goto Next;
   }
 
-  if (OSTYPE_IS_OSX_INSTALLER (Entry->LoaderType)) {
-    // Detect exact version for 2nd stage Installer (thanks to dmazar for this idea)
-    // This should work for most installer cases. Rest cases will be read from boot.efi before booting.
+  // Detect exact version for Mac OS X Regular/Server
+  while ((DarwinSystemPlists[i] != NULL) && !FileExists ((*Entry)->Volume->RootDir, DarwinSystemPlists[i])) {
+    i++;
+  }
 
-    /*
-      CHAR16 *IABootFilesSystemVersion = L"\\.IABootFilesSystemVersion.plist";
-      if (FileExists (Entry->Volume->RootDir, IABootFilesSystemVersion)) {
-        Status = LoadFile (Entry->Volume->RootDir, IABootFilesSystemVersion, (UINT8 **)&PlistBuffer, &PlistLen);
-        if (!EFI_ERROR (Status) && PlistBuffer != NULL && !EFI_ERROR (ParseXML (PlistBuffer, &Dict, 0))) {
-          Prop = GetProperty (Dict, "ProductVersion");
-          if (Prop != NULL && Prop->string != NULL && Prop->string[0] != '\0') {
-            OSVersion = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
-            OsInstallerVer = TRUE;
-          }
-          Prop = GetProperty (Dict, "ProductBuildVersion");
-          if (Prop != NULL && Prop->string != NULL && Prop->string[0] != '\0') {
-            Entry->BuildVersion = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
-          }
-        }
-      }
-    */
+  if (DarwinSystemPlists[i] == NULL) {
+    goto Finish;
+  }
 
-    if (TRUE /* !OsInstallerVer */) {
-      CHAR16 *InstallerPlist = L"\\.IABootFiles\\com.apple.Boot.plist";
+  Plist = AllocateCopyPool (StrSize (DarwinSystemPlists[i]), DarwinSystemPlists[i]);
 
-      if (FileExists (Entry->Volume->RootDir, InstallerPlist)) {
-        Status = LoadFile (Entry->Volume->RootDir, InstallerPlist, (UINT8 **)&PlistBuffer, &PlistLen);
-        if (!EFI_ERROR (Status) && PlistBuffer != NULL && !EFI_ERROR (ParseXML (PlistBuffer, &Dict, 0))) {
-          Prop = GetProperty (Dict, "Kernel Flags");
-          if (Prop != NULL && Prop->string != NULL && Prop->string[0] != '\0') {
-            if (AsciiStrStr (Prop->string, "Sierra") || AsciiStrStr (Prop->string, "10.12")) {
-              OSVersion = AllocateCopyPool (6, "10.12");
-            } else if (AsciiStrStr (Prop->string, "Capitan") || AsciiStrStr (Prop->string, "10.11")) {
-              OSVersion = AllocateCopyPool (6, "10.11");
-            } else if (AsciiStrStr (Prop->string, "Yosemite") || AsciiStrStr (Prop->string, "10.10")) {
-              OSVersion = AllocateCopyPool (6, "10.10");
-            } else if (AsciiStrStr (Prop->string, "Mavericks") || AsciiStrStr (Prop->string, "10.9")) {
-              OSVersion = AllocateCopyPool (5, "10.9");
-            } else if (AsciiStrStr (Prop->string, "Mountain") || AsciiStrStr (Prop->string, "10.8")) {
-              OSVersion = AllocateCopyPool (5, "10.8");
-            } else if (AsciiStrStr (Prop->string, "Lion") || AsciiStrStr (Prop->string, "10.7")) {
-              OSVersion = AllocateCopyPool (5, "10.7");
-            }
-          }
-        }
-      }
+  Next:
+
+  // found OSX System
+
+  Status = LoadFile ((*Entry)->Volume->RootDir, Plist, (UINT8 **)&PlistBuffer, &PlistLen);
+
+  if (!EFI_ERROR (Status) && (PlistBuffer != NULL) && !EFI_ERROR (ParseXML (PlistBuffer, &Dict, 0))) {
+    Prop = GetProperty (Dict, "ProductVersion");
+    if ((Prop != NULL) && (Prop->string != NULL) && (Prop->string[0] != '\0')) {
+      (*Entry)->OSVersion = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
+    }
+
+    Prop = GetProperty (Dict, "ProductBuildVersion");
+    if ((Prop != NULL) && (Prop->string != NULL) && (Prop->string[0] != '\0')) {
+      (*Entry)->BuildVersion = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
     }
   }
 
-  if (OSTYPE_IS_OSX_RECOVERY (Entry->LoaderType)) {
-    // Detect exact version for OS X Recovery
-    CHAR16    *RecoveryPlist = L"\\com.apple.recovery.boot\\SystemVersion.plist";
-
-    if (FileExists (Entry->Volume->RootDir, RecoveryPlist)) {
-      Status = LoadFile (Entry->Volume->RootDir, RecoveryPlist, (UINT8 **)&PlistBuffer, &PlistLen);
-      if (!EFI_ERROR (Status) && (PlistBuffer != NULL) && !EFI_ERROR (ParseXML (PlistBuffer, &Dict, 0))) {
-        Prop = GetProperty (Dict, "ProductVersion");
-        if (Prop != NULL && Prop->string != NULL && Prop->string[0] != '\0') {
-          OSVersion = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
-        }
-
-        Prop = GetProperty (Dict, "ProductBuildVersion");
-        if ((Prop != NULL) && (Prop->string != NULL) && (Prop->string[0] != '\0')) {
-          Entry->BuildVersion = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
-        }
-      }
-    }
-  }
+  Finish:
 
   if (PlistBuffer != NULL) {
     FreePool (PlistBuffer);
   }
 
-  return OSVersion;
+  return ((*Entry)->OSVersion && (AsciiStrLen ((*Entry)->OSVersion) > 0));
+}
+
+VOID
+GetDarwinVersion (
+  IN LOADER_ENTRY   **Entry
+) {
+  if (
+    !(*Entry) ||
+    !(*Entry)->Volume  ||
+    !(*Entry)->LoaderType ||
+    !OSTYPE_IS_DARWIN_GLOB ((*Entry)->LoaderType)
+  ) {
+    return;
+  }
+
+  if (OSTYPE_IS_DARWIN ((*Entry)->LoaderType)) {
+    CheckDarwinVersion (&(*Entry), NULL);
+  }
+
+  else if (OSTYPE_IS_DARWIN_INSTALLER ((*Entry)->LoaderType)) {
+    if (!CheckDarwinVersion (&(*Entry), DarwinInstallerSystemPlists)) {
+      CheckDarwinVersion (&(*Entry), NULL);
+    }
+  }
+
+  else if (OSTYPE_IS_DARWIN_RECOVERY ((*Entry)->LoaderType)) {
+    CheckDarwinVersion (&(*Entry), DarwinRecoverySystemPlists);
+  }
 }
 
 CHAR16 *
@@ -4631,7 +4630,6 @@ GetDevices () {
   SLOT_DEVICE             *SlotDevice;
 
   NGFX = 0;
-  //Arpt.Valid = FALSE; //global variables initialized by 0 - c-language
 
   DbgHeader ("GetDevices");
 
@@ -4711,15 +4709,6 @@ GetDevices () {
               gSettings.HasGraphics->Ati    = TRUE;
               break;
 
-            case 0x8086:
-              MsgLog (" (Intel)");
-
-              gfx->Vendor                 = Intel;
-              gfx->Ports                  = 1;
-
-              gSettings.HasGraphics->Intel  = TRUE;
-              break;
-
             case 0x10de:
               MsgLog (" (Nvidia)");
 
@@ -4739,6 +4728,15 @@ GetDevices () {
               SlotDevice->SlotType          = SlotTypePciExpressX16;
 
               gSettings.HasGraphics->Nvidia = TRUE;
+              break;
+
+            case 0x8086:
+              MsgLog (" (Intel)");
+
+              gfx->Vendor                 = Intel;
+              gfx->Ports                  = 1;
+
+              gSettings.HasGraphics->Intel  = TRUE;
               break;
 
             default:
@@ -4850,7 +4848,7 @@ SetDevices (
 
   MsgLog ("NoDefaultProperties: %a\n", gSettings.NoDefaultProperties ? "Yes" : "No");
 
-  devices_number = 1; //should initialize for reentering GUI
+  gDevicesNumber = 1; //should initialize for reentering GUI
   // Scan PCI handles
   Status = gBS->LocateHandleBuffer (
                   ByProtocol,
@@ -4888,8 +4886,8 @@ SetDevices (
 
           MsgLog ("Inject CustomProperties: \n");
 
-          if (!string) {
-            string = DevpropCreateString ();
+          if (!gDevPropString) {
+            gDevPropString = DevpropCreateString ();
           }
 
           while (Prop) {
@@ -4899,7 +4897,7 @@ SetDevices (
             }
 
             if (Once) {
-              device = DevpropAddDevicePci (string, &PCIdevice);
+              device = DevpropAddDevicePci (gDevPropString, &PCIdevice);
               Once = FALSE;
             }
 
@@ -4937,6 +4935,16 @@ SetDevices (
               }
               break;
 
+            case 0x10de:
+              MsgLog (" Nvidia\n");
+              if (gSettings.InjectNVidia) {
+                TmpDirty    = SetupNvidiaDevprop (&PCIdevice);
+                StringDirty |=  TmpDirty;
+              } else {
+                DBG (" - injection not set\n");
+              }
+              break;
+
             case 0x8086:
               MsgLog (" Intel\n");
               if (gSettings.InjectIntel) {
@@ -4960,16 +4968,6 @@ SetDevices (
 
               if (gSettings.FakeIntel == 0x00008086) {
                 PciIo->Pci.Write (PciIo, EfiPciIoWidthUint32, 0x50, 1, &IntelDisable);
-              }
-              break;
-
-            case 0x10de:
-              MsgLog (" Nvidia\n");
-              if (gSettings.InjectNVidia) {
-                TmpDirty    = SetupNvidiaDevprop (&PCIdevice);
-                StringDirty |=  TmpDirty;
-              } else {
-                DBG (" - injection not set\n");
               }
               break;
 
@@ -5016,21 +5014,21 @@ SetDevices (
   if (StringDirty) {
     EFI_PHYSICAL_ADDRESS    BufferPtr = EFI_SYSTEM_TABLE_MAX_ADDRESS; //0xFE000000;
 
-    stringlength = string->length * 2;
+    gDevPropStringLength = gDevPropString->length * 2;
 
-    //DBG ("stringlength = %d\n", stringlength);
+    //DBG ("gDevPropStringLength = %d\n", gDevPropStringLength);
 
     Status = gBS->AllocatePages (
                     AllocateMaxAddress,
                     EfiACPIReclaimMemory,
-                    EFI_SIZE_TO_PAGES (stringlength + 1),
+                    EFI_SIZE_TO_PAGES (gDevPropStringLength + 1),
                     &BufferPtr
                   );
 
     if (!EFI_ERROR (Status)) {
       mProperties       = (UINT8 *)(UINTN)BufferPtr;
-      gDeviceProperties = (VOID *)DevpropGenerateString (string);
-      gDeviceProperties[stringlength] = 0;
+      gDeviceProperties = (VOID *)DevpropGenerateString (gDevPropString);
+      gDeviceProperties[gDevPropStringLength] = 0;
       //     DBG (gDeviceProperties);
       //     DBG ("\n");
       //     StringDirty = FALSE;
@@ -5115,17 +5113,12 @@ GetOSVersionKextsDir (
   // find source injection folder with kexts
   // note: we are just checking for existance of particular folder, not checking if it is empty or not
   // check OEM subfolders: version specific or default to Other
-  //SrcDir = PoolPrint (L"%s\\kexts\\%a", OEMPath, FixedVersion);
-  //SrcDir = PoolPrint (DIR_KEXTS, OEMPath);
   SrcDir = AllocateZeroPool (SVALUE_MAX_SIZE);
   StrCpyS (SrcDir, SVALUE_MAX_SIZE, PoolPrint (DIR_KEXTS, OEMPath));
   StrCatS (SrcDir, SVALUE_MAX_SIZE, PoolPrint (L"\\%a", FixedVersion));
 
   if (!FileExists (SelfVolume->RootDir, SrcDir)) {
     FreePool (SrcDir);
-    //SrcDir = PoolPrint (L"%s\\%a", DIR_KEXTS, FixedVersion);
-    //SrcDir = PoolPrint (DIR_KEXTS, DIR_CLOVER);
-    //StrCat (SrcDir, PoolPrint (L"\\%a", FixedVersion));
     SrcDir = AllocateZeroPool (SVALUE_MAX_SIZE);
     StrCpyS (SrcDir, SVALUE_MAX_SIZE, PoolPrint (DIR_KEXTS, DIR_CLOVER));
     StrCatS (SrcDir, SVALUE_MAX_SIZE, PoolPrint (L"\\%a", FixedVersion));
@@ -5225,8 +5218,6 @@ SetFSInjection (
   }
 
   KextPatcherRegisterKexts (FSInject, ForceLoadKexts, Entry);
-
-  // reinit Volume->RootDir? it seems it's not needed.
 
   return Status;
 }

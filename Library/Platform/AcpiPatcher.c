@@ -1419,7 +1419,7 @@ SaveOemTables () {
     //Saved = TRUE;
   }
 
-  SaveBufferToDisk (MemLogStart, GetMemLogLen () - MemLogStartLen, AcpiOriginPath, L"DumpLog.txt");
+  SaveBufferToDisk (MemLogStart, GetMemLogLen () - MemLogStartLen, AcpiOriginPath, DSDT_DUMP_LOG);
 
   FreePool (mSavedTables);
   FreePool (AcpiOriginPath);
@@ -1436,8 +1436,8 @@ SaveOemDsdt (
   UINTN     Pages, DsdtLen = 0;
   UINT8     *buffer = NULL;
   CHAR16    *PathPatched      = PoolPrint (DIR_ACPI_PATCHED, DIR_CLOVER),
-            *OriginDsdt       = PoolPrint (L"%s\\DSDT.aml", PoolPrint (DIR_ACPI_ORIGIN, OEMPath)),
-            *OriginDsdtFixed  = PoolPrint (L"%s\\DSDT-%x.aml", PoolPrint (DIR_ACPI_ORIGIN, OEMPath), gSettings.FixDsdt),
+            *OriginDsdt       = PoolPrint (L"%s\\" DSDT_NAME, PoolPrint (DIR_ACPI_ORIGIN, OEMPath)),
+            *OriginDsdtFixed  = PoolPrint (L"%s\\" DSDT_PATCHED_NAME, PoolPrint (DIR_ACPI_ORIGIN, OEMPath), gSettings.FixDsdt),
             *PathDsdt         = PoolPrint (L"\\%s", gSettings.DsdtName),
             *AcpiOemPath      = PoolPrint (DIR_ACPI_PATCHED, OEMPath);
 

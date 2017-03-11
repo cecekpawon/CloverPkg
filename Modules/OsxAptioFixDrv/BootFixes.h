@@ -29,7 +29,9 @@ extern UINT32                 gLastDescriptorVersion;
 
 EFI_STATUS PrepareJumpFromKernel ();
 EFI_STATUS KernelEntryPatchJump (UINT32 KernelEntry);
+#if APTIOFIX_VER == 1
 EFI_STATUS KernelEntryFromMachOPatchJump (VOID *MachOImage, UINTN SlideAddr);
+#endif
 //EFI_STATUS KernelEntryPatchJumpFill ();
 //EFI_STATUS KernelEntryPatchHalt (UINT32 KernelEntry);
 //EFI_STATUS KernelEntryPatchZero (UINT32 KernelEntry);
@@ -57,11 +59,18 @@ DefragmentRuntimeServices (
   IN OUT UINT32             *EfiSystemTable,
   IN BOOLEAN                SkipOurSysTableRtArea
 );
+
+#if APTIOFIX_VER == 1
+
 /** Fixes stuff for booting with relocation block. Called when boot.efi jumps to kernel. */
 UINTN FixBootingWithRelocBlock (UINTN bootArgs, BOOLEAN ModeX64);
+
+#else
 
 /** Fixes stuff for booting without relocation block. Called when boot.efi jumps to kernel. */
 UINTN FixBootingWithoutRelocBlock (UINTN bootArgs, BOOLEAN ModeX64);
 
 /** Fixes stuff for hibernate wake booting without relocation block. Called when boot.efi jumps to kernel. */
 UINTN FixHibernateWakeWithoutRelocBlock (UINTN imageHeaderPage, BOOLEAN ModeX64);
+
+#endif

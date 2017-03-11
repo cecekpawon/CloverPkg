@@ -56,7 +56,8 @@ CHAR16    *BlankLine = NULL;
 
 // UGA defines and variables
 
-INTN      UGAWidth, UGAHeight;
+UINT32    UGAWidth, UGAHeight, UGAColorDepth, UGABytesPerRow;
+UINT64    UGAFrameBufferBase;
 BOOLEAN   AllowGraphicsMode;
 BOOLEAN   GraphicsScreenDirty;
 
@@ -122,6 +123,37 @@ NullConsoleControlGetModeText (
   return EFI_SUCCESS;
 }
 
+VOID
+SetColorDepth (
+  EFI_GRAPHICS_OUTPUT_MODE_INFORMATION    *Info
+) {
+  UINTN   i;
+
+  UGAColorDepth = 0;
+
+  if (Info->PixelFormat == PixelBitMask)   {
+    UINT32  ColorMask = Info->PixelInformation.BlueMask | Info->PixelInformation.GreenMask | Info->PixelInformation.RedMask;
+
+    for (i = 0; i < 32; i++, ColorMask >>= 1) {
+      if (ColorMask & 1) {
+        UGAColorDepth += 1;
+      }
+    }
+
+    UGAColorDepth = (UGAColorDepth + 7) & ~7;
+  }
+
+  else if (Info->PixelFormat != PixelBltOnly) {
+    UGAColorDepth = 32;
+  }
+
+  if (!UGAColorDepth) {
+    UGAColorDepth = 32;
+  }
+
+  UGABytesPerRow = Info->PixelsPerScanLine * (UGAColorDepth >> 3);
+}
+
 //
 // Sets mode via GOP protocol, and reconnects simple text out drivers
 //
@@ -162,9 +194,12 @@ SetMaxResolution () {
       if ((Width > Info->HorizontalResolution) || (Height > Info->VerticalResolution)) {
         continue;
       }
+
       Width = Info->HorizontalResolution;
       Height = Info->VerticalResolution;
       BestMode = Mode;
+
+      SetColorDepth (Info);
     }
   }
 
@@ -223,6 +258,8 @@ InternalSetMode (
       //DBG ("SetMode %d Status=%r\n", Mode, Status);
       egScreenWidth = GraphicsOutput->Mode->Info->HorizontalResolution;
       egScreenHeight = GraphicsOutput->Mode->Info->VerticalResolution;
+
+      SetColorDepth (Info);
     }
 
     Index++;
@@ -289,6 +326,8 @@ SetScreenResolution (
         if (Status == EFI_SUCCESS) {
           egScreenWidth = Width;
           egScreenHeight = Height;
+
+          SetColorDepth (Info);
 
           return EFI_SUCCESS;
         }
@@ -358,6 +397,8 @@ InternalInitScreen (
     egScreenWidth = GraphicsOutput->Mode->Info->HorizontalResolution;
     egScreenHeight = GraphicsOutput->Mode->Info->VerticalResolution;
     egHasGraphics = TRUE;
+
+    UGAFrameBufferBase = GraphicsOutput->Mode->FrameBufferBase;
   }
 
   //egDumpSetConsoleVideoModes ();
@@ -365,15 +406,15 @@ InternalInitScreen (
 
 VOID
 GetScreenSize (
-  OUT INTN    *ScreenWidth,
-  OUT INTN    *ScreenHeight
+  OUT UINT32    *ScreenWidth,
+  OUT UINT32    *ScreenHeight
 ) {
   if (ScreenWidth != NULL) {
-    *ScreenWidth = egScreenWidth;
+    *ScreenWidth = (UINT32)egScreenWidth;
   }
 
   if (ScreenHeight != NULL) {
-    *ScreenHeight = egScreenHeight;
+    *ScreenHeight = (UINT32)egScreenHeight;
   }
 }
 
@@ -381,7 +422,7 @@ CHAR16 *
 ScreenDescription () {
   if (egHasGraphics) {
     if (GraphicsOutput != NULL) {
-      return PoolPrint (L"Graphics Output (UEFI), %dx%d", egScreenWidth, egScreenHeight);
+      return PoolPrint (L"Graphics Output (UEFI), %dx%d (%d / %d)", egScreenWidth, egScreenHeight, UGAColorDepth, UGABytesPerRow);
     } else {
       return L"Internal Error";
     }

@@ -24,33 +24,6 @@
 
 #include <Library/Common/Hibernate.h>
 
-#pragma pack (push, 1)
-
-//
-// Just the first part of HFS+ volume header from where we can take modification time
-//
-typedef struct _HFSPlusVolumeHeaderMin {
-  UINT16  signature;
-  UINT16  version;
-  UINT32  attributes;
-  UINT32  lastMountedVersion;
-  UINT32  journalInfoBlock;
-
-  UINT32  createDate;
-  UINT32  modifyDate;
-  UINT32  backupDate;
-  UINT32  checkedDate;
-
-  UINT32  fileCount;
-  UINT32  folderCount;
-
-  UINT32  blockSize;
-  UINT32  totalBlocks;
-  UINT32  freeBlocks;
-} HFSPlusVolumeHeaderMin;
-
-#pragma pack (pop)
-
 INT32
 MacToPosix (
   UINT32  MacTime

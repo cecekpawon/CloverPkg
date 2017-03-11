@@ -31,6 +31,12 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ *
+ * c source to a base64 encoding/decoding algorithm implementation
+ *
+ * This is part of the libb64 project, and has been placed in the public domain.
+ * For details, see http://sourceforge.net/projects/libb64
  */
 
 //#include <Library/Platform/Platform.h>
@@ -78,12 +84,15 @@ CHAR8   *OsVerUndetected = "10.10.10";  //longer string
 
 typedef enum {
   StepA, StepB, StepC, StepD
-} Base64DecodeStep;
+} Base64Step;
 
 typedef struct {
-  Base64DecodeStep   Step;
-  CHAR8              PlainChar;
-} Base64DecodeState;
+  Base64Step  Step;
+  CHAR8       PlainChar;
+  //INT32        StepCount;
+} Base64State;
+
+//CONST INT32 B64_CHARS_PER_LINE = 72;
 
 INT32
 Base64DecodeValue (
@@ -107,7 +116,7 @@ Base64DecodeValue (
 
 VOID
 Base64InitDecodeState (
-  Base64DecodeState    *State
+  Base64State    *State
 ) {
   State->Step = StepA;
   State->PlainChar = 0;
@@ -115,14 +124,14 @@ Base64InitDecodeState (
 
 INT32
 Base64DecodeBlock (
-  CONST CHAR8               *Code,
-  CONST INT32               Length,
-        CHAR8               *PlainText,
-        Base64DecodeState   *State
+  CONST CHAR8         *Code,
+  CONST INT32         Length,
+        CHAR8         *PlainText,
+        Base64State   *State
 ) {
-  CONST CHAR8  *CodeChar = Code;
-  CHAR8        *PlainChar = PlainText;
-  INT32        Fragment;
+  CONST CHAR8   *CodeChar = Code;
+        CHAR8   *PlainChar = PlainText;
+        INT32   Fragment;
 
   *PlainChar = State->PlainChar;
 
@@ -153,7 +162,7 @@ Base64DecodeBlock (
         } while (Fragment < 0);
 
         *PlainChar++ |= (CHAR8)((Fragment & 0x030) >> 4);
-        *PlainChar    = (CHAR8)((Fragment & 0x00f) << 4);
+        *PlainChar = (CHAR8)((Fragment & 0x00f) << 4);
 
       case StepC:
         do {
@@ -167,7 +176,7 @@ Base64DecodeBlock (
         } while (Fragment < 0);
 
         *PlainChar++ |= (CHAR8)((Fragment & 0x03c) >> 2);
-        *PlainChar    = (CHAR8)((Fragment & 0x003) << 6);
+        *PlainChar = (CHAR8)((Fragment & 0x003) << 6);
 
       case StepD:
         do {
@@ -189,41 +198,200 @@ Base64DecodeBlock (
   return (INT32)(PlainChar - PlainText);
 }
 
-/** UEFI interface to base54 decode.
- * Decodes EncodedData into a new allocated buffer and returns it. Caller is responsible to FreePool () it.
- * If DecodedSize != NULL, then size od decoded data is put there.
- */
 UINT8 *
 Base64Decode (
-  IN  CHAR8     *EncodedData,
-  OUT UINTN     *DecodedSize
+  IN  CHAR8   *Data,
+  OUT UINTN   *Size
 ) {
-  UINTN                 EncodedSize;
-  INT32                 DecodedSizeInternal;
-  UINT8                 *DecodedData;
-  Base64DecodeState     State;
+  UINTN         Len;
+  INT32         DecodedSizeInternal;
+  UINT8         *Res;
+  CHAR8         *DecodedData;
+  Base64State   State;
 
-  if (EncodedData == NULL) {
+  if (Data == NULL) {
     return NULL;
   }
 
-  EncodedSize = AsciiStrLen (EncodedData);
+  Len = AsciiStrLen (Data);
 
-  if (EncodedSize == 0) {
+  if (Len == 0) {
     return NULL;
   }
 
-  // to simplify, we'll allocate the same size, although smaller size is needed
-  DecodedData = AllocateZeroPool (EncodedSize);
+  Res = AllocateZeroPool (Len);
+  DecodedData = (CHAR8 *)Res;
 
   Base64InitDecodeState (&State);
-  DecodedSizeInternal = Base64DecodeBlock (EncodedData, (CONST INT32)EncodedSize, (CHAR8 *)DecodedData, &State);
+  DecodedSizeInternal = Base64DecodeBlock (Data, (CONST INT32)Len, (CHAR8 *)DecodedData, &State);
+  DecodedData += DecodedSizeInternal;
+  *DecodedData = 0;
 
-  if (DecodedSize != NULL) {
-    *DecodedSize = (UINTN)DecodedSizeInternal;
+  if (Size != NULL) {
+    *Size = (UINTN)DecodedSizeInternal;
   }
 
-  return DecodedData;
+  return Res;
+}
+
+VOID
+Base64InitEncodeState (
+  Base64State   *State
+) {
+  State->Step = StepA;
+  State->PlainChar = 0;
+  //State->StepCount = 0;
+}
+
+CHAR8
+Base64EncodeValue (
+  CHAR8   Value
+) {
+  STATIC CONST CHAR8    *Encoding = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+  if (Value > 63) {
+    return '=';
+  }
+
+  return Encoding[(INT32)Value];
+}
+
+INT32
+Base64EncodeBlock (
+  CONST CHAR8         *PlainText,
+        INT32         Length,
+        CHAR8         *Code,
+        Base64State   *State
+) {
+  CONST CHAR8 *PlainChar = PlainText;
+  CONST CHAR8 *CONST PlainTextEnd = PlainText + Length;
+        CHAR8 *CodeChar = Code, Result, Fragment;
+
+  Result = State->PlainChar;
+
+  switch (State->Step) {
+    while (1) {
+      case StepA:
+        if (PlainChar == PlainTextEnd) {
+          State->PlainChar = Result;
+          State->Step = StepA;
+          return (INT32)(CodeChar - Code);
+        }
+
+        Fragment = *PlainChar++;
+        Result = (CHAR8)((Fragment & 0x0fc) >> 2);
+        *CodeChar++ = Base64EncodeValue (Result);
+        Result = (CHAR8)((Fragment & 0x003) << 4);
+
+      case StepB:
+        if (PlainChar == PlainTextEnd) {
+          State->PlainChar = Result;
+          State->Step = StepB;
+          return (INT32)(CodeChar - Code);
+        }
+
+        Fragment = *PlainChar++;
+        Result |= (CHAR8)((Fragment & 0x0f0) >> 4);
+        *CodeChar++ = Base64EncodeValue (Result);
+        Result = (CHAR8)((Fragment & 0x00f) << 2);
+
+      case StepC:
+        if (PlainChar == PlainTextEnd) {
+          State->PlainChar = Result;
+          State->Step = StepC;
+          return (INT32)(CodeChar - Code);
+        }
+
+        Fragment = *PlainChar++;
+        Result |= (CHAR8)((Fragment & 0x0c0) >> 6);
+        *CodeChar++ = Base64EncodeValue (Result);
+        Result = (CHAR8)((Fragment & 0x03f) >> 0);
+        *CodeChar++ = Base64EncodeValue (Result);
+
+        /*
+        ++(State->StepCount);
+        if (State->StepCount == (B64_CHARS_PER_LINE / 4)) {
+          *CodeChar++ = '\n';
+          State->StepCount = 0;
+        }
+        */
+
+      //case StepD:
+      default:
+        continue;
+    }
+  }
+
+  /* control should not reach here */
+  return (INT32)(CodeChar - Code);
+}
+
+INT32
+Base64EncodeBlockEnd (
+  CHAR8         *Code,
+  Base64State   *State
+) {
+  CHAR8   *CodeChar = Code;
+
+  switch (State->Step) {
+    case StepB:
+      *CodeChar++ = Base64EncodeValue (State->PlainChar);
+      *CodeChar++ = '=';
+      *CodeChar++ = '=';
+      break;
+
+    case StepC:
+      *CodeChar++ = Base64EncodeValue (State->PlainChar);
+      *CodeChar++ = '=';
+      break;
+
+    //case StepA:
+    //case StepD:
+    default:
+      break;
+  }
+
+  //*CodeChar++ = '\n';
+
+  return (INT32)(CodeChar - Code);
+}
+
+UINT8 *
+Base64Encode (
+  IN  CHAR8   *Data,
+  OUT UINTN   *Size
+) {
+  UINTN         Len;
+  INT32         EncodedSizeInternal;
+  UINT8         *Res;
+  Base64State   State;
+  CHAR8         *EncodedData;
+
+  if (Data == NULL) {
+    return NULL;
+  }
+
+  Len = AsciiStrLen (Data);
+
+  if (Len == 0) {
+    return NULL;
+  }
+
+  Res = AllocateZeroPool (AVALUE_MAX_SIZE);
+  EncodedData = (CHAR8 *)Res;
+
+  Base64InitEncodeState (&State);
+  EncodedSizeInternal = Base64EncodeBlock (Data, (CONST INT32)Len, (CHAR8 *)EncodedData, &State);
+  EncodedData += EncodedSizeInternal;
+  EncodedSizeInternal += Base64EncodeBlockEnd ((CHAR8 *)EncodedData, &State);
+  EncodedData += EncodedSizeInternal;
+  *EncodedData = 0;
+
+  if (Size != NULL) {
+    *Size = (UINTN)EncodedSizeInternal;
+  }
+
+  return Res;
 }
 
 //<-- Base64
@@ -413,6 +581,196 @@ StriCmp (
 }
 
 /**
+  Safely append with automatic string resizing given length of Destination and
+  desired length of copy from Source.
+
+  append the first D characters of Source to the end of Destination, where D is
+  the lesser of Count and the StrLen() of Source. If appending those D characters
+  will fit within Destination (whose Size is given as CurrentSize) and
+  still leave room for a NULL terminator, then those characters are appended,
+  starting at the original terminating NULL of Destination, and a new terminating
+  NULL is appended.
+
+  If appending D characters onto Destination will result in a overflow of the size
+  given in CurrentSize the string will be grown such that the copy can be performed
+  and CurrentSize will be updated to the new size.
+
+  If Source is NULL, there is nothing to append, just return the current buffer in
+  Destination.
+
+  if Destination is NULL, then ASSERT()
+  if Destination's current length (including NULL terminator) is already more then
+  CurrentSize, then ASSERT()
+
+  @param[in, out] Destination   The String to append onto
+  @param[in, out] CurrentSize   on call the number of bytes in Destination.  On
+                                return possibly the new size (still in bytes).  if NULL
+                                then allocate whatever is needed.
+  @param[in]      Source        The String to append from
+  @param[in]      Count         Maximum number of characters to append.  if 0 then
+                                all are appended.
+
+  @return Destination           return the resultant string.
+**/
+CHAR16 *
+EFIAPI
+StrnCatGrow (
+  IN OUT  CHAR16    **Destination,
+  IN OUT  UINTN     *CurrentSize,
+  IN      CHAR16    *Source,
+  IN      UINTN     Count
+) {
+  UINTN   DestinationStartSize, NewSize;
+
+  //
+  // ASSERTs
+  //
+  //ASSERT (Destination != NULL);
+  if (Destination == NULL) {
+    return (Source == NULL) ? Source : NULL;
+  }
+
+  //
+  // If there's nothing to do then just return Destination
+  //
+  if (Source == NULL) {
+    return (*Destination);
+  }
+
+  //
+  // allow for un-initialized pointers, based on size being 0
+  //
+  if ((CurrentSize != NULL) && (*CurrentSize == 0)) {
+    *Destination = NULL;
+  }
+
+  //
+  // allow for NULL pointers address as Destination
+  //
+  if (*Destination != NULL) {
+    //ASSERT (CurrentSize != 0);
+    if (CurrentSize == 0) {
+      return Source;
+    }
+    DestinationStartSize = StrSize (*Destination);
+    //ASSERT (DestinationStartSize <= *CurrentSize);
+    if (DestinationStartSize > *CurrentSize) {
+      return Source;
+    }
+  } else {
+    DestinationStartSize = 0;
+    //ASSERT (*CurrentSize == 0);
+  }
+
+  //
+  // Append all of Source?
+  //
+  if (Count == 0) {
+    Count = StrLen (Source);
+  }
+
+  //
+  // Test and grow if required
+  //
+  if (CurrentSize != NULL) {
+    NewSize = *CurrentSize;
+    if (NewSize < DestinationStartSize + (Count * sizeof (CHAR16))) {
+      while (NewSize < (DestinationStartSize + (Count * sizeof (CHAR16)))) {
+        NewSize += 2 * Count * sizeof (CHAR16);
+      }
+      *Destination = ReallocatePool (*CurrentSize, NewSize, *Destination);
+      *CurrentSize = NewSize;
+    }
+  } else {
+    NewSize = (Count + 1) * sizeof (CHAR16);
+    *Destination = AllocateZeroPool (NewSize);
+  }
+
+  //
+  // Now use standard StrnCat on a big enough buffer
+  //
+  if (*Destination == NULL) {
+    return (NULL);
+  }
+
+  StrnCatS (*Destination, NewSize / sizeof (CHAR16), Source, Count);
+
+  return *Destination;
+}
+
+VOID
+EFIAPI
+RemoveMultiSpaces (
+  IN OUT CHAR16   *Str
+) {
+  CHAR16  *Dst = Str;
+
+  for (; *Str; ++Str) {
+    *Dst++ = *Str;
+
+    if (*Str == 0x20) {
+      do ++Str;
+      while (*Str == 0x20);
+      --Str;
+    }
+  }
+
+  *Dst = 0;
+}
+
+VOID
+EFIAPI
+StrTrim (
+  IN OUT CHAR16   *Str
+) {
+  CHAR16  *Pointer1, *Pointer2;
+
+  if (*Str == 0) {
+    return;
+  }
+
+  //
+  // Trim off the leading and trailing characters c
+  //
+  for (Pointer1 = Str; (*Pointer1 != 0) && (*Pointer1 == 0x20); Pointer1++) {
+    ;
+  }
+
+  Pointer2 = Str;
+  if (Pointer2 == Pointer1) {
+    while (*Pointer1 != 0) {
+      Pointer2++;
+      Pointer1++;
+    }
+  } else {
+    while (*Pointer1 != 0) {
+      *Pointer2 = *Pointer1;
+      Pointer1++;
+      Pointer2++;
+    }
+
+    *Pointer2 = 0;
+  }
+
+  for (Pointer1 = Str + StrLen(Str) - 1; Pointer1 >= Str && *Pointer1 == 0x20; Pointer1--) {
+    ;
+  }
+
+  if  (Pointer1 !=  Str + StrLen(Str) - 1) {
+    *(Pointer1 + 1) = 0;
+  }
+}
+
+VOID
+EFIAPI
+StrCleanSpaces (
+  IN OUT CHAR16   **Str
+) {
+  StrTrim (*Str);
+  RemoveMultiSpaces (*Str);
+}
+
+/**
   Adjusts the size of a previously allocated buffer.
 
   @param OldPool         - A pointer to the buffer whose size is being adjusted.
@@ -523,7 +881,7 @@ AsciiStriStr (
 EFI_STATUS
 EFIAPI
 AsciiTrimSpaces (
-  IN CHAR8 **String
+  IN CHAR8  **String
 ) {
   if (!String || !(*String)) {
     return EFI_INVALID_PARAMETER;
@@ -629,6 +987,124 @@ AsciiStrStriN (
   }
 
   return Found;
+}
+
+/**
+  Safely append with automatic string resizing given length of Destination and
+  desired length of copy from Source.
+
+  append the first D characters of Source to the end of Destination, where D is
+  the lesser of Count and the StrLen() of Source. If appending those D characters
+  will fit within Destination (whose Size is given as CurrentSize) and
+  still leave room for a NULL terminator, then those characters are appended,
+  starting at the original terminating NULL of Destination, and a new terminating
+  NULL is appended.
+
+  If appending D characters onto Destination will result in a overflow of the size
+  given in CurrentSize the string will be grown such that the copy can be performed
+  and CurrentSize will be updated to the new size.
+
+  If Source is NULL, there is nothing to append, just return the current buffer in
+  Destination.
+
+  if Destination is NULL, then ASSERT()
+  if Destination's current length (including NULL terminator) is already more then
+  CurrentSize, then ASSERT()
+
+  @param[in, out] Destination   The String to append onto
+  @param[in, out] CurrentSize   on call the number of bytes in Destination.  On
+                                return possibly the new size (still in bytes).  if NULL
+                                then allocate whatever is needed.
+  @param[in]      Source        The String to append from
+  @param[in]      Count         Maximum number of characters to append.  if 0 then
+                                all are appended.
+
+  @return Destination           return the resultant string.
+**/
+CHAR8 *
+EFIAPI
+AsciiStrnCatGrow (
+  IN OUT  CHAR8   **Destination,
+  IN OUT  UINTN   *CurrentSize,
+  IN      CHAR8   *Source,
+  IN      UINTN   Count
+) {
+  UINTN DestinationStartSize, NewSize;
+
+  //
+  // ASSERTs
+  //
+  //ASSERT (Destination != NULL);
+  if (Destination == NULL) {
+    return (Source != NULL) ? Source : NULL;
+  }
+
+  //
+  // If there's nothing to do then just return Destination
+  //
+  if (Source == NULL) {
+    return (*Destination);
+  }
+
+  //
+  // allow for un-initialized pointers, based on size being 0
+  //
+  if ((CurrentSize != NULL) && (*CurrentSize == 0)) {
+    *Destination = NULL;
+  }
+
+  //
+  // allow for NULL pointers address as Destination
+  //
+  if (*Destination != NULL) {
+    //ASSERT (CurrentSize != 0);
+    if (CurrentSize == 0) {
+      return Source;
+    }
+    DestinationStartSize = AsciiStrSize (*Destination);
+    //ASSERT (DestinationStartSize <= *CurrentSize);
+    if (DestinationStartSize > *CurrentSize) {
+      return Source;
+    }
+  } else {
+    DestinationStartSize = 0;
+    //ASSERT (*CurrentSize == 0);
+  }
+
+  //
+  // Append all of Source?
+  //
+  if (Count == 0) {
+    Count = AsciiStrLen (Source);
+  }
+
+  //
+  // Test and grow if required
+  //
+  if (CurrentSize != NULL) {
+    NewSize = *CurrentSize;
+    if (NewSize < DestinationStartSize + (Count * sizeof (CHAR8))) {
+      while (NewSize < (DestinationStartSize + (Count * sizeof (CHAR8)))) {
+        NewSize += 2 * Count * sizeof (CHAR8);
+      }
+      *Destination = ReallocatePool (*CurrentSize, NewSize, *Destination);
+      *CurrentSize = NewSize;
+    }
+  } else {
+    NewSize = (Count + 1) * sizeof (CHAR8);
+    *Destination = AllocateZeroPool (NewSize);
+  }
+
+  //
+  // Now use standard StrnCat on a big enough buffer
+  //
+  if (*Destination == NULL) {
+    return (NULL);
+  }
+
+  AsciiStrnCatS (*Destination, NewSize / sizeof (CHAR8), Source, Count);
+
+  return *Destination;
 }
 
 BOOLEAN
@@ -853,10 +1329,90 @@ StriStartsWith (
 INTN
 EFIAPI
 CountOccurrences (
-  CHAR8   *s,
-  CHAR8   c
+  CHAR8   *Str,
+  CHAR8   Char
 ) {
-  return (*s == '\0')
+  return (*Str == '\0')
     ? 0
-    : CountOccurrences (s + 1, c) + (*s == c);
+    : CountOccurrences (Str + 1, Char) + (*Str == Char);
+}
+
+CHAR8 *
+EFIAPI
+FindCharDelimited (
+  IN CHAR8    *InString,
+  IN CHAR8    InChar,
+  IN UINTN    Index
+) {
+  CHAR8    *FoundString = NULL;
+
+  if (InString != NULL) {
+    UINTN    StartPos = 0, CurPos = 0, InLength = AsciiStrLen (InString);
+
+    // After while() loop, StartPos marks start of item #Index
+    while ((Index > 0) && (CurPos < InLength)) {
+      if (InString[CurPos] == InChar) {
+        Index--;
+        StartPos = CurPos + 1;
+      }
+
+      CurPos++;
+    }
+
+    // After while() loop, CurPos is one past the end of the element
+    while (CurPos < InLength) {
+      if (InString[CurPos] == InChar) {
+        break;
+      }
+
+      CurPos++;
+    }
+
+    if (Index == 0) {
+      CurPos -= StartPos;
+      FoundString = AllocateCopyPool (CurPos, &InString[StartPos]);
+      FoundString[CurPos] = 0;
+    }
+  }
+
+  return (FoundString);
+}
+
+SVersion *
+EFIAPI
+VersionFromStr (
+  CHAR8   *Str
+) {
+  SVersion  *SVer = AllocateZeroPool (sizeof (SVersion));
+
+  UINTN   i = 0;
+  CHAR8   *StrFound;
+
+  if (Str) {
+    while (TRUE) {
+      StrFound = FindCharDelimited (Str, '.', i);
+
+      if (!StrFound || !AsciiStrLen (StrFound)) {
+        break;
+      }
+
+      switch (i++) {
+        case 0:
+          SVer->VersionMajor = (UINT8)AsciiStrDecimalToUintn (StrFound);
+          break;
+        case 1:
+          SVer->VersionMinor = (UINT8)AsciiStrDecimalToUintn (StrFound);
+          break;
+        case 2:
+          SVer->Revision = (UINT8)AsciiStrDecimalToUintn (StrFound);
+          break;
+      }
+    }
+  }
+
+  if (StrFound != NULL) {
+    FreePool (StrFound);
+  }
+
+  return SVer;
 }

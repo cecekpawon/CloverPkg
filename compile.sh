@@ -49,7 +49,7 @@ BUILD_OPTIONS=
 
 DEF_REVISION=0
 CUSTOM_CONF_PATH="${CLOVER_PATH}/Conf"
-CLOVER_BUILD_PATH="${WORKSPACE}/Build/CloverX64/RELEASE_${MYTOOLCHAIN}"
+CLOVER_BUILD_PATH="${WORKSPACE}/Build/Clover/RELEASE_${MYTOOLCHAIN}"
 F_VER_H="${CLOVER_PATH}/Version.h"
 CLOVER_VERSION="2.3k"
 CLOVER_REVISION_SUFFIX=""
@@ -127,6 +127,6 @@ if [[ $gBuildError -ne 1 ]]; then
         [[ -f "${dBuildDir}/${drv}.efi" ]] && cp "${dBuildDir}/${drv}.efi" "${dDir}"
       done
     fi
-    [[ -f "${dBuildDir}/CLOVERX64.efi" ]] && cp "${dBuildDir}/CLOVERX64.efi" "${QEMU_EFI_PATH}/BOOT/BOOTX64.efi"
+    [[ -f "${dBuildDir}/Clover.efi" ]] && cp "${dBuildDir}/Clover.efi" "${QEMU_EFI_PATH}/BOOT/BOOTX64.efi"
   fi
 fi

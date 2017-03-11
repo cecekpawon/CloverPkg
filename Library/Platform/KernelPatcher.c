@@ -19,6 +19,8 @@
 #define DEBUG_KERNEL DEBUG_ALL
 #endif
 
+#define DBG(...) DebugLog (DEBUG_KERNEL, __VA_ARGS__)
+
 // runtime debug
 #define DBG_ON(Entry) \
   ((Entry != NULL) && (Entry->KernelAndKextPatches != NULL) && \
@@ -29,10 +31,36 @@
 #define DBG_PAUSE(Entry, S) \
   if (DBG_ON (Entry)) gBS->Stall (S * 1000000)
 
-BootArgs2     *bootArgs2 = NULL;
-CHAR8         *dtRoot = NULL;
+BootArgs2     *gBootArgs = NULL;
+CHAR8         *gDtRoot = NULL;
 
 KERNEL_INFO   *KernelInfo;
+
+#if 0
+UINT32 LOLAddr;
+UINT64 LOLVal;
+
+typedef struct _loaded_kext_summary {
+    CHAR8     name[64];
+    UINT32    uuid;
+    UINT64    address;
+    UINT64    size;
+    UINT64    version;
+    UINT32    loadTag;
+    UINT32    flags;
+    UINT64    reference_list;
+} OSKextLoadedKextSummary;
+
+typedef struct _loaded_kext_summary_header {
+    UINT32 version;
+    UINT32 entry_size;
+    UINT32 numSummaries;
+    UINT32 reserved; /* explicit alignment for gdb  */
+    OSKextLoadedKextSummary summaries[0];
+} OSKextLoadedKextSummaryHeader;
+
+OSKextLoadedKextSummaryHeader *loadedKextSummaries = {0};
+#endif
 
 /*
   KernelInfo->RelocBase will normally be 0
@@ -53,35 +81,35 @@ SetKernelRelocBase () {
 #if 0
 VOID
 GetKernelVersion (
-  UINT32        addr,
-  UINT32        size,
+  UINT32        Addr,
+  UINT32        Size,
   LOADER_ENTRY  *Entry
 ) {
-  CHAR8   *s, *s1;
-  UINTN   i, i2, i3, kvBegin;
+  CHAR8   *S, *S1;
+  UINTN   i, i2, i3, KvBegin;
 
   if (KernelInfo->Version != NULL) {
     return;
   }
 
-  for (i = addr; i < addr + size; i++) {
+  for (i = Addr; i < Addr + Size; i++) {
     if (AsciiStrnCmp ((CHAR8 *)i, "Darwin Kernel Version", 21) == 0) {
-      kvBegin = i + 22;
-      i2 = kvBegin;
-      s = (CHAR8 *)kvBegin;
+      KvBegin = i + 22;
+      i2 = KvBegin;
+      S = (CHAR8 *)KvBegin;
 
       while (AsciiStrnCmp ((CHAR8 *)i2, ":", 1) != 0) {
         i2++;
       }
 
-      KernelInfo->Version = (CHAR8 *)AllocateZeroPool (i2 - kvBegin + 1);
-      s1 = KernelInfo->Version;
+      KernelInfo->Version = (CHAR8 *)AllocateZeroPool (i2 - KvBegin + 1);
+      S1 = KernelInfo->Version;
 
-      for (i3 = kvBegin; i3 < i2; i3++) {
-        *s1++ = *s++;
+      for (i3 = KvBegin; i3 < i2; i3++) {
+        *S1++ = *S++;
       }
 
-      *s1 = 0;
+      *S1 = 0;
     }
   }
 }
@@ -91,108 +119,117 @@ VOID
 InitKernel (
   IN LOADER_ENTRY   *Entry
 ) {
-  struct  nlist_64            *systabentry;
-  struct  symtab_command      *comSymTab;
-  struct  load_command        *loadCommand;
-  struct  segment_command_64  *segCmd64;
-  struct  section_64          *sect64;
-          UINT32              ncmds, cmdsize, binaryIndex,
-                              sectionIndex, Addr, Size, Off,
-                              linkeditaddr = 0, linkeditfileoff = 0,
-                              symoff = 0, nsyms = 0, stroff = 0, strsize = 0;
-          UINTN               cnt;
+  struct  nlist_64            *SysTabEntry;
+  struct  symtab_command      *ComSymTab;
+  struct  load_command        *LoadCommand;
+  struct  segment_command_64  *SegCmd64;
+  struct  section_64          *Sect64;
+          UINT32              NCmds, CmdSize, BinaryIndex,
+                              SectionIndex, Addr, Size, Off,
+                              LinkeditAddr = 0, LinkeditFileOff = 0,
+                              SymOff = 0, NSyms = 0, StrOff = 0, StrSize = 0;
+          UINTN               Cnt;
           UINT8               *Data = (UINT8 *)KernelInfo->Bin,
-                              *symbin, *strbin, iSectionIndex = 0;
+                              *SymBin, *StrBin, ISectionIndex = 0;
 
-  binaryIndex = sizeof (struct mach_header_64);
+  BinaryIndex = sizeof (struct mach_header_64);
 
-  ncmds = MACH_GET_NCMDS (Data);
+  NCmds = MACH_GET_NCMDS (Data);
 
-  for (cnt = 0; cnt < ncmds; cnt++) {
-    loadCommand = (struct load_command *)(Data + binaryIndex);
-    cmdsize = loadCommand->cmdsize;
+  for (Cnt = 0; Cnt < NCmds; Cnt++) {
+    LoadCommand = (struct load_command *)(Data + BinaryIndex);
+    CmdSize = LoadCommand->cmdsize;
 
-    switch (loadCommand->cmd) {
+    switch (LoadCommand->cmd) {
       case LC_SEGMENT_64:
-        segCmd64 = (struct segment_command_64 *)loadCommand;
-        sectionIndex = sizeof (struct segment_command_64);
+        SegCmd64 = (struct segment_command_64 *)LoadCommand;
+        SectionIndex = sizeof (struct segment_command_64);
 
-        if (segCmd64->nsects == 0) {
-          if (AsciiStrCmp (segCmd64->segname, kLinkeditSegment) == 0) {
-            linkeditaddr = (UINT32)segCmd64->vmaddr;
-            linkeditfileoff = (UINT32)segCmd64->fileoff;
+        if (SegCmd64->nsects == 0) {
+          if (AsciiStrCmp (SegCmd64->segname, kLinkeditSegment) == 0) {
+            LinkeditAddr = (UINT32)SegCmd64->vmaddr;
+            LinkeditFileOff = (UINT32)SegCmd64->fileoff;
             //DBG_RT (Entry, "%a: Segment = %a, Addr = 0x%x, Size = 0x%x, FileOff = 0x%x\n", __FUNCTION__,
-            //  segCmd64->segname, linkeditaddr, segCmd64->vmsize, linkeditfileoff
+            //  SegCmd64->segname, LinkeditAddr, SegCmd64->vmsize, LinkeditFileOff
             //);
           }
         }
 
-        if (!iSectionIndex) {
-          iSectionIndex++; // Start from 1
+        if (!ISectionIndex) {
+          ISectionIndex++; // Start from 1
         }
 
-        while (sectionIndex < segCmd64->cmdsize) {
-          sect64 = (struct section_64 *)((UINT8 *)segCmd64 + sectionIndex);
-          sectionIndex += sizeof (struct section_64);
+        while (SectionIndex < SegCmd64->cmdsize) {
+          Sect64 = (struct section_64 *)((UINT8 *)SegCmd64 + SectionIndex);
+          SectionIndex += sizeof (struct section_64);
 
-          if (sect64->size > 0) {
-            Addr = (UINT32)(sect64->addr ? sect64->addr + KernelInfo->RelocBase : 0);
-            Size = (UINT32)sect64->size;
-            Off = sect64->offset;
+          if (Sect64->size > 0) {
+            Addr = (UINT32)(Sect64->addr ? Sect64->addr + KernelInfo->RelocBase : 0);
+            Size = (UINT32)Sect64->size;
+            Off = Sect64->offset;
 
             if (
-              (AsciiStrCmp (sect64->segname, kPrelinkTextSegment) == 0) &&
-              (AsciiStrCmp (sect64->sectname, kPrelinkTextSection) == 0)
+              (AsciiStrCmp (Sect64->segname, kPrelinkTextSegment) == 0) &&
+              (AsciiStrCmp (Sect64->sectname, kPrelinkTextSection) == 0)
             ) {
               KernelInfo->PrelinkTextAddr = Addr;
               KernelInfo->PrelinkTextSize = Size;
               KernelInfo->PrelinkTextOff = Off;
-              KernelInfo->PrelinkTextIndex = iSectionIndex;
+              KernelInfo->PrelinkTextIndex = ISectionIndex;
             }
             else if (
-              (AsciiStrCmp (sect64->segname, kPrelinkInfoSegment) == 0) &&
-              (AsciiStrCmp (sect64->sectname, kPrelinkInfoSection) == 0)
+              (AsciiStrCmp (Sect64->segname, kPrelinkInfoSegment) == 0) &&
+              (AsciiStrCmp (Sect64->sectname, kPrelinkInfoSection) == 0)
             ) {
               KernelInfo->PrelinkInfoAddr = Addr;
               KernelInfo->PrelinkInfoSize = Size;
               KernelInfo->PrelinkInfoOff = Off;
-              KernelInfo->PrelinkInfoIndex = iSectionIndex;
+              KernelInfo->PrelinkInfoIndex = ISectionIndex;
             }
             else if (
-              (AsciiStrCmp (sect64->segname, kKldSegment) == 0) &&
-              (AsciiStrCmp (sect64->sectname, kKldTextSection) == 0)
+              (AsciiStrCmp (Sect64->segname, kKldSegment) == 0) &&
+              (AsciiStrCmp (Sect64->sectname, kKldTextSection) == 0)
             ) {
               KernelInfo->KldAddr = Addr;
               KernelInfo->KldSize = Size;
               KernelInfo->KldOff = Off;
-              KernelInfo->KldIndex = iSectionIndex;
+              KernelInfo->KldIndex = ISectionIndex;
             }
             else if (
-              (AsciiStrCmp (sect64->segname, kDataSegment) == 0) &&
-              (AsciiStrCmp (sect64->sectname, kDataDataSection) == 0)
+              (AsciiStrCmp (Sect64->segname, kDataSegment) == 0) &&
+              (AsciiStrCmp (Sect64->sectname, kDataDataSection) == 0)
             ) {
               KernelInfo->DataAddr = Addr;
               KernelInfo->DataSize = Size;
               KernelInfo->DataOff = Off;
-              KernelInfo->DataIndex = iSectionIndex;
-            }
-            else if (AsciiStrCmp (sect64->segname, kTextSegment) == 0) {
-              if (AsciiStrCmp (sect64->sectname, kTextTextSection) == 0) {
+              KernelInfo->DataIndex = ISectionIndex;
+            }/*
+            else if (
+              (AsciiStrCmp (Sect64->segname, kDataSegment) == 0) &&
+              (AsciiStrCmp (Sect64->sectname, kDataCommonSection) == 0)
+            ) {
+              KernelInfo->DataCommonAddr = Addr;
+              KernelInfo->DataCommonSize = Size;
+              KernelInfo->DataCommonOff = Off;
+              KernelInfo->DataCommonIndex = ISectionIndex;
+            }*/
+            else if (AsciiStrCmp (Sect64->segname, kTextSegment) == 0) {
+              if (AsciiStrCmp (Sect64->sectname, kTextTextSection) == 0) {
                 KernelInfo->TextAddr = Addr;
                 KernelInfo->TextSize = Size;
                 KernelInfo->TextOff = Off;
-                KernelInfo->TextIndex = iSectionIndex;
+                KernelInfo->TextIndex = ISectionIndex;
               }
-              else if (AsciiStrCmp (sect64->sectname, kTextConstSection) == 0) {
+              else if (AsciiStrCmp (Sect64->sectname, kTextConstSection) == 0) {
                 KernelInfo->ConstAddr = Addr;
                 KernelInfo->ConstSize = Size;
                 KernelInfo->ConstOff = Off;
-                KernelInfo->ConstIndex = iSectionIndex;
+                KernelInfo->ConstIndex = ISectionIndex;
               }
 #if 0
               else if (
-                (AsciiStrCmp (sect64->sectname, kTextConstSection) == 0) ||
-                (AsciiStrCmp (sect64->sectname, kTextCstringSection) == 0)
+                (AsciiStrCmp (Sect64->sectname, kTextConstSection) == 0) ||
+                (AsciiStrCmp (Sect64->sectname, kTextCstringSection) == 0)
               ) {
                 GetKernelVersion (Addr, Size, Entry);
               }
@@ -200,102 +237,121 @@ InitKernel (
             }
           }
 
-          iSectionIndex++;
+          ISectionIndex++;
         }
         break;
 
       case LC_SYMTAB:
-        comSymTab = (struct symtab_command *)loadCommand;
-        symoff = comSymTab->symoff;
-        nsyms = comSymTab->nsyms;
-        stroff = comSymTab->stroff;
-        strsize = comSymTab->strsize;
-        //DBG_RT (Entry, "%a: symoff = 0x%x, nsyms = %d, stroff = 0x%x, strsize = %d\n", __FUNCTION__, symoff, nsyms, stroff, strsize);
+        ComSymTab = (struct symtab_command *)LoadCommand;
+        SymOff = ComSymTab->symoff;
+        NSyms = ComSymTab->nsyms;
+        StrOff = ComSymTab->stroff;
+        StrSize = ComSymTab->strsize;
+        //DBG_RT (Entry, "%a: SymOff = 0x%x, NSyms = %d, StrOff = 0x%x, StrSize = %d\n", __FUNCTION__, SymOff, NSyms, StrOff, StrSize);
         break;
 
       default:
         break;
     }
 
-    binaryIndex += cmdsize;
+    BinaryIndex += CmdSize;
   }
 
-  if (iSectionIndex && (linkeditaddr != 0) && (symoff != 0)) {
-    UINTN     CntPatches = KernelPatchSymbolLookupCount;
-    CHAR8     *symbolName = NULL;
-    UINT32    patchLocation;
+  if (ISectionIndex && (LinkeditAddr != 0) && (SymOff != 0)) {
+    UINTN     CntPatches = KernelPatchSymbolLookupCount /*+ 2*/;
+    CHAR8     *SymbolName = NULL;
+    UINT32    PatchLocation;
 
-    cnt = 0;
-    symbin = (UINT8 *)(UINTN)(linkeditaddr + (symoff - linkeditfileoff) + KernelInfo->RelocBase);
-    strbin = (UINT8 *)(UINTN)(linkeditaddr + (stroff - linkeditfileoff) + KernelInfo->RelocBase);
+    Cnt = 0;
+    SymBin = (UINT8 *)(UINTN)(LinkeditAddr + (SymOff - LinkeditFileOff) + KernelInfo->RelocBase);
+    StrBin = (UINT8 *)(UINTN)(LinkeditAddr + (StrOff - LinkeditFileOff) + KernelInfo->RelocBase);
 
-    //DBG_RT (Entry, "%a: symaddr = 0x%x, straddr = 0x%x\n", __FUNCTION__, symbin, strbin);
+    //DBG_RT (Entry, "%a: symaddr = 0x%x, straddr = 0x%x\n", __FUNCTION__, SymBin, StrBin);
 
-    while ((cnt < nsyms) && CntPatches) {
-      systabentry = (struct nlist_64 *)(symbin);
+    while ((Cnt < NSyms) && CntPatches) {
+      SysTabEntry = (struct nlist_64 *)(SymBin);
 
-      if (systabentry->n_value) {
-        symbolName = (CHAR8 *)(strbin + systabentry->n_un.n_strx);
-        Addr = (UINT32)systabentry->n_value;
-        patchLocation = Addr - (UINT32)(UINTN)KernelInfo->Bin + (UINT32)KernelInfo->RelocBase;
+      if (SysTabEntry->n_value) {
+        SymbolName = (CHAR8 *)(StrBin + SysTabEntry->n_un.n_strx);
+        Addr = (UINT32)SysTabEntry->n_value;
+        PatchLocation = Addr - (UINT32)(UINTN)KernelInfo->Bin + (UINT32)KernelInfo->RelocBase;
 
-        if (systabentry->n_sect == KernelInfo->TextIndex) {
-          if (AsciiStrCmp (symbolName, KernelPatchSymbolLookup[kLoadEXEStart].Name) == 0) {
-            KernelInfo->LoadEXEStart = patchLocation;
+        if (SysTabEntry->n_sect == KernelInfo->TextIndex) {
+          if (AsciiStrCmp (SymbolName, KernelPatchSymbolLookup[kLoadEXEStart].Name) == 0) {
+            KernelInfo->LoadEXEStart = PatchLocation;
             CntPatches--;
           }
-          else if (AsciiStrCmp (symbolName, KernelPatchSymbolLookup[kLoadEXEEnd].Name) == 0) {
-            KernelInfo->LoadEXEEnd = patchLocation;
+          else if (AsciiStrCmp (SymbolName, KernelPatchSymbolLookup[kLoadEXEEnd].Name) == 0) {
+            KernelInfo->LoadEXEEnd = PatchLocation;
             CntPatches--;
           }
-          else if (AsciiStrCmp (symbolName, KernelPatchSymbolLookup[kCPUInfoStart].Name) == 0) {
-            KernelInfo->CPUInfoStart = patchLocation;
+          else if (AsciiStrCmp (SymbolName, KernelPatchSymbolLookup[kCPUInfoStart].Name) == 0) {
+            KernelInfo->CPUInfoStart = PatchLocation;
             CntPatches--;
           }
-          else if (AsciiStrCmp (symbolName, KernelPatchSymbolLookup[kCPUInfoEnd].Name) == 0) {
-            KernelInfo->CPUInfoEnd = patchLocation;
+          else if (AsciiStrCmp (SymbolName, KernelPatchSymbolLookup[kCPUInfoEnd].Name) == 0) {
+            KernelInfo->CPUInfoEnd = PatchLocation;
+            CntPatches--;
+          }/*
+          else if (AsciiStrCmp (SymbolName, "__ZN6OSKext25updateLoadedKextSummariesEv") == 0) {
+            LOLAddr = PatchLocation;
+            LOLVal = *(PTR_OFFSET (Data, PatchLocation, UINT64 *));
+            CntPatches--;
+          }*/
+        } else if (SysTabEntry->n_sect == KernelInfo->ConstIndex) {
+          if (AsciiStrCmp (SymbolName, KernelPatchSymbolLookup[kVersion].Name) == 0) {
+            KernelInfo->Version = PTR_OFFSET (Data, PatchLocation, CHAR8 *);
             CntPatches--;
           }
-        } else if (systabentry->n_sect == KernelInfo->ConstIndex) {
-          if (AsciiStrCmp (symbolName, KernelPatchSymbolLookup[kVersion].Name) == 0) {
-            KernelInfo->Version = PTR_OFFSET (Data, patchLocation, CHAR8 *);
+          else if (AsciiStrCmp (SymbolName, KernelPatchSymbolLookup[kVersionMajor].Name) == 0) {
+            KernelInfo->VersionMajor = *(PTR_OFFSET (Data, PatchLocation, UINT32 *));
             CntPatches--;
           }
-          else if (AsciiStrCmp (symbolName, KernelPatchSymbolLookup[kVersionMajor].Name) == 0) {
-            KernelInfo->VersionMajor = *(PTR_OFFSET (Data, patchLocation, UINT32 *));
+          else if (AsciiStrCmp (SymbolName, KernelPatchSymbolLookup[kVersionMinor].Name) == 0) {
+            KernelInfo->VersionMinor = *(PTR_OFFSET (Data, PatchLocation, UINT32 *));
             CntPatches--;
           }
-          else if (AsciiStrCmp (symbolName, KernelPatchSymbolLookup[kVersionMinor].Name) == 0) {
-            KernelInfo->VersionMinor = *(PTR_OFFSET (Data, patchLocation, UINT32 *));
+          else if (AsciiStrCmp (SymbolName, KernelPatchSymbolLookup[kRevision].Name) == 0) {
+            KernelInfo->Revision = *(PTR_OFFSET (Data, PatchLocation, UINT32 *));
             CntPatches--;
           }
-          else if (AsciiStrCmp (symbolName, KernelPatchSymbolLookup[kRevision].Name) == 0) {
-            KernelInfo->Revision = *(PTR_OFFSET (Data, patchLocation, UINT32 *));
+        } else if (SysTabEntry->n_sect == KernelInfo->DataIndex) {
+          if (AsciiStrCmp (SymbolName, KernelPatchSymbolLookup[kXCPMStart].Name) == 0) {
+            KernelInfo->XCPMStart = PatchLocation;
             CntPatches--;
           }
-        } else if (systabentry->n_sect == KernelInfo->DataIndex) {
-          if (AsciiStrCmp (symbolName, KernelPatchSymbolLookup[kXCPMStart].Name) == 0) {
-            KernelInfo->XCPMStart = patchLocation;
+          else if (AsciiStrCmp (SymbolName, KernelPatchSymbolLookup[kXCPMEnd].Name) == 0) {
+            KernelInfo->XCPMEnd = PatchLocation;
+            CntPatches--;
+          }/*
+        } else if (SysTabEntry->n_sect == KernelInfo->DataCommonIndex) {
+          if (AsciiStrCmp (SymbolName, "_gLoadedKextSummaries") == 0) {
+            loadedKextSummaries = (PTR_OFFSET (Data, PatchLocation, OSKextLoadedKextSummaryHeader *));
+            CntPatches--;
+          }*/
+        } else if (SysTabEntry->n_sect == KernelInfo->KldIndex) {
+          if (AsciiStrCmp (SymbolName, KernelPatchSymbolLookup[kStartupExtStart].Name) == 0) {
+            KernelInfo->StartupExtStart = PatchLocation;
             CntPatches--;
           }
-          else if (AsciiStrCmp (symbolName, KernelPatchSymbolLookup[kXCPMEnd].Name) == 0) {
-            KernelInfo->XCPMEnd = patchLocation;
+          else if (AsciiStrCmp (SymbolName, KernelPatchSymbolLookup[kStartupExtEnd].Name) == 0) {
+            KernelInfo->StartupExtEnd = PatchLocation;
+            //KernelInfo->PrelinkedStart = PatchLocation;
             CntPatches--;
-          }
-        } else if (systabentry->n_sect == KernelInfo->KldIndex) {
-          if (AsciiStrCmp (symbolName, KernelPatchSymbolLookup[kStartupExtStart].Name) == 0) {
-            KernelInfo->StartupExtStart = patchLocation;
+          }/*
+          //else if (AsciiStrCmp (SymbolName, KernelPatchSymbolLookup[kPrelinkedStart].Name) == 0) {
+          //  KernelInfo->PrelinkedStart = PatchLocation;
+          //  CntPatches--;
+          //}
+          else if (AsciiStrCmp (SymbolName, KernelPatchSymbolLookup[kPrelinkedEnd].Name) == 0) {
+            KernelInfo->PrelinkedEnd = PatchLocation;
             CntPatches--;
-          }
-          else if (AsciiStrCmp (symbolName, KernelPatchSymbolLookup[kStartupExtEnd].Name) == 0) {
-            KernelInfo->StartupExtEnd = patchLocation;
-            CntPatches--;
-          }
+          }*/
         }
       }
 
-      cnt++;
-      symbin += sizeof (struct nlist_64);
+      Cnt++;
+      SymBin += sizeof (struct nlist_64);
     }
   } else {
     DBG_RT (Entry, "%a: symbol table not found\n", __FUNCTION__);
@@ -308,6 +364,10 @@ InitKernel (
   if (KernelInfo->StartupExtStart && KernelInfo->StartupExtEnd && (KernelInfo->StartupExtEnd > KernelInfo->StartupExtStart)) {
     KernelInfo->StartupExtSize = (KernelInfo->StartupExtEnd - KernelInfo->StartupExtStart);
   }
+
+  //if (KernelInfo->PrelinkedStart && KernelInfo->PrelinkedEnd && (KernelInfo->PrelinkedEnd > KernelInfo->PrelinkedStart)) {
+  //  KernelInfo->PrelinkedSize = (KernelInfo->PrelinkedEnd - KernelInfo->PrelinkedStart);
+  //}
 
   if (KernelInfo->XCPMStart && KernelInfo->XCPMEnd && (KernelInfo->XCPMEnd > KernelInfo->XCPMStart)) {
     KernelInfo->XCPMSize = (KernelInfo->XCPMEnd - KernelInfo->XCPMStart);
@@ -323,7 +383,7 @@ InitKernel (
 
 //Slice - FakeCPUID substitution, (c)2014
 
-STATIC UINT8 StrMsr8b[]       = {0xb9, 0x8b, 0x00, 0x00, 0x00, 0x0f, 0x32};
+STATIC UINT8 StrMsr8b[]       = { 0xb9, 0x8b, 0x00, 0x00, 0x00, 0x0f, 0x32 };
 /*
  This patch searches
   mov ecx, eax
@@ -331,9 +391,9 @@ STATIC UINT8 StrMsr8b[]       = {0xb9, 0x8b, 0x00, 0x00, 0x00, 0x0f, 0x32};
  and replaces to
   mov ecx, FakeModel  || mov ecx, FakeExt
  */
-STATIC UINT8 SearchModel107[]  = {0x89, 0xc1, 0xc1, 0xe9, 0x04};
-STATIC UINT8 SearchExt107[]    = {0x89, 0xc1, 0xc1, 0xe9, 0x10};
-STATIC UINT8 ReplaceModel107[] = {0xb9, 0x07, 0x00, 0x00, 0x00};
+STATIC UINT8 SearchModel107[]  = { 0x89, 0xc1, 0xc1, 0xe9, 0x04 };
+STATIC UINT8 SearchExt107[]    = { 0x89, 0xc1, 0xc1, 0xe9, 0x10 };
+STATIC UINT8 ReplaceModel107[] = { 0xb9, 0x07, 0x00, 0x00, 0x00 };
 
 /*
  This patch searches
@@ -342,10 +402,10 @@ STATIC UINT8 ReplaceModel107[] = {0xb9, 0x07, 0x00, 0x00, 0x00};
  and replaces to
   mov ebx, FakeModel || mov eax, FakeExt
 */
-STATIC UINT8 SearchModel109[]   = {0x88, 0xc3, 0xc0, 0xeb, 0x04};
-STATIC UINT8 SearchExt109[]     = {0xc1, 0xe8, 0x10, 0x24, 0x0f};
-STATIC UINT8 ReplaceModel109[]  = {0xbb, 0x0a, 0x00, 0x00, 0x00};
-STATIC UINT8 ReplaceExt109[]    = {0xb8, 0x02, 0x00, 0x00, 0x00};
+STATIC UINT8 SearchModel109[]   = { 0x88, 0xc3, 0xc0, 0xeb, 0x04 };
+STATIC UINT8 SearchExt109[]     = { 0xc1, 0xe8, 0x10, 0x24, 0x0f };
+STATIC UINT8 ReplaceModel109[]  = { 0xbb, 0x0a, 0x00, 0x00, 0x00 };
+STATIC UINT8 ReplaceExt109[]    = { 0xb8, 0x02, 0x00, 0x00, 0x00 };
 
 /*
  This patch searches
@@ -354,8 +414,8 @@ STATIC UINT8 ReplaceExt109[]    = {0xb8, 0x02, 0x00, 0x00, 0x00};
  and replaces to
   mov ecx, FakeModel || mov ecx, FakeExt
 */
-STATIC UINT8 SearchModel101[]   = {0x88, 0xc1, 0xc0, 0xe9, 0x04};
-STATIC UINT8 SearchExt101[]     = {0x89, 0xc1, 0xc1, 0xe9, 0x10};
+STATIC UINT8 SearchModel101[]   = { 0x88, 0xc1, 0xc0, 0xe9, 0x04 };
+STATIC UINT8 SearchExt101[]     = { 0x89, 0xc1, 0xc1, 0xe9, 0x10 };
 
 BOOLEAN
 PatchCPUID (
@@ -370,7 +430,7 @@ PatchCPUID (
   UINT32          End,
   LOADER_ENTRY    *Entry
 ) {
-  INT32     patchLocation = 0;
+  INT32     PatchLocation = 0;
   UINT32    LenPatt = 0;
   UINT8     FakeModel = (Entry->KernelAndKextPatches->FakeCPUID >> 4) & 0x0f,
             FakeExt = (Entry->KernelAndKextPatches->FakeCPUID >> 0x10) & 0x0f;
@@ -378,24 +438,24 @@ PatchCPUID (
 
   LenPatt = sizeof (StrMsr8b);
 
-  patchLocation = FindBin (&Ptr[Adr], Size, &StrMsr8b[0], LenPatt);
+  PatchLocation = FindBin (&Ptr[Adr], Size, &StrMsr8b[0], LenPatt);
 
-  if (patchLocation > 0) {
-    Adr += patchLocation;
+  if (PatchLocation > 0) {
+    Adr += PatchLocation;
     DBG_RT (Entry, " - found Pattern at %x, len: %d\n", Adr, LenPatt);
 
-    patchLocation = FindBin (&Ptr[Adr], (End - Adr), Search4, Len);
+    PatchLocation = FindBin (&Ptr[Adr], (End - Adr), Search4, Len);
 
-    if (patchLocation > 0) {
-      Adr += patchLocation;
+    if (PatchLocation > 0) {
+      Adr += PatchLocation;
       DBG_RT (Entry, " - found Model at %x, len: %d\n", Adr, Len);
       CopyMem (&Ptr[Adr], ReplaceModel, Len);
       Ptr[Adr + 1] = FakeModel;
 
-      patchLocation = FindBin (&Ptr[Adr], (End - Adr), Search10, Len);
+      PatchLocation = FindBin (&Ptr[Adr], (End - Adr), Search10, Len);
 
-      if (patchLocation > 0) {
-        Adr += patchLocation;
+      if (PatchLocation > 0) {
+        Adr += PatchLocation;
         DBG_RT (Entry, " - found ExtModel at %x, len: %d\n", Adr, Len);
         CopyMem (&Ptr[Adr], ReplaceExt, Len);
         Ptr[Adr + 1] = FakeExt;
@@ -562,46 +622,45 @@ VOID
 FindBootArgs (
   IN LOADER_ENTRY   *Entry
 ) {
-  UINT8   *ptr, archMode = sizeof (UINTN) * 8;
+  UINT8   *Ptr, ArchMode = sizeof (UINTN) * 8;
 
   // start searching from 0x200000.
-  ptr = (UINT8 *)(UINTN)0x200000;
+  Ptr = (UINT8 *)(UINTN)0x200000;
 
   while (TRUE) {
     // check bootargs for 10.7 and up
-    bootArgs2 = (BootArgs2 *)ptr;
+    gBootArgs = (BootArgs2 *)Ptr;
 
     if (
-      (bootArgs2->Version == 2) && (bootArgs2->Revision == 0) &&
+      (gBootArgs->Version == 2) && (gBootArgs->Revision == 0) &&
       // plus additional checks - some values are not inited by boot.efi yet
-      (bootArgs2->efiMode == archMode) &&
-      (bootArgs2->kaddr == 0) && (bootArgs2->ksize == 0) &&
-      (bootArgs2->efiSystemTable == 0)
+      (gBootArgs->efiMode == ArchMode) &&
+      (gBootArgs->kaddr == 0) && (gBootArgs->ksize == 0) &&
+      (gBootArgs->efiSystemTable == 0)
     ) {
       // set vars
-      dtRoot = (CHAR8 *)(UINTN)bootArgs2->deviceTreeP;
-      KernelInfo->Slide = bootArgs2->kslide;
+      gDtRoot = (CHAR8 *)(UINTN)gBootArgs->deviceTreeP;
+      KernelInfo->Slide = gBootArgs->kslide;
 
       /*
-        DBG_RT (Entry, "Found bootArgs2 at 0x%08x, DevTree at %p\n", ptr, dtRoot);
-        //DBG_RT (Entry, "bootArgs2->kaddr = 0x%08x and bootArgs2->ksize =  0x%08x\n", bootArgs2->kaddr, bootArgs2->ksize);
-        //DBG_RT (Entry, "bootArgs2->efiMode = 0x%02x\n", bootArgs2->efiMode);
-        DBG_RT (Entry, "bootArgs2->CommandLine = %a\n", bootArgs2->CommandLine);
-        DBG_RT (Entry, "bootArgs2->flags = 0x%x\n", bootArgs2->flags);
-        DBG_RT (Entry, "bootArgs2->kslide = 0x%x\n", bootArgs2->kslide);
-        DBG_RT (Entry, "bootArgs2->bootMemStart = 0x%x\n", bootArgs2->bootMemStart);
+        DBG_RT (Entry, "Found gBootArgs at 0x%08x, DevTree at %p\n", Ptr, dtRoot);
+        //DBG_RT (Entry, "gBootArgs->kaddr = 0x%08x and gBootArgs->ksize =  0x%08x\n", gBootArgs->kaddr, gBootArgs->ksize);
+        //DBG_RT (Entry, "gBootArgs->efiMode = 0x%02x\n", gBootArgs->efiMode);
+        DBG_RT (Entry, "gBootArgs->CommandLine = %a\n", gBootArgs->CommandLine);
+        DBG_RT (Entry, "gBootArgs->flags = 0x%x\n", gBootArgs->flags);
+        DBG_RT (Entry, "gBootArgs->kslide = 0x%x\n", gBootArgs->kslide);
+        DBG_RT (Entry, "gBootArgs->bootMemStart = 0x%x\n", gBootArgs->bootMemStart);
         DBG_PAUSE (Entry, 2);
       */
 
 #ifdef NO_NVRAM_SIP
-      bootArgs2->flags = kBootArgsFlagCSRActiveConfig; //kBootArgsFlagRebootOnPanic + kBootArgsFlagBlackBg
+      gBootArgs->flags = kBootArgsFlagCSRActiveConfig;
 
       switch (Entry->LoaderType) {
-        case OSTYPE_RECOVERY:
-        case OSTYPE_OSX_INSTALLER:
-          bootArgs2->flags |= (kBootArgsFlagCSRConfigMode + kBootArgsFlagCSRBoot);
-          //bootArgs2->flags = DEF_NOSIP_BOOTER_CONFIG;
-          //bootArgs2->csrActiveConfig = DEF_NOSIP_CSR_ACTIVE_CONFIG;
+        case OSTYPE_DARWIN_RECOVERY:
+        case OSTYPE_DARWIN_INSTALLER:
+          gBootArgs->flags |= DEF_NOSIP_BOOTER_CONFIG;
+          gBootArgs->csrActiveConfig |= DEF_NOSIP_CSR_ACTIVE_CONFIG;
           break;
         default:
           // user defined?
@@ -613,17 +672,22 @@ FindBootArgs (
       //
 
       if (gSettings.BooterConfig != 0xFFFF) {
-        bootArgs2->flags |= gSettings.BooterConfig;
+        gBootArgs->flags |= gSettings.BooterConfig;
       }
 
       if (gSettings.CsrActiveConfig != 0xFFFF) {
-        bootArgs2->csrActiveConfig = gSettings.CsrActiveConfig;
+        gBootArgs->csrActiveConfig = gSettings.CsrActiveConfig;
       }
 
-      //bootArgs2->csrCapabilities = CSR_CAPABILITY_UNLIMITED;
-      //bootArgs2->boot_SMC_plimit = 0;
+      //gBootArgs->csrCapabilities = CSR_CAPABILITY_UNLIMITED;
+      //gBootArgs->boot_SMC_plimit = 0;
 
-      //bootArgs2->VideoV1.v_display = OSFLAG_ISSET(Entry->Flags, OSFLAG_USEGRAPHICS) ? GRAPHICS_MODE : FB_TEXT_MODE;
+      gBootArgs->Video/* V1 */.v_display = OSFLAG_ISSET(Entry->Flags, OSFLAG_USEGRAPHICS) ? GRAPHICS_MODE : FB_TEXT_MODE;
+      gBootArgs->Video/* V1 */.v_width = UGAWidth;
+      gBootArgs->Video/* V1 */.v_height = UGAHeight;
+      gBootArgs->Video/* V1 */.v_depth = UGAColorDepth;
+      gBootArgs->Video/* V1 */.v_rowBytes = UGABytesPerRow;
+      gBootArgs->Video/* V1 */.v_baseAddr = /* (UINT32) */UGAFrameBufferBase;
 
       DeleteNvramVariable (L"csr-active-config", &gEfiAppleBootGuid);
       DeleteNvramVariable (L"bootercfg", &gEfiAppleBootGuid);
@@ -632,7 +696,7 @@ FindBootArgs (
       break;
     }
 
-    ptr += 0x1000;
+    Ptr += EFI_PAGE_SIZE;
   }
 }
 
@@ -693,7 +757,7 @@ PatchStartupExt (
   IN LOADER_ENTRY   *Entry
 ) {
   UINT8     *Ptr = (UINT8 *)KernelInfo->Bin;
-  UINT32    patchLocation = 0, patchEnd = 0;
+  UINT32    PatchLocation = 0, PatchEnd = 0;
   BOOLEAN   Ret = FALSE;
 
   DBG_RT (Entry, "%a: Start\n", __FUNCTION__);
@@ -704,35 +768,35 @@ PatchStartupExt (
   }
 
   if (KernelInfo->StartupExtSize) {
-    patchLocation = KernelInfo->StartupExtStart;
-    patchEnd = KernelInfo->StartupExtEnd;
+    PatchLocation = KernelInfo->StartupExtStart;
+    PatchEnd = KernelInfo->StartupExtEnd;
     //DBG_RT (Entry, "Start=0x%x | End=0x%x | Size=0x%x\n", KernelInfo->StartupExtStart, KernelInfo->StartupExtEnd, KernelInfo->StartupExtSize);
   }
   else if (KernelInfo->KldSize) {
-    patchLocation = KernelInfo->KldOff;
-    patchEnd = patchLocation + KernelInfo->KldSize;
+    PatchLocation = KernelInfo->KldOff;
+    PatchEnd = PatchLocation + KernelInfo->KldSize;
   }
 
-  if (!patchEnd) {
+  if (!PatchEnd) {
     DBG_RT (Entry, " - error 0 range\n");
     goto Finish;
   }
 
-  while (patchLocation < patchEnd) { // patchEnd - pattern
+  while (PatchLocation < PatchEnd) { // PatchEnd - pattern
     if (
-      (Ptr[patchLocation] == 0xC6) &&
-      (Ptr[patchLocation + 1] == 0xE8) &&
-      (Ptr[patchLocation + 6] == 0xEB)
+      (Ptr[PatchLocation] == 0xC6) &&
+      (Ptr[PatchLocation + 1] == 0xE8) &&
+      (Ptr[PatchLocation + 6] == 0xEB)
     ) {
-      DBG_RT (Entry, " - found at 0x%x\n", patchLocation);
-      patchLocation += 6;
-      Ptr[patchLocation] = 0x90;
-      Ptr[++patchLocation] = 0x90;
+      DBG_RT (Entry, " - found at 0x%x\n", PatchLocation);
+      PatchLocation += 6;
+      Ptr[PatchLocation] = 0x90;
+      Ptr[++PatchLocation] = 0x90;
       Ret = TRUE;
       break;
     }
 
-    patchLocation++;
+    PatchLocation++;
   }
 
   if (!Ret) {
@@ -752,7 +816,7 @@ PatchLoadEXE (
   IN LOADER_ENTRY   *Entry
 ) {
   UINT8     *Ptr = (UINT8 *)KernelInfo->Bin;
-  UINT32    patchLocation = 0, patchEnd = 0;
+  UINT32    PatchLocation = 0, PatchEnd = 0;
   BOOLEAN   Ret = FALSE;
 
   DBG_RT (Entry, "%a: Start\n", __FUNCTION__);
@@ -763,39 +827,53 @@ PatchLoadEXE (
   }
 
   if (KernelInfo->LoadEXESize) {
-    patchLocation = KernelInfo->LoadEXEStart;
-    patchEnd = KernelInfo->LoadEXEEnd;
+    PatchLocation = KernelInfo->LoadEXEStart;
+    PatchEnd = KernelInfo->LoadEXEEnd;
     //DBG_RT (Entry, "LoadEXE: Start=0x%x | End=0x%x | Size=0x%x\n", KernelInfo->LoadEXEStart, KernelInfo->LoadEXEEnd, KernelInfo->LoadEXESize);
   }
   else if (KernelInfo->TextSize) {
-    patchLocation = KernelInfo->TextOff;
-    patchEnd = patchLocation + KernelInfo->TextSize;
+    PatchLocation = KernelInfo->TextOff;
+    PatchEnd = PatchLocation + KernelInfo->TextSize;
   }
 
-  if (!patchEnd) {
+  if (!PatchEnd) {
     DBG_RT (Entry, " - error 0 range\n");
     goto Finish;
   }
 
-  while (patchLocation < patchEnd) { // patchEnd - pattern
+  while (PatchLocation < PatchEnd) { // PatchEnd - pattern
     if (
-      (Ptr[patchLocation] == 0xC3) &&
-      (Ptr[patchLocation + 1] == 0x48) &&
-      //(Ptr[patchLocation + 2] == 0x85) &&
-      //(Ptr[patchLocation + 3] == 0xDB) &&
-      (Ptr[patchLocation + 4] == 0x74) &&
-      ((Ptr[patchLocation + 5] == 0x70) || (Ptr[patchLocation + 5] == 0x71)) &&
-      (Ptr[patchLocation + 6] == 0x48)
+      (Ptr[PatchLocation] == 0xC3) &&
+      (Ptr[PatchLocation + 1] == 0x48) &&
+      //(Ptr[PatchLocation + 2] == 0x85) &&
+      //(Ptr[PatchLocation + 3] == 0xDB) &&
+      (Ptr[PatchLocation + 4] == 0x74) &&
+      ((Ptr[PatchLocation + 5] == 0x70) || (Ptr[PatchLocation + 5] == 0x71)) &&
+      (Ptr[PatchLocation + 6] == 0x48)
     ) {
-      DBG_RT (Entry, " - found at 0x%x\n", patchLocation);
-      patchLocation += 4;
-      Ptr[patchLocation] = 0xEB;
-      Ptr[++patchLocation] = 0x12;
+      DBG_RT (Entry, " - found at 0x%x\n", PatchLocation);
+      PatchLocation += 4;
+
+      if (TRUE) { // Just NOP's it?
+        while (PatchLocation < PatchEnd) {
+          if (
+            (Ptr[PatchLocation] == 0x49) &&
+            (Ptr[PatchLocation + 1] == 0x8B)
+          ) {
+            break;
+          }
+          Ptr[PatchLocation++] = 0x90;
+        }
+      } else { // Old: jmp skip
+        Ptr[PatchLocation] = 0xEB;
+        Ptr[++PatchLocation] = 0x12;
+      }
+
       Ret = TRUE;
       break;
     }
 
-    patchLocation++;
+    PatchLocation++;
   }
 
   if (!Ret) {
@@ -809,6 +887,92 @@ Finish:
 
   return Ret;
 }
+
+/*
+## Meklort's style
+
+BOOLEAN
+PatchPrelinked (
+  IN LOADER_ENTRY   *Entry
+) {
+  UINT8     *Ptr = (UINT8 *)KernelInfo->Bin;
+  UINT32    PatchLocation = 0, PatchEnd = 0;
+  BOOLEAN   Ret = FALSE;
+
+  DBG_RT (Entry, "%a: Start\n", __FUNCTION__);
+
+  if (Ptr == NULL) {
+    DBG_RT (Entry, " - error 0 bin\n");
+    goto Finish;
+  }
+
+  if (KernelInfo->PrelinkedSize) {
+    PatchLocation = KernelInfo->PrelinkedStart;
+    PatchEnd = KernelInfo->PrelinkedEnd;
+    //DBG_RT (Entry, "Prelinked: Start=0x%x | End=0x%x | Size=0x%x\n", KernelInfo->PrelinkedStart, KernelInfo->PrelinkedEnd, KernelInfo->PrelinkedSize);
+  }
+  else if (KernelInfo->KldSize) {
+    PatchLocation = KernelInfo->KldOff;
+    PatchEnd = PatchLocation + KernelInfo->KldSize;
+  }
+
+  if (!PatchEnd) {
+    DBG_RT (Entry, " - error 0 range\n");
+    goto Finish;
+  }
+
+  //BE8400010031C0E89B11D1FF
+  //
+  //909090904889DFE87E050000
+
+  while (PatchLocation < PatchEnd) { // PatchEnd - pattern
+    if (
+      (Ptr[PatchLocation] == 0xBE) &&
+      //(Ptr[PatchLocation + 1] == 0x84) &&
+      //(Ptr[PatchLocation + 2] == 0x00) &&
+      //(Ptr[PatchLocation + 3] == 0x01) &&
+      (Ptr[PatchLocation + 4] == 0x00) &&
+      (Ptr[PatchLocation + 5] == 0x31) &&
+      //(Ptr[PatchLocation + 6] == 0xC0) &&
+      (Ptr[PatchLocation + 7] == 0xE8)
+    ) {
+      UINT32  RelAddr; // Update relative address
+
+      DBG_RT (Entry, " - found at 0x%x\n", PatchLocation);
+
+      Ptr[PatchLocation] = 0x90;
+      Ptr[++PatchLocation] = 0x90;
+      Ptr[++PatchLocation] = 0x90;
+      Ptr[++PatchLocation] = 0x90;
+
+      Ptr[++PatchLocation] = 0x48;
+      Ptr[++PatchLocation] = 0x89;
+      Ptr[++PatchLocation] = 0xDF;
+
+      ++PatchLocation; // 0xE8
+
+      RelAddr = PatchLocation + 5;
+
+      Ptr[++PatchLocation] = (UINT8)((PatchEnd - RelAddr) >> 0);
+      Ptr[++PatchLocation] = (UINT8)((PatchEnd - RelAddr) >> 8);
+      Ptr[++PatchLocation] = (UINT8)((PatchEnd - RelAddr) >> 16);
+      Ptr[++PatchLocation] = (UINT8)((PatchEnd - RelAddr) >> 24);
+
+      Ret = TRUE;
+      break;
+    }
+
+    PatchLocation++;
+  }
+
+Finish:
+
+  DBG_RT (Entry, "%a: End\n", __FUNCTION__);
+  //DBG_PAUSE (Entry, 10);
+
+  return Ret;
+}
+*/
 
 #if 0
 ////////////////////////////////////
@@ -878,6 +1042,113 @@ KernelBooterExtensionsPatchBruteForce (
 }
 #endif
 
+#if 0
+/**
+cc: @bs0d
+
+Here Im trying to create 'trampoline' like, but just FAILED, to catch all kexts after fully loaded
+(in installer / recovery mode) and then patch it like Lilu (https://github.com/vit9696/Lilu).
+
+Method below was taken from UEFI-Bootkit for Windows (https://github.com/dude719/UEFI-Bootkit).
+**/
+
+//
+// TargetCall hook
+//
+typedef EFI_STATUS(EFIAPI *tTargetCall)(VOID);
+
+UINT8         OriginalCallPatterns[] = { 0xE8, 0xCC, 0x7C, 0x00, 0x00, 0x85, 0xC0, 0x0F, 0x84, 0x91, 0x00, 0x00, 0x00 };
+
+UINT8         *TargetCallPatchLocation = NULL;
+UINT8         TargetCallBackup[5] = { 0 };
+tTargetCall   oTargetCall = NULL;
+
+//ffffff8000842f91 488D3558662C00     lea        rsi, qword [ds:0xffffff8000b095f0]
+//ffffff8000842f98 E8137C0000         call       sub_ffffff800084abb0
+//ffffff8000842f9d 85C0               test       eax, eax
+//ffffff8000842f9f 0F8491000000       je         0xffffff8000843036
+
+//
+// Our TargetCall hook which takes the winload Image Base as a parameter so we can patch the kernel
+//
+EFI_STATUS
+EFIAPI
+OnCalledFromKernel (VOID) {
+  // Restore original bytes to call
+  CopyMem (TargetCallPatchLocation, TargetCallBackup, 5);
+/*
+  // Clear the screen
+  gST->ConOut->ClearScreen (gST->ConOut);
+
+  Print( L"Called..." );
+  //DBG_PAUSE (Entry, 10);
+
+  // Clear screen
+  gST->ConOut->ClearScreen (gST->ConOut);
+*/
+
+  return oTargetCall();
+}
+
+VOID
+PatchKeat (
+  LOADER_ENTRY    *Entry
+) {
+  EFI_STATUS  Status = EFI_SUCCESS;
+  UINT8       *Found = NULL;
+
+  // Find right location to patch
+  Status = FindPatternAddr (
+    OriginalCallPatterns,
+    0xCC,
+    sizeof (OriginalCallPatterns),
+    KernelInfo->Bin + KernelInfo->TextOff,
+    KernelInfo->TextSize,
+    (VOID**)&Found
+  );
+
+  if (!EFI_ERROR (Status)) {
+    // Found address, now let's do our patching
+    UINT32  NewCallRelative = 0, PatchLocation = 0;
+
+    DBG_RT (Entry, "Found TargetCall at %lx\n", Found);
+
+    // Save original call
+    oTargetCall = (tTargetCall)UtilCallAddress (Found);
+
+    // Backup original bytes and patch location before patching
+    TargetCallPatchLocation = (VOID*)Found;
+    CopyMem (TargetCallBackup, TargetCallPatchLocation, 5);
+
+    // Patch call to jump to our OnCalledFromKernel hook
+    NewCallRelative = UtilCalcRelativeCallOffset ((VOID*)Found, (VOID*)&OnCalledFromKernel);
+
+    //DBG_RT (Entry, "1: %02x - ",  (UINT8)Found[PatchLocation]);
+    //DBG_RT (Entry, "%02x - ",     (UINT8)Found[++PatchLocation]);
+    //DBG_RT (Entry, "%02x - ",     (UINT8)Found[++PatchLocation]);
+    //DBG_RT (Entry, "%02x - ",     (UINT8)Found[++PatchLocation]);
+    //DBG_RT (Entry, "%02x - ",     (UINT8)Found[++PatchLocation]);
+    //DBG_RT (Entry, "%02x - ",     (UINT8)Found[++PatchLocation]);
+    //DBG_RT (Entry, "%02x\n",      (UINT8)Found[++PatchLocation]);
+
+    //Found
+    //*(UINT8*)Found = 0xE8; // Write call opcode
+    *(UINT32*)(Found + 1) = NewCallRelative; // Write the new relative call offset
+
+    //PatchLocation = 0;
+    //DBG_RT (Entry, "2: %02x - ",  (UINT8)Found[PatchLocation]);
+    //DBG_RT (Entry, "%02x - ",     (UINT8)Found[++PatchLocation]);
+    //DBG_RT (Entry, "%02x - ",     (UINT8)Found[++PatchLocation]);
+    //DBG_RT (Entry, "%02x - ",     (UINT8)Found[++PatchLocation]);
+    //DBG_RT (Entry, "%02x - ",     (UINT8)Found[++PatchLocation]);
+    //DBG_RT (Entry, "%02x - ",     (UINT8)Found[++PatchLocation]);
+    //DBG_RT (Entry, "%02x\n",      (UINT8)Found[++PatchLocation]);
+
+    DBG_PAUSE (Entry, 10);
+  }
+}
+#endif
+
 VOID
 EFIAPI
 KernelBooterExtensionsPatch (
@@ -891,8 +1162,10 @@ KernelBooterExtensionsPatch (
     KernelBooterExtensionsPatchBruteForce (Entry);
   }*/
 
+  //PatchKeat (Entry);
+
   DBG_RT (Entry, "%a: End\n", __FUNCTION__);
-  DBG_PAUSE (Entry, 1);
+  DBG_PAUSE (Entry, 5);
 }
 
 BOOLEAN
@@ -916,27 +1189,29 @@ KernelAndKextPatcherInit (
   // Find bootArgs - we need then for proper detection of kernel Mach-O header
   FindBootArgs (Entry);
 
-  if (bootArgs2 == NULL) {
+  if (gBootArgs == NULL) {
     DBG_RT (Entry, "BootArgs not found - skipping patches!\n");
     goto Finish;
   }
 
   // Find kernel Mach-O header:
-  // for ML: bootArgs2->kslide + 0x00200000
+  // for ML: gBootArgs->kslide + 0x00200000
   // for older versions: just 0x200000
   // for AptioFix booting - it's always at KernelInfo->RelocBase + 0x200000
   KernelInfo->Bin = (VOID *)(UINTN)(KernelInfo->Slide + KernelInfo->RelocBase + 0x00200000);
 
   // check that it is Mach-O header and detect architecture
   Magic = MACH_GET_MAGIC (KernelInfo->Bin);
-  //if (MACH_GET_MAGIC (KernelInfo->Bin) == MH_MAGIC_64) { // (MACH_GET_MAGIC (KernelInfo->Bin) == MH_CIGAM_64)
+
   if ((Magic == MH_MAGIC_64) || (Magic == MH_CIGAM_64)) {
     DBG_RT (Entry, "Found 64 bit kernel at 0x%p\n", KernelInfo->Bin);
     KernelInfo->A64Bit = TRUE;
+    //DBG_PAUSE (Entry, 5);
   } else {
     // not valid Mach-O header - exiting
     DBG_RT (Entry, "64Bit Kernel not found at 0x%p - skipping patches!", KernelInfo->Bin);
     KernelInfo->Bin = NULL;
+    //DBG_PAUSE (Entry, 5);
     goto Finish;
   }
 
@@ -949,7 +1224,7 @@ KernelAndKextPatcherInit (
 
   DBG_RT (Entry, "Cached: %s\n", KernelInfo->Cached ? L"Yes" : L"No");
   DBG_RT (Entry, "%a: End\n", __FUNCTION__);
-  //DBG_PAUSE (Entry, 10);
+  DBG_PAUSE (Entry, 2);
 
 Finish:
 
@@ -1061,8 +1336,8 @@ KernelAndKextsPatcherStart (
       goto NoKernelData;
     }
 
-    deviceTreeP = bootArgs2->deviceTreeP;
-    deviceTreeLength = bootArgs2->deviceTreeLength;
+    deviceTreeP = gBootArgs->deviceTreeP;
+    deviceTreeLength = gBootArgs->deviceTreeLength;
 
     Status = InjectKexts (deviceTreeP, &deviceTreeLength, Entry);
 

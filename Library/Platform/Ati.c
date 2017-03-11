@@ -1565,13 +1565,13 @@ SetupAtiDevprop (
 
   // -------------------------------------------------
   // Find a better way to do this (in device_inject.c)
-  if (!string) {
-    string = DevpropCreateString ();
+  if (!gDevPropString) {
+    gDevPropString = DevpropCreateString ();
   }
 
   devicepath = GetPciDevPath (ati_dev);
-  //card->device = devprop_add_device (string, devicepath);
-  card->device = DevpropAddDevicePci (string, ati_dev);
+  //card->device = devprop_add_device (gDevPropString, devicepath);
+  card->device = DevpropAddDevicePci (gDevPropString, ati_dev);
 
   if (!card->device) {
     return FALSE;

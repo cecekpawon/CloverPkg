@@ -11,6 +11,8 @@
 #define DEBUG_KEXT_INJECT DEBUG_ALL
 #endif
 
+#define DBG(...) DebugLog (DEBUG_KEXT_INJECT, __VA_ARGS__)
+
 // runtime debug
 #define DBG_ON(Entry) \
   ((Entry != NULL) && (Entry->KernelAndKextPatches != NULL) && \
@@ -35,7 +37,7 @@ EFIAPI
 ThinFatFile (
   IN OUT  UINT8         **Binary,
   IN OUT  UINTN         *Length,
-  IN      cpu_type_t   archCpuType
+  IN      cpu_type_t    ArchCpuType
 ) {
   UINT32        Nfat, Swapped = 0, Size = 0, FAPOffset, FAPSize;
   FAT_HEADER    *FHP = (FAT_HEADER *)*Binary;
@@ -49,13 +51,13 @@ ThinFatFile (
     Swapped = 1;
     //already thin
   } else if (FHP->magic == THIN_X64){
-    if (archCpuType == CPU_TYPE_X86_64) {
+    if (ArchCpuType == CPU_TYPE_X86_64) {
       return EFI_SUCCESS;
     }
 
     return EFI_NOT_FOUND;
   } else {
-    MsgLog ("Thinning fails\n");
+    DBG ("Thinning fails\n");
     return EFI_NOT_FOUND;
   }
 
@@ -70,7 +72,7 @@ ThinFatFile (
       FAPSize = FAP->size;
     }
 
-    if (FAPcputype == archCpuType) {
+    if (FAPcputype == ArchCpuType) {
       *Binary = (*Binary + FAPOffset);
       Size = FAPSize;
       break;
@@ -110,7 +112,7 @@ LoadKext (
 
     Status = LoadFile (RootDir, TempName, &InfoDictBuffer, &InfoDictBufferLength);
     if (EFI_ERROR (Status)) {
-      MsgLog ("Failed to load extra kext (Info.plist not found): %s\n", FileName);
+      DBG ("Failed to load extra kext (Info.plist not found): %s\n", FileName);
       return EFI_NOT_FOUND;
     }
 
@@ -119,7 +121,7 @@ LoadKext (
 
   if (EFI_ERROR (ParseXML ((CHAR8 *)InfoDictBuffer, &Dict, 0))) {
     FreePool (InfoDictBuffer);
-    MsgLog ("Failed to load extra kext (failed to parse Info.plist): %s\n", FileName);
+    DBG ("Failed to load extra kext (failed to parse Info.plist): %s\n", FileName);
     return EFI_NOT_FOUND;
   }
 
@@ -129,25 +131,25 @@ LoadKext (
     if (NoContents) {
       UnicodeSPrint (TempName, SVALUE_MAX_SIZE, L"%s\\%s", FileName, Executable);
     } else {
-      UnicodeSPrint (TempName, SVALUE_MAX_SIZE, L"%s\\%s\\%s", FileName, L"Contents\\MacOS",Executable);
+      UnicodeSPrint (TempName, SVALUE_MAX_SIZE, L"%s\\%s\\%s", FileName, L"Contents\\MacOS", Executable);
     }
 
     Status = LoadFile (RootDir, TempName, &ExecutableFatBuffer, &ExecutableBufferLength);
     if (EFI_ERROR (Status)) {
       FreePool (InfoDictBuffer);
-      MsgLog ("Failed to load extra kext (Executable not found): %s\n", FileName);
+      DBG ("Failed to load extra kext (Executable not found): %s\n", FileName);
       return EFI_NOT_FOUND;
     }
 
     ExecutableBuffer = ExecutableFatBuffer;
-    if (ThinFatFile (&ExecutableBuffer, &ExecutableBufferLength, CPU_TYPE_X86_64)) {
+    if (EFI_ERROR (ThinFatFile (&ExecutableBuffer, &ExecutableBufferLength, CPU_TYPE_X86_64))) {
       FreePool (InfoDictBuffer);
       FreePool (ExecutableBuffer);
-      MsgLog ("Thinning failed: %s\n", FileName);
+      DBG ("Thinning failed: %s\n", FileName);
       return EFI_NOT_FOUND;
     }
   } else {
-    MsgLog ("Failed to read '%a' prop\n", kPropCFBundleExecutable);
+    DBG ("Failed to read '%a' prop\n", kPropCFBundleExecutable);
   }
 
   BundlePathBufferLength = StrLen (FileName) + 1;
@@ -299,7 +301,7 @@ LoadKexts (
     MsgLog ("Force kext: %d requested\n", Entry->KernelAndKextPatches->NrForceKexts);
 
     for (; i < Entry->KernelAndKextPatches->NrForceKexts; ++i) {
-      //MsgLog ("  Force kext: %s\n", Entry->KernelAndKextPatches->ForceKexts[i]);
+      //DBG ("  Force kext: %s\n", Entry->KernelAndKextPatches->ForceKexts[i]);
       if (Entry->Volume && Entry->Volume->RootDir) {
         // Check if the entry is a directory
         if (StriStr (Entry->KernelAndKextPatches->ForceKexts[i], L".kext") == NULL) {
@@ -342,6 +344,7 @@ LoadKexts (
 ////////////////////
 // OnExitBootServices
 ////////////////////
+
 EFI_STATUS
 InjectKexts (
   IN UINT32       deviceTreeP,
@@ -372,6 +375,7 @@ InjectKexts (
   DBG_RT (Entry, "%d kexts ...\n", gKextCount);
 
   DTInit (gDTEntry);
+
   if (DTLookupEntry (NULL,"/chosen/memory-map", &MemmapEntry) == kSuccess) {
     if (DTCreatePropertyIteratorNoAlloc (MemmapEntry, Iter) == kSuccess) {
       while (DTIterateProperties (Iter, &Ptr) == kSuccess) {

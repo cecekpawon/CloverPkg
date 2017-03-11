@@ -439,7 +439,7 @@ UINT32 SmcConfig[] =
 };
 
 CHAR8   *AppleBoardSN       = "C02140302D5DMT31M";
-CHAR8   *AppleBoardLocation = "Part Component";
+CHAR8   *AppleBoardLocation = "MLB";//"Part Component";
 
 VOID
 SetDMISettingsForModel (

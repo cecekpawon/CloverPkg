@@ -261,7 +261,7 @@ ScanVolumeBootcode (
 
             DBG ("        Found AppleDVD\n");
 
-            Volume->LegacyOS->Type = OSTYPE_OSX;
+            Volume->LegacyOS->Type = OSTYPE_DARWIN;
             Volume->BootType = BOOTING_BY_CD;
             Volume->LegacyOS->IconName = L"mac";
             break;
@@ -621,7 +621,6 @@ ScanVolume (
   //  }
 
   if (!Bootable) {
-
 #if REFIT_DEBUG > 0
     if (Volume->HasBootCode){
       DBG ("  Volume considered non-bootable, but boot code is present\n");
@@ -693,7 +692,8 @@ ScanVolume (
       ((Volume->VolName[0] == L'\\') && (Volume->VolName[1] == 0)) ||
       ((Volume->VolName[0] == L'/') && (Volume->VolName[1] == 0))
   ) {
-    VOID *Instance;
+    VOID  *Instance;
+
     if (!EFI_ERROR (gBS->HandleProtocol (
                           Volume->DeviceHandle,
                           &gEfiPartTypeSystemPartGuid,
@@ -1230,14 +1230,15 @@ ReinitRefitLib () {
   return FinishInitRefitLib ();
 }
 
+#if 0
 EFI_STATUS
-ReinitSelfLib () {
+ReinitRefitLib () {
   // called after reconnect drivers to re-open file handles
   EFI_STATUS                  Status;
   EFI_HANDLE                  NewSelfHandle;
   EFI_DEVICE_PATH_PROTOCOL    *TmpDevicePath;
 
-  //DbgHeader ("ReinitSelfLib");
+  //DbgHeader ("ReinitRefitLib");
 
   if (!SelfDevicePath) {
     return EFI_NOT_FOUND;
@@ -1278,6 +1279,7 @@ ReinitSelfLib () {
 
   return Status;
 }
+#endif
 
 //
 // file and dir functions
@@ -1441,10 +1443,10 @@ DirIterOpen (
 
 BOOLEAN
 DirIterNext (
-  IN OUT REFIT_DIR_ITER *DirIter,
-  IN UINTN FilterMode,
-  IN CHAR16 *FilePattern OPTIONAL,
-  OUT EFI_FILE_INFO **DirEntry
+  IN OUT  REFIT_DIR_ITER  *DirIter,
+  IN      UINTN           FilterMode,
+  IN      CHAR16          *FilePattern OPTIONAL,
+  OUT     EFI_FILE_INFO   **DirEntry
 ) {
   if (DirIter->LastFileInfo != NULL) {
     FreePool (DirIter->LastFileInfo);
@@ -1506,8 +1508,8 @@ DirIterClose (
 
 EFI_STATUS
 LoadFile (
-  IN EFI_FILE_HANDLE    BaseDir,
-  IN CHAR16             *FileName,
+  IN  EFI_FILE_HANDLE   BaseDir,
+  IN  CHAR16            *FileName,
   OUT UINT8             **FileData,
   OUT UINTN             *FileDataLength
 ) {
@@ -1572,7 +1574,7 @@ FindESP (
   EFI_HANDLE    *Handles;
 
   Status = gBS->LocateHandleBuffer (ByProtocol, &gEfiPartTypeSystemPartGuid, NULL, &HandleCount, &Handles);
-  if (!EFI_ERROR (Status) && HandleCount > 0) {
+  if (!EFI_ERROR (Status) && (HandleCount > 0)) {
     *RootDir = EfiLibOpenRoot (Handles[0]);
 
     if (*RootDir == NULL){
@@ -1605,8 +1607,10 @@ SaveFile (
   }
 
   // Delete existing file if it exists
-  Status = BaseDir->Open (BaseDir, &FileHandle, FileName,
-                         EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE, 0);
+  Status = BaseDir->Open (
+                      BaseDir, &FileHandle, FileName,
+                      EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE, 0
+                    );
 
   if (!EFI_ERROR (Status)) {
     Status = FileHandle->Delete (FileHandle);
@@ -1619,8 +1623,10 @@ SaveFile (
 
   if (CreateNew) {
     // Write new file
-    Status = BaseDir->Open (BaseDir, &FileHandle, FileName,
-                           EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE, 0);
+    Status = BaseDir->Open (
+                        BaseDir, &FileHandle, FileName,
+                        EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE, 0
+                      );
     if (EFI_ERROR (Status)) {
       return Status;
     }
@@ -1809,7 +1815,6 @@ FindExtension (
     }
   }
 
-  //return FileName + StrLen (FileName);
   return FileName;
 }
 
@@ -2059,10 +2064,10 @@ EfiLibLocateProtocol (
   EFI_STATUS  Status;
 
   Status = gBS->LocateProtocol (
-    ProtocolGuid,
-    NULL,
-    (VOID **)Interface
-  );
+                  ProtocolGuid,
+                  NULL,
+                  (VOID **)Interface
+                );
 
   return Status;
 }
@@ -2090,19 +2095,16 @@ EfiLibOpenRoot (
   // File the file system interface to the device
   //
   Status = gBS->HandleProtocol (
-    DeviceHandle,
-    &gEfiSimpleFileSystemProtocolGuid,
-    (VOID **)&Volume
-  );
+                  DeviceHandle,
+                  &gEfiSimpleFileSystemProtocolGuid,
+                  (VOID **)&Volume
+                );
 
   //
   // Open the root directory of the volume
   //
   if (!EFI_ERROR (Status)) {
-    Status = Volume->OpenVolume (
-      Volume,
-      &File
-    );
+    Status = Volume->OpenVolume (Volume, &File);
   }
 
   return EFI_ERROR (Status) ? NULL : File;
@@ -2123,9 +2125,9 @@ EFI_FILE_SYSTEM_VOLUME_LABEL *
 EfiLibFileSystemVolumeLabelInfo (
   IN EFI_FILE_HANDLE    FHand
 ) {
-  EFI_STATUS    Status;
-  UINTN         Size = 0;
-  EFI_FILE_SYSTEM_VOLUME_LABEL *VolumeInfo = NULL;
+  EFI_STATUS                    Status;
+  UINTN                         Size = 0;
+  EFI_FILE_SYSTEM_VOLUME_LABEL  *VolumeInfo = NULL;
 
   Status = FHand->GetInfo (FHand, &gEfiFileSystemVolumeLabelInfoIdGuid, &Size, VolumeInfo);
   if (Status == EFI_BUFFER_TOO_SMALL) {
@@ -2144,7 +2146,7 @@ EfiLibFileSystemVolumeLabelInfo (
     }
 
     if (!EFI_ERROR (Status)) {
-       return VolumeInfo;
+      return VolumeInfo;
     }
 
     FreePool (VolumeInfo);
@@ -2179,7 +2181,7 @@ EfiLibFileInfo (
     Status = FHand->GetInfo (FHand, &gEfiFileInfoGuid, &Size, FileInfo);
   }
 
-  return EFI_ERROR (Status)?NULL:FileInfo;
+  return EFI_ERROR (Status) ? NULL : FileInfo;
 }
 
 EFI_FILE_SYSTEM_INFO *
@@ -2198,7 +2200,7 @@ EfiLibFileSystemInfo (
     Status = FHand->GetInfo (FHand, &gEfiFileSystemInfoGuid, &Size, FileSystemInfo);
   }
 
-  return EFI_ERROR (Status)?NULL:FileSystemInfo;
+  return EFI_ERROR (Status) ? NULL : FileSystemInfo;
 }
 
 /**
@@ -2232,11 +2234,7 @@ TimeCompare (
  INTN Comparison;
 
  if (Time1 == NULL) {
-   if (Time2 == NULL) {
-     return 0;
-   } else {
-     return -1;
-   }
+   return (Time2 == NULL) ? 0 : -1;
  } else if (Time2 == NULL) {
    return 1;
  }
@@ -2302,8 +2300,8 @@ StrHToBuf (
   IN  UINTN    BufferLength,
   IN  CHAR16   *Str
 ) {
-  UINTN       Index, StrLength;
-  UINT8       Digit, Byte;
+  UINTN   Index, StrLength;
+  UINT8   Digit, Byte;
 
   Digit = 0;
 

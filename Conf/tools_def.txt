@@ -218,7 +218,7 @@ DEFINE GCC5_ASM_FLAGS                   = DEF(GCC49_ASM_FLAGS)
 *_GCC5_X64_OBJCOPY_FLAGS                =
 *_GCC5_X64_NASM_FLAGS                   = -f elf64
 
-RELEASE_GCC5_X64_CC_FLAGS               = DEF(GCC5_X64_CC_FLAGS) -c -Wno-unused-but-set-variable
+RELEASE_GCC5_X64_CC_FLAGS               = DEF(GCC5_X64_CC_FLAGS) -c
 
 ####################################################################################
 #

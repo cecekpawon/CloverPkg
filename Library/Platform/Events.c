@@ -27,6 +27,8 @@ OnExitBootServices (
   IN EFI_EVENT  Event,
   IN VOID       *Context
 ) {
+  LOADER_ENTRY   *Entry = (LOADER_ENTRY *)Context;
+
   /*
   if (DoHibernateWake) {
     gST->ConOut->OutputString (gST->ConOut, L"wake!!!");
@@ -41,7 +43,13 @@ OnExitBootServices (
   // Patch kernel and kexts if needed
   //
 
-  KernelAndKextsPatcherStart ((LOADER_ENTRY *)Context);
+#if BOOT_GRAY
+  if (OSFLAG_ISUNSET (Entry->Flags, OPT_VERBOSE)) {
+    hehe ();
+  }
+#endif
+
+  KernelAndKextsPatcherStart (Entry);
 }
 
 #if 0
@@ -114,8 +122,8 @@ EFI_STATUS
 EventsInitialize (
   IN LOADER_ENTRY   *Entry
 ) {
-  EFI_STATUS      Status;
-  VOID            *Registration = NULL;
+  EFI_STATUS    Status;
+  VOID          *Registration = NULL;
 
   //
   // Register the event to reclaim variable for OS usage.

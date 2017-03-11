@@ -33,6 +33,7 @@
 
 #define kDataSegment                        "__DATA"
 #define kDataDataSection                    "__data"
+#define kDataCommonSection                  "__common"
 
 #define kTextSegment                        "__TEXT"
 #define kTextTextSection                    "__text"
@@ -67,6 +68,20 @@
 #define kPropIOKitPersonalities             "IOKitPersonalities"
 #define kPropIONameMatch                    "IONameMatch"
 
+#if 0
+typedef struct compressed_kernel_header {
+  UINT32  signature;
+  UINT32  compress_type;
+  UINT32  adler32;
+  UINT32  uncompressed_size;
+  UINT32  compressed_size;
+  UINT32  reserved[11];
+  CHAR8   platform_name[64];
+  CHAR8   root_path[256];
+  UINT8   data[0];
+} compressed_kernel_header;
+#endif
+
 typedef struct KERNEL_INFO {
   UINT32                Slide;
   UINT32                KldAddr;
@@ -88,6 +103,10 @@ typedef struct KERNEL_INFO {
   UINT32                DataSize;
   UINT32                DataOff;
   UINT8                 DataIndex;
+  //UINT32                DataCommonAddr;
+  //UINT32                DataCommonSize;
+  //UINT32                DataCommonOff;
+  //UINT8                 DataCommonIndex;
                         // notes:
                         // - 64bit segCmd64->vmaddr is 0xffffff80xxxxxxxx and we are taking
                         //   only lower 32bit part into PrelinkTextAddr
@@ -110,6 +129,9 @@ typedef struct KERNEL_INFO {
   UINT32                StartupExtStart;
   UINT32                StartupExtEnd;
   UINT32                StartupExtSize;
+  //UINT32                PrelinkedStart;
+  //UINT32                PrelinkedEnd;
+  //UINT32                PrelinkedSize;
   UINT32                XCPMStart;
   UINT32                XCPMEnd;
   UINT32                XCPMSize;
@@ -128,8 +150,7 @@ typedef struct KERNEL_INFO {
   VOID                  *Bin;
 } KERNEL_INFO;
 
-//extern BootArgs2      *bootArgs2;
-extern CHAR8            *dtRoot;
+extern CHAR8            *gDtRoot;
 extern KERNEL_INFO      *KernelInfo;
 
 typedef enum {
@@ -144,7 +165,9 @@ typedef enum {
   kXCPMStart,
   kXCPMEnd,
   kStartupExtStart,
-  kStartupExtEnd
+  kStartupExtEnd,
+  //kPrelinkedStart,
+  //kPrelinkedEnd
 } KernelPatchSymbolLookupIndex;
 
 typedef struct KERNEL_PATCH_SYMBOL_LOOKUP
@@ -165,16 +188,18 @@ STATIC KERNEL_PATCH_SYMBOL_LOOKUP KernelPatchSymbolLookup[] = {
   { kXCPMStart, "_xcpm_core_scope_msrs" },
   { kXCPMEnd, "_xcpm_SMT_scope_msrs" },
   { kStartupExtStart, "__ZN12KLDBootstrap21readStartupExtensionsEv" },
-  { kStartupExtEnd, "__ZN12KLDBootstrap23readPrelinkedExtensionsEP10section_64" }
+  { kStartupExtEnd, "__ZN12KLDBootstrap23readPrelinkedExtensionsEP10section_64" },
+  //{ kPrelinkedStart, "__ZN12KLDBootstrap23readPrelinkedExtensionsEP10section_64" },
+  //{ kPrelinkedEnd, "__ZN12KLDBootstrap20readBooterExtensionsEv" }
 };
 
 STATIC CONST UINTN KernelPatchSymbolLookupCount = ARRAY_SIZE (KernelPatchSymbolLookup);
+
 
 /////////////////////
 //
 // kext_patcher.c
 //
-
 
 #define KERNEL_MAX_SIZE 40000000
 #define FSearchReplace(Source, Size, Search, Replace) SearchAndReplace((UINT8 *)(UINTN)Source, Size, Search, sizeof(Search), Replace, 0)
@@ -234,7 +259,28 @@ SearchAndCount (
   UINT8     *Search,
   UINTN     SearchSize
 );
+/*
+EFI_STATUS
+FindPatternAddr (
+  IN  UINT8   *Pattern,
+  IN  UINT8   Wildcard,
+  IN  UINT32  PatternLength,
+  IN  VOID    *Base,
+  IN  UINT32  Size,
+  OUT VOID    **Addr
+);
 
+VOID *
+UtilCallAddress (
+  IN VOID   *CallAddress
+);
+
+UINT32
+UtilCalcRelativeCallOffset (
+  IN VOID   *CallAddress,
+  IN VOID   *TargetAddress
+);
+*/
 //
 // Searches Source for Search pattern of size SearchSize
 // and replaces it with Replace up to MaxReplaces times.
@@ -278,11 +324,6 @@ AnyKextPatch (
   KEXT_PATCH    *KextPatches,
   LOADER_ENTRY  *Entry
 );
-
-//CHAR8
-//*ExtractKextBundleIdentifier (
-//  CHAR8     *Plist
-//);
 
 BOOLEAN
 IsPatchNameMatch (

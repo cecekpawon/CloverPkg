@@ -81,11 +81,11 @@ SetupGmaDevprop (
   MsgLog (" - %a [%04x:%04x] | %a\n",
     model, gma_dev->vendor_id, gma_dev->device_id, devicepath);
 
-  if (!string) {
-    string = DevpropCreateString ();
+  if (!gDevPropString) {
+    gDevPropString = DevpropCreateString ();
   }
 
-  device = DevpropAddDevicePci (string, gma_dev);
+  device = DevpropAddDevicePci (gDevPropString, gma_dev);
 
   if (!device) {
     DBG (" - Failed initializing dev-prop string dev-entry.\n");

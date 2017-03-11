@@ -574,7 +574,7 @@ DevpropAddNvidiaTemplate (
     //}
   }
 
-  if (devices_number == 1) {
+  if (gDevicesNumber == 1) {
     DevpropAddValue (device, "device_type", (UINT8 *)"NVDA,Parent", 11);
   } else {
     DevpropAddValue (device, "device_type", (UINT8 *)"NVDA,Child", 10);
@@ -793,13 +793,13 @@ SetupNvidiaDevprop (
   MsgLog (" - %a | %dMB NV%02x [%04x:%04x] | %a => device #%d\n",
       model, (UINT32)(RShiftU64 (videoRam, 20)),
       nvCardType, nvda_dev->vendor_id, nvda_dev->device_id,
-      devicepath, devices_number);
+      devicepath, gDevicesNumber);
 
-  if (!string) {
-    string = DevpropCreateString ();
+  if (!gDevPropString) {
+    gDevPropString = DevpropCreateString ();
   }
 
-  device = DevpropAddDevicePci (string, nvda_dev);
+  device = DevpropAddDevicePci (gDevPropString, nvda_dev);
 
   DBG (" - VideoPorts:");
 
@@ -814,7 +814,7 @@ SetupNvidiaDevprop (
   }
 
   //There are custom properties, injected if set by user
-  if (gSettings.NvidiaSingle && (devices_number >= 1)) {
+  if (gSettings.NvidiaSingle && (gDevicesNumber >= 1)) {
     DBG (" - NvidiaSingle: skip injecting other then first card\n");
     goto done;
   }
@@ -854,7 +854,7 @@ SetupNvidiaDevprop (
   }
 
   if (
-    (devices_number == 1) &&
+    (gDevicesNumber == 1) &&
     ((gSettings.BootDisplay >= 0) && (gSettings.BootDisplay < (INT8)n_ports))
   ) {
     CHAR8   nkey[24];
@@ -917,7 +917,7 @@ SetupNvidiaDevprop (
 
 done:
 
-  devices_number++;
+  gDevicesNumber++;
   FreePool (version_str);
 
   if (model != NULL) {

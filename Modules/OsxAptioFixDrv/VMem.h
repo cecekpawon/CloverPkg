@@ -22,8 +22,6 @@ Extended by dmazar.
 
 #define SYS_CODE64_SEL 0x38
 
-#pragma pack(1)
-
 //
 // Page-Map Level-4 Offset (PML4) and
 // Page-Directory-Pointer Offset (PDPE) entries 4K & 2MB
@@ -143,8 +141,6 @@ typedef union {
 } VIRTUAL_ADDR;
 
 #define VA_FIX_SIGN_EXTEND(VA)  VA.Pg4K.SignExtend = (VA.Pg4K.PML4Offset & 0x100) ? 0xFFFF : 0;
-
-#pragma pack()
 
 // 64 bit
 #define CR3_ADDR_MASK 0x000FFFFFFFFFF000

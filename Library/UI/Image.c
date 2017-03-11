@@ -1368,7 +1368,7 @@ BltImageComposite (
   ComposeImage (CompImage, TopImage, OffsetX, OffsetY);
 
   // blit to screen and clean up
-  //egDrawImageArea (CompImage, 0, 0, TotalWidth, TotalHeight, XPos, YPos);
+  //DrawImageArea (CompImage, 0, 0, TotalWidth, TotalHeight, XPos, YPos);
   BltImageAlpha (CompImage, XPos, YPos, &TransparentBackgroundPixel, 16);
   FreeImage (CompImage);
 

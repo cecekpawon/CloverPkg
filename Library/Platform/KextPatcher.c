@@ -16,6 +16,8 @@
 #define DEBUG_KEXT_PATCH DEBUG_ALL
 #endif
 
+#define DBG(...) DebugLog (DEBUG_KEXT_PATCH, __VA_ARGS__)
+
 // runtime debug
 #define DBG_ON(Entry) \
   ((Entry != NULL) && (Entry->KernelAndKextPatches != NULL) && \
@@ -68,6 +70,59 @@ SearchAndCount (
 
   return NumFounds;
 }
+
+#if 0
+EFI_STATUS
+FindPatternAddr (
+  IN  UINT8   *Pattern,
+  IN  UINT8   Wildcard,
+  IN  UINT32  PatternLength,
+  IN  VOID    *Base,
+  IN  UINT32  Size,
+  OUT VOID    **Addr
+) {
+  UINT32  i, j;
+
+  if ((Addr == NULL) || (Pattern == NULL) || (Base == NULL)) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  for (i = 0; i < Size - PatternLength; i++) {
+    BOOLEAN   Found = TRUE;
+
+    for (j = 0; j < PatternLength; j++) {
+      if ((Pattern[j] != Wildcard) && (Pattern[j] != ((UINT8*)Base)[i + j])) {
+        Found = FALSE;
+        break;
+      }
+    }
+
+    if (Found) {
+      *Addr = (UINT8*)Base + i;
+      return EFI_SUCCESS;
+    }
+  }
+
+  return EFI_NOT_FOUND;
+}
+
+VOID *
+UtilCallAddress (
+  IN VOID   *CallAddress
+) {
+  UINT32  RelativeCallOffset = *(UINT32*)((UINT8*)CallAddress + 1);
+
+  return (VOID*)((UINT8*)CallAddress + RelativeCallOffset + 1 + sizeof (UINT32));
+}
+
+UINT32
+UtilCalcRelativeCallOffset (
+  IN VOID   *CallAddress,
+  IN VOID   *TargetAddress
+) {
+  return (UINT32)(((UINT64)TargetAddress) - ((UINT64)CallAddress + 1 + sizeof (UINT32)));
+}
+#endif
 
 //
 // Searches Source for Search pattern of size SearchSize
@@ -738,6 +793,7 @@ PatchKext (
       }
 
       AnyKextPatch (Driver, DriverSize, InfoPlist, InfoPlistSize, &Entry->KernelAndKextPatches->KextPatches[i], Entry);
+
       if (isBundle) {
         Entry->KernelAndKextPatches->KextPatches[i].Patched = TRUE;
       }
@@ -836,6 +892,8 @@ ParsePrelinkKexts (
   TagPtr        KextsDict, DictPointer;
   EFI_STATUS    Status = ParseXML (WholePlist, &KextsDict, 0);
 
+  //SaveFile (SelfRootDir, L"dictdump.plist", (UINT8 *)WholePlist, AsciiStrSize (WholePlist));
+
   //DBG_RT (Entry, "Parse %a: %r\n", kPrelinkInfoDictionaryKey, Status);
   //DBG_PAUSE (Entry, 5);
 
@@ -850,8 +908,11 @@ ParsePrelinkKexts (
       TagPtr  Dict, Prop;
       CHAR8   *sPrelinkExecutableSourceKey, *sPrelinkExecutableSizeKey;
 
-      while (i < Count) {
-        Status = GetElement (DictPointer, i++, Count, &Dict);
+      for (i = 0; i < Count; ++i) {
+        iPrelinkExecutableSourceKey = iPrelinkExecutableSourceKeySize = 0;
+        iPrelinkExecutableSizeKey = iPrelinkExecutableSizeKeySize = 0;
+
+        Status = GetElement (DictPointer, i, Count, &Dict);
 
         if (
           EFI_ERROR (Status) ||
@@ -881,7 +942,7 @@ ParsePrelinkKexts (
           )
         ) {
           continue;
-        } else {
+        } else if (!iPrelinkExecutableSourceKey && Prop->integer) {
           iPrelinkExecutableSourceKey = Prop->integer;
         }
 
@@ -902,7 +963,7 @@ ParsePrelinkKexts (
           )
         ) {
           continue;
-        } else {
+        } else if (!iPrelinkExecutableSizeKey && Prop->integer) {
           iPrelinkExecutableSizeKey = Prop->integer;
         }
 
@@ -928,7 +989,7 @@ ParsePrelinkKexts (
         }
       }
 
-      //DBG_RT (Entry, "Count %d\n", Count);
+      //DBG_RT (Entry, "PRELINKKEXTLIST Count %d\n", Count);
     } else {
       DBG_RT (Entry, "NO kPrelinkInfoDictionaryKey\n");
       DBG_PAUSE (Entry, 5);
@@ -983,6 +1044,9 @@ PatchPrelinkedKexts (
       PRELINKKEXTLIST   *sKext = CR (Link, PRELINKKEXTLIST, Link, PRELINKKEXTLIST_SIGNATURE);
       CHAR8             *InfoPlist = AllocateCopyPool (sKext->Taglen, WholePlist + sKext->Offset);
 
+      //UINT32            kextBinAddress = (UINT32)sKext->Address - KernelInfo->PrelinkTextAddr + KernelInfo->PrelinkTextOff; // meklort
+      //UINT32            kextBinAddress = (UINT32)sKext->Address + KernelInfo->Slide + (UINT32)KernelInfo->RelocBase;
+
       InfoPlist[sKext->Taglen] = '\0';
 
       // patch it
@@ -995,10 +1059,10 @@ PatchPrelinkedKexts (
             // and if KernelSlide is != 0 then KextAddr must be adjusted
             KernelInfo->Slide +
             // and adjust for AptioFixDrv's KernelRelocBase
-            (UINT32)KernelInfo->RelocBase
+            (UINT32)KernelInfo->RelocBase/*kextBinAddress*/
           ),
         (UINT32)sKext->Size,
-        WholePlist + sKext->Offset,
+        InfoPlist,
         (UINT32)sKext->Taglen,
         sKext->BundleIdentifier,
         Entry
@@ -1206,13 +1270,13 @@ PatchLoadedKexts (
           DTPropertyIterator                PropIter = &OPropIter;
           //UINTN                           DbgCount = 0;
 
-  //DBG_RT (Entry, "\nPatchLoadedKexts ... dtRoot = %p\n", dtRoot);
+  //DBG_RT (Entry, "\nPatchLoadedKexts ... gDtRoot = %p\n", gDtRoot);
 
-  if (!dtRoot) {
+  if (!gDtRoot) {
     return;
   }
 
-  DTInit (dtRoot);
+  DTInit (gDtRoot);
 
   if (
     (DTLookupEntry (NULL,"/chosen/memory-map", &MMEntry) == kSuccess) &&

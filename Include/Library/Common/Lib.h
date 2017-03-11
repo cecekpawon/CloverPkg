@@ -76,37 +76,36 @@ typedef struct {
   UINT32 Size;
 } MBR_PARTITION_INFO;
 
-#define DISK_KIND_INTERNAL      (0)
-#define DISK_KIND_EXTERNAL      (1)
-#define DISK_KIND_OPTICAL       (2)
-#define DISK_KIND_FIREWIRE      (3)
-#define DISK_KIND_NODISK        (4)
+#define DISK_KIND_INTERNAL        (0)
+#define DISK_KIND_EXTERNAL        (1)
+#define DISK_KIND_OPTICAL         (2)
+#define DISK_KIND_FIREWIRE        (3)
+#define DISK_KIND_NODISK          (4)
 //#define DISK_KIND_BOOTER        (5)
 
-#define BOOTING_BY_BOOTLOADER   (1)
-#define BOOTING_BY_EFI          (2)
-#define BOOTING_BY_BOOTEFI      (3)
-#define BOOTING_BY_MBR          (4)
-#define BOOTING_BY_PBR          (5)
-#define BOOTING_BY_CD           (6)
+#define BOOTING_BY_BOOTLOADER     (1)
+#define BOOTING_BY_EFI            (2)
+#define BOOTING_BY_BOOTEFI        (3)
+#define BOOTING_BY_MBR            (4)
+#define BOOTING_BY_PBR            (5)
+#define BOOTING_BY_CD             (6)
 
-#define OSTYPE_OSX              (1)
-#define OSTYPE_WIN              (2)
-#define OSTYPE_VAR              (3)
-#define OSTYPE_LIN              (4)
-#define OSTYPE_LINEFI           (5)
-#define OSTYPE_EFI              (6)
-#define OSTYPE_WINEFI           (7)
-#define OSTYPE_RECOVERY         (8)
-#define OSTYPE_OSX_INSTALLER    (9)
-//#define OSTYPE_BOOT_OSX       (9)
-#define OSTYPE_OTHER            (99)
-//#define OSTYPE_HIDE           (100)
+#define OSTYPE_DARWIN             (1)
+#define OSTYPE_DARWIN_RECOVERY    (2)
+#define OSTYPE_DARWIN_INSTALLER   (3)
+#define OSTYPE_WIN                (4)
+#define OSTYPE_VAR                (5)
+#define OSTYPE_LIN                (6)
+#define OSTYPE_LINEFI             (7)
+#define OSTYPE_EFI                (8)
+#define OSTYPE_WINEFI             (9)
+#define OSTYPE_OTHER              (99)
+//#define OSTYPE_HIDE             (100)
 
-#define OSTYPE_IS_OSX(type) ((type == OSTYPE_OSX) || (type == OSTYPE_VAR))
-#define OSTYPE_IS_OSX_RECOVERY(type) ((type == OSTYPE_RECOVERY) /*|| ((type >= OSTYPE_TIGER) && (type <= OSTYPE_MAV))*/ || (type == OSTYPE_VAR))
-#define OSTYPE_IS_OSX_INSTALLER(type) ((type == OSTYPE_OSX_INSTALLER) /*|| ((type >= OSTYPE_TIGER) && (type <= OSTYPE_MAV))*/ || (type == OSTYPE_VAR))
-#define OSTYPE_IS_OSX_GLOB(type) (OSTYPE_IS_OSX(type) || OSTYPE_IS_OSX_RECOVERY(type) || OSTYPE_IS_OSX_INSTALLER(type))
+#define OSTYPE_IS_DARWIN(type) ((type == OSTYPE_DARWIN) || (type == OSTYPE_VAR))
+#define OSTYPE_IS_DARWIN_RECOVERY(type) ((type == OSTYPE_DARWIN_RECOVERY) /*|| ((type >= OSTYPE_TIGER) && (type <= OSTYPE_MAV))*/ || (type == OSTYPE_VAR))
+#define OSTYPE_IS_DARWIN_INSTALLER(type) ((type == OSTYPE_DARWIN_INSTALLER) /*|| ((type >= OSTYPE_TIGER) && (type <= OSTYPE_MAV))*/ || (type == OSTYPE_VAR))
+#define OSTYPE_IS_DARWIN_GLOB(type) (OSTYPE_IS_DARWIN(type) || OSTYPE_IS_DARWIN_RECOVERY(type) || OSTYPE_IS_DARWIN_INSTALLER(type))
 #define OSTYPE_IS_WINDOWS(type) ((type == OSTYPE_WIN) || (type == OSTYPE_WINEFI) || (type == OSTYPE_EFI) || (type == OSTYPE_VAR))
 #define OSTYPE_IS_WINDOWS_GLOB(type) ((type == OSTYPE_WIN) || (type == OSTYPE_WINEFI))
 #define OSTYPE_IS_LINUX(type) ((type == OSTYPE_LIN) || (type == OSTYPE_LINEFI) || (type == OSTYPE_EFI) || (type == OSTYPE_VAR))
@@ -115,8 +114,8 @@ typedef struct {
 //#define OSTYPE_IS_NOT(type1, type2) (type1 != type2)
 #define OSTYPE_COMPARE_IMP(comparator, type1, type2) (comparator(type1) && comparator(type2))
 #define OSTYPE_COMPARE(type1, type2) \
-          (OSTYPE_COMPARE_IMP(OSTYPE_IS_OSX, type1, type2) || OSTYPE_COMPARE_IMP(OSTYPE_IS_OSX_RECOVERY, type1, type2) || \
-          OSTYPE_COMPARE_IMP(OSTYPE_IS_OSX_INSTALLER, type1, type2) || OSTYPE_COMPARE_IMP(OSTYPE_IS_WINDOWS, type1, type2) || \
+          (OSTYPE_COMPARE_IMP(OSTYPE_IS_DARWIN, type1, type2) || OSTYPE_COMPARE_IMP(OSTYPE_IS_DARWIN_RECOVERY, type1, type2) || \
+          OSTYPE_COMPARE_IMP(OSTYPE_IS_DARWIN_INSTALLER, type1, type2) || OSTYPE_COMPARE_IMP(OSTYPE_IS_WINDOWS, type1, type2) || \
           OSTYPE_COMPARE_IMP(OSTYPE_IS_LINUX, type1, type2) || OSTYPE_COMPARE_IMP(OSTYPE_IS_OTHER, type1, type2))
 
 #define OSFLAG_ISSET(flags, flag) ((flags & flag) == flag)
@@ -420,11 +419,8 @@ InitRefitLib (
 VOID
 UninitRefitLib ();
 
-//EFI_STATUS
-//ReinitRefitLib ();
-
 EFI_STATUS
-ReinitSelfLib ();
+ReinitRefitLib ();
 
 //VOID
 //PauseForKey (IN CHAR16 *Msg);
@@ -600,10 +596,10 @@ DecodeOptions (
 
 EFI_STATUS
 LoadFile (
-  IN EFI_FILE_HANDLE  BaseDir,
-  IN CHAR16           *FileName,
-  OUT UINT8           **FileData,
-  OUT UINTN           *FileDataLength
+  IN  EFI_FILE_HANDLE   BaseDir,
+  IN  CHAR16            *FileName,
+  OUT UINT8             **FileData,
+  OUT UINTN             *FileDataLength
 );
 
 EFI_STATUS
@@ -697,8 +693,8 @@ InternalSetMode (
 
 VOID
 GetScreenSize (
-  OUT INTN  *ScreenWidth,
-  OUT INTN  *ScreenHeight
+  OUT UINT32    *ScreenWidth,
+  OUT UINT32    *ScreenHeight
 );
 
 CHAR16 *

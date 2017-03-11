@@ -42,6 +42,12 @@
 #define SVALUE_MAX_SIZE 512
 #define AVALUE_MAX_SIZE 256
 
+typedef struct {
+  UINT8   VersionMajor;
+  UINT8   VersionMinor;
+  UINT8   Revision;
+} SVersion;
+
 EFI_STATUS
 EFIAPI
 AsciiTrimSpaces (
@@ -128,6 +134,33 @@ StriCmp (
   IN CONST CHAR16   *SecondString
 );
 
+CHAR16 *
+EFIAPI
+StrnCatGrow (
+  IN OUT  CHAR16    **Destination,
+  IN OUT  UINTN     *CurrentSize,
+  IN      CHAR16    *Source,
+  IN      UINTN     Count
+);
+
+VOID
+EFIAPI
+RemoveMultiSpaces (
+  IN OUT CHAR16   *Str
+);
+
+VOID
+EFIAPI
+RemoveMultiSpaces (
+  IN OUT CHAR16   *Str
+);
+
+VOID
+EFIAPI
+StrCleanSpaces (
+  IN OUT CHAR16   **Str
+);
+
 //INTN EFIAPI AsciiStriCmp (
 //  IN CONST CHAR8    *FirstString,
 //  IN CONST CHAR8    *SecondString
@@ -138,16 +171,16 @@ EFIAPI
 AsciiStriNCmp (
   IN CONST CHAR8    *FirstString,
   IN CONST CHAR8    *SecondString,
-  IN CONST UINTN     sSize
+  IN CONST UINTN    sSize
 );
 
 BOOLEAN
 EFIAPI
 AsciiStrStriN (
   IN CONST CHAR8    *WhatString,
-  IN CONST UINTN     sWhatSize,
+  IN CONST UINTN    sWhatSize,
   IN CONST CHAR8    *WhereString,
-  IN CONST UINTN     sWhereSize
+  IN CONST UINTN    sWhereSize
 );
 
 UINTN
@@ -155,6 +188,15 @@ EFIAPI
 AsciiTrimStrLen (
   CHAR8   *String,
   UINTN   MaxLen
+);
+
+CHAR8 *
+EFIAPI
+AsciiStrnCatGrow (
+  IN OUT  CHAR8   **Destination,
+  IN OUT  UINTN   *CurrentSize,
+  IN      CHAR8   *Source,
+  IN      UINTN   Count
 );
 
 //UINTN
@@ -173,16 +215,16 @@ EfiReallocatePool (
 INTN
 EFIAPI
 StrniCmp (
-  IN CHAR16 *Str1,
-  IN CHAR16 *Str2,
-  IN UINTN  Count
+  IN CHAR16   *Str1,
+  IN CHAR16   *Str2,
+  IN UINTN    Count
 );
 
 CHAR16 *
 EFIAPI
 StriStr (
-  IN CHAR16 *Str,
-  IN CHAR16 *SearchFor
+  IN CHAR16   *Str,
+  IN CHAR16   *SearchFor
 );
 
 CHAR16 *
@@ -225,8 +267,22 @@ GuidStr (
 INTN
 EFIAPI
 CountOccurrences (
-  CHAR8   *s,
-  CHAR8   c
+  CHAR8   *Str,
+  CHAR8   Char
+);
+
+CHAR8 *
+EFIAPI
+FindCharDelimited (
+  IN CHAR8    *InString,
+  IN CHAR8    InChar,
+  IN UINTN    Index
+);
+
+SVersion *
+EFIAPI
+VersionFromStr (
+  CHAR8   *Str
 );
 
 #endif  // _GENERIC_ICH_H_

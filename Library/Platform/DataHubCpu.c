@@ -41,11 +41,7 @@
 
 #define EFI_CPU_DATA_MAXIMUM_LENGTH   0x100
 
-// gDataHub
-// A pointer to the DataHubProtocol
-EFI_DATA_HUB_PROTOCOL     *gDataHub;
-
-EFI_SUBCLASS_TYPE1_HEADER mCpuDataRecordHeader = {
+EFI_SUBCLASS_TYPE1_HEADER   mCpuDataRecordHeader = {
   EFI_PROCESSOR_SUBCLASS_VERSION,         // Version
   sizeof (EFI_SUBCLASS_TYPE1_HEADER),     // Header Size
   0,                                      // Instance (initialize later)
@@ -53,21 +49,14 @@ EFI_SUBCLASS_TYPE1_HEADER mCpuDataRecordHeader = {
   0                                       // RecordType (initialize later)
 };
 
-typedef union {
-  EFI_CPU_DATA_RECORD   *DataRecord;
-  UINT8                 *Raw;
-} EFI_CPU_DATA_RECORD_BUFFER;
-
 // PLATFORM_DATA
 // The struct passed to "LogDataHub" holing key and value to be added
-#pragma pack (1)
 typedef struct {
   EFI_SUBCLASS_TYPE1_HEADER   Hdr;      // 0x48
   UINT32                      NameLen;  // 0x58 (in bytes)
   UINT32                      ValLen;   // 0x5c
   UINT8                       Data[1];  // 0x60 Name Value
 } PLATFORM_DATA;
-#pragma pack ()
 
 // CopyRecord
 // Copy the data provided in arguments into a PLATFORM_DATA buffer
@@ -78,7 +67,8 @@ typedef struct {
 // @param ValLen The length of the parameter "Val"
 //
 // @return The size of the new PLATFORM_DATA object is returned
-UINT32 EFIAPI
+UINT32
+EFIAPI
 CopyRecord (
   IN        PLATFORM_DATA   *Rec,
   IN  CONST CHAR16          *Name,
@@ -88,7 +78,7 @@ CopyRecord (
   CopyMem (&Rec->Hdr, &mCpuDataRecordHeader, sizeof (EFI_SUBCLASS_TYPE1_HEADER));
   Rec->NameLen = (UINT32)StrLen (Name) * sizeof (CHAR16);
   Rec->ValLen  = ValLen;
-  CopyMem (Rec->Data,                Name, Rec->NameLen);
+  CopyMem (Rec->Data, Name, Rec->NameLen);
   CopyMem (Rec->Data + Rec->NameLen, Val,  ValLen);
 
   return (sizeof (EFI_SUBCLASS_TYPE1_HEADER) + 8 + Rec->NameLen + Rec->ValLen);
@@ -104,9 +94,18 @@ LogDataHub (
   IN  VOID        *Data,
   IN  UINT32      DataSize
 ) {
-  UINT32            RecordSize;
-  EFI_STATUS        Status;
-  PLATFORM_DATA     *PlatformData;
+  EFI_STATUS              Status;
+  EFI_DATA_HUB_PROTOCOL   *DataHub;
+  PLATFORM_DATA           *PlatformData;
+  UINT32                  RecordSize;
+
+  //
+  // Locate DataHub protocol.
+  //
+  Status = EfiLibLocateProtocol (&gEfiDataHubProtocolGuid, (VOID**)&DataHub);
+  if (EFI_ERROR (Status)) {
+    return Status;
+  }
 
   PlatformData = (PLATFORM_DATA *)AllocatePool (sizeof (PLATFORM_DATA) + DataSize + EFI_CPU_DATA_MAXIMUM_LENGTH);
   if (PlatformData == NULL) {
@@ -114,8 +113,8 @@ LogDataHub (
   }
 
   RecordSize = CopyRecord (PlatformData, Name, Data, DataSize);
-  Status     = gDataHub->LogData (
-                          gDataHub,
+  Status     = DataHub->LogData (
+                          DataHub,
                           TypeGuid,                   // DataRecordGuid
                           &gDataHubPlatformGuid,      // ProducerName (always)
                           EFI_DATA_RECORD_CLASS_DATA,
@@ -271,12 +270,12 @@ SetVariablesForOSX () {
 VOID
 EFIAPI
 SetupDataForOSX () {
-  EFI_STATUS  Status;
+  //EFI_STATUS  Status;
   UINT32      DevPathSupportedVal = 1;
 
   // Locate DataHub Protocol
-  Status = gBS->LocateProtocol (&gEfiDataHubProtocolGuid, NULL, (VOID **)&gDataHub);
-  if (!EFI_ERROR (Status)) {
+  //Status = gBS->LocateProtocol (&gEfiDataHubProtocolGuid, NULL, (VOID **)&gDataHub);
+  //if (!EFI_ERROR (Status)) {
     LogDataHub (&gEfiMiscSubClassGuid,  L"FSBFrequency",  &gCPUStructure.FSBFrequency,  sizeof (UINT64));
 
     if (gCPUStructure.ARTFrequency && gSettings.UseARTFreq) {
@@ -297,9 +296,9 @@ SetupDataForOSX () {
     //LogDataHub (&gEfiMiscSubClassGuid, L"clovergui-revision", &Revision, sizeof (UINT32));
 
     // collect info about real hardware (read by FakeSMC)
-    LogDataHub (&gEfiMiscSubClassGuid,  L"OEMVendor",   &gSettings.OEMVendor,   (UINT32)AsciiTrimStrLen (gSettings.OEMVendor,  64) + 1);
-    LogDataHub (&gEfiMiscSubClassGuid,  L"OEMProduct",  &gSettings.OEMProduct,  (UINT32)AsciiTrimStrLen (gSettings.OEMProduct, 64) + 1);
-    LogDataHub (&gEfiMiscSubClassGuid,  L"OEMBoard",    &gSettings.OEMBoard,    (UINT32)AsciiTrimStrLen (gSettings.OEMBoard,   64) + 1);
+    LogDataHub (&gEfiMiscSubClassGuid,  L"OEMVendor",   &gSettings.OEMVendor,   (UINT32)AsciiTrimStrLen (gSettings.OEMVendor,  ARRAY_SIZE (gSettings.OEMVendor)) + 1);
+    LogDataHub (&gEfiMiscSubClassGuid,  L"OEMProduct",  &gSettings.OEMProduct,  (UINT32)AsciiTrimStrLen (gSettings.OEMProduct, ARRAY_SIZE (gSettings.OEMProduct)) + 1);
+    LogDataHub (&gEfiMiscSubClassGuid,  L"OEMBoard",    &gSettings.OEMBoard,    (UINT32)AsciiTrimStrLen (gSettings.OEMBoard,   ARRAY_SIZE (gSettings.OEMBoard)) + 1);
 
     // SMC helper
     if (gSettings.FakeSMCOverrides) {
@@ -312,10 +311,10 @@ SetupDataForOSX () {
 
     // all current settings (we could dump settings in plain text instead below)
     //LogDataHub (&gEfiMiscSubClassGuid,  L"Settings",  &gSettings, sizeof (gSettings));
-  } else {
+  //} else {
     // this is the error message that we want user to see on the screen!
     //Print (L"DataHubProtocol is not found! Load the module DataHubDxe manually!\n");
-    DBG ("DataHubProtocol is not found! Load the module DataHubDxe manually!\n");
+    //DBG ("DataHubProtocol is not found! Load the module DataHubDxe manually!\n");
     //gBS->Stall (5000000);
-  }
+  //}
 }

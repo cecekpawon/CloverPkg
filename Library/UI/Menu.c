@@ -227,29 +227,29 @@ typedef struct {
 } OPT_MENU_OPTBIT_K;
 
 OPT_MENU_OPTBIT_K OPT_MENU_OPTBIT[] = {
-  { 0,  L"Verbose",       L"-v",          OPT_VERBOSE,        OSTYPE_OSX },
-  { 0,  L"Single User",   L"-s",          OPT_SINGLE_USER,    OSTYPE_OSX },
-  { 0,  L"Safe Mode",     L"-x",          OPT_SAFE,           OSTYPE_OSX },
-  { 0,  L"Quiet",         L"quiet",       OPT_QUIET,          OSTYPE_LIN },
-  { 0,  L"Splash",        L"splash",      OPT_SPLASH,         OSTYPE_LIN },
-  { 0,  L"Nomodeset",     L"nomodeset",   OPT_NOMODESET,      OSTYPE_LIN },
-  { 0,  L"Verbose",       L"-v",          OPT_VERBOSE,        OSTYPE_WIN },
-  { 0,  L"Single User",   L"-s",          OPT_SINGLE_USER,    OSTYPE_WIN },
-  { 0,  L"Hard Disk",     L"-h",          OPT_HDD,            OSTYPE_WIN },
-  { 0,  L"CD-ROM",        L"-c",          OPT_CDROM,          OSTYPE_WIN }
+  { 0,  L"Verbose",       L"-v",          OPT_VERBOSE,        OSTYPE_DARWIN },
+  { 0,  L"Single User",   L"-s",          OPT_SINGLE_USER,    OSTYPE_DARWIN },
+  { 0,  L"Safe Mode",     L"-x",          OPT_SAFE,           OSTYPE_DARWIN },
+  { 0,  L"Quiet",         L"quiet",       OPT_QUIET,          OSTYPE_LIN    },
+  { 0,  L"Splash",        L"splash",      OPT_SPLASH,         OSTYPE_LIN    },
+  { 0,  L"Nomodeset",     L"nomodeset",   OPT_NOMODESET,      OSTYPE_LIN    },
+  { 0,  L"Verbose",       L"-v",          OPT_VERBOSE,        OSTYPE_WIN    },
+  { 0,  L"Single User",   L"-s",          OPT_SINGLE_USER,    OSTYPE_WIN    },
+  { 0,  L"Hard Disk",     L"-h",          OPT_HDD,            OSTYPE_WIN    },
+  { 0,  L"CD-ROM",        L"-c",          OPT_CDROM,          OSTYPE_WIN    }
 };
 
 INTN    OptMenuOptBitNum = ARRAY_SIZE (OPT_MENU_OPTBIT);
 
 OPT_MENU_OPTBIT_K OPT_MENU_FLAGBIT[] = {
-  { 0,                      L"Hibernate wake",        NULL,   OSFLAG_HIBERNATED,            OSTYPE_OSX },
-  { 0,                      L"Without caches",        NULL,   OSFLAG_NOCACHES,              OSTYPE_OSX },
-  { 0,                      L"With injected kexts",   NULL,   OSFLAG_WITHKEXTS,             OSTYPE_OSX },
-  { 0,                      L"No SIP",                NULL,   OSFLAG_NOSIP,                 OSTYPE_OSX },
-  { 0,                      L"Debug Patches",         NULL,   OSFLAG_DBGPATCHES,            OSTYPE_OSX },
-  { mKextPatchesAllowed,    L"Allow Kext Patches",    NULL,   OSFLAG_ALLOW_KEXT_PATCHES,    OSTYPE_OSX },
-  { mKernelPatchesAllowed,  L"Allow Kernel Patches",  NULL,   OSFLAG_ALLOW_KERNEL_PATCHES,  OSTYPE_OSX },
-  { mBooterPatchesAllowed,  L"Allow Booter Patches",  NULL,   OSFLAG_ALLOW_BOOTER_PATCHES,  OSTYPE_OSX }
+  { 0,                      L"Hibernate wake",        NULL,   OSFLAG_HIBERNATED,            OSTYPE_DARWIN },
+  { 0,                      L"Without caches",        NULL,   OSFLAG_NOCACHES,              OSTYPE_DARWIN },
+  { 0,                      L"With injected kexts",   NULL,   OSFLAG_WITHKEXTS,             OSTYPE_DARWIN },
+  { 0,                      L"No SIP",                NULL,   OSFLAG_NOSIP,                 OSTYPE_DARWIN },
+  { 0,                      L"Debug Patches",         NULL,   OSFLAG_DBGPATCHES,            OSTYPE_DARWIN },
+  { mKextPatchesAllowed,    L"Allow Kext Patches",    NULL,   OSFLAG_ALLOW_KEXT_PATCHES,    OSTYPE_DARWIN },
+  { mKernelPatchesAllowed,  L"Allow Kernel Patches",  NULL,   OSFLAG_ALLOW_KERNEL_PATCHES,  OSTYPE_DARWIN },
+  { mBooterPatchesAllowed,  L"Allow Booter Patches",  NULL,   OSFLAG_ALLOW_BOOTER_PATCHES,  OSTYPE_DARWIN }
 };
 
 INTN    OptMenuFlagBitNum = ARRAY_SIZE (OPT_MENU_FLAGBIT);
@@ -706,8 +706,8 @@ DecodeOptions (
   INTN      i, OsType;
   BOOLEAN   State;
 
-  if (OSTYPE_IS_OSX_GLOB (Entry->LoaderType)) {
-    OsType = OSTYPE_OSX;
+  if (OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType)) {
+    OsType = OSTYPE_DARWIN;
   } else if (OSTYPE_IS_WINDOWS_GLOB (Entry->LoaderType)) {
     OsType = OSTYPE_WIN;
   } else if  (OSTYPE_IS_LINUX_GLOB (Entry->LoaderType)) {
@@ -877,8 +877,8 @@ AddOptionEntries (
 ) {
   INTN  i, OsType, FlagsOptCount = 0;
 
-  if (OSTYPE_IS_OSX_GLOB (SubEntry->LoaderType)) {
-    OsType = OSTYPE_OSX;
+  if (OSTYPE_IS_DARWIN_GLOB (SubEntry->LoaderType)) {
+    OsType = OSTYPE_DARWIN;
   } else if (OSTYPE_IS_WINDOWS_GLOB (SubEntry->LoaderType)) {
     OsType = OSTYPE_WIN;
   } else if  (OSTYPE_IS_LINUX_GLOB (SubEntry->LoaderType)) {
@@ -1503,7 +1503,7 @@ IdentifyRows (
   IN SCROLL_STATE       *State,
   IN REFIT_MENU_SCREEN  *Screen
 ) {
-  UINTN i;
+  INTN i;
 
   State->FinalRow0 = 0;
   State->InitialRow1 = State->MaxIndex;
@@ -1730,17 +1730,18 @@ RunGenericMenu (
           }
           break;
 
-        case SCAN_F8:
-          do {
-            CHAR16 *Str = PoolPrint (L"%s\n%s\n%s", L"ABC", L"123456", L"xy");
-            if (Str != NULL) {
-              AlertMessage (L"Sample message", Str);
-              FreePool (Str);
-            }
-          } while (0);
-          //this way screen is dirty
-          break;
         */
+        case SCAN_F8:
+          //do {
+          //  CHAR16 *Str = PoolPrint (L"%s\n%s\n%s", L"ABC", L"123456", L"xy");
+          //  if (Str != NULL) {
+          //    AlertMessage (L"Sample message", Str);
+          //    FreePool (Str);
+          //  }
+          //} while (0);
+          //this way screen is dirty
+          //hehe2 ();
+          break;
 
         case SCAN_F9:
           SetNextScreenMode (1);

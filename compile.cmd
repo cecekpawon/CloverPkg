@@ -31,7 +31,7 @@ set BUILD_OPTIONS=
 
 set "CLOVER_PATH=%WORKSPACE%\%CLOVER_BASEPATH%"
 set "CONF_PATH=%CLOVER_PATH%\Conf"
-set "CLOVER_BUILD_PATH=%WORKSPACE%\Build\CloverX64\RELEASE_%MYTOOLCHAIN%"
+set "CLOVER_BUILD_PATH=%WORKSPACE%\Build\Clover\RELEASE_%MYTOOLCHAIN%"
 set "F_VER_H=%CLOVER_PATH%\Version.h"
 set "F_REV_TXT=rev.txt"
 set "CLOVER_VERSION=2.3k"
@@ -97,7 +97,7 @@ if exist "%QEMU_EFI_PATH%" (
   for %%i in %DRV_LIST% do (
     copy /B /Y "%CLOVER_BUILD_PATH%\X64\%%i.efi" "%QEMU_EFI_PATH%\CLOVER\drivers">nul
   )
-  copy /B /Y "%CLOVER_BUILD_PATH%\X64\CLOVERX64.efi" "%QEMU_EFI_PATH%\BOOT\BOOTX64.efi">nul
+  copy /B /Y "%CLOVER_BUILD_PATH%\X64\Clover.efi" "%QEMU_EFI_PATH%\BOOT\BOOTX64.efi">nul
 )
 
 pause

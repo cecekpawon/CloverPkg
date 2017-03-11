@@ -228,6 +228,9 @@ StartEFILoadedImage (
     goto bailout;
   }
 
+  // re-open file handles
+  ReinitRefitLib();
+
 bailout_unload:
 
   // unload the image, we don't care if it works or not...
@@ -451,6 +454,13 @@ NullConOutOutputString (
   return EFI_SUCCESS;
 }
 
+/**
+  cc: @bs0d
+
+  Ozmosis FTW! They can log into datahub even after ExitBootServices.
+  Still cannot find the way http://pastebin.com/BbzMdpTV
+**/
+
 VOID
 EFIAPI
 ClosingEventAndLog (
@@ -461,7 +471,7 @@ ClosingEventAndLog (
 
   MsgLog ("Closing Event & Log\n");
 
-  if (OSTYPE_IS_OSX_GLOB (Entry->LoaderType)) {
+  if (OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType)) {
     if (DoHibernateWake) {
       // When doing hibernate wake, save to DataHub only up to initial size of log
       SavePreBootLog = FALSE;
@@ -499,7 +509,7 @@ ClosingEventAndLog (
 //
 
 BOOT_EFI_HEADER *
-ParseLoaderHeader (
+ParseBooterHeader (
   IN  VOID  *FileBuffer
 ) {
   EFI_IMAGE_SECTION_HEADER          *SectionHeader;
@@ -670,9 +680,13 @@ StartLoader (
     return; // no reason to continue if loading image failed
   }
 
-  ClearScreen (&BlackBackgroundPixel); //GrayBackgroundPixel
+#if BOOT_GRAY
+  ClearScreen (&GrayBackgroundPixel);
+#else
+  ClearScreen (&BlackBackgroundPixel);
+#endif
 
-  if (OSTYPE_IS_OSX_GLOB (Entry->LoaderType)) {
+  if (OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType)) {
     CHAR8   *BooterOSVersion = NULL;
 
     gSettings.BooterPatchesAllowed = OSFLAG_ISSET (Entry->Flags, OSFLAG_ALLOW_BOOTER_PATCHES);
@@ -686,7 +700,7 @@ StartLoader (
                   );
 
     if (!EFI_ERROR (Status)) {
-      BOOT_EFI_HEADER   *BootEfiHeader = ParseLoaderHeader (LoadedImage->ImageBase);
+      BOOT_EFI_HEADER   *BootEfiHeader = ParseBooterHeader (LoadedImage->ImageBase);
 
       if (BootEfiHeader) {
         // version in boot.efi appears as "Mac OS X 10.?"
@@ -725,7 +739,7 @@ StartLoader (
     // Correct OSVersion if it was not found
     // This should happen only for 10.7-10.9 OSTYPE_OSX_INSTALLER
     // For these cases, take OSVersion from loaded boot.efi image in memory
-    if (/* OSTYPE_IS_OSX_INSTALLER (Entry->LoaderType) || */ !Entry->OSVersion && BooterOSVersion) {
+    if (/* OSTYPE_IS_DARWIN_INSTALLER (Entry->LoaderType) || */ !Entry->OSVersion && BooterOSVersion) {
       UINTN   Len = AsciiStrLen (BooterOSVersion);
 
       Entry->OSVersion = AllocateCopyPool ((Len + 1), BooterOSVersion);
@@ -867,7 +881,7 @@ StartLoader (
   }
 
   if (gSettings.LastBootedVolume) {
-    SetStartupDiskVolume (Entry->Volume, OSTYPE_IS_OSX_GLOB (Entry->LoaderType) ? NULL : Entry->LoaderPath);
+    SetStartupDiskVolume (Entry->Volume, OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType) ? NULL : Entry->LoaderPath);
   } else if (gSettings.DefaultVolume != NULL) {
     // DefaultVolume specified in Config.plist or in Boot Option
     // we'll remove OSX Startup Disk vars which may be present if it is used
@@ -940,7 +954,7 @@ StartTool (
   );
 
   FinishExternalScreen ();
-  //ReinitSelfLib ();
+  //ReinitRefitLib ();
 }
 
 //
@@ -1557,7 +1571,7 @@ RefitMain (
   }
 
   // Now we have to reinit handles
-  Status = ReinitSelfLib ();
+  Status = ReinitRefitLib ();
 
   if (EFI_ERROR (Status)){
     //DebugLog (2, " %r", Status);
@@ -1778,7 +1792,6 @@ RefitMain (
       // We don't allow exiting the main menu with the Escape key.
       if (MenuExit == MENU_EXIT_ESCAPE) {
         break;   //refresh main menu
-        //continue;
       }
 
       switch (ChosenEntry->Tag) {
@@ -1835,17 +1848,20 @@ RefitMain (
           break;
       }
     } //MainLoopRunning
-
+/*
     UninitRefitLib ();
+*/
 
     if (!AfterTool) {
       BdsLibConnectAllEfi ();
     }
 
+/*
     if (ReinitDesktop) {
-      DBG ("ReinitSelfLib after theme change\n");
-      ReinitSelfLib ();
+      DBG ("ReinitRefitLib after theme change\n");
+      ReinitRefitLib ();
     }
+*/
   } while (ReinitDesktop);
 
   return EFI_SUCCESS;

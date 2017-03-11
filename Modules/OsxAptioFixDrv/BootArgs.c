@@ -67,8 +67,6 @@ BootArgsPrint (
 #endif
 }
 
-InternalBootArgs    gBootArgs;
-
 InternalBootArgs *
 EFIAPI
 GetBootArgs (
@@ -76,26 +74,26 @@ GetBootArgs (
 ) {
   BootArgs2   *BA2 = bootArgs;
 
-  ZeroMem (&gBootArgs, sizeof (gBootArgs));
+  ZeroMem (&gAptioBootArgs, sizeof (gAptioBootArgs));
 
   // Lion and up
-  gBootArgs.MemoryMap = &BA2->MemoryMap;
-  gBootArgs.MemoryMapSize = &BA2->MemoryMapSize;
-  gBootArgs.MemoryMapDescriptorSize = &BA2->MemoryMapDescriptorSize;
-  gBootArgs.MemoryMapDescriptorVersion = &BA2->MemoryMapDescriptorVersion;
+  gAptioBootArgs.MemoryMap = &BA2->MemoryMap;
+  gAptioBootArgs.MemoryMapSize = &BA2->MemoryMapSize;
+  gAptioBootArgs.MemoryMapDescriptorSize = &BA2->MemoryMapDescriptorSize;
+  gAptioBootArgs.MemoryMapDescriptorVersion = &BA2->MemoryMapDescriptorVersion;
 
-  gBootArgs.deviceTreeP = &BA2->deviceTreeP;
-  gBootArgs.deviceTreeLength = &BA2->deviceTreeLength;
+  gAptioBootArgs.deviceTreeP = &BA2->deviceTreeP;
+  gAptioBootArgs.deviceTreeLength = &BA2->deviceTreeLength;
 
-  gBootArgs.kaddr = &BA2->kaddr;
-  gBootArgs.ksize = &BA2->ksize;
+  gAptioBootArgs.kaddr = &BA2->kaddr;
+  gAptioBootArgs.ksize = &BA2->ksize;
 
-  gBootArgs.efiRuntimeServicesPageStart = &BA2->efiRuntimeServicesPageStart;
-  gBootArgs.efiRuntimeServicesPageCount = &BA2->efiRuntimeServicesPageCount;
-  gBootArgs.efiRuntimeServicesVirtualPageStart = &BA2->efiRuntimeServicesVirtualPageStart;
-  gBootArgs.efiSystemTable = &BA2->efiSystemTable;
+  gAptioBootArgs.efiRuntimeServicesPageStart = &BA2->efiRuntimeServicesPageStart;
+  gAptioBootArgs.efiRuntimeServicesPageCount = &BA2->efiRuntimeServicesPageCount;
+  gAptioBootArgs.efiRuntimeServicesVirtualPageStart = &BA2->efiRuntimeServicesVirtualPageStart;
+  gAptioBootArgs.efiSystemTable = &BA2->efiSystemTable;
 
-  return &gBootArgs;
+  return &gAptioBootArgs;
 }
 
 VOID
@@ -104,9 +102,9 @@ BootArgsFix (
   InternalBootArgs        *BA,
   EFI_PHYSICAL_ADDRESS    gRellocBase
 ) {
-  *BA->MemoryMap = *BA->MemoryMap - (UINT32)gRellocBase;
-  *BA->deviceTreeP = *BA->deviceTreeP - (UINT32)gRellocBase;
-  *BA->kaddr = *BA->kaddr - (UINT32)gRellocBase;
+  *BA->MemoryMap -= (UINT32)gRellocBase;
+  *BA->deviceTreeP -= (UINT32)gRellocBase;
+  *BA->kaddr -= (UINT32)gRellocBase;
 }
 
 #if 0

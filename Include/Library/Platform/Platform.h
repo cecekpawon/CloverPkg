@@ -8,8 +8,6 @@ Headers collection for procedures
 #include "Version.h"
 
 #include <PiDxe.h>
-//#include <Base.h>
-//#include <Uefi.h>
 #include <FrameworkDxe.h>
 
 #include <Guid/Acpi.h>
@@ -67,9 +65,6 @@ Headers collection for procedures
 
 #include <Library/Platform/DeviceInject.h>
 #include <Library/Platform/KextInject.h>
-
-//#include <Library/Platform/Types.h>
-//#include <Library/Platform/Macros.h>
 
 #define ROUND_PAGE(x)             ((((unsigned)(x)) + EFI_PAGE_SIZE - 1) & ~(EFI_PAGE_SIZE - 1))
 
@@ -170,6 +165,8 @@ Headers collection for procedures
 #define OSX_PATH_SLE        L"\\System\\Library\\Extensions"
 
 #define DSDT_NAME           L"DSDT.aml"
+#define DSDT_PATCHED_NAME   L"DSDT-%x.aml"
+#define DSDT_DUMP_LOG       L"DumpLog.txt"
 
 #ifndef DEBUG_ALL
 #define MsgLog(...)  DebugLog (1, __VA_ARGS__)
@@ -200,8 +197,13 @@ Headers collection for procedures
   #define CLOVER_BUILDINFOS_STR "Unknown"
 #endif
 
-#define DEF_NOSIP_CSR_ACTIVE_CONFIG   (CSR_ALLOW_APPLE_INTERNAL + CSR_ALLOW_UNRESTRICTED_NVRAM + CSR_ALLOW_DEVICE_CONFIGURATION + CSR_ALLOW_ANY_RECOVERY_OS)
-#define DEF_NOSIP_BOOTER_CONFIG       (kBootArgsFlagCSRActiveConfig + kBootArgsFlagCSRConfigMode + kBootArgsFlagCSRBoot)
+#define DEF_NOSIP_CSR_ACTIVE_CONFIG     (CSR_ALLOW_APPLE_INTERNAL + CSR_ALLOW_UNRESTRICTED_NVRAM + CSR_ALLOW_DEVICE_CONFIGURATION + CSR_ALLOW_ANY_RECOVERY_OS)
+#define DEF_NOSIP_BOOTER_CONFIG         (kBootArgsFlagCSRActiveConfig + kBootArgsFlagCSRConfigMode + kBootArgsFlagCSRBoot)
+
+#define DEF_DISK_TEMPLATE               L"$label $platform $version $build $path"
+#define DEF_DARWIN_DISK_TEMPLATE        L"$label $platform $version $build $path"
+#define DEF_DARWIN_RECOVERY_TEMPLATE    L"$label $platform $version $build $path"
+#define DEF_DARWIN_INSTALLER_TEMPLATE   L"$label $platform $version $build $path"
 
 /* XML Tags */
 typedef enum {
@@ -224,10 +226,8 @@ typedef enum {
 #define kXMLTagInteger    "integer"
 #define kXMLTagData       "data"
 #define kXMLTagDate       "date"
-#define kXMLTagFalse      "false/"
-#define kXMLTagTrue       "true/"
-#define kXMLTagFalse2     "false /"
-#define kXMLTagTrue2      "true /"
+#define kXMLTagFalse      "false"
+#define kXMLTagTrue       "true"
 #define kXMLTagArray      "array"
 #define kXMLTagReference  "reference"
 #define kXMLTagID         "ID="
@@ -286,8 +286,7 @@ typedef enum {
   kBootercfg,
 } NVRAM_KEY;
 
-typedef struct NVRAM_DATA
-{
+typedef struct NVRAM_DATA {
   NVRAM_KEY   Key;
   CHAR16      *VariableName;
   EFI_GUID    *Guid;
@@ -726,7 +725,6 @@ typedef struct OPER_REGION {
   struct  OPER_REGION   *next;
 } OPER_REGION;
 
-//#pragma pack(push)
 #pragma pack(1)
 
 typedef struct {
@@ -739,7 +737,6 @@ typedef struct {
   UINT64                        Entry;
 } XSDT_TABLE;
 
-//#pragma pack(pop)
 #pragma pack()
 
 //devices
@@ -1153,8 +1150,11 @@ typedef struct {
 
   UINT32                    OptionsBits;
   UINT32                    FlagsBits;
-} SETTINGS_DATA;
 
+  CHAR16                    DarwinDiskTemplate[255];
+  CHAR16                    DarwinRecoveryDiskTemplate[255];
+  CHAR16                    DarwinInstallerDiskTemplate[255];
+} SETTINGS_DATA;
 
 
 extern REFIT_MENU_ENTRY                 MenuEntryReturn;
@@ -1222,7 +1222,7 @@ extern EFI_EVENT                        mSimpleFileSystemChangeEvent;
 extern EFI_EVENT                        ExitBootServiceEvent;
 extern UINTN                            gEvent;
 
-extern UINT32                           devices_number;
+extern UINT32                           gDevicesNumber;
 extern INTN                             OldChosenTheme;
 extern INTN                             OldChosenConfig;
 
@@ -1363,12 +1363,6 @@ IsValidGuidAsciiString (
 );
 
 EFI_STATUS
-StrToGuid (
-  IN   CHAR16     *Str,
-  OUT  EFI_GUID   *Guid
-);
-
-EFI_STATUS
 StrToGuidLE (
   IN  CHAR16      *Str,
   OUT EFI_GUID    *Guid
@@ -1416,9 +1410,9 @@ GetDefaultModel ();
 UINT16
 GetAdvancedCpuType ();
 
-CHAR8 *
-GetOSVersion (
-  IN  LOADER_ENTRY  *Entry
+VOID
+GetDarwinVersion (
+  IN  LOADER_ENTRY  **Entry
 );
 
 CHAR16 *
@@ -1462,10 +1456,10 @@ GetOSVersionKextsDir (
   CHAR8   *OSVersion
 );
 
-EFI_STATUS
-LoadKexts (
-  IN  LOADER_ENTRY *Entry
-);
+//EFI_STATUS
+//LoadKexts (
+//  IN  LOADER_ENTRY *Entry
+//);
 
 VOID
 ParseLoadOptions (
@@ -1753,8 +1747,30 @@ FixOwnership ();
 
 UINT8 *
 Base64Decode (
-  IN   CHAR8    *EncodedData,
-  OUT  UINTN    *DecodedSize
+  IN  CHAR8   *Data,
+  OUT UINTN   *Size
+);
+
+UINT8 *
+Base64Encode (
+  IN  CHAR8   *Data,
+  OUT UINTN   *Size
+);
+
+EFI_STATUS
+LzvnDecode (
+        UINT8   **Dst,
+        UINTN   *DstSize,
+  CONST UINT8   *Src,
+        UINTN   SrcSize
+);
+
+EFI_STATUS
+LzvnEncode (
+        UINT8   **Dst,
+        UINTN   *DstSize,
+  CONST UINT8   *Src,
+        UINTN   SrcSize
 );
 
 UINT64
@@ -1784,9 +1800,9 @@ RemoveLoadOption (
   IN CHAR16   *LoadOption
 );
 CHAR16  *ToggleLoadOptions (
-  BOOLEAN     State,
-  IN CHAR16   *LoadOptions,
-  IN CHAR16   *LoadOption
+  IN  BOOLEAN   State,
+  IN  CHAR16    *LoadOptions,
+  IN  CHAR16    *LoadOption
 );
 
 BOOLEAN
@@ -1854,5 +1870,11 @@ VOID
 DeallocMatchOSes (
   MatchOSes   *S
 );
+
+VOID
+hehe ();
+
+VOID
+hehe2 ();
 
 #endif

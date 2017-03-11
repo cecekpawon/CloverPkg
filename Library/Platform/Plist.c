@@ -59,7 +59,7 @@ CHAR8       *buffer_start = NULL;
 sREF        *ref_strings = NULL, *ref_integer = NULL;
 
 // intended to look for two versions of the tag; now just for sizeof
-#define MATCHTAG(parsedTag, keyTag) (!AsciiStrnCmp (parsedTag, keyTag, sizeof (keyTag) - 1))
+#define MATCHTAG(parsedTag, keyTag) (!AsciiStrnCmp (parsedTag, keyTag, AsciiStrLen (keyTag)))
 
 #if DEBUG_PLIST
 // for debugging parsing failures
@@ -67,6 +67,7 @@ INT32   gTagsParsed;
 CHAR8   *gLastTag;
 #endif
 
+#if 0
 /* Function for basic XML character entities parsing */
 typedef struct XMLEntity {
   CONST CHAR8   *name;
@@ -81,24 +82,6 @@ CONST XMLEntity ents[] = {
   _e ("lt;",  '<'), _e ("gt;",  '>'),
   _e ("amp;", '&')
 };
-
-VOID
-DbgOnce (
-  CHAR8   *lbl,
-  CHAR8   *str
-) {
-  INT32   i = 10;
-  CHAR8   *subbuff = AllocateZeroPool (i);
-
-  if (dbgCount) {
-    return;
-  }
-
-  CopyMem ( subbuff, str, i - 1 );
-  subbuff[i - 1] = '\0';
-  MsgLog ("#----- %a: '%a'\n", lbl, subbuff);
-  FreePool (subbuff);
-}
 
 CHAR8 *
 XMLDecode (
@@ -152,6 +135,25 @@ XMLDecode (
   }
 
   return out;
+}
+#endif
+
+VOID
+DbgOnce (
+  CHAR8   *lbl,
+  CHAR8   *str
+) {
+  INT32   i = 10;
+  CHAR8   *subbuff = AllocateZeroPool (i);
+
+  if (dbgCount) {
+    return;
+  }
+
+  CopyMem ( subbuff, str, i - 1 );
+  subbuff[i - 1] = '\0';
+  MsgLog ("#----- %a: '%a'\n", lbl, subbuff);
+  FreePool (subbuff);
 }
 
 INTN
@@ -780,7 +782,6 @@ ParseNextTag (
   UINTN     tLen;
   CHAR8     *tagName;
   //TagPtr  refTag;
-  BOOLEAN   isTagFalse, isTagTrue;
 
   length = GetNextTag (buffer, &tagName, 0, &empty);
   if (length == -1) {
@@ -796,15 +797,19 @@ ParseNextTag (
 
   tLen = AsciiStrLen (tagName);
 
-  isTagFalse =  (!AsciiStrCmp (tagName, kXMLTagFalse) || !AsciiStrCmp (tagName, kXMLTagFalse2));
-  isTagTrue =   (!AsciiStrCmp (tagName, kXMLTagTrue)  || !AsciiStrCmp (tagName, kXMLTagTrue2));
+  if (MATCHTAG (tagName, kXMLTagFalse)) {
+    length = ParseTagBoolean (buffer + pos, tag, kTagTypeFalse);
+    goto Finish;
+
+  } else if (MATCHTAG (tagName, kXMLTagTrue)) {
+    length = ParseTagBoolean (buffer + pos, tag, kTagTypeTrue);
+    goto Finish;
+  }
 
 #ifndef USE_REF
-  if (
-    tLen && (tagName[tLen - 1] == '/') &&
-    !isTagFalse && !isTagTrue
-  ) {
+  if (tLen && (tagName[tLen - 1] == '/')) {
     //MsgLog ("tagName: %a\n", tagName);
+    //*tag = 0;
     return pos;
   }
 #endif
@@ -917,18 +922,14 @@ ParseNextTag (
     }
 #endif
 
-  } else if (!AsciiStrCmp (tagName, kXMLTagData)) {
+  } else if (MATCHTAG (tagName, kXMLTagData)) {
     length = ParseTagData (buffer + pos, tag);
 
+/*
   } else if (!AsciiStrCmp (tagName, kXMLTagDate)) {
     length = ParseTagDate (buffer + pos, tag);
 
-  } else if (isTagFalse/*!AsciiStrCmp (tagName, kXMLTagFalse)*/) {
-    length = ParseTagBoolean (buffer + pos, tag, kTagTypeFalse);
-
-  } else if (isTagTrue/*!AsciiStrCmp (tagName, kXMLTagTrue)*/) {
-    length = ParseTagBoolean (buffer + pos, tag, kTagTypeTrue);
-
+*/
   } else if (MATCHTAG (tagName, kXMLTagArray)) {
     length = ParseTagList (buffer + pos, tag, kTagTypeArray, empty);
 
@@ -943,6 +944,8 @@ ParseNextTag (
       *tag = (TagPtr) - 1;  // we're * not * returning a tag
     }
   }
+
+  Finish:
 
   if (length == -1) {
     return -1;

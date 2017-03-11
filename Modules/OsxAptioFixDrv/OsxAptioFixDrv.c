@@ -94,6 +94,8 @@ GetMemoryMapKey (
   return Status;
 }
 
+#if APTIOFIX_VER == 1
+
 /** Helper function that calculates number of RT and MMIO pages from mem map. */
 EFI_STATUS
 GetNumberOfRTPages (
@@ -133,7 +135,6 @@ GetNumberOfRTPages (
   return Status;
 }
 
-#if APTIOFIX_VER == 1
 /** Calculate the size of reloc block.
   * gRelocSizePages = KERNEL_BLOCK_NO_RT_SIZE_PAGES + RT&MMIO pages
   */
@@ -196,6 +197,7 @@ EFI_STATUS
 FreeRelocBlock () {
   return gBS->FreePages (gRelocBase, gRelocSizePages);
 }
+
 #endif
 
 /** gBS->HandleProtocol override:
@@ -373,7 +375,7 @@ MOExitBootServices (
   IOHibernateImageHeader  *ImageHeader = NULL;
 
   // we need hibernate image address for wake
-  if (gHibernateWake && gHibernateImageAddress == 0) {
+  if (gHibernateWake && (gHibernateImageAddress == 0)) {
     Print (L"OsxAptioFix error: Doing hibernate wake, but did not find hibernate image address.");
     Print (L"... waiting 5 secs ...\n");
     gBS->Stall (5 * 1000000);
@@ -473,7 +475,7 @@ OvrSetVirtualAddressMap (
     DescriptorVersion,
     VirtualMap,
     NULL,
-    gHibernateWake ? FALSE : TRUE
+    !gHibernateWake
   );
 
   return Status;

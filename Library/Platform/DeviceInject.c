@@ -21,11 +21,11 @@
 
 #define DBG(...) DebugLog (DEBUG_INJECT, __VA_ARGS__)
 
-DevPropString   *string = NULL;
-UINT8           *stringdata    = NULL;
-UINT32          stringlength   = 0;
-UINT32          devices_number = 1;
-UINT32          builtin_set    = 0;
+DevPropString   *gDevPropString = NULL;
+//UINT8           *stringdata    = NULL;
+UINT32          gDevPropStringLength   = 0;
+UINT32          gDevicesNumber = 1;
+UINT32          BuiltinSet    = 0;
 UINT32          mPropSize = 0;
 UINT8           *mProperties = NULL;
 CHAR8           *gDeviceProperties = NULL;
@@ -153,7 +153,7 @@ GetScreenInfo (
   *baseAddress = (UINT64)mGraphicsOutput->Mode->FrameBufferBase;
   *w = (UINT32)mGraphicsOutput->Mode->Info->HorizontalResolution;
   *h = (UINT32)mGraphicsOutput->Mode->Info->VerticalResolution;
-  *colorDepth = 32;
+  *colorDepth = UGAColorDepth /* 32 */;
   *bpr = (UINT32)(mGraphicsOutput->Mode->Info->PixelsPerScanLine * 32) >> 3;
 
   //  Print (L"  Screen info: FBsize=%lx FBaddr=%lx w=%d h=%d\n",
@@ -184,15 +184,16 @@ SetPrivateVarProto () {
 DevPropString *
 DevpropCreateString () {
   //DBG ("Begin creating strings for devices:\n");
-  string = (DevPropString *)AllocateZeroPool (sizeof (DevPropString));
+  gDevPropString = (DevPropString *)AllocateZeroPool (sizeof (DevPropString));
 
-  if (string == NULL) {
+  if (gDevPropString == NULL) {
     return NULL;
   }
 
-  string->length = 12;
-  string->WHAT2 = 0x01000000;
-  return string;
+  gDevPropString->length = 12;
+  gDevPropString->WHAT2 = 0x01000000;
+
+  return gDevPropString;
 }
 
 CHAR8 *
@@ -200,8 +201,8 @@ GetPciDevPath (
   pci_dt_t    *PciDt
 ) {
   UINTN                       Len;
-  CHAR8                       *tmp;
-  CHAR16                      *devpathstr = NULL;
+  CHAR8                       *Tmp;
+  CHAR16                      *DevPathStr = NULL;
   EFI_DEVICE_PATH_PROTOCOL    *DevicePath = NULL;
 
   //DBG ("GetPciDevPath");
@@ -210,24 +211,25 @@ GetPciDevPath (
     return NULL;
   }
 
-  devpathstr = FileDevicePathToStr (DevicePath);
-  Len = (StrLen (devpathstr) + 1) * sizeof (CHAR16);
-  tmp = AllocateZeroPool (Len);
-  UnicodeStrToAsciiStrS (devpathstr, tmp, Len);
+  DevPathStr = FileDevicePathToStr (DevicePath);
+  Len = (StrLen (DevPathStr) + 1) * sizeof (CHAR16);
+  Tmp = AllocateZeroPool (Len);
+  UnicodeStrToAsciiStrS (DevPathStr, Tmp, Len);
 
-  return tmp;
+  return Tmp;
 }
 
 UINT32
 PciConfigRead32 (
   pci_dt_t    *PciDt,
-  UINT8       reg
+  UINT8       Reg
 ) {
-  //  DBG ("PciConfigRead32\n");
   EFI_STATUS            Status;
   EFI_PCI_IO_PROTOCOL   *PciIo;
   PCI_TYPE00            Pci;
-  UINT32                res;
+  UINT32                Res;
+
+  //  DBG ("PciConfigRead32\n");
 
   Status = gBS->OpenProtocol (
                   PciDt->DeviceHandle,
@@ -259,9 +261,9 @@ PciConfigRead32 (
   Status = PciIo->Pci.Read (
                         PciIo,
                         EfiPciIoWidthUint32,
-                        (UINT64)(reg & ~3),
+                        (UINT64)(Reg & ~3),
                         1,
-                        &res
+                        &Res
                       );
 
   if (EFI_ERROR (Status)) {
@@ -269,7 +271,7 @@ PciConfigRead32 (
     return 0;
   }
 
-  return res;
+  return Res;
 }
 
 //dmazar: replaced by DevpropAddDevicePci
@@ -280,7 +282,7 @@ DevpropAddDevicePci (
   pci_dt_t        *PciDt
 ) {
   EFI_DEVICE_PATH_PROTOCOL    *DevicePath;
-  DevPropDevice               *device;
+  DevPropDevice               *Device;
   UINT32                      NumPaths;
 
   if ((StringBuf == NULL) || (PciDt == NULL)) {
@@ -294,29 +296,29 @@ DevpropAddDevicePci (
     return NULL;
   }
 
-  device = AllocateZeroPool (sizeof (DevPropDevice));
-  if (!device) {
+  Device = AllocateZeroPool (sizeof (DevPropDevice));
+  if (!Device) {
     return NULL;
   }
 
-  device->numentries = 0x00;
+  Device->numentries = 0x00;
 
   //
   // check and copy ACPI_DEVICE_PATH
   //
   if ((DevicePath->Type == ACPI_DEVICE_PATH) && (DevicePath->SubType == ACPI_DP)) {
-    //CopyMem (&device->acpi_dev_path, DevicePath, sizeof (struct ACPIDevPath));
-    device->acpi_dev_path.length = 0x0c;
-    device->acpi_dev_path.type = 0x02;
-    device->acpi_dev_path.subtype = 0x01;
-    device->acpi_dev_path._HID = 0x0a0341d0;
-    //device->acpi_dev_path._UID = gSettings.PCIRootUID;
-    device->acpi_dev_path._UID = (((ACPI_HID_DEVICE_PATH *)DevicePath)->UID) ? 0x80 : 0;
+    //CopyMem (&Device->acpi_dev_path, DevicePath, sizeof (struct ACPIDevPath));
+    Device->acpi_dev_path.length = 0x0c;
+    Device->acpi_dev_path.type = 0x02;
+    Device->acpi_dev_path.subtype = 0x01;
+    Device->acpi_dev_path._HID = 0x0a0341d0;
+    //Device->acpi_dev_path._UID = gSettings.PCIRootUID;
+    Device->acpi_dev_path._UID = (((ACPI_HID_DEVICE_PATH *)DevicePath)->UID) ? 0x80 : 0;
 
-    //DBG ("ACPI HID=%x, UID=%x ", device->acpi_dev_path._HID, device->acpi_dev_path._UID);
+    //DBG ("ACPI HID=%x, UID=%x ", Device->acpi_dev_path._HID, Device->acpi_dev_path._UID);
   } else {
     //DBG ("not ACPI\n");
-    FreePool (device);
+    FreePool (Device);
     return NULL;
   }
 
@@ -326,8 +328,8 @@ DevpropAddDevicePci (
   for (NumPaths = 0; NumPaths < MAX_PCI_DEV_PATHS; NumPaths++) {
     DevicePath = NextDevicePathNode (DevicePath);
     if ((DevicePath->Type == HARDWARE_DEVICE_PATH) && (DevicePath->SubType == HW_PCI_DP)) {
-      CopyMem (&device->pci_dev_path[NumPaths], DevicePath, sizeof (struct PCIDevPath));
-      //DBG (" - PCI[%02d]: f=%x, d=%x ", NumPaths, device->pci_dev_path[NumPaths].function, device->pci_dev_path[NumPaths].device);
+      CopyMem (&Device->pci_dev_path[NumPaths], DevicePath, sizeof (struct PCIDevPath));
+      //DBG (" - PCI[%02d]: f=%x, d=%x ", NumPaths, Device->pci_dev_path[NumPaths].function, Device->pci_dev_path[NumPaths].device);
     } else {
       // not PCI path - break the loop
       //DBG ("not PCI ");
@@ -337,106 +339,106 @@ DevpropAddDevicePci (
 
   if (NumPaths == 0) {
     DBG ("NumPaths == 0 \n");
-    FreePool (device);
+    FreePool (Device);
     return NULL;
   }
 
   //  DBG ("-> NumPaths=%d\n", NumPaths);
-  device->num_pci_devpaths = (UINT8)NumPaths;
-  device->length = (UINT32)(24U + (6U * NumPaths));
+  Device->num_pci_devpaths = (UINT8)NumPaths;
+  Device->length = (UINT32)(24U + (6U * NumPaths));
 
-  device->path_end.length = 0x04;
-  device->path_end.type = 0x7f;
-  device->path_end.subtype = 0xff;
+  Device->path_end.length = 0x04;
+  Device->path_end.type = 0x7f;
+  Device->path_end.subtype = 0xff;
 
-  device->string = StringBuf;
-  device->data = NULL;
-  StringBuf->length += device->length;
+  Device->string = StringBuf;
+  Device->data = NULL;
+  StringBuf->length += Device->length;
 
   if (!StringBuf->entries) {
-    StringBuf->entries = (DevPropDevice **)AllocateZeroPool (MAX_NUM_DEVICES * sizeof (device));
+    StringBuf->entries = (DevPropDevice **)AllocateZeroPool (MAX_NUM_DEVICES * sizeof (Device));
     if (!StringBuf->entries) {
-      FreePool (device);
+      FreePool (Device);
       return NULL;
     }
   }
 
-  StringBuf->entries[StringBuf->numentries++] = device;
+  StringBuf->entries[StringBuf->numentries++] = Device;
 
-  return device;
+  return Device;
 }
 
 BOOLEAN
 DevpropAddValue (
-  DevPropDevice   *device,
-  CHAR8           *nm,
-  UINT8           *vl,
-  UINTN           len
+  DevPropDevice   *Device,
+  CHAR8           *Nm,
+  UINT8           *Vl,
+  UINTN           Len
 ) {
-  UINT32  offset, off, length, *datalength;
-  UINT8   *data, *newdata;
+  UINT32  Offset, Off, Length, *DataLength;
+  UINT8   *Data, *Newdata;
   UINTN   i, l;
 
-  if (!device || !nm || !vl /* || !len */) { //rehabman: allow zero length data
+  if (!Device || !Nm || !Vl /* || !Len */) { //rehabman: allow zero length data
     return FALSE;
   }
 
   /*
-    DBG ("DevpropAddValue %a=", nm);
-    for (i=0; i<len; i++) {
-      DBG ("%02X", vl[i]);
+    DBG ("DevpropAddValue %a=", Nm);
+    for (i=0; i<Len; i++) {
+      DBG ("%02X", Vl[i]);
     }
     DBG ("\n");
   */
 
-  l = AsciiStrLen (nm);
-  length = (UINT32)((l * 2) + len + (2 * sizeof (UINT32)) + 2);
-  data = (UINT8 *)AllocateZeroPool (length);
-  if (!data) {
+  l = AsciiStrLen (Nm);
+  Length = (UINT32)((l * 2) + Len + (2 * sizeof (UINT32)) + 2);
+  Data = (UINT8 *)AllocateZeroPool (Length);
+  if (!Data) {
     return FALSE;
   }
 
-  off = 0;
+  Off = 0;
 
-  data[off+1] = (UINT8)(((l * 2) + 6) >> 8);
-  data[off] = ((l * 2) + 6) & 0x00FF;
+  Data[Off+1] = (UINT8)(((l * 2) + 6) >> 8);
+  Data[Off] = ((l * 2) + 6) & 0x00FF;
 
-  off += 4;
+  Off += 4;
 
-  for (i = 0 ; i < l ; i++, off += 2) {
-    data[off] = *nm++;
+  for (i = 0 ; i < l ; i++, Off += 2) {
+    Data[Off] = *Nm++;
   }
 
-  off += 2;
-  l = len;
-  datalength = (UINT32 *)&data[off];
-  *datalength = (UINT32)(l + 4);
-  off += 4;
+  Off += 2;
+  l = Len;
+  DataLength = (UINT32 *)&Data[Off];
+  *DataLength = (UINT32)(l + 4);
+  Off += 4;
 
-  for (i = 0 ; i < l ; i++, off++) {
-    data[off] = *vl++;
+  for (i = 0 ; i < l ; i++, Off++) {
+    Data[Off] = *Vl++;
   }
 
-  offset = device->length - (24 + (6 * device->num_pci_devpaths));
+  Offset = Device->length - (24 + (6 * Device->num_pci_devpaths));
 
-  newdata = (UINT8 *)AllocateZeroPool (length + offset);
+  Newdata = (UINT8 *)AllocateZeroPool (Length + Offset);
 
-  if (!newdata) {
+  if (!Newdata) {
     return FALSE;
   }
 
-  if ((device->data) && (offset > 1)) {
-    CopyMem ((VOID *)newdata, (VOID *)device->data, offset);
+  if ((Device->data) && (Offset > 1)) {
+    CopyMem ((VOID *)Newdata, (VOID *)Device->data, Offset);
   }
 
-  CopyMem ((VOID *)(newdata + offset), (VOID *)data, length);
+  CopyMem ((VOID *)(Newdata + Offset), (VOID *)Data, Length);
 
-  device->length += length;
-  device->string->length += length;
-  device->numentries++;
-  device->data = newdata;
+  Device->length += Length;
+  Device->string->length += Length;
+  Device->numentries++;
+  Device->data = Newdata;
 
-  FreePool (data);
+  FreePool (Data);
 
   return TRUE;
 }
@@ -445,71 +447,71 @@ CHAR8 *
 DevpropGenerateString (
   DevPropString     *StringBuf
 ) {
-  UINTN   len = StringBuf->length * 2;
+  UINTN   Len = StringBuf->length * 2;
   INT32   i = 0;
   UINT32  x = 0;
-  CHAR8   *buffer = (CHAR8 *)AllocatePool (len + 1), *ptr = buffer;
+  CHAR8   *Buffer = (CHAR8 *)AllocatePool (Len + 1), *Ptr = Buffer;
 
   //DBG ("DevpropGenerateString\n");
-  if (!buffer) {
+  if (!Buffer) {
     return NULL;
   }
 
   AsciiSPrint (
-    buffer, len, "%08x%08x%04x%04x", SwapBytes32 (StringBuf->length), StringBuf->WHAT2,
+    Buffer, Len, "%08x%08x%04x%04x", SwapBytes32 (StringBuf->length), StringBuf->WHAT2,
     SwapBytes16 (StringBuf->numentries), StringBuf->WHAT3
   );
 
-  buffer += 24;
+  Buffer += 24;
 
   while (i < StringBuf->numentries) {
-    UINT8   *dataptr = StringBuf->entries[i]->data;
+    UINT8   *DataPtr = StringBuf->entries[i]->data;
 
     AsciiSPrint (
-      buffer, len, "%08x%04x%04x", SwapBytes32 (StringBuf->entries[i]->length),
+      Buffer, Len, "%08x%04x%04x", SwapBytes32 (StringBuf->entries[i]->length),
       SwapBytes16 (StringBuf->entries[i]->numentries), StringBuf->entries[i]->WHAT2
     ); //FIXME: wrong buffer sizes!
 
-    buffer += 16;
+    Buffer += 16;
 
     AsciiSPrint (
-      buffer, len, "%02x%02x%04x%08x%08x", StringBuf->entries[i]->acpi_dev_path.type,
+      Buffer, Len, "%02x%02x%04x%08x%08x", StringBuf->entries[i]->acpi_dev_path.type,
       StringBuf->entries[i]->acpi_dev_path.subtype,
       SwapBytes16 (StringBuf->entries[i]->acpi_dev_path.length),
       SwapBytes32 (StringBuf->entries[i]->acpi_dev_path._HID),
       SwapBytes32 (StringBuf->entries[i]->acpi_dev_path._UID)
     );
 
-    buffer += 24;
+    Buffer += 24;
 
     for (x = 0; x < StringBuf->entries[i]->num_pci_devpaths; x++) {
-      AsciiSPrint (buffer, len, "%02x%02x%04x%02x%02x", StringBuf->entries[i]->pci_dev_path[x].type,
+      AsciiSPrint (Buffer, Len, "%02x%02x%04x%02x%02x", StringBuf->entries[i]->pci_dev_path[x].type,
         StringBuf->entries[i]->pci_dev_path[x].subtype,
         SwapBytes16 (StringBuf->entries[i]->pci_dev_path[x].length),
         StringBuf->entries[i]->pci_dev_path[x].function,
         StringBuf->entries[i]->pci_dev_path[x].device
       );
 
-      buffer += 12;
+      Buffer += 12;
     }
 
     AsciiSPrint (
-      buffer, len, "%02x%02x%04x", StringBuf->entries[i]->path_end.type,
+      Buffer, Len, "%02x%02x%04x", StringBuf->entries[i]->path_end.type,
       StringBuf->entries[i]->path_end.subtype,
       SwapBytes16 (StringBuf->entries[i]->path_end.length)
     );
 
-    buffer += 8;
+    Buffer += 8;
 
     for (x = 0; x < (StringBuf->entries[i]->length) - (24 + (6 * StringBuf->entries[i]->num_pci_devpaths)); x++) {
-      AsciiSPrint (buffer, len, "%02x", *dataptr++);
-      buffer += 2;
+      AsciiSPrint (Buffer, Len, "%02x", *DataPtr++);
+      Buffer += 2;
     }
 
     i++;
   }
 
-  return ptr;
+  return Ptr;
 }
 
 VOID
@@ -538,30 +540,30 @@ DevpropFreeString (
 // Ethernet built-in device injection
 BOOLEAN
 SetupEthernetDevprop (
-  pci_dt_t    *eth_dev
+  pci_dt_t    *EthDev
 ) {
-  DevPropDevice   *device;
-  UINT8           builtin = 0x0;
+  DevPropDevice   *Device;
+  UINT8           Builtin = 0x0;
   BOOLEAN         Injected = FALSE;
   INT32           i;
-  CHAR8           compatible[64];
+  CHAR8           Compatible[64];
 
-  if (!string) {
-    string = DevpropCreateString ();
+  if (!gDevPropString) {
+    gDevPropString = DevpropCreateString ();
   }
 
-  device = DevpropAddDevicePci (string, eth_dev);
+  Device = DevpropAddDevicePci (gDevPropString, EthDev);
 
-  if (!device) {
+  if (!Device) {
     MsgLog (" - Unknown, continue\n");
     return FALSE;
   }
 
-  MsgLog ("LAN Controller [%04x:%04x]\n", eth_dev->vendor_id, eth_dev->device_id);
+  MsgLog ("LAN Controller [%04x:%04x]\n", EthDev->vendor_id, EthDev->device_id);
 
-  if ((eth_dev->vendor_id != 0x168c) && (builtin_set == 0)) {
-    builtin_set = 1;
-    builtin = 0x01;
+  if ((EthDev->vendor_id != 0x168c) && (BuiltinSet == 0)) {
+    BuiltinSet = 1;
+    Builtin = 0x01;
   }
 
   if (gSettings.NrAddProperties != 0xFFFE) {
@@ -573,7 +575,7 @@ SetupEthernetDevprop (
       Injected = TRUE;
 
       DevpropAddValue (
-        device,
+        Device,
         gSettings.AddProperties[i].Key,
         (UINT8 *)gSettings.AddProperties[i].Value,
         gSettings.AddProperties[i].ValueLen
@@ -586,24 +588,24 @@ SetupEthernetDevprop (
     //return TRUE;
   }
 
-  DBG (" - Setting dev.prop built-in=0x%x\n", builtin);
+  DBG (" - Setting dev.prop built-in=0x%x\n", Builtin);
 
-  DevpropAddValue (device, "device_type", (UINT8 *)"Ethernet", 9);
+  DevpropAddValue (Device, "device_type", (UINT8 *)"Ethernet", 9);
 
   if (gSettings.FakeLAN) {
     UINT32    FakeID = gSettings.FakeLAN >> 16;
-    UINTN     Len = ARRAY_SIZE (compatible);
+    UINTN     Len = ARRAY_SIZE (Compatible);
 
-    DevpropAddValue (device, "device-id", (UINT8 *)&FakeID, 4);
-    AsciiSPrint (compatible, Len, "pci%x,%x", (gSettings.FakeLAN & 0xFFFF), FakeID);
-    AsciiStrCpyS (compatible, Len, AsciiStrToLower (compatible));
-    DevpropAddValue (device, "compatible", (UINT8 *)&compatible[0], 12);
+    DevpropAddValue (Device, "device-id", (UINT8 *)&FakeID, 4);
+    AsciiSPrint (Compatible, Len, "pci%x,%x", (gSettings.FakeLAN & 0xFFFF), FakeID);
+    AsciiStrCpyS (Compatible, Len, AsciiStrToLower (Compatible));
+    DevpropAddValue (Device, "compatCble", (UINT8 *)&Compatible[0], 12);
     FakeID = gSettings.FakeLAN & 0xFFFF;
-    DevpropAddValue (device, "vendor-id", (UINT8 *)&FakeID, 4);
-    MsgLog (" - With FakeLAN: %a\n", compatible);
+    DevpropAddValue (Device, "vendor-id", (UINT8 *)&FakeID, 4);
+    MsgLog (" - With FakeLAN: %a\n", Compatible);
   }
 
-  return DevpropAddValue (device, "built-in", (UINT8 *)&builtin, 1);
+  return DevpropAddValue (Device, "built-in", (UINT8 *)&Builtin, 1);
 }
 
 BOOLEAN
@@ -658,12 +660,12 @@ IsHDMIAudio (
 BOOLEAN
 SetupHdaDevprop (
   EFI_PCI_IO_PROTOCOL   *PciIo,
-  pci_dt_t              *hda_dev /*,
+  pci_dt_t              *HdaDev /*,
   CHAR8                 *OSVersion */
 ) {
-  CHAR8           *devicepath;
-  DevPropDevice   *device;
-  UINT32          layoutId = 0/*, codecId = 0 */;
+  CHAR8           *DevicePath;
+  DevPropDevice   *Device;
+  UINT32          LayoutId = 0/*, codecId = 0 */;
   BOOLEAN         Injected = FALSE;
   INT32           i;
 
@@ -671,20 +673,20 @@ SetupHdaDevprop (
     return FALSE;
   }
 
-  if (!string) {
-    string = DevpropCreateString ();
+  if (!gDevPropString) {
+    gDevPropString = DevpropCreateString ();
   }
 
-  devicepath = GetPciDevPath (hda_dev);
-  device = DevpropAddDevicePci (string, hda_dev);
+  DevicePath = GetPciDevPath (HdaDev);
+  Device = DevpropAddDevicePci (gDevPropString, HdaDev);
 
-  if (!device) {
+  if (!Device) {
     return FALSE;
   }
 
-  MsgLog (" - HDA Controller [%04x:%04x] %a\n", hda_dev->vendor_id, hda_dev->device_id, devicepath);
+  MsgLog (" - HDA Controller [%04x:%04x] %a\n", HdaDev->vendor_id, HdaDev->device_id, DevicePath);
 
-  if (IsHDMIAudio (hda_dev->DeviceHandle)) {
+  if (IsHDMIAudio (HdaDev->DeviceHandle)) {
     if (gSettings.NrAddProperties != 0xFFFE) {
       for (i = 0; i < gSettings.NrAddProperties; i++) {
         if (gSettings.AddProperties[i].Device != DEV_HDMI) {
@@ -694,7 +696,7 @@ SetupHdaDevprop (
         Injected = TRUE;
 
         DevpropAddValue (
-          device,
+          Device,
           gSettings.AddProperties[i].Key,
           (UINT8 *)gSettings.AddProperties[i].Value,
           gSettings.AddProperties[i].ValueLen
@@ -707,12 +709,12 @@ SetupHdaDevprop (
       //return TRUE;
     } else if (gSettings.UseIntelHDMI) {
       DBG (" - HDMI Audio, setting hda-gfx=onboard-1\n");
-      DevpropAddValue (device, "hda-gfx", (UINT8 *)"onboard-1", 10);
+      DevpropAddValue (Device, "hda-gfx", (UINT8 *)"onboard-1", 10);
     }
   } else {
     // HDA - determine layout-id
-    layoutId = (UINT32)gSettings.HDALayoutId;
-    MsgLog (" - Layout-id: %d\n", layoutId);
+    LayoutId = (UINT32)gSettings.HDALayoutId;
+    MsgLog (" - Layout-id: %d\n", LayoutId);
 
     if (gSettings.NrAddProperties != 0xFFFE) {
       for (i = 0; i < gSettings.NrAddProperties; i++) {
@@ -723,7 +725,7 @@ SetupHdaDevprop (
         Injected = TRUE;
 
         DevpropAddValue (
-          device,
+          Device,
           gSettings.AddProperties[i].Key,
           (UINT8 *)gSettings.AddProperties[i].Value,
           gSettings.AddProperties[i].ValueLen
@@ -732,15 +734,16 @@ SetupHdaDevprop (
     }
 
     if (!Injected) {
-      DevpropAddValue (device, "layout-id", (UINT8 *)&layoutId, 4);
+      DevpropAddValue (Device, "layout-id", (UINT8 *)&LayoutId, 4);
 
-      layoutId = 0; // reuse variable
+      LayoutId = 0; // reuse variable
+
       if (gSettings.UseIntelHDMI) {
-        DevpropAddValue (device, "hda-gfx", (UINT8 *)"onboard-1", 10);
+        DevpropAddValue (Device, "hda-gfx", (UINT8 *)"onboard-1", 10);
       }
 
-      DevpropAddValue (device, "MaximumBootBeepVolume", (UINT8 *)&layoutId, 1);
-      //DevpropAddValue (device, "PinConfigurations", (UINT8 *)&layoutId, 1);
+      DevpropAddValue (Device, "MaximumBootBeepVolume", (UINT8 *)&LayoutId, 1);
+      //DevpropAddValue (Device, "PinConfigurations", (UINT8 *)&LayoutId, 1);
     }
 
   }

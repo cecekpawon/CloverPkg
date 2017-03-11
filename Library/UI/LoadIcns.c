@@ -732,12 +732,12 @@ ScanVolumeDefaultIcon (
   switch (DiskKind) {
     case DISK_KIND_INTERNAL:
       switch (OSType) {
-        case OSTYPE_OSX:
-        case OSTYPE_OSX_INSTALLER:
+        case OSTYPE_DARWIN:
+        case OSTYPE_DARWIN_INSTALLER:
           IconNum = BUILTIN_ICON_VOL_INTERNAL_HFS;
           break;
 
-        case OSTYPE_RECOVERY:
+        case OSTYPE_DARWIN_RECOVERY:
           IconNum = BUILTIN_ICON_VOL_INTERNAL_REC;
           break;
 

@@ -852,8 +852,11 @@ extern UINTN                ConWidth;
 extern UINTN                ConHeight;
 extern CHAR16               *BlankLine;
 
-extern INTN                 UGAWidth;
-extern INTN                 UGAHeight;
+extern UINT32               UGAWidth;
+extern UINT32               UGAHeight;
+extern UINT32               UGAColorDepth;
+extern UINT32               UGABytesPerRow;
+extern UINT64               UGAFrameBufferBase;
 extern BOOLEAN              AllowGraphicsMode;
 
 extern EG_PIXEL             BlackBackgroundPixel;

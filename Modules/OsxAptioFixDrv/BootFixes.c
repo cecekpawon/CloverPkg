@@ -236,6 +236,7 @@ KernelEntryPatchJump (
   return Status;
 }
 
+#if APTIOFIX_VER == 1
 /** Reads kernel entry from Mach-O load command and patches it with jump to MyAsmJumpFromKernel. */
 EFI_STATUS
 KernelEntryFromMachOPatchJump (
@@ -260,6 +261,7 @@ KernelEntryFromMachOPatchJump (
 
   return KernelEntryPatchJump ((UINT32)KernelEntry);
 }
+#endif
 
 #if 0
 /** Patches kernel entry point with HLT - used for testing to cause system halt. */
@@ -759,6 +761,8 @@ RemoveRTFlagMappings (
   }
 }
 
+#if APTIOFIX_VER == 1
+
 /** Fixes stuff when booting with relocation block. Called when boot.efi jumps to kernel. */
 UINTN
 FixBootingWithRelocBlock (
@@ -808,6 +812,8 @@ FixBootingWithRelocBlock (
   return bootArgs;
 }
 
+#else
+
 /** Fixes stuff when booting without relocation block. Called when boot.efi jumps to kernel. */
 UINTN
 FixBootingWithoutRelocBlock (
@@ -815,7 +821,7 @@ FixBootingWithoutRelocBlock (
   BOOLEAN   ModeX64
 ) {
   VOID              *pBootArgs = (VOID *)bootArgs;
-  InternalBootArgs  *BA;
+  //InternalBootArgs  *BA;
   /*
     UINTN         MemoryMapSize;
     EFI_MEMORY_DESCRIPTOR *MemoryMap;
@@ -827,7 +833,7 @@ FixBootingWithoutRelocBlock (
 
   BootArgsPrint (pBootArgs);
 
-  BA = GetBootArgs (pBootArgs);
+  //BA = GetBootArgs (pBootArgs);
 
   /*
     // Set boot args efi system table to our copied system table
@@ -907,3 +913,5 @@ FixHibernateWakeWithoutRelocBlock (
 
   return imageHeaderPage;
 }
+
+#endif

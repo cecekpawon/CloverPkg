@@ -38,25 +38,20 @@ kext injection
 ////////////////////
 // types
 ////////////////////
-typedef struct
-{
+typedef struct {
   UINT32   magic;          /* FAT_MAGIC */
   UINT32   nfat_arch;      /* number of structs that follow */
-
 } FAT_HEADER;
 
-typedef struct
-{
+typedef struct {
   UINT32  cputype;        /* cpu specifier (int) */
   UINT32  cpusubtype;     /* machine specifier (int) */
   UINT32  offset;         /* file offset to this object file */
   UINT32  size;           /* size of this object file */
   UINT32  align;          /* alignment as a power of 2 */
-
 } FAT_ARCH;
 
-typedef struct
-{
+typedef struct {
   UINT32              Signature;
   LIST_ENTRY          Link;
   DeviceTreeBuffer    kext;
@@ -65,9 +60,24 @@ typedef struct
 ////////////////////
 // functions
 ////////////////////
-EFI_STATUS LoadKexts (IN LOADER_ENTRY *Entry);
-EFI_STATUS InjectKexts (IN UINT32 deviceTreeP, IN UINT32 *deviceTreeLength, LOADER_ENTRY *Entry);
+EFI_STATUS
+LoadKexts (
+  IN LOADER_ENTRY   *Entry
+);
 
-//VOID EFIAPI KernelBooterExtensionsPatch (IN UINT8 *KernelData, LOADER_ENTRY *Entry);
+EFI_STATUS
+InjectKexts (
+  IN UINT32       deviceTreeP,
+  IN UINT32       *deviceTreeLength,
+  LOADER_ENTRY    *Entry
+);
+
+EFI_STATUS
+EFIAPI
+ThinFatFile (
+  IN OUT  UINT8         **Binary,
+  IN OUT  UINTN         *Length,
+  IN      cpu_type_t   archCpuType
+);
 
 #endif
