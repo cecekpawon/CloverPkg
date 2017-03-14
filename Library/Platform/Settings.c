@@ -155,6 +155,8 @@ CHAR16    *DarwinSystemPlists[] = {
 CHAR16    *DarwinInstallerSystemPlists = L"\\.IABootFilesSystemVersion.plist";
 CHAR16    *DarwinRecoverySystemPlists = L"\\com.apple.recovery.boot\\SystemVersion.plist";
 
+CHAR16    *InjectKextsDir[3] = { NULL, NULL, NULL };
+
 VOID
 GetDefaultConfig () {
   CopyMem (&GlobalConfig, &DefaultConfig, sizeof (REFIT_CONFIG));
@@ -5073,12 +5075,14 @@ SaveSettings () {
 }
 
 CHAR16 *
-GetOtherKextsDir () {
-  CHAR16    *SrcDir = PoolPrint (DIR_KEXTS_OTHER, OEMPath);
+GetOtherKextsDir (
+  BOOLEAN   Slave
+) {
+  CHAR16    *SrcDir = PoolPrint (Slave ? DIR_KEXTS_OTHER_SLAVE : DIR_KEXTS_OTHER, OEMPath);
 
   if (!FileExists (SelfVolume->RootDir, SrcDir)) {
     FreePool (SrcDir);
-    SrcDir = PoolPrint (DIR_KEXTS_OTHER, DIR_CLOVER);
+    SrcDir = PoolPrint (Slave ? DIR_KEXTS_OTHER_SLAVE : DIR_KEXTS_OTHER, DIR_CLOVER);
     if (!FileExists (SelfVolume->RootDir, SrcDir)) {
       FreePool (SrcDir);
       SrcDir = NULL;
@@ -5136,23 +5140,34 @@ EFI_STATUS
 SetFSInjection (
   IN LOADER_ENTRY   *Entry
 ) {
-  EFI_STATUS              Status;
+  EFI_STATUS              Status = EFI_NOT_STARTED;
   REFIT_VOLUME            *Volume;
   FSINJECTION_PROTOCOL    *FSInject;
-  CHAR16                  *SrcDir = NULL;
   FSI_STRING_LIST         *Blacklist = 0, *ForceLoadKexts = NULL;
-  UINTN                   Index = 0;
+  UINTN                   Index = 0, InjectKextsDirCount = ARRAY_SIZE (InjectKextsDir);
 
-  DbgHeader ("FSInjection");
+  //DbgHeader ("FSInjection");
 
-  Volume = Entry->Volume;
+  if (OSFLAG_ISSET (Entry->Flags, OSFLAG_WITHKEXTS)) {
+    InjectKextsDir[0] = GetOtherKextsDir (FALSE);
+    InjectKextsDir[1] = GetOtherKextsDir (TRUE); // Slave
+    InjectKextsDir[2] = GetOSVersionKextsDir (Entry->OSVersion);
+  }
+
+  //check if blocking of caches is needed
+  if (
+    !OSFLAG_ISSET (Entry->Flags, OSFLAG_NOCACHES) &&
+    !Entry->KernelAndKextPatches->NrForceKexts &&
+    (Entry->KernelAndKextPatches->KPATIConnectorsController == NULL)
+  ) {
+    goto Finish;
+  }
 
   // get FSINJECTION_PROTOCOL
   Status = gBS->LocateProtocol (&gFSInjectProtocolGuid, NULL, (VOID **)&FSInject);
   if (EFI_ERROR (Status)) {
-    //Print (L"- No FSINJECTION_PROTOCOL, Status = %r\n", Status);
     MsgLog (" - ERROR: gFSInjectProtocolGuid not found!\n");
-    return EFI_NOT_STARTED;
+    goto Finish;
   }
 
   // check if blocking of caches is needed
@@ -5177,47 +5192,38 @@ SetFSInjection (
   // check if kext injection is needed
   // (will be done only if caches are blocked or if boot.efi refuses to load kernelcache)
   if (OSFLAG_ISSET (Entry->Flags, OSFLAG_WITHKEXTS)) {
-    SrcDir = GetOtherKextsDir ();
-    if (SrcDir != NULL) {
-      Status = FSInject->Install (
-                            Volume->DeviceHandle,
-                            OSX_PATH_SLE,
-                            SelfVolume->DeviceHandle,
-                            SrcDir,
-                            Blacklist,
-                            ForceLoadKexts
-                          );
+    for (Index = 0; Index < InjectKextsDirCount; Index++) {
+      if (InjectKextsDir[Index] != NULL) {
+        Status = FSInject->Install (
+                              Volume->DeviceHandle,
+                              OSX_PATH_SLE,
+                              SelfVolume->DeviceHandle,
+                              InjectKextsDir[Index],
+                              Blacklist,
+                              ForceLoadKexts
+                            );
 
-      MsgLog (" - Src: %s, Status: %r\n", SrcDir, Status);
-      FreePool (SrcDir);
-    }
-
-    SrcDir = GetOSVersionKextsDir (Entry->OSVersion);
-    if (SrcDir != NULL) {
-      Status = FSInject->Install (
-                            Volume->DeviceHandle,
-                            OSX_PATH_SLE,
-                            SelfVolume->DeviceHandle,
-                            SrcDir,
-                            Blacklist,
-                            ForceLoadKexts
-                          );
-
-      MsgLog (" - Src: %s, Status: %r\n", SrcDir, Status);
-      FreePool (SrcDir);
+        MsgLog (" - Src: %s, Status: %r\n", InjectKextsDir[Index], Status);
+      }
     }
   } else {
     MsgLog (" - Skipping kext injection (not requested)\n");
   }
 
   // prepare list of kext that will be forced to load
-  ForceLoadKexts = FSInject->CreateStringList ();
-  if (ForceLoadKexts == NULL) {
-    MsgLog (" - Error: not enough memory!\n");
-    return EFI_NOT_STARTED;
+  if (
+    Entry->KernelAndKextPatches->NrForceKexts ||
+    (Entry->KernelAndKextPatches->KPATIConnectorsController != NULL)
+  ) {
+    ForceLoadKexts = FSInject->CreateStringList ();
+    if (ForceLoadKexts == NULL) {
+      MsgLog (" - Error: not enough memory!\n");
+    }
+
+    KextPatcherRegisterKexts (FSInject, ForceLoadKexts, Entry);
   }
 
-  KextPatcherRegisterKexts (FSInject, ForceLoadKexts, Entry);
+  Finish:
 
   return Status;
 }

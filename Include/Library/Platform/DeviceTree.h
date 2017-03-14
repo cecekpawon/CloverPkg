@@ -284,6 +284,19 @@ INTN EFIAPI DTIterateProperties (DTPropertyIterator iterator, CHAR8 **foundPrope
  reset to the beginning of the list of properties for an entry.
 */
 
-INTN DTRestartPropertyIteration (DTPropertyIterator iterator);
+INTN EFIAPI DTRestartPropertyIteration (DTPropertyIterator iterator);
+
+/* DevTree may contain /chosen/memory-map
+ * with properties with values = UINT32 address, UINT32 length:
+ * "BootCLUT" = 8bit boot time colour lookup table
+ * "Pict-FailedBoot" = picture shown if booting fails
+ * "RAMDisk" = ramdisk
+ * "Driver-<hex addr of DriverInfo>" = Kext, UINT32 address points to BooterKextFileInfo
+ * "DriversPackage-..." = MKext, UINT32 address points to mkext_header (libkern/libkern/mkext.h), UINT32 length
+ *
+*/
+#define BOOTER_KEXT_PREFIX      "Driver-"
+#define BOOTER_MKEXT_PREFIX     "DriversPackage-"
+#define BOOTER_RAMDISK_PREFIX   "RAMDisk"
 
 #endif /* _PEXPERT_DEVICE_TREE_H_ */

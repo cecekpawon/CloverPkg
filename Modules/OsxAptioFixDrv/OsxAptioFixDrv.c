@@ -653,7 +653,10 @@ MOStartImage (
     DBG ("CloseProtocol error: %r\n", Status);
   }
 
-  StartFlag = (StriStr (FilePathText, L"boot.efi") != NULL);
+  StartFlag = (
+                (StriStr (FilePathText, L"boot.efi") != NULL) ||
+                (StriStr (FilePathText, L"bootbase.efi") != NULL)
+              );
 
   if (StartFlag) {
 #if APTIOFIX_VER == 2
@@ -713,9 +716,9 @@ OsxAptioFixDrvEntrypoint (
   APTIOFIX_PROTOCOL       *AptioFix;
   EFI_HANDLE              AptioFixIHandle;
 
-#ifndef EMBED_APTIOFIX
+//#ifndef EMBED_APTIOFIX
   DBG ("Starting module: AptioFix (ver %d)\n", APTIOFIX_VER);
-#endif
+//#endif
 
   // install StartImage override
   // all other overrides will be started when boot.efi is started

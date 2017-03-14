@@ -23,11 +23,28 @@ EFI_EVENT   mSimpleFileSystemChangeEvent = NULL;
 
 VOID
 EFIAPI
+SaveDarwinLog () {
+  DTEntry   PlatformEntry;
+  VOID      *PropValue;
+  UINT32    PropSize;
+
+  if (DTLookupEntry (NULL, "/efi/platform", &PlatformEntry) == kSuccess) {
+    if (DTGetProperty(PlatformEntry, DATAHUB_LOG, &PropValue, &PropSize) == kSuccess) {
+      CONSTRAIN_MAX (PropSize, GetMemLogLen ());
+      CopyMem (PropValue, GetMemLogBuffer (), PropSize);
+    }
+  }
+}
+
+VOID
+EFIAPI
 OnExitBootServices (
   IN EFI_EVENT  Event,
   IN VOID       *Context
 ) {
   LOADER_ENTRY   *Entry = (LOADER_ENTRY *)Context;
+
+  //DBG ("ExitBootServices called\n");
 
   /*
   if (DoHibernateWake) {
@@ -39,17 +56,24 @@ OnExitBootServices (
 
   gST->ConOut->OutputString (gST->ConOut, L"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 
-  //
-  // Patch kernel and kexts if needed
-  //
+  if (OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType)) {
+    if (OSFLAG_ISUNSET (Entry->Flags, OPT_VERBOSE)) {
 
-#if BOOT_GRAY
-  if (OSFLAG_ISUNSET (Entry->Flags, OPT_VERBOSE)) {
-    hehe ();
+  #if BOOT_GRAY
+      hehe (); // Draw dark gray Apple logo.
+  #endif
+    }
+
+    //
+    // Patch kernel and kexts if needed
+    //
+
+    KernelAndKextsPatcherStart (Entry);
+
+    if (OSTYPE_IS_DARWIN (Entry->LoaderType)) {
+      SaveDarwinLog ();
+    }
   }
-#endif
-
-  KernelAndKextsPatcherStart (Entry);
 }
 
 #if 0

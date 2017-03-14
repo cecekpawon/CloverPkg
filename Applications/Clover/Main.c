@@ -454,13 +454,6 @@ NullConOutOutputString (
   return EFI_SUCCESS;
 }
 
-/**
-  cc: @bs0d
-
-  Ozmosis FTW! They can log into datahub even after ExitBootServices.
-  Still cannot find the way http://pastebin.com/BbzMdpTV
-**/
-
 VOID
 EFIAPI
 ClosingEventAndLog (
@@ -469,7 +462,7 @@ ClosingEventAndLog (
   EFI_STATUS    Status;
   BOOLEAN       CloseBootServiceEvent = TRUE;
 
-  MsgLog ("Closing Event & Log\n");
+  //MsgLog ("Closing Event & Log\n");
 
   if (OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType)) {
     if (DoHibernateWake) {
@@ -486,7 +479,9 @@ ClosingEventAndLog (
       CloseBootServiceEvent = FALSE;
     }
 
-    SetupBooterLog (!DoHibernateWake);
+    if (OSTYPE_IS_DARWIN (Entry->LoaderType)) {
+      SetupBooterLog (/*!DoHibernateWake*/);
+    }
   }
 
   if (CloseBootServiceEvent) {

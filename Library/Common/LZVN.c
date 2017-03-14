@@ -1834,8 +1834,6 @@ LzvnDecode (
   *DstSize = ResDstSize;
   *Dst = ResDst;
 
-  goto Finish;
-
   Finish:
 
   return Status;

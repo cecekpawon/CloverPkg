@@ -232,7 +232,6 @@ DTFindEntry (
   return (FindEntry (propName, propValue, entryH));
 }
 
-//if (DTLookupEntry (NULL,"/",&efiPlatform)==kSuccess)
 INTN
 EFIAPI
 DTLookupEntry (
@@ -527,6 +526,7 @@ DTIterateProperties (
 }
 
 INTN
+EFIAPI
 DTRestartPropertyIteration (
   DTPropertyIterator    iterator
 ) {

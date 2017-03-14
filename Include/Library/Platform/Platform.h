@@ -130,43 +130,41 @@ Headers collection for procedures
 //#define CONFIG_THEME_CHRISTMAS    L"christmas"
 //#define CONFIG_THEME_NEWYEAR      L"newyear"
 
-#define DIR_CLOVER          L"\\EFI\\CLOVER"
+#define DIR_CLOVER                L"\\EFI\\CLOVER"
 
-#define DIR_DRIVERS         DIR_CLOVER L"\\drivers"
-#define DIR_DRIVERS64       DIR_CLOVER L"\\drivers64UEFI"
-#define DIR_MISC            DIR_CLOVER L"\\misc"
-#define DIR_OEM             DIR_CLOVER L"\\oem"
-//#define DIR_ROM           DIR_CLOVER L"\\rom
-#define DIR_THEMES          DIR_CLOVER L"\\themes"
-#define DIR_TOOLS           DIR_CLOVER L"\\tools"
-#define DIR_FONTS           DIR_CLOVER L"\\fonts"
+#define DIR_DRIVERS               DIR_CLOVER L"\\Drivers"
+#define DIR_DRIVERS64             DIR_CLOVER L"\\Drivers64UEFI"
+#define DIR_MISC                  DIR_CLOVER L"\\Misc"
+#define DIR_OEM                   DIR_CLOVER L"\\Oem"
+//#define DIR_ROM                 DIR_CLOVER L"\\Rom
+#define DIR_THEMES                DIR_CLOVER L"\\Themes"
+#define DIR_TOOLS                 DIR_CLOVER L"\\Tools"
+#define DIR_FONTS                 DIR_CLOVER L"\\Fonts"
 
-#define DIR_ACPI            L"%s\\acpi"
-#define DIR_ACPI_PATCHED    DIR_ACPI L"\\patched"
-#define DIR_ACPI_ORIGIN     DIR_ACPI L"\\origin"
+#define DIR_ACPI                  L"%s\\Acpi"
+#define DIR_ACPI_PATCHED          DIR_ACPI L"\\Patched"
+#define DIR_ACPI_ORIGIN           DIR_ACPI L"\\Origin"
 
-#define DSDT_ORIGIN         DIR_ACPI L"\\DSDT-or.aml"
+#define DSDT_ORIGIN               DIR_ACPI L"\\DSDT-or.aml"
 
-#define DIR_ROM             L"%s\\rom"
+#define DIR_ROM                   L"%s\\Rom"
 
-//#define DIR_UEFI          DIR_CLOVER L"%s\\uefi"
-#define DIR_KEXTS           L"%s\\kexts"
-#define DIR_KEXTS_OTHER     DIR_KEXTS "\\other"
+#define DIR_KEXTS                 L"%s\\Kexts"
+#define DIR_KEXTS_OTHER           DIR_KEXTS "\\Other"
+#define DIR_KEXTS_OTHER_SLAVE     DIR_KEXTS_OTHER "\\Slave"
 
-#define VBIOS_BIN           DIR_MISC L"\\c0000.bin"
+#define VBIOS_BIN                 DIR_MISC L"\\c0000.bin"
 
-#define PREBOOT_LOG         DIR_MISC L"\\preboot.log"
-#define DEBUG_LOG           DIR_MISC L"\\debug.log"
+#define PREBOOT_LOG               DIR_MISC L"\\preboot.log"
+#define DEBUG_LOG                 DIR_MISC L"\\debug.log"
 
-#define DATAHUB_LOG         L"boot-log"
+#define DATAHUB_LOG               "boot-log"
 
-#define MSG_LOG_SIZE        (256 * 1024)
+#define OSX_PATH_SLE              L"\\System\\Library\\Extensions"
 
-#define OSX_PATH_SLE        L"\\System\\Library\\Extensions"
-
-#define DSDT_NAME           L"DSDT.aml"
-#define DSDT_PATCHED_NAME   L"DSDT-%x.aml"
-#define DSDT_DUMP_LOG       L"DumpLog.txt"
+#define DSDT_NAME                 L"DSDT.aml"
+#define DSDT_PATCHED_NAME         L"DSDT-%x.aml"
+#define DSDT_DUMP_LOG             L"DumpLog.txt"
 
 #ifndef DEBUG_ALL
 #define MsgLog(...)  DebugLog (1, __VA_ARGS__)
@@ -1213,6 +1211,7 @@ extern CHAR8                            *cDeviceProperties;
 extern INPUT_ITEM                       *InputItems;
 extern BOOLEAN                          SavePreBootLog;
 //extern EFI_GRAPHICS_OUTPUT_PROTOCOL   *GraphicsOutput;
+extern CHAR16                           *InjectKextsDir[3];
 
 #if 0
 extern EFI_EVENT                        mVirtualAddressChangeEvent;
@@ -1310,9 +1309,7 @@ VOID
 InitBooterLog ();
 
 EFI_STATUS
-SetupBooterLog (
-  BOOLEAN   AllowGrownSize
-);
+SetupBooterLog ();
 
 EFI_STATUS
 SaveBooterLog (
@@ -1449,7 +1446,9 @@ SetFSInjection (
 );
 
 CHAR16 *
-GetOtherKextsDir ();
+GetOtherKextsDir (
+  BOOLEAN   Slave
+);
 
 CHAR16 *
 GetOSVersionKextsDir (

@@ -1069,7 +1069,7 @@ ScanLoader () {
     // Use standard location for boot.efi, unless the file /.IAPhysicalMedia is present
     // That file indentifies a 2nd-stage Install Media, so when present, skip standard path to avoid entry duplication
     if (FileExists (Volume->RootDir, DARWIN_INSTALLER_LOADERBASE_PATH)) {
-      AddLoaderEntry (DARWIN_LOADER_PATH, NULL, NULL/*L"OS X Install"*/, Volume, NULL, OSTYPE_DARWIN_INSTALLER, 0);
+      AddLoaderEntry (/*DARWIN_LOADER_PATH*/DARWIN_INSTALLER_LOADERBASE_PATH, NULL, NULL/*L"OS X Install"*/, Volume, NULL, OSTYPE_DARWIN_INSTALLER, 0);
     }
 
     else if (FileExists (Volume->RootDir, DARWIN_RECOVERY_LOADER_PATH)) {

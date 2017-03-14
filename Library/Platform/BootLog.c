@@ -200,6 +200,7 @@ InitBooterLog () {
   SetMemLogCallback (MemLogCallback);
 }
 
+#if 0
 EFI_STATUS
 SetupBooterLog (
   BOOLEAN   AllowGrownSize
@@ -227,6 +228,21 @@ SetupBooterLog (
 
   return Status;
 }
+#endif
+
+EFI_STATUS
+SetupBooterLog () {
+  EFI_STATUS    Status = EFI_SUCCESS;
+
+  Status = LogDataHub (
+              &gEfiMiscSubClassGuid,
+              PoolPrint (L"%a", DATAHUB_LOG),
+              AllocateZeroPool (MEM_LOG_INITIAL_SIZE),
+              (UINT32)MEM_LOG_INITIAL_SIZE
+            );
+
+  return Status;
+}
 
 // Made msgbuf and msgCursor private to this source
 // so we need a different way of saving the msg log - apianti
@@ -235,11 +251,8 @@ SaveBooterLog (
   IN EFI_FILE_HANDLE    BaseDir OPTIONAL,
   IN CHAR16             *FileName
 ) {
-  CHAR8     *MemLogBuffer;
-  UINTN     MemLogLen;
-
-  MemLogBuffer = GetMemLogBuffer ();
-  MemLogLen = GetMemLogLen ();
+  CHAR8         *MemLogBuffer = GetMemLogBuffer ();
+  UINTN         MemLogLen = GetMemLogLen ();
 
   if ((MemLogBuffer == NULL) || (MemLogLen == 0)) {
     return EFI_NOT_FOUND;

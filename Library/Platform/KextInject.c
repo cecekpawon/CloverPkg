@@ -13,16 +13,6 @@
 
 #define DBG(...) DebugLog (DEBUG_KEXT_INJECT, __VA_ARGS__)
 
-// runtime debug
-#define DBG_ON(Entry) \
-  ((Entry != NULL) && (Entry->KernelAndKextPatches != NULL) && \
-  ((DEBUG_KEXT_INJECT != 0) || OSFLAG_ISSET (Entry->Flags, OSFLAG_DBGPATCHES) || gSettings.DebugKP))
-  /*Entry->KernelAndKextPatches->KPDebug && \*/
-#define DBG_RT(Entry, ...) \
-  if (DBG_ON (Entry)) AsciiPrint (__VA_ARGS__)
-#define DBG_PAUSE(Entry, S) \
-  if (DBG_ON (Entry)) gBS->Stall (S * 1000000)
-
 ////////////////////
 // globals
 ////////////////////
@@ -244,7 +234,7 @@ RecursiveLoadKexts (
   IN LOADER_ENTRY   *Entry,
   IN EFI_FILE       *RootDir,
   IN CHAR16         *SrcDir,
-  IN BOOLEAN        PlugIn/**/
+  IN BOOLEAN        PlugIn
 ) {
   REFIT_DIR_ITER    DirIter;
   EFI_FILE_INFO     *DirEntry;
@@ -263,7 +253,7 @@ RecursiveLoadKexts (
     }
 
     if (!i) {
-      MsgLog ("Inject kexts (%s):\n", SrcDir);
+      MsgLog ("Load kexts (%s):\n", SrcDir);
     }
 
     UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s\\%s", SrcDir, DirEntry->FileName);
@@ -284,6 +274,7 @@ LoadKexts (
   IN LOADER_ENTRY   *Entry
 ) {
   //EFI_STATUS      Status;
+  UINTN             Index = 0, InjectKextsDirCount = ARRAY_SIZE (InjectKextsDir);
 
   if ((Entry == 0) || OSFLAG_ISUNSET (Entry->Flags, OSFLAG_WITHKEXTS)) {
     return EFI_NOT_STARTED;
@@ -296,27 +287,29 @@ LoadKexts (
     (Entry->KernelAndKextPatches->ForceKexts != NULL)
   ) {
     CHAR16  PlugIns[AVALUE_MAX_SIZE];
-    UINTN   i = 0;
 
     MsgLog ("Force kext: %d requested\n", Entry->KernelAndKextPatches->NrForceKexts);
 
-    for (; i < Entry->KernelAndKextPatches->NrForceKexts; ++i) {
-      //DBG ("  Force kext: %s\n", Entry->KernelAndKextPatches->ForceKexts[i]);
+    for (; Index < Entry->KernelAndKextPatches->NrForceKexts; ++Index) {
+      //DBG ("  Force kext: %s\n", Entry->KernelAndKextPatches->ForceKexts[Index]);
       if (Entry->Volume && Entry->Volume->RootDir) {
         // Check if the entry is a directory
-        if (StriStr (Entry->KernelAndKextPatches->ForceKexts[i], L".kext") == NULL) {
-          RecursiveLoadKexts (Entry, Entry->Volume->RootDir, Entry->KernelAndKextPatches->ForceKexts[i], FALSE);
+        if (StriStr (Entry->KernelAndKextPatches->ForceKexts[Index], L".kext") == NULL) {
+          RecursiveLoadKexts (Entry, Entry->Volume->RootDir, Entry->KernelAndKextPatches->ForceKexts[Index], FALSE);
         } else {
-          AddKext (Entry, Entry->Volume->RootDir, Entry->KernelAndKextPatches->ForceKexts[i]);
-          UnicodeSPrint (PlugIns, ARRAY_SIZE (PlugIns), L"%s\\%s", Entry->KernelAndKextPatches->ForceKexts[i], L"Contents\\PlugIns");
+          AddKext (Entry, Entry->Volume->RootDir, Entry->KernelAndKextPatches->ForceKexts[Index]);
+          UnicodeSPrint (PlugIns, ARRAY_SIZE (PlugIns), L"%s\\%s", Entry->KernelAndKextPatches->ForceKexts[Index], L"Contents\\PlugIns");
           RecursiveLoadKexts (Entry, Entry->Volume->RootDir, PlugIns, TRUE);
         }
       }
     }
   }
 
-  RecursiveLoadKexts (Entry, SelfVolume->RootDir, GetOtherKextsDir (), FALSE);
-  RecursiveLoadKexts (Entry, SelfVolume->RootDir, GetOSVersionKextsDir (Entry->OSVersion), FALSE);
+  for (Index = 0; Index < InjectKextsDirCount; Index++) {
+    if (InjectKextsDir[Index] != NULL) {
+      RecursiveLoadKexts (Entry, SelfVolume->RootDir, InjectKextsDir[Index], FALSE);
+    }
+  }
 
   gKextCount = GetKextCount ();
   gKextSize = GetKextsSize ();
@@ -328,10 +321,10 @@ LoadKexts (
 
     MMExtraSize = gKextCount * (sizeof (DeviceTreeNodeProperty) + sizeof (DeviceTreeBuffer));
     MMExtra = AllocateZeroPool (MMExtraSize - sizeof (DeviceTreeNodeProperty));
-    /*Status =  */LogDataHub (&gEfiMiscSubClassGuid, L"mm_extra", MMExtra, (UINT32)(MMExtraSize - sizeof (DeviceTreeNodeProperty)));
+    /*Status =  */LogDataHub (&gEfiMiscSubClassGuid, L"DTKextsInfo", MMExtra, (UINT32)(MMExtraSize - sizeof (DeviceTreeNodeProperty)));
     ExtraSize = gKextSize;
     Extra = AllocateZeroPool (ExtraSize - sizeof (DeviceTreeNodeProperty) + EFI_PAGE_SIZE);
-    /*Status =  */LogDataHub (&gEfiMiscSubClassGuid, L"extra", Extra, (UINT32)(ExtraSize - sizeof (DeviceTreeNodeProperty) + EFI_PAGE_SIZE));
+    /*Status =  */LogDataHub (&gEfiMiscSubClassGuid, L"DTKextsExtra", Extra, (UINT32)(ExtraSize - sizeof (DeviceTreeNodeProperty) + EFI_PAGE_SIZE));
     //MsgLog ("count: %d    \n", gKextCount);
     //MsgLog ("MMExtraSize: %d    \n", MMExtraSize);
     //MsgLog ("ExtraSize: %d    \n", ExtraSize);
@@ -363,28 +356,26 @@ InjectKexts (
           DeviceTreeBuffer          *MM;
           BooterKextFileInfo        *Drvinfo;
 
-  DBG_RT (Entry, "\nInjectKexts: ");
+  DBG ("InjectKexts: ");
 
   if (gKextCount == 0) {
-    DBG_RT (Entry, "no kexts to inject ...\n");
-    DBG_PAUSE (Entry, 5);
-
+    DBG ("no kexts to inject ...\n");
     return EFI_NOT_FOUND;
   }
 
-  DBG_RT (Entry, "%d kexts ...\n", gKextCount);
+  DBG ("%d kexts ...\n", gKextCount);
 
   DTInit (gDTEntry);
 
-  if (DTLookupEntry (NULL,"/chosen/memory-map", &MemmapEntry) == kSuccess) {
+  if (DTLookupEntry (NULL, "/chosen/memory-map", &MemmapEntry) == kSuccess) {
     if (DTCreatePropertyIteratorNoAlloc (MemmapEntry, Iter) == kSuccess) {
       while (DTIterateProperties (Iter, &Ptr) == kSuccess) {
         Prop = Iter->currentProperty;
         DrvPtr = (UINT8 *)Prop;
 
         if (
-          (AsciiStrnCmp (Prop->name, "Driver-", 7) == 0) ||
-          (AsciiStrnCmp (Prop->name, "DriversPackage-", 15) == 0)
+          (AsciiStrnCmp (Prop->name, BOOTER_KEXT_PREFIX, AsciiStrLen (BOOTER_KEXT_PREFIX)) == 0) ||
+          (AsciiStrnCmp (Prop->name, BOOTER_MKEXT_PREFIX, AsciiStrLen (BOOTER_MKEXT_PREFIX)) == 0)
         ) {
           break;
         }
@@ -392,15 +383,15 @@ InjectKexts (
     }
   }
 
-  if (DTLookupEntry (NULL,"/efi/platform", &PlatformEntry) == kSuccess) {
+  if (DTLookupEntry (NULL, "/efi/platform", &PlatformEntry) == kSuccess) {
     if (DTCreatePropertyIteratorNoAlloc (PlatformEntry, Iter) == kSuccess) {
       while (DTIterateProperties (Iter, &Ptr) == kSuccess) {
         Prop = Iter->currentProperty;
-        if (AsciiStrCmp (Prop->name, "mm_extra") == 0) {
+        if (AsciiStrCmp (Prop->name, "DTKextsInfo") == 0) {
           InfoPtr = (UINT8 *)Prop;
         }
 
-        if (AsciiStrCmp (Prop->name, "extra") == 0) {
+        if (AsciiStrCmp (Prop->name, "DTKextsExtra") == 0) {
           ExtraPtr = (UINT8 *)Prop;
         }
       }
@@ -415,9 +406,7 @@ InjectKexts (
     (DrvPtr > ExtraPtr) ||
     (InfoPtr > ExtraPtr)
   ) {
-    DBG_RT (Entry, "\nInvalid device tree for kext injection\n");
-    DBG_PAUSE (Entry, 5);
-
+    DBG ("Invalid device tree for kext injection\n");
     return EFI_INVALID_PARAMETER;
   }
 
@@ -450,12 +439,12 @@ InjectKexts (
       MM = (DeviceTreeBuffer *) (((UINT8 *)Prop) + sizeof (DeviceTreeNodeProperty));
       MM->paddr = (UINT32)KextBase;
       MM->length = KextEntry->kext.length;
-      AsciiSPrint (Prop->name, 31, "Driver-%x", KextBase);
+      AsciiSPrint (Prop->name, 31, BOOTER_KEXT_PREFIX "%x", KextBase);
 
       DrvPtr += sizeof (DeviceTreeNodeProperty) + sizeof (DeviceTreeBuffer);
       KextBase = RoundPage (KextBase + KextEntry->kext.length);
 
-      DBG_RT (Entry, " %d - %a\n", Index, (CHAR8 *)(UINTN)Drvinfo->bundlePathPhysAddr);
+      DBG (" %d - %a\n", Index, (CHAR8 *)(UINTN)Drvinfo->bundlePathPhysAddr);
 
       if (
         gSettings.KextPatchesAllowed &&
@@ -464,7 +453,7 @@ InjectKexts (
       ) {
         INT32       i, isBundle;
         CHAR8       SavedValue, *InfoPlist = (CHAR8 *)(UINTN)Drvinfo->infoDictPhysAddr,
-                    gKextBundleIdentifier[256];
+                    gKextBundleIdentifier[AVALUE_MAX_SIZE];
 #ifdef LAZY_PARSE_KEXT_PLIST
         TagPtr      KextsDict, DictPointer;
 #endif
@@ -487,11 +476,10 @@ InjectKexts (
 
         for (i = 0; i < Entry->KernelAndKextPatches->NrKexts; i++) {
           if (
+            !Entry->KernelAndKextPatches->KextPatches[i].Disabled &&
             !Entry->KernelAndKextPatches->KextPatches[i].Patched &&
             IsPatchNameMatch (gKextBundleIdentifier, Entry->KernelAndKextPatches->KextPatches[i].Name, InfoPlist, &isBundle)
           ) {
-            //DBG_RT (Entry, "Kext: %a\n", gKextBundleIdentifier);
-
             AnyKextPatch (
               (UINT8 *)(UINTN)Drvinfo->executablePhysAddr,
               Drvinfo->executableLength,
@@ -514,9 +502,6 @@ InjectKexts (
       Index++;
     }
   }
-
-  DBG_RT (Entry, "Done.\n");
-  DBG_PAUSE (Entry, 2);
 
   return EFI_SUCCESS;
 }

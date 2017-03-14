@@ -244,7 +244,7 @@ KextPatcherRegisterKexts (
 // or DevTree (drivers boot) and do patches.
 //
 VOID
-KextPatcherStart (
+KextPatcher (
   LOADER_ENTRY    *Entry
 );
 

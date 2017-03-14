@@ -8,7 +8,8 @@
 //
 // Mem log sizes
 //
-#define MEM_LOG_INITIAL_SIZE    (128 * 1024)
+//#define MEM_LOG_INITIAL_SIZE    (128 * 1024)
+#define MEM_LOG_INITIAL_SIZE    (64 * 1024)
 #define MEM_LOG_MAX_SIZE        (2 * 1024 * 1024)
 #define MEM_LOG_MAX_LINE_SIZE   1024
 

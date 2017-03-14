@@ -543,7 +543,6 @@ DefragmentRuntimeServices (
 
       // and remove RT attribute
       Desc->Attribute = Desc->Attribute & (~EFI_MEMORY_RUNTIME);
-
     }
 
     Desc = NEXT_MEMORY_DESCRIPTOR (Desc, DescriptorSize);
