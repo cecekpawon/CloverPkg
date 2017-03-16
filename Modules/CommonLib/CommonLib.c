@@ -1386,9 +1386,9 @@ VersionFromStr (
   SVersion  *SVer = AllocateZeroPool (sizeof (SVersion));
 
   UINTN   i = 0;
-  CHAR8   *StrFound;
+  CHAR8   *StrFound = NULL;
 
-  if (Str) {
+  if (Str != NULL) {
     while (TRUE) {
       StrFound = FindCharDelimited (Str, '.', i);
 

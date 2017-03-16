@@ -26,6 +26,10 @@
   CloverPkg/CloverPkg.dec
   MdePkg/MdePkg.dec
 
+[LibraryClasses]
+  CommonLib
+  MemLogLib
+
 [Sources]
   FSInject.c
 

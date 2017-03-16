@@ -14,7 +14,7 @@
 #  WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #
 
-IDENTIFIER = Default TOOL_CHAIN_CONF
+IDENTIFIER                              = Default TOOL_CHAIN_CONF
 
 DEFINE VS2015x86_BIN                    = C:\Program Files (x86)\Microsoft Visual Studio 14.0\Vc\bin
 DEFINE VS2015x86_DLL                    = C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\IDE;DEF(VS2015x86_BIN)
@@ -25,15 +25,11 @@ DEFINE WINSDK81x86_BIN                  = c:\Program Files (x86)\Windows Kits\8.
 DEFINE GCC49_X64_PREFIX                 = ENV(GCC49_BIN)
 DEFINE GCC5_X64_PREFIX                  = ENV(GCC5_BIN)
 
-DEFINE UNIX_IASL_BIN                    = ENV(IASL_PREFIX)iasl
-DEFINE WIN_IASL_BIN                     = ENV(IASL_PREFIX)iasl.exe
+DEFINE IASL_PREFIX                      = ENV(IASL_BIN)
 
 DEFINE IASL_FLAGS                       =
 DEFINE IASL_OUTFLAGS                    = -p
-DEFINE MS_ASL_OUTFLAGS                  = /Fo=
-DEFINE MS_ASL_FLAGS                     =
 
-DEFINE DEFAULT_WIN_ASL_BIN              = DEF(WIN_IASL_BIN)
 DEFINE DEFAULT_WIN_ASL_FLAGS            = DEF(IASL_FLAGS)
 DEFINE DEFAULT_WIN_ASL_OUTFLAGS         = DEF(IASL_OUTFLAGS)
 
@@ -41,8 +37,8 @@ DEFINE MSFT_ASLPP_FLAGS                 = /nologo /E /C /FIAutoGen.h
 DEFINE MSFT_ASLCC_FLAGS                 = /nologo /c /FIAutoGen.h /TC /Dmain=ReferenceAcpiTable
 DEFINE MSFT_ASLDLINK_FLAGS              = /NODEFAULTLIB /ENTRY:ReferenceAcpiTable /SUBSYSTEM:CONSOLE
 
-DEFINE LLVM_X64_PREFIX                  = ENV(LLVM_BIN)
-DEFINE CLANG_X64_PREFIX                 = ENV(CLANG_BIN)
+DEFINE NASM_PREFIX                      = ENV(NASM_BIN)
+DEFINE MTOC_PREFIX                      = ENV(MTOC_BIN)
 
 ####################################################################################
 #   VS2015x86       - Microsoft Visual Studio 2015 (x86) professional with Intel ASL
@@ -66,7 +62,7 @@ DEFINE CLANG_X64_PREFIX                 = ENV(CLANG_BIN)
 ##################
 # ASL definitions
 ##################
-*_VS2015x86_*_ASL_PATH                  = DEF(WIN_IASL_BIN)
+*_VS2015x86_*_ASL_PATH                  = DEF(IASL_PREFIX)iasl.exe
 *_VS2015x86_*_ASL_FLAGS                 = DEF(DEFAULT_WIN_ASL_FLAGS)
 *_VS2015x86_*_ASL_OUTFLAGS              = DEF(DEFAULT_WIN_ASL_OUTFLAGS)
 *_VS2015x86_*_ASLCC_FLAGS               = DEF(MSFT_ASLCC_FLAGS)
@@ -137,7 +133,7 @@ DEFINE GCC5_ASM_FLAGS                   = DEF(GCC49_ASM_FLAGS)
 *_GCC49_*_*_FAMILY                      = GCC
 *_GCC49_X64_GCCLINK_PREFIX              = -Wl,
 *_GCC49_*_*_BUILDRULEORDER              = nasm S s
-*_GCC49_*_ASL_PATH                      = DEF(UNIX_IASL_BIN)
+*_GCC49_*_ASL_PATH                      = DEF(IASL_PREFIX)iasl
 
 *_GCC49_*_MAKE_PATH                     = make
 #*_GCC49_*_MAKE_PATH                    = DEF(GCC49_X64_PREFIX)make
@@ -186,7 +182,7 @@ DEFINE GCC5_ASM_FLAGS                   = DEF(GCC49_ASM_FLAGS)
 
 *_GCC5_*_MAKE_PATH                      = make
 #*_GCC5_*_MAKE_PATH                     = DEF(GCC5_IA32_PREFIX)make
-*_GCC5_*_ASL_PATH                       = DEF(UNIX_IASL_BIN)
+*_GCC5_*_ASL_PATH                       = DEF(IASL_PREFIX)iasl
 *_GCC5_*_*_DLL                          = ENV(GCC5_DLL)
 
 *_GCC5_*_PP_FLAGS                       = DEF(GCC_PP_FLAGS)
@@ -219,43 +215,6 @@ DEFINE GCC5_ASM_FLAGS                   = DEF(GCC49_ASM_FLAGS)
 *_GCC5_X64_NASM_FLAGS                   = -f elf64
 
 RELEASE_GCC5_X64_CC_FLAGS               = DEF(GCC5_X64_CC_FLAGS) -c
-
-####################################################################################
-#
-# Clang Support for building on Mac OS X
-#
-####################################################################################
-#   CLANG         - clang that produce Mach-O with EFI x86_64 ABI
-
-*_XCLANG_*_*_FAMILY                    = GCC
-*_XCLANG_*_*_BUILDRULEFAMILY           = XCODE
-*_XCLANG_*_*_BUILDRULEORDER            = S s nasm
-*_XCLANG_*_ASL_PATH                    = /usr/local/bin/iasl
-*_XCLANG_*_MAKE_PATH                   = make
-*_XCLANG_*_DSYMUTIL_PATH               = /usr/bin/dsymutil
-
-  DEBUG_XCLANG_*_MTOC_FLAGS            = -align 0x20 -d $(DEBUG_DIR)/$(MODULE_NAME).dll
-RELEASE_XCLANG_*_MTOC_FLAGS            = -align 0x20
-
-*_XCLANG_*_CC_PATH                     = DEF(CLANG_X64_PREFIX)clang
-*_XCLANG_*_SLINK_PATH                  = libtool
-*_XCLANG_*_DLINK_PATH                  = ld
-*_XCLANG_*_ASM_PATH                    = as
-*_XCLANG_*_PP_PATH                     = DEF(CLANG_X64_PREFIX)clang
-
-##################
-# X64 definitions
-##################
-
-RELEASE_XCLANG_X64_DLINK_FLAGS         = -arch x86_64 -u _$(IMAGE_ENTRY_POINT) -e _$(IMAGE_ENTRY_POINT) -preload -segalign 0x20  -pie -all_load -dead_strip -seg1addr 0x240 -map $(DEST_DIR_DEBUG)/$(BASE_NAME).map
-
-*_XCLANG_X64_SLINK_FLAGS               = -static -o
-  DEBUG_XCLANG_X64_ASM_FLAGS           = -arch x86_64 -g
-RELEASE_XCLANG_X64_ASM_FLAGS           = -arch x86_64
-*_XCLANG_X64_NASM_FLAGS                = -f macho64
-*_XCLANG_*_PP_FLAGS                    = -E -x assembler-with-cpp -include $(DEST_DIR_DEBUG)/AutoGen.h
-
-RELEASE_XCLANG_X64_CC_FLAGS            = -target x86_64-pc-win32-macho -c -Wall -Werror -include AutoGen.h -fno-ms-extensions -fno-stack-protector -fno-builtin -fshort-wchar -mno-sse -mno-mmx -Wno-empty-body -Wno-pointer-sign -Wno-unused-function -Wno-unused-value -Wno-tautological-compare -Wreturn-type -Wno-unused-variable  -Wno-deprecated-declarations -Wno-shift-negative-value
 
 ####################################################################################
 #
@@ -368,11 +327,11 @@ RELEASE_XCODE5_X64_CC_FLAGS           = -target x86_64-pc-win32-macho -c -Os -fl
 ##################
 # NASM tool definitions
 ##################
-*_*_*_NASM_PATH                       = ENV(NASM_PREFIX)nasm
+*_*_*_NASM_PATH                       = DEF(NASM_PREFIX)nasm
 # NASMB uses NASM produce a .bin from a .nasmb NASM source file
 *_*_*_NASMB_FLAGS                     = -f bin
 
-*_*_*_MTOC_PATH                       = ENV(MTOC_BIN)mtoc.NEW
+*_*_*_MTOC_PATH                       = DEF(MTOC_PREFIX)mtoc.NEW
 *_*_*_STRIP_PATH                      = strip
 
 #################

@@ -32,11 +32,8 @@
   BootArgs.c
   VMem.c
   Lib.c
-
-[Sources.X64]
-  X64/AsmFuncsX64.asm | INTEL
-  X64/AsmFuncsX64.asm | MSFT
-  X64/AsmFuncsX64.nasm | GCC
+  AsmFuncsX64.asm | MSFT
+  AsmFuncsX64.nasm | GCC
 
 [Guids]
   gEfiAppleBootGuid

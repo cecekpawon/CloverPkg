@@ -1191,6 +1191,11 @@ KernelAndKextPatcherInit (
 
   InitKernel (Entry);
 
+  if (KernelInfo->VersionMajor < DARWIN_KERNEL_VER_MAJOR_MINIMUM) {
+    MsgLog ("Unsupported kernel version (%d.%d.%d)\n", KernelInfo->VersionMajor, KernelInfo->VersionMinor, KernelInfo->Revision);
+    goto Finish;
+  }
+
   KernelInfo->Cached = ((KernelInfo->PrelinkTextSize > 0) && (KernelInfo->PrelinkInfoSize > 0));
   DBG ("Loaded %a | VersionMajor: %d | VersionMinor: %d | Revision: %d\n",
     KernelInfo->Version, KernelInfo->VersionMajor, KernelInfo->VersionMinor, KernelInfo->Revision

@@ -373,10 +373,7 @@ InjectKexts (
         Prop = Iter->currentProperty;
         DrvPtr = (UINT8 *)Prop;
 
-        if (
-          (AsciiStrnCmp (Prop->name, BOOTER_KEXT_PREFIX, AsciiStrLen (BOOTER_KEXT_PREFIX)) == 0) ||
-          (AsciiStrnCmp (Prop->name, BOOTER_MKEXT_PREFIX, AsciiStrLen (BOOTER_MKEXT_PREFIX)) == 0)
-        ) {
+        if (AsciiStrnCmp (Prop->name, BOOTER_KEXT_PREFIX, AsciiStrLen (BOOTER_KEXT_PREFIX)) == 0) {
           break;
         }
       }
@@ -451,7 +448,7 @@ InjectKexts (
         Entry->KernelAndKextPatches->NrKexts &&
         KernelAndKextPatcherInit (Entry)
       ) {
-        INT32       i, isBundle;
+        INT32       i, IsBundle;
         CHAR8       SavedValue, *InfoPlist = (CHAR8 *)(UINTN)Drvinfo->infoDictPhysAddr,
                     gKextBundleIdentifier[AVALUE_MAX_SIZE];
 #ifdef LAZY_PARSE_KEXT_PLIST
@@ -478,7 +475,7 @@ InjectKexts (
           if (
             !Entry->KernelAndKextPatches->KextPatches[i].Disabled &&
             !Entry->KernelAndKextPatches->KextPatches[i].Patched &&
-            IsPatchNameMatch (gKextBundleIdentifier, Entry->KernelAndKextPatches->KextPatches[i].Name, InfoPlist, &isBundle)
+            IsPatchNameMatch (gKextBundleIdentifier, Entry->KernelAndKextPatches->KextPatches[i].Name, InfoPlist, &IsBundle)
           ) {
             AnyKextPatch (
               (UINT8 *)(UINTN)Drvinfo->executablePhysAddr,
@@ -489,7 +486,7 @@ InjectKexts (
               Entry
             );
 
-            if (isBundle) {
+            if (IsBundle) {
               Entry->KernelAndKextPatches->KextPatches[i].Patched = TRUE;
             }
           }

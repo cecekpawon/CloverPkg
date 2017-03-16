@@ -309,7 +309,7 @@ FilterKextPatches (
 
     for (; i < Entry->KernelAndKextPatches->NrKexts; ++i) {
       BOOLEAN   NeedBuildVersion = (
-                  (Entry->BuildVersion != NULL) &&
+                  (Entry->OSBuildVersion != NULL) &&
                   (Entry->KernelAndKextPatches->KextPatches[i].MatchBuild != NULL)
                 );
 
@@ -345,7 +345,7 @@ FilterKextPatches (
 
       if (NeedBuildVersion) {
         Entry->KernelAndKextPatches->KextPatches[i].Disabled = !IsPatchEnabled (
-          Entry->KernelAndKextPatches->KextPatches[i].MatchBuild, Entry->BuildVersion);
+          Entry->KernelAndKextPatches->KextPatches[i].MatchBuild, Entry->OSBuildVersion);
 
         MsgLog (" ==> %a\n", Entry->KernelAndKextPatches->KextPatches[i].Disabled ? "not allowed" : "allowed");
 
@@ -377,7 +377,7 @@ FilterKernelPatches (
 
     for (; i < Entry->KernelAndKextPatches->NrKernels; ++i) {
       BOOLEAN   NeedBuildVersion = (
-                  (Entry->BuildVersion != NULL) &&
+                  (Entry->OSBuildVersion != NULL) &&
                   (Entry->KernelAndKextPatches->KernelPatches[i].MatchBuild != NULL)
                 );
 
@@ -394,7 +394,7 @@ FilterKernelPatches (
 
       if (NeedBuildVersion) {
         Entry->KernelAndKextPatches->KernelPatches[i].Disabled = !IsPatchEnabled (
-          Entry->KernelAndKextPatches->KernelPatches[i].MatchBuild, Entry->BuildVersion);
+          Entry->KernelAndKextPatches->KernelPatches[i].MatchBuild, Entry->OSBuildVersion);
 
         MsgLog (" ==> %a\n", Entry->KernelAndKextPatches->KernelPatches[i].Disabled ? "not allowed" : "allowed");
 
@@ -718,6 +718,11 @@ StartLoader (
           } else { // known version was found in image
             MsgLog ("Found BooterOSVersion: %a\n", BooterOSVersion);
 
+            if (OSX_LT (BooterOSVersion, DARWIN_OS_VER_STR_MINIMUM)) {
+              MsgLog ("Unsupported version\n");
+              return;
+            }
+
             PatchBooter (
               Entry,
               LoadedImage,
@@ -740,9 +745,9 @@ StartLoader (
       Entry->OSVersion = AllocateCopyPool ((Len + 1), BooterOSVersion);
       Entry->OSVersion[Len] = '\0';
 
-      //if (Entry->BuildVersion != NULL) {
-      //  FreePool (Entry->BuildVersion);
-      //  Entry->BuildVersion = NULL;
+      //if (Entry->OSBuildVersion != NULL) {
+      //  FreePool (Entry->OSBuildVersion);
+      //  Entry->OSBuildVersion = NULL;
       //}
     }
 
@@ -750,13 +755,20 @@ StartLoader (
       FreePool (BooterOSVersion);
     }
 
-    if (Entry->BuildVersion != NULL) {
-      MsgLog (" %a (%a)\n", Entry->OSVersion, Entry->BuildVersion);
+    if (Entry->OSBuildVersion != NULL) {
+      MsgLog (" %a (%a)\n", Entry->OSVersion, Entry->OSBuildVersion);
     } else {
       MsgLog (" %a\n", Entry->OSVersion);
     }
 
-    if (OSX_GT (Entry->OSVersion, "10.11")) {
+    if (OSX_GT (Entry->OSVersion, DARWIN_OS_VER_STR_ELCAPITAN)) {
+    //if (
+    //  (Entry->OSVersionMajor > DARWIN_OS_VER_MAJOR_10) ||
+    //  (
+    //    (Entry->OSVersionMajor == DARWIN_OS_VER_MAJOR_10) &&
+    //    (Entry->OSVersionMinor > DARWIN_OS_VER_MINOR_ELCAPITAN)
+    //  )
+    //) {
       if (OSFLAG_ISSET (Entry->Flags, OSFLAG_NOSIP)) {
         gSettings.CsrActiveConfig = (UINT32)DEF_NOSIP_CSR_ACTIVE_CONFIG;
         gSettings.BooterConfig = (UINT16)DEF_NOSIP_BOOTER_CONFIG;
@@ -775,7 +787,7 @@ StartLoader (
       !BootArgsExists (Entry->LoadOptions, L"Kernel=")
     ) {
       CHAR16  *TempOptions,
-              *KernelLocation = OSX_LE (Entry->OSVersion, "10.9")
+              *KernelLocation = OSX_LE (Entry->OSVersion, DARWIN_OS_VER_STR_MAVERICKS)
                                   ? L"\"Kernel=/mach_kernel\""
                                   // used for 10.10, 10.11, and new version.
                                   : L"\"Kernel=/System/Library/Kernels/kernel\"";

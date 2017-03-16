@@ -1901,10 +1901,28 @@ PatchTableType128 () {
     //newSmbiosTable.Type128->FlashMap[1].StartAddress = 0x15000; //0xF0000;
     //newSmbiosTable.Type128->FlashMap[1].EndAddress = 0x1FFFF;
     //region type=1 also present in mac
+
+/*
+    newSmbiosTable.Type128->RegionCount = 4;
+    newSmbiosTable.Type128->RegionType[0] = FW_REGION_MAIN;
+    newSmbiosTable.Type128->FlashMap[0].StartAddress = 0xFF990000;
+    newSmbiosTable.Type128->FlashMap[0].EndAddress = 0xFFB2FFFF;
+    newSmbiosTable.Type128->RegionType[1] = FW_REGION_RESERVED;
+    newSmbiosTable.Type128->FlashMap[1].StartAddress = 0xFFB30000;
+    newSmbiosTable.Type128->FlashMap[1].EndAddress = 0xFFB5FFFF;
+    newSmbiosTable.Type128->RegionType[2] = FW_REGION_RESERVED;
+    newSmbiosTable.Type128->FlashMap[2].StartAddress = 0xFFB60000;
+    newSmbiosTable.Type128->FlashMap[2].EndAddress = 0xFFDFFFFF;
+    newSmbiosTable.Type128->RegionType[3] = FW_REGION_NVRAM;
+    newSmbiosTable.Type128->FlashMap[3].StartAddress = 0xFFE70000;
+    newSmbiosTable.Type128->FlashMap[3].EndAddress = 0xFFE9FFFF;
+*/
+
     LogSmbiosTable (newSmbiosTable);
 
     return ;
   }
+
   //
   // Log Smbios Record Type128
   //

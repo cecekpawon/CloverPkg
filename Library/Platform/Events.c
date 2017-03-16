@@ -29,8 +29,8 @@ SaveDarwinLog () {
   UINT32    PropSize;
 
   if (DTLookupEntry (NULL, "/efi/platform", &PlatformEntry) == kSuccess) {
-    if (DTGetProperty(PlatformEntry, DATAHUB_LOG, &PropValue, &PropSize) == kSuccess) {
-      CONSTRAIN_MAX (PropSize, GetMemLogLen ());
+    if (DTGetProperty (PlatformEntry, DATAHUB_LOG, &PropValue, &PropSize) == kSuccess) {
+      CONSTRAIN_MAX (PropSize, (UINT32)GetMemLogLen ());
       CopyMem (PropValue, GetMemLogBuffer (), PropSize);
     }
   }

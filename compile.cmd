@@ -6,7 +6,7 @@ rem # 12/20/2016 4:55:03 PM
 rem # setup EDK2
 
 set CYGWIN_HOME=c:\cygwin
-set NASM_PREFIX=%CYGWIN_HOME%\bin\
+set NASM_BIN=%CYGWIN_HOME%\bin\
 rem set PYTHON_HOME=c:\Python27
 rem set PYTHON_PATH=%PYTHON_HOME%
 rem set PYTHON_FREEZER_PATH=%PYTHON_PATH%\Scripts
@@ -40,16 +40,25 @@ set "CLOVER_DSC=%CLOVER_PATH%\%CLOVER_BASEPATH%.dsc"
 set "CLOVER_LOG=%CLOVER_PATH%\%CLOVER_BASEPATH%.log"
 set "QEMU_EFI_PATH=G:\QVM\DISK\EFI"
 set DRV_LIST=(FSInject OsxAptioFixDrv)
-set EDK2_REVISION_MAGIC=2775
+set EDK2_REVISION_MAGIC=8925
 
 rem # get revision
 
 cd %WORKSPACE%
-for /f %%i in ('git rev-list --count HEAD') do set EDK2_REVISION=%%i
-set /a "EDK2_REVISION=%EDK2_REVISION%+%EDK2_REVISION_MAGIC%"
+
+if exist "%F_REV_TXT%" goto SetEDK2Revision
+
+for /f %%i in ('git ls-remote --get-url') do set EDK2_REMOTE=%%i
+for /f "tokens=2" %%i in ('svn info %EDK2_REMOTE%^|find "Revision"') do set EDK2_REVISION=%%i
+set /a "EDK2_REVISION=%EDK2_REVISION%-%EDK2_REVISION_MAGIC%"
 echo %EDK2_REVISION%>%F_REV_TXT%
 
+:SetEDK2Revision
+
+set /P EDK2_REVISION=<%F_REV_TXT%
+
 cd %CURRENTDIR%
+
 git rev-list --count HEAD>%F_REV_TXT%
 set /P CLOVER_REVISION=<%F_REV_TXT%
 

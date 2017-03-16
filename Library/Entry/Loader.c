@@ -164,12 +164,9 @@ GetOSTypeFromPath (
   if (Path == NULL) {
     return OSTYPE_OTHER;
   }
-
-  /*if (StriCmp (Path, DARWIN_INSTALLER_LOADER_PATH) == 0) {
+  if (StriCmp (Path, DARWIN_INSTALLER_LOADERBASE_PATH) == 0) {
     return OSTYPE_DARWIN_INSTALLER;
-  } else if (IsBootExists (Path, OSXInstallerPaths)) {
-    return OSTYPE_DARWIN_INSTALLER;
-  }*/ if (StriCmp (Path, DARWIN_RECOVERY_LOADER_PATH) == 0) {
+  } else if (StriCmp (Path, DARWIN_RECOVERY_LOADER_PATH) == 0) {
     return OSTYPE_DARWIN_RECOVERY;
   } else if (StriCmp (Path, DARWIN_LOADER_PATH) == 0) {
     return OSTYPE_DARWIN;
@@ -385,10 +382,10 @@ TranslateLoaderTitleTemplate (
   IN      CHAR16          *Label,
   IN      CHAR16          *Path
 ) {
-  CHAR16  *Buffer;
-  CHAR16  *Tpl = DEF_DISK_TEMPLATE, *Platform = L"Unknown",
-          OSVersion[8], BuildVersion[8];
+  CHAR16  *Buffer, *Tpl = DEF_DISK_TEMPLATE, *Platform = L"Unknown",
+          OSVersion[8], OSBuildVersion[8];
   UINTN   i = 0, TplLen = 0, Len;
+  UINT8   Major = 0, Minor = 0, Revision = 0;
 
   if (Entry->OSVersion) {
     AsciiStrToUnicodeStrS (Entry->OSVersion, OSVersion, ARRAY_SIZE (OSVersion));
@@ -396,15 +393,21 @@ TranslateLoaderTitleTemplate (
     *OSVersion = 0;
   }
 
-  if (Entry->BuildVersion) {
-    AsciiStrToUnicodeStrS (Entry->BuildVersion, BuildVersion, ARRAY_SIZE (BuildVersion));
+  if (Entry->OSBuildVersion) {
+    AsciiStrToUnicodeStrS (Entry->OSBuildVersion, OSBuildVersion, ARRAY_SIZE (OSBuildVersion));
   } else {
-    *BuildVersion = 0;
+    *OSBuildVersion = 0;
+  }
+
+  if (OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType)) {
+    Platform = L"Darwin";
+    Major = Entry->OSVersionMajor;
+    Minor = Entry->OSVersionMinor;
+    Revision = Entry->OSRevision;
   }
 
   switch (Entry->LoaderType) {
     case OSTYPE_DARWIN:
-      Platform = L"Darwin";
       TplLen = StrLen (gSettings.DarwinDiskTemplate);
       if (TplLen) {
         Tpl = gSettings.DarwinDiskTemplate;
@@ -414,7 +417,6 @@ TranslateLoaderTitleTemplate (
       break;
 
     case OSTYPE_DARWIN_RECOVERY:
-      Platform = L"Darwin";
       TplLen = StrLen (gSettings.DarwinRecoveryDiskTemplate);
       if (TplLen) {
         Tpl = gSettings.DarwinRecoveryDiskTemplate;
@@ -424,7 +426,6 @@ TranslateLoaderTitleTemplate (
       break;
 
     case OSTYPE_DARWIN_INSTALLER:
-      Platform = L"Darwin";
       TplLen = StrLen (gSettings.DarwinInstallerDiskTemplate);
       if (TplLen) {
         Tpl = gSettings.DarwinInstallerDiskTemplate;
@@ -436,11 +437,23 @@ TranslateLoaderTitleTemplate (
     case OSTYPE_WIN:
     case OSTYPE_WINEFI:
       Platform = L"Windows";
+      TplLen = StrLen (gSettings.WindowsDiskTemplate);
+      if (TplLen) {
+        Tpl = gSettings.WindowsDiskTemplate;
+      } else {
+        Tpl = DEF_WINDOWS_TEMPLATE;
+      }
       break;
 
     case OSTYPE_LIN:
     case OSTYPE_LINEFI:
       Platform = L"Linux";
+      TplLen = StrLen (gSettings.LinuxDiskTemplate);
+      if (TplLen) {
+        Tpl = gSettings.LinuxDiskTemplate;
+      } else {
+        Tpl = DEF_LINUX_TEMPLATE;
+      }
       break;
 
     default:
@@ -465,7 +478,8 @@ TranslateLoaderTitleTemplate (
           StrLen (Path) +
           StrLen (Platform) +
           StrLen (OSVersion) +
-          StrLen (BuildVersion)
+          StrLen (OSBuildVersion) +
+          6 // Major, Minor, Revision
         );
 
   Buffer = AllocateZeroPool (Len);
@@ -485,7 +499,10 @@ TranslateLoaderTitleTemplate (
       !ReplacePlaceholderTemplate (&Tpl, &Buffer, &i, Len, L"path", Path) &&
       !ReplacePlaceholderTemplate (&Tpl, &Buffer, &i, Len, L"platform", Platform) &&
       !ReplacePlaceholderTemplate (&Tpl, &Buffer, &i, Len, L"version", OSVersion) &&
-      !ReplacePlaceholderTemplate (&Tpl, &Buffer, &i, Len, L"build", BuildVersion)
+      !ReplacePlaceholderTemplate (&Tpl, &Buffer, &i, Len, L"build", OSBuildVersion) &&
+      !ReplacePlaceholderTemplate (&Tpl, &Buffer, &i, Len, L"major", PoolPrint (L"%d", Major)) &&
+      !ReplacePlaceholderTemplate (&Tpl, &Buffer, &i, Len, L"minor", PoolPrint (L"%d", Minor)) &&
+      !ReplacePlaceholderTemplate (&Tpl, &Buffer, &i, Len, L"revision", PoolPrint (L"%d", Revision))
     ) {
       Buffer[i++] = *(Tpl++);
     }
@@ -519,8 +536,10 @@ CreateLoaderEntry (
                     *OSIconName, *HoverImage, *OSIconNameHover = NULL;
   LOADER_ENTRY      *Entry;
   INTN              i;
-  CHAR8             *Indent = "    ";
+  CHAR8             *Indent = "    ",
+                    *OSVersion = NULL, *OSBuildVersion = NULL;
   EG_IMAGE          *ImageTmp;
+  SVersion          *DarwinOSVersion;
 
   // Check parameters are valid
   if ((LoaderPath == NULL) || (*LoaderPath == 0) || (Volume == NULL)) {
@@ -662,6 +681,16 @@ CreateLoaderEntry (
     }
   }
 
+  if (OSTYPE_IS_DARWIN_GLOB (OSType)) {
+    GetDarwinVersion (OSType, Volume->RootDir, &OSVersion, &OSBuildVersion);
+    DarwinOSVersion = VersionFromStr (OSVersion);
+
+    //if (!DARWIN_OS_VER_MINIMUM (DarwinOSVersion->VersionMajor, DarwinOSVersion->VersionMinor)) {
+    if (OSX_LT (OSVersion, DARWIN_OS_VER_STR_MINIMUM)) {
+      return NULL;
+    }
+  }
+
   // prepare the menu entry
   Entry                     = AllocateZeroPool (sizeof (LOADER_ENTRY));
   Entry->me.Tag             = TAG_LOADER;
@@ -685,8 +714,11 @@ CreateLoaderEntry (
   }
 
   Entry->LoaderType         = OSType;
-  Entry->BuildVersion       = NULL;
   Entry->OSVersion          = NULL;
+  Entry->OSBuildVersion     = NULL;
+  Entry->OSVersionMajor     = 0;
+  Entry->OSVersionMinor     = 0;
+  Entry->OSRevision         = 0;
 
   // detect specific loaders
   OSIconName = NULL;
@@ -696,9 +728,15 @@ CreateLoaderEntry (
     case OSTYPE_DARWIN:
     case OSTYPE_DARWIN_RECOVERY:
     case OSTYPE_DARWIN_INSTALLER:
-      //Entry->OSVersion = GetOSVersion (Entry);
-      GetDarwinVersion (&Entry);
-      OSIconName = GetOSIconName (Entry->OSVersion);// Sothor - Get OSIcon name using OSVersion
+      //GetDarwinVersion (&Entry);
+      Entry->OSVersion = AllocateCopyPool (AsciiStrSize (OSVersion), OSVersion);
+      Entry->OSBuildVersion = AllocateCopyPool (AsciiStrSize (OSBuildVersion), OSBuildVersion);
+      Entry->OSVersionMajor = DarwinOSVersion->VersionMajor;
+      Entry->OSVersionMinor = DarwinOSVersion->VersionMinor;
+      Entry->OSRevision = DarwinOSVersion->Revision;
+
+      //OSIconName = GetOSIconName (Entry->OSVersion);// Sothor - Get OSIcon name using OSVersion
+      OSIconName = GetOSIconName (DarwinOSVersion);
 
       if ((OSType == OSTYPE_DARWIN) && IsOsxHibernated (Volume)) {
         Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_HIBERNATED);
@@ -769,9 +807,10 @@ CreateLoaderEntry (
                         Entry,
                         GlobalConfig.BootCampStyle // label
                           ? NULL
-                          : OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType)
-                            ? NULL
-                            : (LoaderTitle != NULL) ? LoaderTitle : Basename (LoaderPath),
+                          //: OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType)
+                          //  ? NULL
+                          //  : (LoaderTitle != NULL) ? LoaderTitle : Basename (LoaderPath),
+                          : (LoaderTitle != NULL) ? LoaderTitle : Basename (LoaderPath),
                         Entry->VolName // path
                       );
   }
@@ -832,7 +871,7 @@ BOOLEAN
 IsKernelIs64BitOnly (
   IN LOADER_ENTRY   *Entry
 ) {
-  return OSX_GE (Entry->OSVersion, "10.8");
+  return OSX_GE (Entry->OSVersion, DARWIN_OS_VER_STR_MINIMUM);
 }
 
 //
@@ -1069,15 +1108,15 @@ ScanLoader () {
     // Use standard location for boot.efi, unless the file /.IAPhysicalMedia is present
     // That file indentifies a 2nd-stage Install Media, so when present, skip standard path to avoid entry duplication
     if (FileExists (Volume->RootDir, DARWIN_INSTALLER_LOADERBASE_PATH)) {
-      AddLoaderEntry (/*DARWIN_LOADER_PATH*/DARWIN_INSTALLER_LOADERBASE_PATH, NULL, NULL/*L"OS X Install"*/, Volume, NULL, OSTYPE_DARWIN_INSTALLER, 0);
+      AddLoaderEntry (DARWIN_INSTALLER_LOADERBASE_PATH, NULL, L"Installer", Volume, NULL, OSTYPE_DARWIN_INSTALLER, 0);
     }
 
     else if (FileExists (Volume->RootDir, DARWIN_RECOVERY_LOADER_PATH)) {
-      AddLoaderEntry (DARWIN_RECOVERY_LOADER_PATH, NULL, NULL/*L"Recovery"*/, Volume, NULL, OSTYPE_DARWIN_RECOVERY, 0);
+      AddLoaderEntry (DARWIN_RECOVERY_LOADER_PATH, NULL, L"Recovery", Volume, NULL, OSTYPE_DARWIN_RECOVERY, 0);
     }
 
     else if (EFI_ERROR (GetRootUUID (Volume)) || IsFirstRootUUID (Volume)) {
-      AddLoaderEntry (DARWIN_LOADER_PATH, NULL, NULL/*L"Mac OS X"*/, Volume, NULL, OSTYPE_DARWIN, 0);
+      AddLoaderEntry (DARWIN_LOADER_PATH, NULL, L"MacOS", Volume, NULL, OSTYPE_DARWIN, 0);
     }
 
     //
@@ -1730,7 +1769,7 @@ DuplicateLoaderEntry (
     DuplicateEntry->Flags                 = Entry->Flags;
     DuplicateEntry->LoaderType            = Entry->LoaderType;
     DuplicateEntry->OSVersion             = Entry->OSVersion;
-    DuplicateEntry->BuildVersion          = Entry->BuildVersion;
+    DuplicateEntry->OSBuildVersion        = Entry->OSBuildVersion;
     DuplicateEntry->KernelAndKextPatches  = Entry->KernelAndKextPatches;
   }
 

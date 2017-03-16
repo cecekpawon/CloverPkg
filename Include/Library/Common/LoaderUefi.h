@@ -158,7 +158,35 @@ _STRUCT_X86_THREAD_STATE64
 //
 // From xnu/osfmk/mach/i386/thread_status.h:
 //
-typedef _STRUCT_X86_THREAD_STATE32 i386_thread_state_t;
-typedef _STRUCT_X86_THREAD_STATE64 x86_thread_state64_t;
+typedef _STRUCT_X86_THREAD_STATE32    i386_thread_state_t;
+typedef _STRUCT_X86_THREAD_STATE64    x86_thread_state64_t;
+
+
+#define DARWIN_KERNEL_VER_MAJOR_MAVERICKS       13
+#define DARWIN_KERNEL_VER_MAJOR_YOSEMITE        14
+#define DARWIN_KERNEL_VER_MAJOR_ELCAPITAN       15
+#define DARWIN_KERNEL_VER_MAJOR_SIERRA          16
+
+#define DARWIN_OS_VER_MAJOR_10                  10
+
+#define DARWIN_OS_VER_MINOR_MAVERICKS           9
+#define DARWIN_OS_VER_MINOR_YOSEMITE            10
+#define DARWIN_OS_VER_MINOR_ELCAPITAN           11
+#define DARWIN_OS_VER_MINOR_SIERRA              12
+
+#define DARWIN_OS_VER_STR_MAVERICKS             "10.9"
+#define DARWIN_OS_VER_STR_YOSEMITE              "10.10"
+#define DARWIN_OS_VER_STR_ELCAPITAN             "10.11"
+#define DARWIN_OS_VER_STR_SIERRA                "10.12"
+
+#define DARWIN_KERNEL_VER_MAJOR_MINIMUM         DARWIN_KERNEL_VER_MAJOR_MAVERICKS
+#define DARWIN_OS_VER_MAJOR_MINIMUM             DARWIN_OS_VER_MAJOR_10
+#define DARWIN_OS_VER_MINOR_MINIMUM             DARWIN_OS_VER_MINOR_MAVERICKS
+#define DARWIN_OS_VER_STR_MINIMUM               DARWIN_OS_VER_STR_MAVERICKS
+
+#define DARWIN_OS_VER_MINIMUM(Major, Minor)     (\
+                                                  (Major > DARWIN_OS_VER_MAJOR_MINIMUM) || \
+                                                  ((Major == DARWIN_OS_VER_MAJOR_MINIMUM) && (Minor >= DARWIN_OS_VER_MINOR_MINIMUM)) \
+                                                )
 
 #endif /* _UEFI_MACHO_LOADER_H_ */

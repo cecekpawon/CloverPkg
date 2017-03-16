@@ -21,13 +21,12 @@ TOOLCHAIN_DIR="${SRC}/opt/local"
 GCC_BIN="${TOOLCHAIN_DIR}/cross/bin/x86_64-clover-linux-gnu-"
 export GCC49_BIN="${GCC_BIN}"
 export GCC5_BIN="${GCC_BIN}"
-export NASM_PREFIX="${TOOLCHAIN_DIR}/bin/"
-export CLANG_BIN="/usr/bin/"
+export NASM_BIN="${TOOLCHAIN_DIR}/bin/"
 export MTOC_BIN="${TOOLCHAIN_DIR}/bin/"
 export LC_ALL="en_US.UTF-8"
 #export LANG="en_US.UTF-8"
 
-EDK2_REVISION_MAGIC=2775
+EDK2_REVISION_MAGIC=8925
 F_REV_TXT="rev.txt"
 
 CLOVER_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -39,11 +38,16 @@ echo $CLOVER_REVISION > "${F_REV_TXT}"
 
 cd ..
 export WORKSPACE="`pwd`"
-EDK2_REVISION=`git rev-list --count HEAD`
-echo $((EDK2_REVISION + EDK2_REVISION_MAGIC)) > "${F_REV_TXT}"
+if [[ -e "${F_REV_TXT}" ]]; then
+  EDK2_REVISION=`cat "${F_REV_TXT}"`
+else
+  EDK2_REMOTE=`git ls-remote --get-url`
+  EDK2_REVISION=`svn info $EDK2_REMOTE | sed -nE 's/^.*evision: *([0-9]+).*$/\1/p'`
+  echo $((EDK2_REVISION - EDK2_REVISION_MAGIC)) > "${F_REV_TXT}"
+fi
 source ./edksetup.sh "BaseTools"
 
-MYTOOLCHAIN=GCC5 # GCC49 GCC5 XCLANG XCODE5
+MYTOOLCHAIN=GCC5 # GCC49 GCC5 XCODE5
 #BUILD_OPTIONS="-D EMBED_APTIOFIX -D EMBED_FSINJECT"
 BUILD_OPTIONS=
 
@@ -70,16 +74,6 @@ case "${MYTOOLCHAIN}" in
         ln -s "${gMake}" "${gGNUmake}"
       fi
     ;;
-  XCLANG|LLVM)
-      dLlvmBin="/usr/bin"
-      dLlvmCloverBin="${SRC}/llvm-build/Release/bin"
-      if [[ ! -x "${dLlvmCloverBin}/clang" && -x "${dLlvmBin}/clang" ]]; then
-        mkdir -p "${dLlvmCloverBin}"
-        ln -s "${dLlvmBin}/clang" "${dLlvmCloverBin}/clang"
-      fi
-    ;;
-  #XCODE5)
-  #  ;;
 esac
 
 cd "${CLOVER_PATH}"

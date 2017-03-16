@@ -696,7 +696,7 @@ PatchKext (
   CHAR8         *BundleIdentifier,
   LOADER_ENTRY  *Entry
 ) {
-  INT32  isBundle;
+  INT32  IsBundle;
 
   //
   // ATIConnectors
@@ -705,10 +705,10 @@ PatchKext (
   if (
     (Entry->KernelAndKextPatches->KPATIConnectorsController != NULL) &&
     (
-      IsPatchNameMatch (BundleIdentifier, ATIKextBundleId[0], NULL, &isBundle) ||
-      IsPatchNameMatch (BundleIdentifier, ATIKextBundleId[1], NULL, &isBundle) ||
-      IsPatchNameMatch (BundleIdentifier, ATIKextBundleId[2], NULL, &isBundle) ||
-      IsPatchNameMatch (BundleIdentifier, ATIKextBundleId[3], NULL, &isBundle)
+      IsPatchNameMatch (BundleIdentifier, ATIKextBundleId[0], NULL, &IsBundle) ||
+      IsPatchNameMatch (BundleIdentifier, ATIKextBundleId[1], NULL, &IsBundle) ||
+      IsPatchNameMatch (BundleIdentifier, ATIKextBundleId[2], NULL, &IsBundle) ||
+      IsPatchNameMatch (BundleIdentifier, ATIKextBundleId[3], NULL, &IsBundle)
     )
   ) {
     if (!ATIConnectorsPatchInited) {
@@ -734,7 +734,7 @@ PatchKext (
 
   } else if (
     Entry->KernelAndKextPatches->KPAsusAICPUPM &&
-    IsPatchNameMatch (BundleIdentifier, NULL, "com.apple.driver.AppleIntelCPUPowerManagement", &isBundle)
+    IsPatchNameMatch (BundleIdentifier, NULL, "com.apple.driver.AppleIntelCPUPowerManagement", &IsBundle)
   ) {
     AsusAICPUPMPatch (Driver, DriverSize, Entry);
     Entry->KernelAndKextPatches->KPAsusAICPUPM = FALSE;
@@ -749,15 +749,15 @@ PatchKext (
     for (i = 0; i < Entry->KernelAndKextPatches->NrKexts; i++) {
       if (
         Entry->KernelAndKextPatches->KextPatches[i].Patched ||
-        Entry->KernelAndKextPatches->KextPatches[i].Disabled || // avoid redundant: if unique / isBundle
-        !IsPatchNameMatch (BundleIdentifier, Entry->KernelAndKextPatches->KextPatches[i].Name, InfoPlist, &isBundle)
+        Entry->KernelAndKextPatches->KextPatches[i].Disabled || // avoid redundant: if unique / IsBundle
+        !IsPatchNameMatch (BundleIdentifier, Entry->KernelAndKextPatches->KextPatches[i].Name, InfoPlist, &IsBundle)
       ) {
         continue;
       }
 
       AnyKextPatch (Driver, DriverSize, InfoPlist, InfoPlistSize, &Entry->KernelAndKextPatches->KextPatches[i], Entry);
 
-      if (isBundle) {
+      if (IsBundle) {
         Entry->KernelAndKextPatches->KextPatches[i].Patched = TRUE;
       }
     }

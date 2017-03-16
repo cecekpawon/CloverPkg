@@ -177,6 +177,9 @@ GetDefaultConfig () {
   ZeroMem (gSettings.DarwinDiskTemplate, ARRAY_SIZE (gSettings.DarwinDiskTemplate));
   ZeroMem (gSettings.DarwinRecoveryDiskTemplate, ARRAY_SIZE (gSettings.DarwinRecoveryDiskTemplate));
   ZeroMem (gSettings.DarwinInstallerDiskTemplate, ARRAY_SIZE (gSettings.DarwinInstallerDiskTemplate));
+  ZeroMem (gSettings.LinuxDiskTemplate, ARRAY_SIZE (gSettings.LinuxDiskTemplate));
+  //ZeroMem (gSettings.AndroidDiskTemplate, ARRAY_SIZE (gSettings.AndroidDiskTemplate));
+  ZeroMem (gSettings.WindowsDiskTemplate, ARRAY_SIZE (gSettings.WindowsDiskTemplate));
 
   /*
   gSettings.InjectIntel         = FALSE;
@@ -208,6 +211,7 @@ GetDefaultConfig () {
   gSettings.RtROMLen             = 0;
   gSettings.CsrActiveConfig      = 0xFFFF;
   gSettings.BooterConfig         = 0xFFFF;
+  gSettings.QPI                  = 0xFFFF;
 
   //gLanguage = english;
 }
@@ -3030,6 +3034,27 @@ GetEarlyUserSettings (
           AsciiStrToUnicodeStrS (Prop->string, gSettings.DarwinInstallerDiskTemplate, ARRAY_SIZE (gSettings.DarwinInstallerDiskTemplate));
         }
       }
+
+      Prop = GetProperty (DictPointer, "LinuxDiskTemplate");
+      if (Prop != NULL) {
+        if ((Prop->type == kTagTypeString) && Prop->string) {
+          AsciiStrToUnicodeStrS (Prop->string, gSettings.LinuxDiskTemplate, ARRAY_SIZE (gSettings.LinuxDiskTemplate));
+        }
+      }
+
+      //Prop = GetProperty (DictPointer, "AndroidDiskTemplate");
+      //if (Prop != NULL) {
+      //  if ((Prop->type == kTagTypeString) && Prop->string) {
+      //    AsciiStrToUnicodeStrS (Prop->string, gSettings.AndroidDiskTemplate, ARRAY_SIZE (gSettings.AndroidDiskTemplate));
+      //  }
+      //}
+
+      Prop = GetProperty (DictPointer, "WindowsDiskTemplate");
+      if (Prop != NULL) {
+        if ((Prop->type == kTagTypeString) && Prop->string) {
+          AsciiStrToUnicodeStrS (Prop->string, gSettings.WindowsDiskTemplate, ARRAY_SIZE (gSettings.WindowsDiskTemplate));
+        }
+      }
     }
 
     DictPointer = GetProperty (Dict, "Graphics");
@@ -3869,6 +3894,7 @@ ParseACPISettings (
             Signature = SIGNATURE_32 (s1, s2, s3, s4);
             DBG ("\" (%8.8X)", Signature);
           }
+
           // Get the table ids to drop
           Prop2 = GetProperty (Dict, "TableId");
           if (Prop2 != NULL) {
@@ -4437,7 +4463,9 @@ LoadUserSettings (
 
 BOOLEAN
 CheckDarwinVersion (
-  IN LOADER_ENTRY   **Entry,
+  IN EFI_FILE       *RootDir,
+  IN CHAR8          **OSVersion,
+  IN CHAR8          **BuildVersion,
   IN CHAR16         *Plist
 ) {
   EFI_STATUS    Status = EFI_INCOMPATIBLE_VERSION;
@@ -4445,8 +4473,8 @@ CheckDarwinVersion (
   UINTN         PlistLen, i = 0;
   TagPtr        Dict = NULL,  Prop = NULL;
 
-  if ((*Entry)->OSVersion != NULL) {
-    FreePool ((*Entry)->OSVersion);
+  if (*OSVersion != NULL) {
+    FreePool (*OSVersion);
   }
 
   if (Plist != NULL) {
@@ -4454,7 +4482,7 @@ CheckDarwinVersion (
   }
 
   // Detect exact version for Mac OS X Regular/Server
-  while ((DarwinSystemPlists[i] != NULL) && !FileExists ((*Entry)->Volume->RootDir, DarwinSystemPlists[i])) {
+  while ((DarwinSystemPlists[i] != NULL) && !FileExists (RootDir, DarwinSystemPlists[i])) {
     i++;
   }
 
@@ -4468,17 +4496,17 @@ CheckDarwinVersion (
 
   // found OSX System
 
-  Status = LoadFile ((*Entry)->Volume->RootDir, Plist, (UINT8 **)&PlistBuffer, &PlistLen);
+  Status = LoadFile (RootDir, Plist, (UINT8 **)&PlistBuffer, &PlistLen);
 
   if (!EFI_ERROR (Status) && (PlistBuffer != NULL) && !EFI_ERROR (ParseXML (PlistBuffer, &Dict, 0))) {
     Prop = GetProperty (Dict, "ProductVersion");
     if ((Prop != NULL) && (Prop->string != NULL) && (Prop->string[0] != '\0')) {
-      (*Entry)->OSVersion = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
+      *OSVersion = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
     }
 
     Prop = GetProperty (Dict, "ProductBuildVersion");
     if ((Prop != NULL) && (Prop->string != NULL) && (Prop->string[0] != '\0')) {
-      (*Entry)->BuildVersion = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
+      *BuildVersion = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
     }
   }
 
@@ -4488,65 +4516,62 @@ CheckDarwinVersion (
     FreePool (PlistBuffer);
   }
 
-  return ((*Entry)->OSVersion && (AsciiStrLen ((*Entry)->OSVersion) > 0));
+  return (*OSVersion && (AsciiStrLen (*OSVersion) > 0));
 }
 
 VOID
 GetDarwinVersion (
-  IN LOADER_ENTRY   **Entry
+  IN UINT8      OSType,
+  IN EFI_FILE   *RootDir,
+  IN CHAR8      **OSVersion,
+  IN CHAR8      **BuildVersion
 ) {
-  if (
-    !(*Entry) ||
-    !(*Entry)->Volume  ||
-    !(*Entry)->LoaderType ||
-    !OSTYPE_IS_DARWIN_GLOB ((*Entry)->LoaderType)
-  ) {
+  if (!RootDir) {
     return;
   }
 
-  if (OSTYPE_IS_DARWIN ((*Entry)->LoaderType)) {
-    CheckDarwinVersion (&(*Entry), NULL);
-  }
-
-  else if (OSTYPE_IS_DARWIN_INSTALLER ((*Entry)->LoaderType)) {
-    if (!CheckDarwinVersion (&(*Entry), DarwinInstallerSystemPlists)) {
-      CheckDarwinVersion (&(*Entry), NULL);
-    }
-  }
-
-  else if (OSTYPE_IS_DARWIN_RECOVERY ((*Entry)->LoaderType)) {
-    CheckDarwinVersion (&(*Entry), DarwinRecoverySystemPlists);
+  switch (OSType) {
+    case OSTYPE_DARWIN:
+      CheckDarwinVersion (RootDir, OSVersion, BuildVersion, NULL);
+      break;
+    case OSTYPE_DARWIN_RECOVERY:
+      CheckDarwinVersion (RootDir, OSVersion, BuildVersion, DarwinRecoverySystemPlists);
+      break;
+    case OSTYPE_DARWIN_INSTALLER:
+      if (!CheckDarwinVersion (RootDir, OSVersion, BuildVersion, DarwinInstallerSystemPlists)) {
+        CheckDarwinVersion (RootDir, OSVersion, BuildVersion, NULL);
+      }
+      break;
   }
 }
 
 CHAR16 *
 GetOSIconName (
-  IN CHAR8    *OSVersion
+  IN  SVersion  *SDarwinVersion
 ) {
   CHAR16  *OSIconName;
 
-  if (OSVersion == NULL) {
-    OSIconName = L"mac";
-  } else if (AsciiStrStr (OSVersion, "10.12") != NULL) {
-    // Sierra
-    OSIconName = L"sierra,mac";
-  } else if (AsciiStrStr (OSVersion, "10.11") != NULL) {
-    // El Capitan
-    OSIconName = L"cap,mac";
-  } else if (AsciiStrStr (OSVersion, "10.10") != NULL) {
-    // Yosemite
-    OSIconName = L"yos,mac";
-  } else if (AsciiStrStr (OSVersion, "10.9") != NULL) {
-    // Mavericks
-    OSIconName = L"mav,mac";
-  } else if (AsciiStrStr (OSVersion, "10.8") != NULL) {
-    // Mountain Lion
-    OSIconName = L"cougar,mac";
-  } else if (AsciiStrStr (OSVersion, "10.7") != NULL) {
-    // Lion
-    OSIconName = L"lion,mac";
-  } else {
-    OSIconName = L"mac";
+  switch (SDarwinVersion->VersionMajor) {
+    case DARWIN_OS_VER_MAJOR_10:
+      switch (SDarwinVersion->VersionMinor) {
+        case DARWIN_OS_VER_MINOR_SIERRA:
+          OSIconName = L"sierra,mac";
+          break;
+        case DARWIN_OS_VER_MINOR_ELCAPITAN:
+          OSIconName = L"cap,mac";
+          break;
+        case DARWIN_OS_VER_MINOR_YOSEMITE:
+          OSIconName = L"yos,mac";
+          break;
+        case DARWIN_OS_VER_MINOR_MAVERICKS:
+          OSIconName = L"mav,mac";
+          break;
+        default:
+          OSIconName = L"mac";
+      }
+      break;
+    default:
+      OSIconName = L"mac";
   }
 
   return OSIconName;
@@ -5141,7 +5166,6 @@ SetFSInjection (
   IN LOADER_ENTRY   *Entry
 ) {
   EFI_STATUS              Status = EFI_NOT_STARTED;
-  REFIT_VOLUME            *Volume;
   FSINJECTION_PROTOCOL    *FSInject;
   FSI_STRING_LIST         *Blacklist = 0, *ForceLoadKexts = NULL;
   UINTN                   Index = 0, InjectKextsDirCount = ARRAY_SIZE (InjectKextsDir);
@@ -5195,7 +5219,7 @@ SetFSInjection (
     for (Index = 0; Index < InjectKextsDirCount; Index++) {
       if (InjectKextsDir[Index] != NULL) {
         Status = FSInject->Install (
-                              Volume->DeviceHandle,
+                              Entry->Volume->DeviceHandle,
                               OSX_PATH_SLE,
                               SelfVolume->DeviceHandle,
                               InjectKextsDir[Index],

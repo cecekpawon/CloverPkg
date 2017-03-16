@@ -356,7 +356,13 @@ typedef struct {
   UINT16                    Flags;
   UINT8                     LoaderType;
   CHAR8                     *OSVersion;
-  CHAR8                     *BuildVersion;
+  CHAR8                     *OSBuildVersion;
+  UINT8                     OSVersionMajor;
+  UINT8                     OSVersionMinor;
+  UINT8                     OSRevision;
+  //UINT8                     KernelVersionMajor;
+  //UINT8                     KernelVersionMinor;
+  //UINT8                     KernelRevision;
   KERNEL_AND_KEXT_PATCHES   *KernelAndKextPatches;
   CHAR16                    *Settings;
 } LOADER_ENTRY;

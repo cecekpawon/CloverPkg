@@ -198,10 +198,13 @@ Headers collection for procedures
 #define DEF_NOSIP_CSR_ACTIVE_CONFIG     (CSR_ALLOW_APPLE_INTERNAL + CSR_ALLOW_UNRESTRICTED_NVRAM + CSR_ALLOW_DEVICE_CONFIGURATION + CSR_ALLOW_ANY_RECOVERY_OS)
 #define DEF_NOSIP_BOOTER_CONFIG         (kBootArgsFlagCSRActiveConfig + kBootArgsFlagCSRConfigMode + kBootArgsFlagCSRBoot)
 
-#define DEF_DISK_TEMPLATE               L"$label $platform $version $build $path"
-#define DEF_DARWIN_DISK_TEMPLATE        L"$label $platform $version $build $path"
-#define DEF_DARWIN_RECOVERY_TEMPLATE    L"$label $platform $version $build $path"
-#define DEF_DARWIN_INSTALLER_TEMPLATE   L"$label $platform $version $build $path"
+#define DEF_DISK_TEMPLATE               L"$label $platform on $path"
+#define DEF_DARWIN_DISK_TEMPLATE        L"$platform $label $version ($build) on $path"
+#define DEF_DARWIN_RECOVERY_TEMPLATE    DEF_DARWIN_DISK_TEMPLATE // $major $minor $revision $build
+#define DEF_DARWIN_INSTALLER_TEMPLATE   DEF_DARWIN_DISK_TEMPLATE
+#define DEF_LINUX_TEMPLATE              DEF_DISK_TEMPLATE
+//#define DEF_ANDROID_TEMPLATE            DEF_DISK_TEMPLATE
+#define DEF_WINDOWS_TEMPLATE            DEF_DISK_TEMPLATE
 
 /* XML Tags */
 typedef enum {
@@ -1152,6 +1155,9 @@ typedef struct {
   CHAR16                    DarwinDiskTemplate[255];
   CHAR16                    DarwinRecoveryDiskTemplate[255];
   CHAR16                    DarwinInstallerDiskTemplate[255];
+  CHAR16                    LinuxDiskTemplate[255];
+  //CHAR16                    AndroidDiskTemplate[255];
+  CHAR16                    WindowsDiskTemplate[255];
 } SETTINGS_DATA;
 
 
@@ -1409,12 +1415,15 @@ GetAdvancedCpuType ();
 
 VOID
 GetDarwinVersion (
-  IN  LOADER_ENTRY  **Entry
+  IN UINT8      OSType,
+  IN EFI_FILE   *RootDir,
+  IN CHAR8      **OSVersion,
+  IN CHAR8      **BuildVersion
 );
 
 CHAR16 *
 GetOSIconName (
-  IN  CHAR8   *OSVersion
+  IN  SVersion  *SDarwinVersion
 );
 
 EFI_STATUS
