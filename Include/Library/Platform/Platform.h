@@ -1415,10 +1415,10 @@ GetAdvancedCpuType ();
 
 VOID
 GetDarwinVersion (
-  IN UINT8      OSType,
-  IN EFI_FILE   *RootDir,
-  IN CHAR8      **OSVersion,
-  IN CHAR8      **BuildVersion
+  IN  UINT8      OSType,
+  IN  EFI_FILE   *RootDir,
+  OUT CHAR8      **OSVersion,
+  OUT CHAR8      **BuildVersion
 );
 
 CHAR16 *
