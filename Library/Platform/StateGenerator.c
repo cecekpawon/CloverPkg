@@ -99,129 +99,74 @@ GeneratePssSsdt (
     Aplf++;
   }
 
-  switch (gCPUStructure.Model) {
-    case CPU_MODEL_HASWELL:
-    case CPU_MODEL_IVY_BRIDGE_E5:
-    case CPU_MODEL_HASWELL_E:
-    case CPU_MODEL_HASWELL_ULT:
-    case CPU_MODEL_CRYSTALWELL:
-    case CPU_MODEL_HASWELL_U5:
-    case CPU_MODEL_BROADWELL_HQ:
-    case CPU_MODEL_SKYLAKE_U:
-    case CPU_MODEL_SKYLAKE_S:
-    case CPU_MODEL_ATOM_3700:
-      Aplf = 0;
-      break;
+  if (gCPUStructure.Model >= CPUID_MODEL_HASWELL) {
+    Aplf = 0;
   }
 
-  if (Number > 0)
-  {
+  if (Number > 0) {
     // Retrieving P-States, ported from code by superhai (c)
-    switch (gCPUStructure.Family) {
-      case 0x06:
-        switch (gCPUStructure.Model) {
-          case CPU_MODEL_FIELDS:    // Intel Core i5, i7, Xeon X34xx LGA1156 (45nm)
-          case CPU_MODEL_DALES:
-          case CPU_MODEL_CLARKDALE: // Intel Core i3, i5 LGA1156 (32nm)
-          case CPU_MODEL_NEHALEM:   // Intel Core i7, Xeon W35xx, Xeon X55xx, Xeon E55xx LGA1366 (45nm)
-          case CPU_MODEL_NEHALEM_EX:  // Intel Xeon X75xx, Xeon X65xx, Xeon E75xx, Xeon E65x
-          case CPU_MODEL_WESTMERE:  // Intel Core i7, Xeon X56xx, Xeon E56xx, Xeon W36xx LGA1366 (32nm) 6 Core
-          case CPU_MODEL_WESTMERE_EX: // Intel Xeon E7
-          case CPU_MODEL_SANDY_BRIDGE:    // Intel Core i3, i5, i7 LGA1155 (32nm)
-          case CPU_MODEL_JAKETOWN:  // Intel Xeon E3
-          case CPU_MODEL_IVY_BRIDGE:
-          case CPU_MODEL_HASWELL:
-          case CPU_MODEL_IVY_BRIDGE_E5:
-          case CPU_MODEL_HASWELL_E:
-          case CPU_MODEL_HASWELL_ULT:
-          case CPU_MODEL_CRYSTALWELL:
-          case CPU_MODEL_HASWELL_U5:
-          case CPU_MODEL_BROADWELL_HQ:
-          case CPU_MODEL_SKYLAKE_U:
-          case CPU_MODEL_SKYLAKE_S:
-          case CPU_MODEL_ATOM_3700:
-            maximum.Control.Control = RShiftU64 (AsmReadMsr64 (MSR_PLATFORM_INFO), 8) & 0xff;
+    if (
+      (gCPUStructure.Family == 0x06) &&
+      (gCPUStructure.Model >= CPUID_MODEL_SANDYBRIDGE)
+    ) {
+      maximum.Control.Control = RShiftU64 (AsmReadMsr64 (MSR_PLATFORM_INFO), 8) & 0xff;
 
-            if (gSettings.MaxMultiplier) {
-              DBG ("Using custom MaxMultiplier %d instead of automatic %d\n",
-                  gSettings.MaxMultiplier, maximum.Control.Control);
-              maximum.Control.Control = gSettings.MaxMultiplier;
-            }
+      if (gSettings.MaxMultiplier) {
+        DBG ("Using custom MaxMultiplier %d instead of automatic %d\n",
+            gSettings.MaxMultiplier, maximum.Control.Control);
+        maximum.Control.Control = gSettings.MaxMultiplier;
+      }
 
-            realMax = maximum.Control.Control;
-            DBG ("Maximum control=0x%x\n", realMax);
+      realMax = maximum.Control.Control;
+      DBG ("Maximum control=0x%x\n", realMax);
 
-            if (gSettings.Turbo) {
-              realTurbo = (gCPUStructure.Turbo4 > gCPUStructure.Turbo1) ?
-              (gCPUStructure.Turbo4 / 10) : (gCPUStructure.Turbo1 / 10);
-              maximum.Control.Control = realTurbo;
-              DBG ("Turbo control=0x%x\n", realTurbo);
-            }
+      if (gSettings.Turbo) {
+        realTurbo = (gCPUStructure.Turbo4 > gCPUStructure.Turbo1)
+                      ? (gCPUStructure.Turbo4 / 10)
+                      : (gCPUStructure.Turbo1 / 10);
+        maximum.Control.Control = realTurbo;
+        DBG ("Turbo control=0x%x\n", realTurbo);
+      }
 
-            Apsn = (realTurbo > realMax)?(realTurbo - realMax):0;
-            realMin =  RShiftU64 (AsmReadMsr64 (MSR_PLATFORM_INFO), 40) & 0xff;
+      Apsn = (realTurbo > realMax) ? (realTurbo - realMax) : 0;
+      realMin =  RShiftU64 (AsmReadMsr64 (MSR_PLATFORM_INFO), 40) & 0xff;
 
-            if (gSettings.MinMultiplier) {
-              minimum.Control.Control = gSettings.MinMultiplier;
-              Aplf = (realMin > minimum.Control.Control)?(realMin - minimum.Control.Control):0;
-            } else {
-              minimum.Control.Control = realMin;
-            }
+      if (gSettings.MinMultiplier) {
+        minimum.Control.Control = gSettings.MinMultiplier;
+        Aplf = (realMin > minimum.Control.Control) ? (realMin - minimum.Control.Control) : 0;
+      } else {
+        minimum.Control.Control = realMin;
+      }
 
-            DBG ("P-States: min 0x%x, max 0x%x\n", minimum.Control.Control, maximum.Control.Control);
+      DBG ("P-States: min 0x%x, max 0x%x\n", minimum.Control.Control, maximum.Control.Control);
 
-            // Sanity check
-            if (maximum.Control.Control < minimum.Control.Control) {
-              DBG ("Insane control values!");
-              p_states_count = 0;
-            } else {
-              p_states_count = 0;
+      // Sanity check
+      if (maximum.Control.Control < minimum.Control.Control) {
+        DBG ("Insane control values!");
+        p_states_count = 0;
+      } else {
+        p_states_count = 0;
 
-              for (i = maximum.Control.Control; i >= minimum.Control.Control; i--) {
-                j = i;
-                if (
-                  (gCPUStructure.Model == CPU_MODEL_SANDY_BRIDGE) ||
-                  (gCPUStructure.Model == CPU_MODEL_IVY_BRIDGE) ||
-                  (gCPUStructure.Model == CPU_MODEL_HASWELL) ||
-                  (gCPUStructure.Model == CPU_MODEL_HASWELL_E) ||
-                  (gCPUStructure.Model == CPU_MODEL_HASWELL_ULT) ||
-                  (gCPUStructure.Model == CPU_MODEL_CRYSTALWELL) ||
-                  (gCPUStructure.Model == CPU_MODEL_IVY_BRIDGE_E5) ||
-                  (gCPUStructure.Model == CPU_MODEL_HASWELL_U5) ||
-                  (gCPUStructure.Model == CPU_MODEL_BROADWELL_HQ) ||
-                  (gCPUStructure.Model == CPU_MODEL_SKYLAKE_U) ||
-                  (gCPUStructure.Model == CPU_MODEL_SKYLAKE_S) ||
-                  (gCPUStructure.Model == CPU_MODEL_JAKETOWN)
-                ) {
-                  j = i << 8;
-                  p_states[p_states_count].Frequency = (UINT32)(100 * i);
-                } else {
-                  p_states[p_states_count].Frequency = (UINT32)(DivU64x32 (MultU64x32 (gCPUStructure.FSBFrequency, i), Mega));
-                }
+        for (i = maximum.Control.Control; i >= minimum.Control.Control; i--) {
+          j = i << 8;
 
-                p_states[p_states_count].Control.Control = (UINT16)j;
-                p_states[p_states_count].CID = j;
+          p_states[p_states_count].Frequency = (UINT32)(100 * i);
+          p_states[p_states_count].Control.Control = (UINT16)j;
+          p_states[p_states_count].CID = j;
 
-                if (!p_states_count && gSettings.DoubleFirstState) {
-                  //double first state
-                  p_states_count++;
-                  p_states[p_states_count].Control.Control = (UINT16)j;
-                  p_states[p_states_count].CID = j;
-                  p_states[p_states_count].Frequency = (UINT32)(DivU64x32 (MultU64x32 (gCPUStructure.FSBFrequency, i), Mega)) - 1;
+          if (!p_states_count && gSettings.DoubleFirstState) {
+            //double first state
+            p_states_count++;
+            p_states[p_states_count].Control.Control = (UINT16)j;
+            p_states[p_states_count].CID = j;
+            p_states[p_states_count].Frequency = (UINT32)(DivU64x32 (MultU64x32 (gCPUStructure.FSBFrequency, i), Mega)) - 1;
+          }
 
-                }
-
-                p_states_count++;
-              }
-            }
-
-            break;
-
-          default:
-            MsgLog ("Unsupported CPU (0x%X): P-States not generated !!!\n", gCPUStructure.Family);
-            break;
+          p_states_count++;
         }
-
+      }
+    } else {
+      MsgLog ("Unsupported CPU (0x%X): P-States not generated !!!\n", gCPUStructure.Family);
     }
 
     // Generating SSDT

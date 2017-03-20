@@ -63,6 +63,11 @@ EFI_DXE_SERVICES        *gDS;
 
 DRIVERS_FLAGS           gDriversFlags = { FALSE, FALSE, FALSE, FALSE };  //the initializer is not needed for global variables
 
+// Splash -->
+CHAR16                  **LoadMessages;
+UINTN                   MessageNow = 0, MessageClearWidth = 0;
+// Splash <--
+
 STATIC
 EFI_STATUS
 LoadEFIImageList (
@@ -229,7 +234,7 @@ StartEFILoadedImage (
   }
 
   // re-open file handles
-  ReinitRefitLib();
+  //ReinitRefitLib();
 
 bailout_unload:
 
@@ -471,10 +476,10 @@ ClosingEventAndLog (
     } else {
       // delete boot-switch-vars if exists
       /*Status = */gRT->SetVariable (
-                  L"boot-switch-vars", &gEfiAppleBootGuid,
-                  EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS,
-                  0, NULL
-                );
+                          L"boot-switch-vars", &gEfiAppleBootGuid,
+                          NVRAM_ATTR_RT_BS_NV,
+                          0, NULL
+                        );
 
       CloseBootServiceEvent = FALSE;
     }
@@ -1412,6 +1417,7 @@ SetOEMPath (
   }
 }
 
+/*
 VOID
 FlashMessage (
   IN CHAR16   *Text,
@@ -1422,9 +1428,38 @@ FlashMessage (
   if (!GlobalConfig.NoEarlyProgress && !GlobalConfig.FastBoot  && (GlobalConfig.Timeout > 0)) {
     CHAR16  *Message = PoolPrint (Text);
 
-    DrawTextXY (Message, XPos, YPos, XAlign);
+    DrawTextXY (Message, XPos, YPos, XAlign, 0);
     FreePool (Message);
   }
+}
+*/
+
+VOID
+DrawLoadMessage (
+  CHAR16  *Msg
+) {
+  UINTN   i, Size, FontHeight = 20;
+
+  MessageNow++;
+
+  Size = MessageNow * sizeof (CHAR16 *);
+
+  LoadMessages = ReallocatePool (Size, Size + sizeof (CHAR16 *), LoadMessages);
+  LoadMessages[MessageNow - 1] = EfiStrDuplicate (Msg);
+
+  for (i = 0; i < MessageNow; i++) {
+    DrawTextXY (LoadMessages[i], 0, UGAHeight - ((MessageNow - i) * FontHeight), X_IS_LEFT, MessageClearWidth);
+  }
+
+  //gBS->Stall (500000);
+}
+
+VOID
+InitSplash () {
+  EG_IMAGE  *Banner = BuiltinIcon (BUILTIN_ICON_BANNER_BLACK);
+
+  MessageClearWidth = (UGAWidth - Banner->Width) >> 1;
+  DrawImageArea (Banner, 0, 0, 0, 0, MessageClearWidth, (UGAHeight - Banner->Height) >> 1);
 }
 
 //
@@ -1558,7 +1593,7 @@ RefitMain (
   }
 
   if (!EFI_ERROR (Status) && &gConfigDict[0]) {
-    Status = GetEarlyUserSettings (SelfRootDir, gConfigDict);
+    Status = GetEarlyUserSettings (gConfigDict);
     DBG ("Load Settings: Early: %r\n", Status);
   }
 
@@ -1568,7 +1603,7 @@ RefitMain (
 
   //GetSmcKeys (); // later we can get here SMC information
 
-  DbgHeader ("InitScreen");
+  //DbgHeader ("InitScreen");
 
   if (!GlobalConfig.FastBoot) {
     InitScreen (TRUE);
@@ -1576,6 +1611,10 @@ RefitMain (
   } else {
     InitScreen (FALSE);
   }
+
+  InitSplash ();
+
+  DrawLoadMessage (PoolPrint (L"Starting %a", CLOVER_REVISION_STR));
 
   // Now we have to reinit handles
   Status = ReinitRefitLib ();
@@ -1585,8 +1624,7 @@ RefitMain (
     return Status;
   }
 
-  FlashMessage (PoolPrint (L"   Welcome to %a   ", CLOVER_REVISION_STR), (UGAWidth >> 1), (UGAHeight >> 1), X_IS_CENTER);
-  FlashMessage (L"... testing hardware ...", (UGAWidth >> 1), (UGAHeight >> 1) + 20, X_IS_CENTER);
+  DrawLoadMessage (L"Init Hardware");
 
   //DumpBiosMemoryMap ();
 
@@ -1618,7 +1656,7 @@ RefitMain (
   gCPUStructure.ExternalClock = (UINT32)DivU64x32 (gCPUStructure.FSBFrequency, kilo);
   gCPUStructure.MaxSpeed      = (UINT32)DivU64x32 (gCPUStructure.TSCFrequency + (Mega >> 1), Mega);
 
-  FlashMessage (L"... user settings ...", (UGAWidth >> 1), (UGAHeight >> 1) + 20, X_IS_CENTER);
+  DrawLoadMessage (L"Load Settings");
 
   if (gConfigDict) {
     Status = GetUserSettings (SelfRootDir, gConfigDict);
@@ -1655,12 +1693,14 @@ RefitMain (
     GetEfiBootDeviceFromNvram ();
   }
 
-  FlashMessage (L"... scan entries ...", (UGAWidth >> 1), (UGAHeight >> 1) + 20, X_IS_CENTER);
+  DrawLoadMessage (L"Scan Entries");
 
   GetListOfACPI ();
 
   AfterTool = FALSE;
   gGuiIsReady = TRUE;
+
+  //gBS->Stall (5 * 1000000);
 
   do {
     MainMenu.EntryCount = 0;
@@ -1717,9 +1757,6 @@ RefitMain (
 
       DrawFuncIcons ();
     }
-
-    // font already changed and this message very quirky, clear line here
-    //FlashMessage (L"                          ", (UGAWidth >> 1), (UGAHeight >> 1) + 20, X_IS_CENTER);
 
     // wait for user ACK when there were errors
     FinishTextScreen (FALSE);
@@ -1855,20 +1892,18 @@ RefitMain (
           break;
       }
     } //MainLoopRunning
-/*
+
     UninitRefitLib ();
-*/
 
     if (!AfterTool) {
       BdsLibConnectAllEfi ();
     }
 
-/*
     if (ReinitDesktop) {
       DBG ("ReinitRefitLib after theme change\n");
       ReinitRefitLib ();
     }
-*/
+
   } while (ReinitDesktop);
 
   return EFI_SUCCESS;

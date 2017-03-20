@@ -294,54 +294,41 @@ typedef struct NVRAM_DATA {
   UINT32      Attribute;
 } NVRAM_DATA;
 
-//#define CPU_MODEL_PENTIUM_M     0x09
-//#define CPU_MODEL_DOTHAN        0x0D
-//#define CPU_MODEL_YONAH         0x0E
-//#define CPU_MODEL_MEROM         0x0F  /* same as CONROE but mobile */
-//#define CPU_MODEL_CONROE        0x0F  /* Allendale, Conroe, Kentsfield, Woodcrest, Clovertown, Tigerton */
-//#define CPU_MODEL_CELERON       0x16  /* ever see? */
-//#define CPU_MODEL_PENRYN        0x17  /* Yorkfield, Harpertown, Penryn M */
-#define CPU_MODEL_WOLFDALE        0x17  /* kind of penryn but desktop */
-#define CPU_MODEL_NEHALEM         0x1A  /* Bloomfield. Nehalem-EP, Nehalem-WS, Gainestown */
-#define CPU_MODEL_ATOM            0x1C  /* Pineview UN */
-#define CPU_MODEL_XEON_MP         0x1D  /* MP 7400 UN */
-#define CPU_MODEL_FIELDS          0x1E  /* Lynnfield, Clarksfield, Jasper */
-#define CPU_MODEL_DALES           0x1F  /* Havendale, Auburndale */
-#define CPU_MODEL_CLARKDALE       0x25  /* Clarkdale, Arrandale */
-#define CPU_MODEL_ATOM_SAN        0x26  /* Haswell H ? */
-#define CPU_MODEL_LINCROFT        0x27  /* UN */
-#define CPU_MODEL_SANDY_BRIDGE    0x2A
-#define CPU_MODEL_WESTMERE        0x2C  /* Gulftown LGA1366 */
-#define CPU_MODEL_JAKETOWN        0x2D  /* Sandy Bridge Xeon LGA2011 */
-#define CPU_MODEL_NEHALEM_EX      0x2E
-#define CPU_MODEL_WESTMERE_EX     0x2F
-#define CPU_MODEL_ATOM_2000       0x36  /* UN */
-#define CPU_MODEL_ATOM_3700       0x37  /* Bay Trail */
-#define CPU_MODEL_IVY_BRIDGE      0x3A
-#define CPU_MODEL_HASWELL         0x3C  /* Haswell DT */
-#define CPU_MODEL_HASWELL_U5      0x3D  /* Haswell U5  5th generation Broadwell */
-#define CPU_MODEL_IVY_BRIDGE_E5   0x3E  /* Ivy Bridge Xeon UN */
-#define CPU_MODEL_HASWELL_E       0x3F  /* Haswell Extreme */
-//#define CPU_MODEL_HASWELL_H     0x??  // Haswell H
-#define CPU_MODEL_HASWELL_ULT     0x45  /* Haswell ULT */
-#define CPU_MODEL_CRYSTALWELL     0x46  /* Haswell ULX CPUID_MODEL_CRYSTALWELL */
-#define CPU_MODEL_BROADWELL_HQ    0x47
-#define CPU_MODEL_AIRMONT         0x4C
-#define CPU_MODEL_AVOTON          0x4D
-#define CPU_MODEL_SKYLAKE_U       0x4E
-#define CPU_MODEL_BROADWELL_E5    0x4F
-#define CPU_MODEL_BROADWELL_DE    0x56
-#define CPU_MODEL_KNIGHT          0x57
-#define CPU_MODEL_MOOREFIELD      0x5A
-#define CPU_MODEL_GOLDMONT        0x5C
-#define CPU_MODEL_ATOM_X3         0x5D
-#define CPU_MODEL_SKYLAKE_S       0x5E
-#define CPU_MODEL_CANNONLAKE      0x66
+#define CPUID_MODEL_SANDYBRIDGE       0x2A
+//#define CPUID_MODEL_JAKETOWN          0x2D
 
-#define CPU_VENDOR_INTEL          0x756E6547
-//#define CPU_VENDOR_AMD          0x68747541
+#define CPUID_MODEL_IVYBRIDGE         0x3A
+#define CPUID_MODEL_IVYBRIDGE_EP      0x3E
+
+#define CPUID_MODEL_CRYSTALWELL       0x46
+#define CPUID_MODEL_HASWELL           0x3C
+#define CPUID_MODEL_HASWELL_EP        0x3F
+#define CPUID_MODEL_HASWELL_ULT       0x45
+
+#define CPUID_MODEL_BROADWELL         0x3D
+//#define CPUID_MODEL_BROADWELL_ULX     0x3D
+//#define CPUID_MODEL_BROADWELL_ULT     0x3D
+#define CPUID_MODEL_BRYSTALWELL       0x47
+
+#define CPUID_MODEL_SKYLAKE           0x4E
+//#define CPUID_MODEL_SKYLAKE_ULT       0x4E
+//#define CPUID_MODEL_SKYLAKE_ULX       0x4E
+#define CPUID_MODEL_SKYLAKE_DT        0x5E
+
+#define CPUID_MODEL_KABYLAKE          0x8E
+#define CPUID_MODEL_KABYLAKE_DT       0x9E
+
+#define BRIDGETYPE_SANDY_BRIDGE       2
+#define BRIDGETYPE_IVY_BRIDGE         4
+#define BRIDGETYPE_HASWELL            8
+#define BRIDGETYPE_BROADWELL          16
+#define BRIDGETYPE_SKYLAKE            32
+#define BRIDGETYPE_KABYLAKE           64
+
+#define CPU_VENDOR_INTEL              0x756E6547
+//#define CPU_VENDOR_AMD              0x68747541
 /* Unknown CPU */
-#define CPU_STRING_UNKNOWN        "Unknown CPU Type"
+#define CPU_STRING_UNKNOWN            "Unknown CPU Type"
 
 /*
  * The CPUID_FEATURE_XXX values define 64-bit values
@@ -612,8 +599,6 @@ typedef struct {
 
 #define PCI_CLASS_MEDIA_HDA           0x03
 
-//#define GEN_PMCON_1                   0xA0
-
 #define EFI_HANDLE_TYPE_UNKNOWN                         0x000
 #define EFI_HANDLE_TYPE_IMAGE_HANDLE                    0x001
 #define EFI_HANDLE_TYPE_DRIVER_BINDING_HANDLE           0x002
@@ -859,40 +844,25 @@ typedef struct {
 // CONFIG
 
 typedef enum {
-  MacBook11,
-  MacBook21,
-  MacBook41,
-  MacBook52,
-  MacBookPro51,
-  MacBookPro62,
-  MacBookPro81,
-  MacBookPro83,
-  MacBookPro92,
-  MacBookPro101,
-  MacBookPro111,
-  MacBookAir31,
-  MacBookAir52,
-  MacBookAir62,
-  MacMini21,
-  MacMini51,
+  MinMachineType,
+
+  // Desktop
+
+  MacMini53,
   MacMini62,
-  iMac81,
-  iMac101,
-  iMac111,
-  iMac112,
-  iMac113,
-  iMac121,
-  iMac122,
-  iMac131,
-  iMac132,
-  iMac141,
-  iMac142,
-  iMac151,
+  MacMini71,
+  iMac162,
   iMac171,
-  MacPro31,
-  MacPro41,
-  MacPro51,
+
   MacPro61,
+
+  // Mobile
+
+  MacBookPro83,
+  MacBookPro102,
+  MacBookPro115,
+  MacBookPro121,
+  MacBookPro133,
 
   MaxMachineType
 } MACHINE_TYPES;
@@ -916,10 +886,10 @@ typedef struct S_FILES {
 #define KERNEL_SCAN_NONE        (100)
 
 typedef struct {
-  BOOLEAN AptioFixEmbedded;
-  BOOLEAN FSInjectEmbedded;
-  BOOLEAN AptioFixLoaded;
-  BOOLEAN HFSLoaded;
+  BOOLEAN   AptioFixEmbedded;
+  BOOLEAN   FSInjectEmbedded;
+  BOOLEAN   AptioFixLoaded;
+  BOOLEAN   HFSLoaded;
 } DRIVERS_FLAGS;
 
 typedef enum {
@@ -1183,16 +1153,6 @@ extern UINT64                           TurboMsr;
 extern CHAR8                            *BiosVendor;
 extern EFI_GUID                         *gEfiBootDeviceGuid;
 extern EFI_DEVICE_PATH_PROTOCOL         *gEfiBootDeviceData;
-extern CHAR8                            *AppleSystemVersion[];
-extern CHAR8                            *AppleFirmwareVersion[];
-extern CHAR8                            *AppleReleaseDate[];
-extern CHAR8                            *AppleManufacturer;
-extern CHAR8                            *AppleProductName[];
-extern CHAR8                            *AppleSystemVersion[];
-extern CHAR8                            *AppleSerialNumber[];
-extern CHAR8                            *AppleFamilies[];
-extern CHAR8                            *AppleBoardID[];
-extern CHAR8                            *AppleChassisAsset[];
 extern CHAR8                            *AppleBoardSN;
 extern CHAR8                            *AppleBoardLocation;
 extern EFI_SYSTEM_TABLE                 *gST;
@@ -1433,8 +1393,7 @@ GetRootUUID (
 
 EFI_STATUS
 GetEarlyUserSettings (
-  IN  EFI_FILE  *RootDir,
-      TagPtr    CfgDict
+  IN  TagPtr  Dict
 );
 
 EFI_STATUS
@@ -1597,7 +1556,7 @@ GetAtiModel (
 
 BOOLEAN
 SetupGmaDevprop (
-  pci_dt_t  *gma_dev
+  pci_dt_t    *GMADev
 );
 
 BOOLEAN

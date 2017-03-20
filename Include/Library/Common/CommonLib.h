@@ -258,12 +258,6 @@ AsciiStriStr (
   IN CHAR8  *SearchString
 );
 
-CHAR16 *
-EFIAPI
-GuidStr (
-  IN EFI_GUID   *Guid
-);
-
 INTN
 EFIAPI
 CountOccurrences (

@@ -672,6 +672,8 @@ GET_EMBEDDED:
       DEC_BUILTIN_ICON (Id, emb_vol_internal_recovery); break;
     case BUILTIN_ICON_BANNER:
       DEC_BUILTIN_ICON (Id, emb_logo); break;
+    case BUILTIN_ICON_BANNER_BLACK:
+      DEC_BUILTIN_ICON (Id, emb_logo_black); break;
     case BUILTIN_SELECTION_SMALL:
       DEC_BUILTIN_ICON (Id, emb_selection_small); break;
     case BUILTIN_SELECTION_BIG:

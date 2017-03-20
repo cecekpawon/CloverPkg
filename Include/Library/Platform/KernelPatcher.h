@@ -11,13 +11,6 @@
 #include <Library/Common/LoaderUefi.h>
 #include <Library/Platform/Platform.h>
 
-#define CPUIDFAMILY_DEFAULT                 6
-
-#define CPUID_MODEL_6_13                    13
-#define CPUID_MODEL_YONAH                   14
-#define CPUID_MODEL_MEROM                   15
-#define CPUID_MODEL_PENRYN                  35
-
 #define MACH_GET_MAGIC(hdr)                 (((struct mach_header_64 *)(hdr))->magic)
 #define MACH_GET_NCMDS(hdr)                 (((struct mach_header_64 *)(hdr))->ncmds)
 #define MACH_GET_CPU(hdr)                   (((struct mach_header_64 *)(hdr))->cputype)

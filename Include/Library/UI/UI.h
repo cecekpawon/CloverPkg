@@ -118,9 +118,10 @@
 #define BUILTIN_ICON_VOL_INTERNAL_EXT3          (13)
 #define BUILTIN_ICON_VOL_INTERNAL_REC           (14)
 #define BUILTIN_ICON_BANNER                     (15)
-#define BUILTIN_SELECTION_SMALL                 (16)
-#define BUILTIN_SELECTION_BIG                   (17)
-#define BUILTIN_ICON_COUNT                      (18)
+#define BUILTIN_ICON_BANNER_BLACK               (16)
+#define BUILTIN_SELECTION_SMALL                 (17)
+#define BUILTIN_SELECTION_BIG                   (18)
+#define BUILTIN_ICON_COUNT                      (19)
 
 #define TAG_ABOUT                               (1)
 #define TAG_RESET                               (2)
@@ -438,7 +439,8 @@ DrawTextXY (
   IN CHAR16   *Text,
   IN INTN     XPos,
   IN INTN     YPos,
-  IN UINT8    XAlign
+  IN UINT8    XAlign,
+  IN INTN     ClearWidth
 );
 
 VOID

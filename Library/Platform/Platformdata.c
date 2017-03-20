@@ -12,430 +12,34 @@ CHAR8   *DefaultSerial          = "CT288GT9VT6";
 
 CHAR8   *BiosVendor             = "Apple Inc.";
 
-CHAR8   *AppleManufacturer      = "Apple Computer, Inc."; //Old name, before 2007
-
 UINT32  gFwFeatures             = 0xE003F536;
 UINT32  gFwFeaturesMask         = 0xE003FF37;
 
-CHAR8   *AppleFirmwareVersion[] =
-{
-  "MB11.88Z.0061.B03.0809221748",
-  "MB21.88Z.00A5.B07.0706270922",
-  "MB41.88Z.0073.B00.0809221748",
-  "MB52.88Z.0088.B05.0809221748",
-  "MBP51.88Z.007E.B06.0906151647",
-  "MBP61.88Z.0057.B11.1509232013", //MBP62
-  "MBP81.88Z.0047.B2A.1506082203",
-  "MBP83.88Z.0047.B24.1110261426",
-  "MBP91.88Z.00D3.B0C.1509111653",
-  "MBP101.88Z.00EE.B0A.1509111559",
-  "MBP111.88Z.0138.B16.1509081438", // MacBookPro11,1 with Haswell
-  "MBA31.88Z.0061.B07.0712201139",
-  "MBA51.88Z.00EF.B04.1509111654",
-  "MBA61.88Z.0099.B20.1509081314",  // MBA62
-  "MM21.88Z.009A.B00.0706281359",
-  "MM51.88Z.0077.B12.1506081728",
-  "MM61.88Z.0106.B0A.1509111654",   // MM61.88Z.0106.B00.1208091121
-  "IM81.88Z.00C1.B00.0803051705",
-  "IM101.88Z.00CC.B00.0909031926",
-  "IM111.88Z.0034.B04.1509231906",
-  "IM112.88Z.0057.B03.1509231647",
-  "IM112.88Z.0057.B01.1112090906",  //iMac11,3
-  "IM121.88Z.0047.B21.1506101610",
-  "IM122.88Z.0047.B1F.1223021110",
-  "IM131.88Z.010A.B09.1509111558",  //IM131.88Z.010A.B05.1209042338
-  "IM131.88Z.010A.B05.1211151146",
-  "IM141.88Z.0118.B12.1509081313",
-  "IM142.88Z.0118.B13.1602221716",
-  "IM151.88Z.0207.B00.1409291931", //correct data
-  "IM171.88Z.0105.B05.1511031741", //im171
-  "MP31.88Z.006C.B05.0802291410",
-  "MP41.88Z.0081.B07.0903051113",
-  "MP51.88Z.007F.B03.1010071432",   //007F.B00.1008031144"
-  "MP61.88Z.0116.B22.1612151901"
-};
+typedef struct {
+  CHAR8   *AppleFirmwareVersion, *AppleBoardID, *AppleReleaseDate, *AppleProductName,
+          *AppleFamilies, *AppleSystemVersion, *AppleSerialNumber, *AppleChassisAsset, *SmcPlatform;
+  UINT8   SmcRevision[6];
+  UINT32  SmcConfig;
+} S_MAC_MODELS;
 
-CHAR8 *AppleBoardID[] =    //Lion DR1 compatible
-{
-  "Mac-F4208CC8",          // MB11   - yonah
-  "Mac-F4208CA9",          // MB21   - merom 05/07
-  "Mac-F22788A9",          // MB41   - penryn
-  "Mac-F22788AA",          // MB52
-  "Mac-F42D86C8",          // MBP51
-  "Mac-F22586C8",          // MBP62  - arrandale + nVidia
-  "Mac-94245B3640C91C81",  // MBP81  - i5 SB IntelHD3000
-  "Mac-942459F5819B171B",  // MBP83  - i7 SB  ATI
-  "Mac-6F01561E16C75D06",  // MBP92  - i5-3210M IvyBridge HD4000
-  "Mac-C3EC7CD22292981F",  // MBP101
-  "Mac-189A3D4F975D5FFC",  // MBP111 - i5-4258U CPU @ 2.40GHz
-  "Mac-942452F5819B1C1B",  // MBA31
-  "Mac-2E6FAB96566FE58C",  // MBA52  - i5-3427U IVY BRIDGE IntelHD4000 did=166
-  "Mac-7DF21CB3ED6977E5",  // MBA62  - i5-4250U/i7-4650U HD5000
-  "Mac-F4208EAA",          // MM21   - merom GMA950 07/07
-  "Mac-8ED6AF5B48C039E1",  // MM51   - Sandy + Intel 30000
-  "Mac-F65AE981FFA204ED",  // MM62   - Ivy
-  "Mac-F227BEC8",          // IM81   - merom 01/09, penryn E8435
-  "Mac-F2268CC8",          // IM101  - wolfdale? E7600 01/
-  "Mac-F2268DAE",          // IM111  - Nehalem
-  "Mac-F2238AC8",          // IM112  - Clarkdale
-  "Mac-F2238BAE",          // IM113  - lynnfield
-  "Mac-942B5BF58194151B",  // IM121  - i5-2500 - sandy
-  "Mac-942B59F58194171B",  // IM122  - i7-2600
-  "Mac-00BE6ED71E35EB86",  // IM131  - -i5-3470S -IVY
-  "Mac-FC02E91DDD3FA6A4",  // IM132  - i5-3470 CPU @ 3.20GHz
-  "Mac-031B6874CF7F642A",  // IM141  - i5-4570S/i7-4770S
-  "Mac-27ADBB7B4CEE8E61",  // IM142  - i5-4670/i7-4771
-  "Mac-42FD25EABCABB274",  // IM151  - i5-4690 CPU @ 3.50GHz
-  "Mac-DB15BD556843C820",  // IM171  - i5-4690 CPU @ 3.50GHz
-  "Mac-F42C88C8",          // MP31   - F2268DC8 xeon quad 02/09 conroe,
-  "Mac-F4238CC8",          // MP41   - xeon wolfdale
-  "Mac-F221BEC8",          // MP51   - Xeon Nehalem 4 cores
-  "Mac-F60DEB81FF30ACF6",  // MP61   - Intel (R) Xeon (R) CPU E5-1620 v2 @ 3.70GHz Model 0x3E
-};
+S_MAC_MODELS   MAC_MODELS[] = {
+  // Desktop
 
-CHAR8 *AppleReleaseDate[] =
-{
-  "09/22/08",    // Mb11
-  "06/27/07",
-  "09/22/08",
-  "01/21/09",
-  "06/15/09",    // Mbp51
-  "09/23/15",    // MBP61
-  "06/08/15",    // MBP81
-  "10/26/11",
-  "09/11/2015",  // MBP92
-  "09/11/2015",  // MBP101
-  "09/08/2015",  // MBP111
-  "12/20/07",
-  "09/11/2015",  // MBA51
-  "09/08/2015",
-  "08/07/07",    // Mm21
-  "06/08/15",    // MM51
-  "09/11/2015",  // MM62
-  "03/05/08",
-  "09/03/09",    // im101
-  "09/23/15",
-  "09/23/15",    // 11,2
-  "12/09/11",    // 113 111209
-  "06/10/15",    // 121 120124
-  "02/23/12",    // 122
-  "09/11/2015",  // 131
-  "11/15/2012",  // IM132
-  "09/08/2015",
-  "02/22/2016",  // IM142
-  "09/29/2014",  // IM151  - correct date
-  "11/03/2015",  // IM171
-  "02/29/08",
-  "03/05/09",
-  "10/07/10",
-  //"10/20/2016",  // MacPro6,1
-  "12/15/2016",  // MacPro6,1
-};
+  { "MM51.88Z.0077.B15.1610201614"   , "Mac-7BA5B2794B2CDB12" , "10/20/2016" , "Macmini5,3"     , "Macmini"    , "1.0", "C07GA041DJD0", "Mini-Aluminum"    , "NA"   , { 0x01, 0x77, 0x0F, 0, 0, 0x00 }, 0x7d005  },// sandy
+  { "MM61.88Z.0106.B12.1702171720"   , "Mac-F65AE981FFA204ED" , "02/17/2017" , "Macmini6,2"     , "Macmini"    , "1.0", "C07JD041DWYN", "Mini-Aluminum"    , "j50s" , { 0x02, 0x13, 0x0F, 0, 0, 0x15 }, 0x7d006  },// ivy
+  { "MM71.88Z.0220.B14.1702161608"   , "Mac-35C5E08120C7EEAF" , "02/16/2017" , "Macmini7,1"     , "Macmini"    , "1.0", "C02NN7NHG1J0", "Mini-Aluminum"    , "j64"  , { 0x02, 0x24, 0x0F, 0, 0, 0x32 }, 0xf04008 },// haswell
+  { "IM162.88Z.0207.B11.1702161134"  , "Mac-FFE5EF870D7BA81A" , "02/16/2017" , "iMac16,2"       , "iMac"       , "1.0", "C02PNHACGG7G", "iMac-Aluminum"    , "j94"  , { 0x02, 0x32, 0x0F, 0, 0, 0x20 }, 0xf00008 },// broadwell
+  { "IM171.88Z.0105.B20.1702221516"  , "Mac-DB15BD556843C820" , "02/22/2017" , "iMac17,1"       , "iMac"       , "1.0", "C02QFHACGG7L", "iMac-Aluminum"    , "j95"  , { 0x02, 0x33, 0x0F, 0, 0, 0x10 }, 0xf0c008 },// skylake
 
-CHAR8 *AppleProductName[] =
-{
-  "MacBook1,1",
-  "MacBook2,1",
-  "MacBook4,1",
-  "MacBook5,2",
-  "MacBookPro5,1",
-  "MacBookPro6,2",
-  "MacBookPro8,1",
-  "MacBookPro8,3",
-  "MacBookPro9,2",
-  "MacBookPro10,1",
-  "MacBookPro11,1",
-  "MacBookAir3,1",
-  "MacBookAir5,2",
-  "MacBookAir6,2",
-  "Macmini2,1",
-  "Macmini5,1",
-  "Macmini6,2",
-  "iMac8,1",
-  "iMac10,1",
-  "iMac11,1",
-  "iMac11,2",
-  "iMac11,3",
-  "iMac12,1",
-  "iMac12,2",
-  "iMac13,1",
-  "iMac13,2",
-  "iMac14,1",
-  "iMac14,2",
-  "iMac15,1",
-  "iMac17,1",
-  "MacPro3,1",
-  "MacPro4,1",
-  "MacPro5,1",
-  "MacPro6,1",
-};
+  { "MP61.88Z.0116.B22.1612151901"   , "Mac-F60DEB81FF30ACF6" , "12/15/2016" , "MacPro6,1"      , "MacPro"     , "1.0", "F5KLA770F9VM", "Pro-Enclosure"    , "j90"  , { 0x02, 0x20, 0x0F, 0, 0, 0x18 }, 0xf0f006 },
 
-CHAR8 *AppleFamilies[] =
-{
-  "MacBook",
-  "MacBook",
-  "MacBook",
-  "MacBook",
-  "MacBookPro",
-  "MacBookPro",
-  "MacBookPro",
-  "MacBookPro",
-  "MacBookPro",
-  "MacBookPro",
-  "MacBookPro",
-  "MacBookAir",
-  "MacBookAir",
-  "MacBookAir",
-  "Macmini",
-  "Macmini",
-  "Macmini",
-  "iMac",
-  "iMac",
-  "iMac",
-  "iMac",
-  "iMac",
-  "iMac",
-  "iMac",
-  "iMac",
-  "iMac",
-  "iMac",
-  "iMac",
-  "iMac",
-  "iMac17,1",
-  "MacPro",
-  "MacPro",
-  "MacPro",
-  "MacPro"
-};
+  // Mobile
 
-CHAR8 *AppleSystemVersion[] =
-{
-  "1.1",
-  "1.2",
-  "1.3",
-  "1.3",
-  "1.0",
-  "1.0", //mbp62
-  "1.0",
-  "1.0",
-  "1.0",
-  "1.0",
-  "1.0",
-  "1.0",
-  "1.0",
-  "1.0",
-  "1.1",
-  "1.0", // MM51
-  "1.0",
-  "1.3",
-  "1.0",
-  "1.0",
-  "1.2",
-  "1.0",
-  "1.9",
-  "1.9",
-  "1.0",
-  "1.0",
-  "1.0",
-  "1.0",
-  "1.0",
-  "1.0", //IM171
-  "1.3",
-  "1.4",
-  "1.2",
-  "1.0",
-};
-
-CHAR8 *AppleSerialNumber[] = //random generated
-{
-  "W80A041AU9B",  // MB11
-  "W88A041AWGP",  // MB21  - merom 05/07
-  "W88A041A0P0",  // MB41
-  "W88AAAAA9GU",  // MB52
-  "W88439FE1G0",  // MBP51
-  "CK1093T7AGW",  // MBP62 - i7 arrandale + nvidia 330
-  "W89F9196DH2G", // MBP81 - i5 SB IntelHD3000
-  "W88F9CDEDF93", // MBP83 - i7 SB  ATI
-  "C02HA041DTY3", // MBP92 - i5 IvyBridge HD4000
-  "C02K2IQNDKQ1", // MBP101
-  "C02LSLIPFH00", // MBP111
-  "W8649476DQX",  // MBA31
-  "C02HA041DRVC", // MBA52 - IvyBridge
-  "C02HACKUF5V7", // MBA62  //F5V8
-  "W88A56BYYL2",  // MM21  - merom GMA950 07/07
-  "C07GA041DJD0", // MM51  - sandy
-  "C07JD041DWYN", // MM62  - IVY
-  "W89A00AAX88",  // IM81  - merom 01/09
-  "W80AA98A5PE",  // IM101 - wolfdale? E7600 01/09
-  "G8942B1V5PJ",  // IM111 - Nehalem
-  "W8034342DB7",  // IM112 - Clarkdale
-  "QP0312PBDNR",  // IM113 - lynnfield
-  "W80CF65ADHJF", // IM121 - i5-2500 - sandy
-  "W88GG136DHJQ", // IM122 - i7-2600
-  "C02JA041DNCT", // IM131 - i5-3470S -IVY
-  "C02JB041DNCW", // IM132
-  "D25LHACKF8J3", // IM141 - i5-4570S/i7-4770S
-  "D25LHACKF8JC", // IM142 - i5-4670/i7-4771
-  "C02ND2VTFY11", // IM151 - New 5k iMac
-  "C02QFHACGG7L", // IM171 - Skylake iMac
-  "W88A77AA5J4",  // MP31  - xeon quad 02/09, "G8801234XYK"
-  "CT93051DK9Y",  // MP41
-  "C07J77F7F4MC", // MP51 C07J50F7F4MC  CK04000AHFC  "CG154TB9WU3"
-  "F5KLA770F9VM", // MP61
-};
-
-//no! ChassisVersion == BoardID
-CHAR8 *AppleChassisAsset[] =
-{
-  "MacBook-White",
-  "MacBook-White",
-  "MacBook-Black",
-  "MacBook-Black",
-  "MacBook-Aluminum",
-  "MacBook-Aluminum",
-  "MacBook-Aluminum",
-  "MacBook-Aluminum",
-  "MacBook-Aluminum",
-  "MacBook-Aluminum",
-  "MacBook-Aluminum",
-  "MacBook-Aluminum",
-  "Air-Enclosure",
-  "Air-Enclosure",
-  "Mini-Aluminum",
-  "Mini-Aluminum",
-  "Mini-Aluminum",
-  "iMac-Aluminum",
-  "iMac-Aluminum",
-  "iMac-Aluminum",
-  "iMac-Aluminum",
-  "iMac-Aluminum",
-  "iMac-Aluminum",
-  "iMac-Aluminum",
-  "iMac-Aluminum",
-  "iMac-Aluminum",
-  "iMac-Aluminum",
-  "iMac-Aluminum",
-  "iMac-Aluminum", //iMac15,1
-  "iMac-Aluminum", //iMac17,1
-  "Pro-Enclosure",
-  "Pro-Enclosure",
-  "Pro-Enclosure",
-  "Pro-Enclosure"
-};
-
-//TODO - find more information and correct all SMC arrays
-CHAR8 *SmcPlatform[] =
-{
-  "m70",  // MacBook1,1,
-  "m75",  // MacBook2,1,
-  "m82",  // MacBook4,1,
-  "m97",  // MacBook5,2,
-  "NA",   // MacBookPro5,1,
-  "k74",  // MacBookPro6,2
-  "k90i", // MacBookPro8,1,
-  "k92i", // MacBookPro8,3,
-  "j30",  // MacBookPro9,2,  "d2" for 10,1
-  "d2",   // MacBookPro10,1,
-  "j44",  // MacBookPro11,1
-  "k99",  // MacBookAir3,1,
-  "j13",  // MacBookAir5,2,
-  "NA",   // MacBookAir6,2,
-  "NA",   // Macmini2,1,    //31 -> m88
-  "NA",   // Macmini5,1,
-  "j50s", // Macmini6,2,
-  "k3",   // iMac8,1,
-  "k22",  // iMac10,1,
-  "NA",   // iMac11,1,
-  "k74",  // iMac11,2,
-  "k74",  // iMac11,3,
-  "k60",  // iMac12,1,
-  "k62",  // iMac12,2,
-  "d8",   // iMac13,1,
-  "d8",   // iMac13,2
-  "NA",   // iMac14,1
-  "NA",   // iMac14,2
-  "j78",  // iMac15,1
-  "j95",  // iMac17,1
-  "m86",  // MacPro3,1,
-  "NA",   // MacPro4,1,
-  "k5",   // MacPro5,1
-  "j90",  // MacPro6,1
-};
-
-UINT8 SmcRevision[][6] =
-{
-  { 0x01, 0x04, 0x0F, 0, 0, 0x12 },   // MacBook1,1,
-  { 0x01, 0x13, 0x0F, 0, 0, 0x03 },   // MacBook2,1,
-  { 0x01, 0x31, 0x0F, 0, 0, 0x01 },   // MacBook4,1,
-  { 0x01, 0x32, 0x0F, 0, 0, 0x08 },   // MacBook5,1,
-  { 0x01, 0x33, 0x0F, 0, 0, 0x08 },   // MacBookPro5,1,
-  { 0x01, 0x58, 0x0F, 0, 0, 0x17 },   // MacBookPro6,2,
-  { 0x01, 0x68, 0x0F, 0, 0, 0x99 },   // MacBookPro8,1,
-  { 0x01, 0x70, 0x0F, 0, 0, 0x05 },   // MacBookPro8,3,
-  { 0x02, 0x02, 0x0F, 0, 0, 0x44 },   // MacBookPro9,2,  2.03f36 for 10,1
-  { 0x02, 0x03, 0x0F, 0, 0, 0x36 },   // MacBookPro10,1,
-  { 0x02, 0x16, 0x0F, 0, 0, 0x58 },   // MacBookPro11,1
-  { 0x01, 0x67, 0x0F, 0, 0, 0x10 },   // MacBookAir3,1,
-  { 0x02, 0x05, 0x0F, 0, 0, 0x09 },   // MacBookAir5,2,
-  { 0x02, 0x13, 0x0F, 0, 0, 0x09 },   // MacBookAir6,2,
-  { 0x01, 0x19, 0x0F, 0, 0, 0x02 },   // Macmini2,1,
-  { 0x01, 0x30, 0x0F, 0, 0, 0x03 },   // Macmini5,1,
-  { 0x02, 0x08, 0x0F, 0, 0, 0x00 },   // Macmini6,2,
-  { 0x01, 0x30, 0x0F, 0, 0, 0x01 },   // iMac8,1,
-  { 0x01, 0x53, 0x0F, 0, 0, 0x13 },   // iMac10,1,
-  { 0x01, 0x54, 0x0F, 0, 0, 0x36 },   // iMac11,1,
-  { 0x01, 0x64, 0x0F, 0, 0, 0x05 },   // iMac11,2,
-  { 0x01, 0x59, 0x0F, 0, 0, 0x02 },   // iMac11,3,
-  { 0x01, 0x71, 0x0F, 0, 0, 0x22 },   // iMac12,1,
-  { 0x01, 0x72, 0x0F, 0, 0, 0x02 },   // iMac12,2,
-  { 0x02, 0x11, 0x0F, 0, 0, 0x14 },   // iMac13,1,
-  { 0x02, 0x11, 0x0F, 0, 0, 0x14 },   // iMac13,2
-  { 0x02, 0x14, 0x0F, 0, 0, 0x19 },   // iMac14,1
-  { 0x02, 0x15, 0x0F, 0, 0, 0x02 },   // iMac14,2
-  { 0x02, 0x22, 0x0F, 0, 0, 0x16 },   // iMac15,1
-  { 0x02, 0x33, 0x0F, 0, 0, 0x10 },   // iMac17,1
-  { 0x01, 0x30, 0x0F, 0, 0, 0x03 },   // MacPro3,1,
-  { 0x01, 0x39, 0x0F, 0, 0, 0x05 },   // MacPro4,1,
-  { 0x01, 0x39, 0x0F, 0, 0, 0x11 },   // MacPro5,1
-  { 0x02, 0x20, 0x0F, 0, 0, 0x18 },   // MacPro6,1 :2.20f18
-};
-
-UINT32 SmcConfig[] =
-{
-  0x71001,  //"MacBook1,1",
-  0x72001,  //"MacBook2,1",
-  0x74001,  //"MacBook4,1",
-  0x7a002,  //"MacBook5,2",
-  0x7b002,  //"MacBookPro5,1",
-  0x7a004,  //"MacBookPro6,2",
-  0x7b005,  //"MacBookPro8,1",
-  0x7c005,  //"MacBookPro8,3",
-  0x76006,  //"MacBookPro9,2",  //074006 for 10,1  073007 for 10,2
-  0x74006,  // MacBookPro10,1
-  0xf0b007, // MacBookPro11,1
-  0x76005,  //"MacBookAir3,1",
-  0x7b006,  //"MacBookAir5,2",
-  0x7b007,  //"MacBookAir6,2",
-  0x78002,  //"Macmini2,1",     //31 -> m88
-  0x7d005,  //"Macmini5,1",
-  0x7d006,  //"Macmini6,2",
-  0x73002,  //"iMac8,1",
-  0x7b002,  //"iMac10,1",
-  0x7b004,  //"iMac11,1",
-  0x7c004,  //"iMac11,2",
-  0x7d004,  //"iMac11,3",
-  0x73005,  //"iMac12,1",
-  0x75005,  //"iMac12,2",
-  0x78006,  //"iMac13,1",
-  0x79006,  //iMac13,2
-  0x79007,  //iMac14,1
-  0x7a007,  //iMac14,2
-  0xf00008,  //iMac15,1
-  0xf0c008,  //iMac17,1
-  0x79001,  //"MacPro3,1",
-  0x7c002,  //"MacPro4,1",
-  0x7c002,  //"MacPro5,1"
-  0xf0f006, // MacPro6,1
+  { "MBP81.88Z.0047.B32.1702180130"  , "Mac-942459F5819B171B" , "02/18/2017" , "MacBookPro8,3"  , "MacBookPro" , "1.0", "W88F9CDEDF93", "MacBook-Aluminum" , "k92"  , { 0x01, 0x70, 0x0F, 0, 0, 0x06 }, 0x7c005  },// sandy
+  { "MBP102.88Z.0106.B12.1702171357" , "Mac-AFD8A9D944EA4843" , "02/17/2017" , "MacBookPro10,2" , "MacBookPro" , "1.0", "C02K2HACG4N7", "MacBook-Aluminum" , "d1"   , { 0x02, 0x06, 0x0F, 0, 0, 0x59 }, 0x73007  },// ivy
+  { "MBP114.88Z.0172.B16.1702161608" , "Mac-06F11F11946D27C5" , "02/16/2017" , "MacBookPro11,5" , "MacBookPro" , "1.0", "C02LSHACG85Y", "MacBook-Aluminum" , "NA"   , { 0x02, 0x30, 0x0F, 0, 0, 0x02 }, 0xf0b007 },// haswell
+  { "MBP121.88Z.0167.B24.1702161608" , "Mac-E43C1C25D4880AD6" , "02/16/2017" , "MacBookPro12,1" , "MacBookPro" , "1.0", "C02Q51OSH1DP", "MacBook-Aluminum" , "j52"  , { 0x02, 0x28, 0x0F, 0, 0, 0x07 }, 0xf01008 },// broadwell
+  { "MBP133.88Z.0226.B11.1702161827" , "Mac-A5C67F76ED83108C" , "02/16/2017" , "MacBookPro13,3" , "MacBookPro" , "1.0", "C02SLHACGTFN", "MacBook-Aluminum" , "NA"   , { 0x02, 0x38, 0x0F, 0, 0, 0x07 }, 0xf02009 } // skylake
 };
 
 CHAR8   *AppleBoardSN       = "C02140302D5DMT31M";
@@ -447,150 +51,120 @@ SetDMISettingsForModel (
   BOOLEAN         Redefine
 ) {
   AsciiStrCpyS (gSettings.VendorName,             ARRAY_SIZE (gSettings.VendorName), BiosVendor);
-  AsciiStrCpyS (gSettings.RomVersion,             ARRAY_SIZE (gSettings.RomVersion), AppleFirmwareVersion[Model]);
-  AsciiStrCpyS (gSettings.ReleaseDate,            ARRAY_SIZE (gSettings.ReleaseDate), AppleReleaseDate[Model]);
+  AsciiStrCpyS (gSettings.RomVersion,             ARRAY_SIZE (gSettings.RomVersion), MAC_MODELS[Model].AppleFirmwareVersion);
+  AsciiStrCpyS (gSettings.ReleaseDate,            ARRAY_SIZE (gSettings.ReleaseDate), MAC_MODELS[Model].AppleReleaseDate);
   AsciiStrCpyS (gSettings.ManufactureName,        ARRAY_SIZE (gSettings.ManufactureName), BiosVendor);
 
   if (Redefine) {
-    AsciiStrCpyS (gSettings.ProductName,          ARRAY_SIZE (gSettings.ProductName), AppleProductName[Model]);
+    AsciiStrCpyS (gSettings.ProductName,          ARRAY_SIZE (gSettings.ProductName), MAC_MODELS[Model].AppleProductName);
   }
 
-  AsciiStrCpyS (gSettings.VersionNr,              ARRAY_SIZE (gSettings.VersionNr), AppleSystemVersion[Model]);
-  AsciiStrCpyS (gSettings.SerialNr,               ARRAY_SIZE (gSettings.SerialNr), AppleSerialNumber[Model]);
-  AsciiStrCpyS (gSettings.FamilyName,             ARRAY_SIZE (gSettings.FamilyName), AppleFamilies[Model]);
+  AsciiStrCpyS (gSettings.VersionNr,              ARRAY_SIZE (gSettings.VersionNr), MAC_MODELS[Model].AppleSystemVersion);
+  AsciiStrCpyS (gSettings.SerialNr,               ARRAY_SIZE (gSettings.SerialNr), MAC_MODELS[Model].AppleSerialNumber);
+  AsciiStrCpyS (gSettings.FamilyName,             ARRAY_SIZE (gSettings.FamilyName), MAC_MODELS[Model].AppleFamilies);
   AsciiStrCpyS (gSettings.BoardManufactureName,   ARRAY_SIZE (gSettings.BoardManufactureName), BiosVendor);
   AsciiStrCpyS (gSettings.BoardSerialNumber,      ARRAY_SIZE (gSettings.BoardSerialNumber), AppleBoardSN);
-  AsciiStrCpyS (gSettings.BoardNumber,            ARRAY_SIZE (gSettings.BoardNumber), AppleBoardID[Model]);
-  AsciiStrCpyS (gSettings.BoardVersion,           ARRAY_SIZE (gSettings.BoardVersion), AppleProductName[Model]);
+  AsciiStrCpyS (gSettings.BoardNumber,            ARRAY_SIZE (gSettings.BoardNumber), MAC_MODELS[Model].AppleBoardID);
+  AsciiStrCpyS (gSettings.BoardVersion,           ARRAY_SIZE (gSettings.BoardVersion), MAC_MODELS[Model].AppleProductName);
   AsciiStrCpyS (gSettings.LocationInChassis,      ARRAY_SIZE (gSettings.LocationInChassis), AppleBoardLocation);
   AsciiStrCpyS (gSettings.ChassisManufacturer,    ARRAY_SIZE (gSettings.ChassisManufacturer), BiosVendor);
-  AsciiStrCpyS (gSettings.ChassisAssetTag,        ARRAY_SIZE (gSettings.ChassisAssetTag), AppleChassisAsset[Model]);
+  AsciiStrCpyS (gSettings.ChassisAssetTag,        ARRAY_SIZE (gSettings.ChassisAssetTag), MAC_MODELS[Model].AppleChassisAsset);
 
-  if (Model >= MacPro31) {
-    gSettings.BoardType = BaseBoardTypeProcessorMemoryModule; //11;
-  } else {
-    gSettings.BoardType = BaseBoardTypeMotherBoard; //10;
-  }
+  //if (Model >= MacPro31) {
+    gSettings.BoardType = BaseBoardTypeProcessorMemoryModule;
+  //} else {
+  //  gSettings.BoardType = BaseBoardTypeMotherBoard;
+  //}
+
+  gSettings.Mobile = FALSE;
 
   switch (Model) {
-    case MacBook11:
-    case MacBook21:
-    case MacBook41:
-    case MacBook52:
-    case MacBookAir31:
-    case MacBookAir52:
-    case MacBookAir62:
-    case MacBookPro111:
-      gSettings.ChassisType = MiscChassisTypeNotebook; //10;
-      gSettings.Mobile      = TRUE;
-      break;
-
-    case MacBookPro51:
-    case MacBookPro62:
-    case MacBookPro81:
     case MacBookPro83:
-    case MacBookPro92:
-    case MacBookPro101:
-      gSettings.ChassisType = MiscChassisTypePortable; //08;
+    case MacBookPro102:
+    case MacBookPro115:
+    case MacBookPro121:
+    case MacBookPro133:
+      gSettings.ChassisType = MiscChassisTypeLapTop;
       gSettings.Mobile      = TRUE;
       break;
 
-    case iMac81:
-    case iMac101:
-    case iMac111:
-    case iMac112:
-    case iMac113:
-    case iMac121:
-    case iMac122:
-    case iMac131:
-    case iMac132:
-    case iMac141:
-    case iMac142:
-    case iMac151:
+    case iMac162:
     case iMac171:
-      gSettings.ChassisType = MiscChassisTypeAllInOne; //13;
-      gSettings.Mobile      = FALSE;
+      gSettings.ChassisType = MiscChassisTypeAllInOne;
       break;
 
-    case MacMini21:
-    case MacMini51:
+    case MacMini53:
     case MacMini62:
-      gSettings.ChassisType = MiscChassisTypeLunchBox; //16;
-      gSettings.Mobile      = FALSE;
-      break;
-
-    case MacPro31:
-    case MacPro41:
-    case MacPro51:
-      gSettings.ChassisType = MiscChassisTypeMiniTower; //06;
-      gSettings.Mobile      = FALSE;
+    case MacMini71:
+      gSettings.ChassisType = MiscChassisTypeLunchBox;
       break;
 
     case MacPro61:
-      gSettings.ChassisType = MiscChassisTypeUnknown;  //02; this is a joke but think different!
-      gSettings.Mobile      = FALSE;
+      //gSettings.ChassisType = MiscChassisTypeMiniTower;
+      gSettings.ChassisType = MiscChassisTypeUnknown;  // MiscChassisTypeMiniTower
       break;
 
     default: //unknown - use oem SMBIOS value to be default
       gSettings.Mobile      = gMobile;
-      gSettings.ChassisType = 0; //let SMBIOS value to be
-      /*      if (gMobile) {
-       gSettings.ChassisType = 10; //notebook
-       } else {
-       gSettings.ChassisType = MiscChassisTypeDeskTop; //03;
-       } */
+      gSettings.ChassisType = 0; // let SMBIOS value to be
+      /*
+      if (gMobile) {
+        gSettings.ChassisType = 10; //notebook
+      } else {
+        gSettings.ChassisType = MiscChassisTypeDeskTop;
+      }
+      */
       break;
   }
 
-  //smc helper
+  // smc helper
   if (gSettings.FakeSMCOverrides) {
     UINTN   Len = ARRAY_SIZE (gSettings.RPlt);
 
-    if (SmcPlatform[Model][0] != 'N') {
-      AsciiStrCpyS (gSettings.RPlt, Len, SmcPlatform[Model]);
+    if (MAC_MODELS[Model].SmcPlatform[0] != 'N') {
+      AsciiStrCpyS (gSettings.RPlt, Len, MAC_MODELS[Model].SmcPlatform);
     } else {
       switch (gCPUStructure.Model) {
-        case CPU_MODEL_SANDY_BRIDGE:
-          if (gSettings.Mobile) {
-            AsciiStrCpyS (gSettings.RPlt, Len, "k90i");
-          } else {
-            AsciiStrCpyS (gSettings.RPlt, Len, "k60");
-          }
-          break;
-
-        case CPU_MODEL_IVY_BRIDGE:
-          AsciiStrCpyS (gSettings.RPlt, Len, "j30");
-          break;
-
-        case CPU_MODEL_IVY_BRIDGE_E5:
-          AsciiStrCpyS (gSettings.RPlt, Len, "j90");
-          break;
-
-        case CPU_MODEL_HASWELL_ULT:
-          AsciiStrCpyS (gSettings.RPlt, Len, "j44");
-          break;
-
-        case CPU_MODEL_SKYLAKE_S:
+        case CPUID_MODEL_KABYLAKE:
+        case CPUID_MODEL_KABYLAKE_DT:
+        case CPUID_MODEL_SKYLAKE:
+        case CPUID_MODEL_SKYLAKE_DT:
+        case CPUID_MODEL_BROADWELL:
+        case CPUID_MODEL_BRYSTALWELL:
           AsciiStrCpyS (gSettings.RPlt, Len, "j95");
           break;
 
+        case CPUID_MODEL_CRYSTALWELL:
+        case CPUID_MODEL_HASWELL:
+        case CPUID_MODEL_HASWELL_EP:
+        case CPUID_MODEL_HASWELL_ULT:
+          AsciiStrCpyS (gSettings.RPlt, Len, "j44");
+          break;
+
+        case CPUID_MODEL_IVYBRIDGE_EP:
+          AsciiStrCpyS (gSettings.RPlt, Len, "j90");
+          break;
+
+        case CPUID_MODEL_IVYBRIDGE:
+          AsciiStrCpyS (gSettings.RPlt, Len, "j30");
+          break;
+
+        case CPUID_MODEL_SANDYBRIDGE:
+        //case CPUID_MODEL_JAKETOWN:
+          AsciiStrCpyS (gSettings.RPlt, Len, gSettings.Mobile ? "k90i" : "k60");
+          break;
+
         default:
-          AsciiStrCpyS (gSettings.RPlt, Len, "T9");
+          AsciiStrCpyS (gSettings.RPlt, Len, "t9");
           break;
       }
     }
 
-    CopyMem (gSettings.REV, SmcRevision[Model], 6);
-    AsciiStrCpyS (gSettings.RBr, ARRAY_SIZE (gSettings.RBr), gSettings.RPlt); //SmcBranch[Model]); // as no other ideas
-    CopyMem (gSettings.EPCI, &SmcConfig[Model], 4);
+    CopyMem (gSettings.REV, MAC_MODELS[Model].SmcRevision, 6);
+    AsciiStrCpyS (gSettings.RBr, ARRAY_SIZE (gSettings.RBr), gSettings.RPlt);
+    CopyMem (gSettings.EPCI, &MAC_MODELS[Model].SmcConfig, 4);
   }
 }
-
-//Other info
-/*
- MacBookPro7,1 - penryn P8800 RPlt=k6 REV=1.62f5
- MacBookPro6,2 - i5 M520 arrandale
- */
 
 MACHINE_TYPES
 GetModelFromString (
@@ -598,8 +172,8 @@ GetModelFromString (
 ) {
   UINTN   i;
 
-  for (i = 0; i < MaxMachineType; ++i) {
-    if (AsciiStrCmp (AppleProductName[i], ProductName) == 0) {
+  for (i = MinMachineType; i < MaxMachineType; ++i) {
+    if (AsciiStrCmp (MAC_MODELS[i].AppleProductName, ProductName) == 0) {
       return i;
     }
   }

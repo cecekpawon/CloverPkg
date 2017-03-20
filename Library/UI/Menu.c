@@ -2117,7 +2117,8 @@ DrawTextXY (
   IN CHAR16   *Text,
   IN INTN     XPos,
   IN INTN     YPos,
-  IN UINT8    XAlign
+  IN UINT8    XAlign,
+  IN INTN     ClearWidth
 ) {
   INTN        TextWidth = 0, XText = 0;
   EG_IMAGE    *TextBufferXY = NULL;
@@ -2135,7 +2136,7 @@ DrawTextXY (
 
   //TextBufferXY = CreateImage (TextWidth, TextHeight, TRUE);
   //egFillImage (TextBufferXY, &TransparentBackgroundPixel);
-  TextBufferXY = CreateFilledImage (TextWidth, TextHeight, TRUE, &TransparentBackgroundPixel);
+  TextBufferXY = CreateFilledImage (ClearWidth ? ClearWidth : TextWidth, TextHeight, TRUE, &TransparentBackgroundPixel);
   // render the text
   TextWidth = RenderText (Text, TextBufferXY, 0, 0, 0xFFFF, FALSE);
 
@@ -2357,7 +2358,7 @@ GraphicsMenuStyle (
       MeasureText (Screen->Title, &ItemWidth, NULL);
 
       if (!(GlobalConfig.HideUIFlags & HIDEUI_FLAG_MENU_TITLE)) {
-        DrawTextXY (Screen->Title, (UGAWidth >> 1), EntriesPosY - TextHeight * 2, X_IS_CENTER);
+        DrawTextXY (Screen->Title, (UGAWidth >> 1), EntriesPosY - TextHeight * 2, X_IS_CENTER, 0);
       }
 
       if (Screen->TitleImage) {
@@ -2824,7 +2825,7 @@ DrawMainMenuLabel (
     );
   }
 
-  DrawTextXY (Text, XPos, YPos, X_IS_CENTER);
+  DrawTextXY (Text, XPos, YPos, X_IS_CENTER, 0);
 
   //show inline badge
   if (
@@ -2936,7 +2937,7 @@ DrawTextCorner (
       return;
   }
 
-  DrawTextXY (Text, Xpos, UGAHeight - 5 - TextHeight, Align);
+  DrawTextXY (Text, Xpos, UGAHeight - 5 - TextHeight, Align, 0);
   FreePool (Text);
 }
 
@@ -2947,7 +2948,7 @@ MainMenuStyle (
   IN UINTN              Function,
   IN CHAR16             *ParamText
 ) {
-  INTN i;
+  INTN  i;
 
   switch (Function) {
 
@@ -3164,7 +3165,7 @@ MainMenuStyle (
           (UGAWidth >> 1), FunctextPosY + TextHeight * i,
           OldTimeoutTextWidth, TextHeight, &TransparentBackgroundPixel, X_IS_CENTER
         );
-        OldTimeoutTextWidth = DrawTextXY (ParamText, (UGAWidth >> 1), FunctextPosY + TextHeight * i, X_IS_CENTER);
+        OldTimeoutTextWidth = DrawTextXY (ParamText, (UGAWidth >> 1), FunctextPosY + TextHeight * i, X_IS_CENTER, 0);
       }
 
       DrawTextCorner (TEXT_CORNER_HELP, X_IS_LEFT);

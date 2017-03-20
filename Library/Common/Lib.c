@@ -1219,20 +1219,6 @@ UninitRefitLib () {
 
 EFI_STATUS
 ReinitRefitLib () {
-  // called after running external programs to re-open file handles
-  //
-  ReinitVolumes ();
-
-  if ((SelfVolume != NULL) && (SelfVolume->RootDir != NULL)) {
-    SelfRootDir = SelfVolume->RootDir;
-  }
-
-  return FinishInitRefitLib ();
-}
-
-#if 0
-EFI_STATUS
-ReinitRefitLib () {
   // called after reconnect drivers to re-open file handles
   EFI_STATUS                  Status;
   EFI_HANDLE                  NewSelfHandle;
@@ -1279,7 +1265,6 @@ ReinitRefitLib () {
 
   return Status;
 }
-#endif
 
 //
 // file and dir functions

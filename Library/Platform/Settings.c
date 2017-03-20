@@ -1032,7 +1032,6 @@ FillinKextPatches (
           AsciiStrCatS (KextPatchesLabel, 255, " (");
           AsciiStrCatS (KextPatchesLabel, 255, Dict->string);
           AsciiStrCatS (KextPatchesLabel, 255, ")");
-
         } else {
           AsciiStrCatS (KextPatchesLabel, 255, " (NoLabel)");
         }
@@ -2745,7 +2744,7 @@ SyncDefaultSettings () {
 
   SetDMISettingsForModel (Model, TRUE);
 
-  if (gCPUStructure.Model >= CPU_MODEL_IVY_BRIDGE) {
+  if (gCPUStructure.Model >= CPUID_MODEL_IVYBRIDGE) {
     //gSettings.GeneratePStates    = TRUE;
     //gSettings.GenerateCStates    = TRUE;
     //gSettings.EnableISS          = FALSE;
@@ -2753,7 +2752,7 @@ SyncDefaultSettings () {
     //gSettings.EnableC6           = TRUE;
     gSettings.PluginType         = 1;
 
-    if (gCPUStructure.Model == CPU_MODEL_IVY_BRIDGE) {
+    if (gCPUStructure.Model == CPUID_MODEL_IVYBRIDGE) {
       gSettings.MinMultiplier    = 7;
     }
 
@@ -2767,13 +2766,12 @@ SyncDefaultSettings () {
 
 EFI_STATUS
 GetEarlyUserSettings (
-  IN EFI_FILE     *RootDir,
-  TagPtr          CfgDict
+  IN  TagPtr  Dict
 ) {
   EFI_STATUS    Status = EFI_SUCCESS;
-  TagPtr        Dict, Dict2, DictPointer, Prop;
+  TagPtr        Dict2, DictPointer, Prop;
 
-  Dict = CfgDict;
+  //Dict = CfgDict;
   if (Dict != NULL) {
     //DBG ("Loading early settings\n");
     DbgHeader ("GetEarlyUserSettings");
@@ -3125,7 +3123,6 @@ ParseBootSettings (
   // Boot settings.
   // Discussion. Why Arguments is here? It should be SystemParameters property!
   // we will read them again because of change in GUI menu. It is not only EarlySettings
-  //
   DictPointer = GetProperty (CurrentDict, "Boot");
   if (DictPointer != NULL) {
     Prop = GetProperty (DictPointer, "Arguments");
@@ -3151,7 +3148,7 @@ ParseSMBIOSSettings (
 ) {
   CHAR16    UStr[64];
   TagPtr    DictPointer, Dict, Prop, Prop2, Prop3;
-  BOOLEAN   Default = FALSE;
+  BOOLEAN   BuiltInModel = FALSE;
 
   DictPointer = GetProperty (CurrentDict, "SMBIOS");
   if (DictPointer == NULL) {
@@ -3163,17 +3160,11 @@ ParseSMBIOSSettings (
     MACHINE_TYPES   Model;
 
     AsciiStrCpyS (gSettings.ProductName, ARRAY_SIZE (gSettings.ProductName), Prop->string);
-    // let's fill all other fields based on this ProductName
-    // to serve as default
+    // let's fill all other fields based on this ProductName to serve as default
     Model = GetModelFromString (gSettings.ProductName);
-    if (Model != MaxMachineType) {
-      SetDMISettingsForModel (Model, FALSE);
-      Default = TRUE;
-    } else {
-      //if new model then fill at least as MacPro3,1, except custom ProductName
-      // something else?
-      SetDMISettingsForModel (MacPro31, FALSE);
-    }
+    BuiltInModel = (Model != MaxMachineType);
+    // if new model then fill at least as MinMachineType, except custom ProductName something else?
+    SetDMISettingsForModel (BuiltInModel ? Model : MinMachineType + 1, FALSE);
   }
 
   Prop = GetProperty (DictPointer, "BiosVendor");
@@ -3241,7 +3232,7 @@ ParseSMBIOSSettings (
   Prop = GetProperty (DictPointer, "BoardVersion");
   if (Prop != NULL) {
     AsciiStrCpyS (gSettings.BoardVersion, ARRAY_SIZE (gSettings.BoardVersion), Prop->string);
-  } else if (!Default) {
+  } else if (!BuiltInModel) {
     AsciiStrCpyS (gSettings.BoardVersion, ARRAY_SIZE (gSettings.BoardVersion), gSettings.ProductName);
   }
 
@@ -3249,8 +3240,8 @@ ParseSMBIOSSettings (
   gSettings.BoardType = (UINT8)GetPropertyInteger (Prop, gSettings.BoardType);
 
   gSettings.Mobile = GetPropertyBool (GetProperty (DictPointer, "Mobile"), FALSE);
-  if (!gSettings.Mobile && !Default) {
-    gSettings.Mobile = (AsciiStrStr (gSettings.ProductName, "MacBook") != NULL);
+  if (!gSettings.Mobile && !BuiltInModel) {
+    gSettings.Mobile = (AsciiStriStr (gSettings.ProductName, "MacBook") != NULL);
   }
 
   Prop = GetProperty (DictPointer, "LocationInChassis");
@@ -4205,7 +4196,6 @@ ParseCPUSettings (
     }
 
     Prop = GetProperty (DictPointer, "Type");
-    gSettings.CpuType = GetAdvancedCpuType ();
     if (Prop != NULL) {
       gSettings.CpuType = (UINT16)GetPropertyInteger (Prop, gSettings.CpuType);
       DBG ("CpuType: %x\n", gSettings.CpuType);

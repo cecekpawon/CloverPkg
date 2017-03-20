@@ -825,29 +825,19 @@ PatchTableType4 () {
 
     // TODO: Set SmbiosTable.Type4->ProcessorFamily for all implemented CPU models
     Once = TRUE;
-    if (gCPUStructure.Model == CPU_MODEL_ATOM) {
-      newSmbiosTable.Type4->ProcessorFamily = ProcessorFamilyIntelAtom;
-    }
-     if (gCPUStructure.Model >= CPU_MODEL_NEHALEM) {
-       if (AsciiStrStr (gCPUStructure.BrandString, "i3")) {
+
+    if (gCPUStructure.Model >= CPUID_MODEL_SANDYBRIDGE) {
+      if (AsciiStrStr (gCPUStructure.BrandString, "i3")) {
         newSmbiosTable.Type4->ProcessorFamily = ProcessorFamilyIntelCoreI3;
-       }
+      }
 
-       if (AsciiStrStr (gCPUStructure.BrandString, "i5")) {
+      if (AsciiStrStr (gCPUStructure.BrandString, "i5")) {
         newSmbiosTable.Type4->ProcessorFamily = ProcessorFamilyIntelCoreI5;
-       }
+      }
 
-       if (AsciiStrStr (gCPUStructure.BrandString, "i7")) {
-         newSmbiosTable.Type4->ProcessorFamily = ProcessorFamilyIntelCoreI7;
-       }
-    }
-
-    //spec 2.7 page 48 note 3
-    if (
-      (newSmbiosTable.Type4->ProcessorFamily == ProcessorFamilyIntelCore2) &&
-      gCPUStructure.Mobile
-    ) {
-      newSmbiosTable.Type4->ProcessorFamily = ProcessorFamilyIntelCore2DuoMobile;
+      if (AsciiStrStr (gCPUStructure.BrandString, "i7")) {
+        newSmbiosTable.Type4->ProcessorFamily = ProcessorFamilyIntelCoreI7;
+      }
     }
 
     // Set CPU Attributes
@@ -856,11 +846,11 @@ PatchTableType4 () {
     newSmbiosTable.Type4->L3CacheHandle = L3;
     newSmbiosTable.Type4->ProcessorType = CentralProcessor;
     newSmbiosTable.Type4->ProcessorId.Signature.ProcessorSteppingId = gCPUStructure.Stepping;
-    newSmbiosTable.Type4->ProcessorId.Signature.ProcessorModel    = (gCPUStructure.Model & 0xF);
-    newSmbiosTable.Type4->ProcessorId.Signature.ProcessorFamily   = gCPUStructure.Family;
-    newSmbiosTable.Type4->ProcessorId.Signature.ProcessorType   = gCPUStructure.Type;
-    newSmbiosTable.Type4->ProcessorId.Signature.ProcessorXModel   = gCPUStructure.Extmodel;
-    newSmbiosTable.Type4->ProcessorId.Signature.ProcessorXFamily  = gCPUStructure.Extfamily;
+    newSmbiosTable.Type4->ProcessorId.Signature.ProcessorModel      = (gCPUStructure.Model & 0xF);
+    newSmbiosTable.Type4->ProcessorId.Signature.ProcessorFamily     = gCPUStructure.Family;
+    newSmbiosTable.Type4->ProcessorId.Signature.ProcessorType       = gCPUStructure.Type;
+    newSmbiosTable.Type4->ProcessorId.Signature.ProcessorXModel     = gCPUStructure.Extmodel;
+    newSmbiosTable.Type4->ProcessorId.Signature.ProcessorXFamily    = gCPUStructure.Extfamily;
 
     //CopyMem ((VOID *)&newSmbiosTable.Type4->ProcessorId.FeatureFlags, (VOID *)&gCPUStructure.Features, 4);
     //newSmbiosTable.Type4->ProcessorId.FeatureFlags = (PROCESSOR_FEATURE_FLAGS)(UINT32)gCPUStructure.Features;
@@ -1212,8 +1202,10 @@ GetTableType17 () {
       }
 
       if (Found) {
-        if ((newSmbiosTable.Type18->ErrorType != MemoryErrorOk) &&
-            (newSmbiosTable.Type18->ErrorType != MemoryErrorCorrected)) {
+        if (
+          (newSmbiosTable.Type18->ErrorType != MemoryErrorOk) &&
+          (newSmbiosTable.Type18->ErrorType != MemoryErrorCorrected)
+        ) {
           DBG ("  - skipping wrong module\n");
           continue;
         }
@@ -1267,20 +1259,10 @@ GetTableType17 () {
 
 VOID
 PatchTableType17 () {
-  CHAR8           deviceLocator[10], bankLocator[10];
-  UINT8           channelMap[MAX_RAM_SLOTS], expectedCount = 0, channels = 2;
-  BOOLEAN         insertingEmpty = TRUE, trustSMBIOS = ((gRAM.SPDInUse == 0) || gSettings.TrustSMBIOS),
-                  wrongSMBIOSBanks = FALSE, isMacPro = FALSE;
-  MACHINE_TYPES   Model = GetModelFromString (gSettings.ProductName);
-
-  if (
-    (Model == MacPro31) ||
-    (Model == MacPro41) ||
-    (Model == MacPro51) ||
-    (Model == MacPro61)
-  ) {
-    isMacPro = TRUE;
-  }
+  CHAR8     deviceLocator[10], bankLocator[10];
+  UINT8     channelMap[MAX_RAM_SLOTS], expectedCount = 0, channels = 2;
+  BOOLEAN   insertingEmpty = TRUE, trustSMBIOS = ((gRAM.SPDInUse == 0) || gSettings.TrustSMBIOS),
+            wrongSMBIOSBanks = FALSE, isMacPro = (AsciiStriStr (gSettings.ProductName, "MacPro") != NULL);
 
   // Inject user memory tables
   if (gSettings.InjectMemoryTables) {

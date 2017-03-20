@@ -79,18 +79,10 @@ DoCpuid (
 //
 VOID
 GetCPUProperties () {
-  EFI_STATUS            Status;
-  EFI_HANDLE            *HandleBuffer;
-  EFI_PCI_IO_PROTOCOL   *PciIo;
-  PCI_TYPE00            Pci;
-  UINTN                 HandleCount, HandleIndex, Segment, Bus, Device, Function;
-  UINT32                qpimult = 2,
-                        qpibusspeed, //units=kHz
-                        BusSpeed = 0, //units kHz
-                        reg[4];
-  UINT64                tmpU, msr = 0;
-  UINT16                did, vid;
-  CHAR8                 str[128];
+  UINT32    BusSpeed = 0, //units kHz
+            reg[4];
+  UINT64    tmpU, msr = 0;
+  CHAR8     str[128];
 
   DbgHeader ("GetCPUProperties");
 
@@ -202,59 +194,12 @@ GetCPUProperties () {
 
     MsgLog ("CPU with turbo supported: %a\n", gCPUStructure.Turbo ? "Yes" : "No");
 
-    //get cores and threads
-    switch (gCPUStructure.Model) {
-      case CPU_MODEL_NEHALEM: // Intel Core i7 LGA1366 (45nm)
-      case CPU_MODEL_FIELDS: // Intel Core i5, i7 LGA1156 (45nm)
-      case CPU_MODEL_CLARKDALE: // Intel Core i3, i5, i7 LGA1156 (32nm)
-      case CPU_MODEL_NEHALEM_EX:
-      case CPU_MODEL_JAKETOWN:
-      case CPU_MODEL_SANDY_BRIDGE:
-      case CPU_MODEL_IVY_BRIDGE:
-      case CPU_MODEL_IVY_BRIDGE_E5:
-      case CPU_MODEL_HASWELL:
-      case CPU_MODEL_HASWELL_U5:
-      case CPU_MODEL_HASWELL_E:
-      case CPU_MODEL_HASWELL_ULT:
-      case CPU_MODEL_CRYSTALWELL:
-      case CPU_MODEL_BROADWELL_HQ:
-      case CPU_MODEL_AIRMONT:
-      case CPU_MODEL_AVOTON:
-      case CPU_MODEL_SKYLAKE_U:
-      case CPU_MODEL_BROADWELL_DE:
-      case CPU_MODEL_BROADWELL_E5:
-      case CPU_MODEL_KNIGHT:
-      case CPU_MODEL_MOOREFIELD:
-      case CPU_MODEL_GOLDMONT:
-      case CPU_MODEL_ATOM_X3:
-      case CPU_MODEL_SKYLAKE_S:
-      case CPU_MODEL_CANNONLAKE:
-        msr = AsmReadMsr64 (MSR_CORE_THREAD_COUNT);  //0x35
-        gCPUStructure.Cores   = (UINT8)bitfield ((UINT32)msr, 31, 16);
-        gCPUStructure.Threads = (UINT8)bitfield ((UINT32)msr, 15,  0);
-        break;
+    gCPUStructure.Cores = 0;
 
-      case CPU_MODEL_DALES:
-      case CPU_MODEL_WESTMERE: // Intel Core i7 LGA1366 (32nm) 6 Core
-      case CPU_MODEL_WESTMERE_EX:
-        msr = AsmReadMsr64 (MSR_CORE_THREAD_COUNT);
-        gCPUStructure.Cores   = (UINT8)bitfield ((UINT32)msr, 19, 16);
-        gCPUStructure.Threads = (UINT8)bitfield ((UINT32)msr, 15,  0);
-        break;
-
-      case CPU_MODEL_ATOM_3700:
-        gCPUStructure.Cores   = 4;
-        gCPUStructure.Threads = 4;
-        break;
-
-      case CPU_MODEL_ATOM:
-        gCPUStructure.Cores   = 2;
-        gCPUStructure.Threads = 2;
-        break;
-
-      default:
-        gCPUStructure.Cores = 0;
-        break;
+    if (gCPUStructure.Model >= CPUID_MODEL_SANDYBRIDGE) {
+      msr = AsmReadMsr64 (MSR_CORE_THREAD_COUNT);  //0x35
+      gCPUStructure.Cores   = (UINT8)bitfield ((UINT32)msr, 31, 16);
+      gCPUStructure.Threads = (UINT8)bitfield ((UINT32)msr, 15,  0);
     }
   }
 
@@ -306,15 +251,6 @@ GetCPUProperties () {
     MsgLog ("BrandString = %a\n", gCPUStructure.BrandString);
   }
 
-  //workaround for N270. I don't know why it detected wrong
-  if (
-    (gCPUStructure.Model == CPU_MODEL_ATOM) &&
-    (AsciiStrStr (gCPUStructure.BrandString, "270"))
-  ) {
-    gCPUStructure.Cores   = 1;
-    gCPUStructure.Threads = 2;
-  }
-
   //workaround for Quad
   if (AsciiStrStr (gCPUStructure.BrandString, "Quad")) {
     gCPUStructure.Cores   = 4;
@@ -339,12 +275,6 @@ GetCPUProperties () {
     }
   }
 
-  //get Min and Max Ratio Cpu/Bus
-  /*  if (QEMU) {
-
-   0x06170C2D06000C2DULL
-   } */
-
   if (
     (gCPUStructure.Vendor == CPU_VENDOR_INTEL) &&
     (
@@ -353,170 +283,98 @@ GetCPUProperties () {
     )
   ) {
     if (gCPUStructure.Family == 0x06) {
-       //DBG ("Get min and max ratio\n");
-      switch (gCPUStructure.Model) {
-        case CPU_MODEL_NEHALEM:// Core i7 LGA1366, Xeon 5500, "Bloomfield", "Gainstown", 45nm
-        case CPU_MODEL_FIELDS:// Core i7, i5 LGA1156, "Clarksfield", "Lynnfield", "Jasper", 45nm
-        case CPU_MODEL_DALES:// Core i7, i5, Nehalem
-        case CPU_MODEL_CLARKDALE:// Core i7, i5, i3 LGA1156, "Westmere", "Clarkdale", , 32nm
-        case CPU_MODEL_WESTMERE:// Core i7 LGA1366, Six-core, "Westmere", "Gulftown", 32nm
-        case CPU_MODEL_NEHALEM_EX:// Core i7, Nehalem-Ex Xeon, "Beckton"
-        case CPU_MODEL_WESTMERE_EX:// Core i7, Nehalem-Ex Xeon, "Eagleton"
-           //since rev 553 bcc9 patch
-           gCPUStructure.TSCFrequency = MultU64x32 (gCPUStructure.CurrentSpeed, Mega); //MHz -> Hz
-           gCPUStructure.CPUFrequency = gCPUStructure.TSCFrequency;
-           msr = AsmReadMsr64 (MSR_FLEX_RATIO);
+      if (gCPUStructure.Model >= CPUID_MODEL_SANDYBRIDGE) {
+        gCPUStructure.TSCFrequency = MultU64x32 (gCPUStructure.CurrentSpeed, Mega); //MHz -> Hz
+        gCPUStructure.CPUFrequency = gCPUStructure.TSCFrequency;
 
-           if ((RShiftU64 (msr, 16) & 0x01) != 0) {
-             UINT8 flex_ratio = RShiftU64 (msr, 8) & 0xff;
-             DBG ("non-usable FLEX_RATIO = %x\n", msr);
+        //----test C3 patch
+        msr = AsmReadMsr64 (MSR_PKG_CST_CONFIG_CONTROL); //0xE2
+        DBG ("MSR 0xE2: %08x (before patch)\n", msr);
+        if (msr & 0x8000) {
+          DBG (" - is locked, PM patches will be turned on\n");
+          NeedPMfix = TRUE;
+        }
 
-             if (flex_ratio == 0) {
-               AsmWriteMsr64 (MSR_FLEX_RATIO, (msr & 0xFFFFFFFFFFFEFFFFULL));
-               gBS->Stall (10);
-               msr = AsmReadMsr64 (MSR_FLEX_RATIO);
-               DBG ("corrected FLEX_RATIO = %x\n", msr);
-             }
-           }
+        //        AsmWriteMsr64 (MSR_PKG_CST_CONFIG_CONTROL, (msr & 0x8000000ULL));
+        //        msr = AsmReadMsr64 (MSR_PKG_CST_CONFIG_CONTROL);
+        //        MsgLog ("MSR 0xE2 after  patch %08x\n", msr);
+        msr = AsmReadMsr64 (MSR_PMG_IO_CAPTURE_BASE);
+        DBG ("MSR 0xE4: %08x\n", msr);
+        //------------
+        msr = AsmReadMsr64 (MSR_PLATFORM_INFO);       //0xCE
+        DBG ("MSR 0xCE: %08x_%08x\n", (msr>>32), msr);
+        gCPUStructure.MaxRatio = (UINT8)RShiftU64 (msr, 8) & 0xff;
+        gCPUStructure.MinRatio = (UINT8)MultU64x32 (RShiftU64 (msr, 40) & 0xff, 10);
+        msr = AsmReadMsr64 (MSR_FLEX_RATIO);   //0x194
 
-           //
-           msr = AsmReadMsr64 (MSR_PLATFORM_INFO);     //0xCE
-           gCPUStructure.MinRatio = (UINT8)RShiftU64 (msr, 40) & 0xff;
-           // msr = AsmReadMsr64 (MSR_IA32_PERF_STATUS);
-           gCPUStructure.MaxRatio = (UINT8)(RShiftU64 (msr, 8) & 0xff);
-           TurboMsr = msr + 1;
+        if ((RShiftU64 (msr, 16) & 0x01) != 0) {
+          // bcc9 patch
+          UINT8 flex_ratio = RShiftU64 (msr, 8) & 0xff;
+          DBG ("non-usable FLEX_RATIO = %x\n", msr);
 
-           if (gCPUStructure.MaxRatio) {
-             gCPUStructure.FSBFrequency = DivU64x32 (gCPUStructure.TSCFrequency, gCPUStructure.MaxRatio);
-           } else {
-             gCPUStructure.FSBFrequency = 133333333ULL; // 133 MHz
-           }
-
-           // This makes no sense and seems arbitrary - apianti
-           if (gCPUStructure.Turbo) {
-             msr = AsmReadMsr64 (MSR_TURBO_RATIO_LIMIT);
-
-             gCPUStructure.Turbo1 = (UINT8)(RShiftU64 (msr, 0) & 0xff);
-             gCPUStructure.Turbo2 = (UINT8)(RShiftU64 (msr, 8) & 0xff);
-             gCPUStructure.Turbo3 = (UINT8)(RShiftU64 (msr, 16) & 0xff);
-             gCPUStructure.Turbo4 = (UINT8)(RShiftU64 (msr, 24) & 0xff); //later
-           }
-
-           gCPUStructure.MaxRatio *= 10;
-           gCPUStructure.MinRatio *= 10;
-           gCPUStructure.Turbo1 *= 10;
-           gCPUStructure.Turbo2 *= 10;
-           gCPUStructure.Turbo3 *= 10;
-           gCPUStructure.Turbo4 *= 10;
-           break;
-
-        case CPU_MODEL_SANDY_BRIDGE:// Sandy Bridge, 32nm
-        case CPU_MODEL_IVY_BRIDGE:
-        case CPU_MODEL_IVY_BRIDGE_E5:
-        case CPU_MODEL_JAKETOWN:
-        case CPU_MODEL_ATOM_3700:
-        case CPU_MODEL_HASWELL:
-        case CPU_MODEL_HASWELL_U5:
-        case CPU_MODEL_HASWELL_E:
-        case CPU_MODEL_HASWELL_ULT:
-        case CPU_MODEL_CRYSTALWELL:
-        case CPU_MODEL_BROADWELL_HQ:
-        case CPU_MODEL_SKYLAKE_U:
-        case CPU_MODEL_SKYLAKE_S:
-          gCPUStructure.TSCFrequency = MultU64x32 (gCPUStructure.CurrentSpeed, Mega); //MHz -> Hz
-          gCPUStructure.CPUFrequency = gCPUStructure.TSCFrequency;
-
-          //----test C3 patch
-          msr = AsmReadMsr64 (MSR_PKG_CST_CONFIG_CONTROL); //0xE2
-          DBG ("MSR 0xE2: %08x (before patch)\n", msr);
-          if (msr & 0x8000) {
-            DBG (" - is locked, PM patches will be turned on\n");
-            NeedPMfix = TRUE;
+          if (flex_ratio == 0) {
+            AsmWriteMsr64 (MSR_FLEX_RATIO, (msr & 0xFFFFFFFFFFFEFFFFULL));
+            gBS->Stall (10);
+            msr = AsmReadMsr64 (MSR_FLEX_RATIO);
+            DBG ("corrected FLEX_RATIO = %x\n", msr);
           }
+          /*else {
+           if (gCPUStructure.BusRatioMax > flex_ratio)
+           gCPUStructure.BusRatioMax = (UINT8)flex_ratio;
+           }*/
+        }
 
-          //        AsmWriteMsr64 (MSR_PKG_CST_CONFIG_CONTROL, (msr & 0x8000000ULL));
-          //        msr = AsmReadMsr64 (MSR_PKG_CST_CONFIG_CONTROL);
-          //        MsgLog ("MSR 0xE2 after  patch %08x\n", msr);
-          msr = AsmReadMsr64 (MSR_PMG_IO_CAPTURE_BASE);
-          DBG ("MSR 0xE4: %08x\n", msr);
-          //------------
-          msr = AsmReadMsr64 (MSR_PLATFORM_INFO);       //0xCE
-          DBG ("MSR 0xCE: %08x_%08x\n", (msr>>32), msr);
-          gCPUStructure.MaxRatio = (UINT8)RShiftU64 (msr, 8) & 0xff;
-          gCPUStructure.MinRatio = (UINT8)MultU64x32 (RShiftU64 (msr, 40) & 0xff, 10);
-          msr = AsmReadMsr64 (MSR_FLEX_RATIO);   //0x194
+        //if ((gCPUStructure.CPUID[CPUID_6][ECX] & (1 << 3)) != 0) {
+        //  msr = AsmReadMsr64 (IA32_ENERGY_PERF_BIAS); //0x1B0
+        //  MsgLog ("MSR 0x1B0             %08x\n", msr);
+        //}
 
-          if ((RShiftU64 (msr, 16) & 0x01) != 0) {
-            // bcc9 patch
-            UINT8 flex_ratio = RShiftU64 (msr, 8) & 0xff;
-            DBG ("non-usable FLEX_RATIO = %x\n", msr);
+        if (gCPUStructure.MaxRatio) {
+          gCPUStructure.FSBFrequency = DivU64x32 (gCPUStructure.TSCFrequency, gCPUStructure.MaxRatio);
+        } else {
+          gCPUStructure.FSBFrequency = 100000000ULL; //100 * Mega
+        }
 
-            if (flex_ratio == 0) {
-              AsmWriteMsr64 (MSR_FLEX_RATIO, (msr & 0xFFFFFFFFFFFEFFFFULL));
-              gBS->Stall (10);
-              msr = AsmReadMsr64 (MSR_FLEX_RATIO);
-              DBG ("corrected FLEX_RATIO = %x\n", msr);
-            }
-            /*else {
-             if (gCPUStructure.BusRatioMax > flex_ratio)
-             gCPUStructure.BusRatioMax = (UINT8)flex_ratio;
-             }*/
-          }
+        msr = AsmReadMsr64 (MSR_TURBO_RATIO_LIMIT);   //0x1AD
+        gCPUStructure.Turbo1 = (UINT8)(RShiftU64 (msr, 0) & 0xff);
+        gCPUStructure.Turbo2 = (UINT8)(RShiftU64 (msr, 8) & 0xff);
+        gCPUStructure.Turbo3 = (UINT8)(RShiftU64 (msr, 16) & 0xff);
+        gCPUStructure.Turbo4 = (UINT8)(RShiftU64 (msr, 24) & 0xff);
 
-          //if ((gCPUStructure.CPUID[CPUID_6][ECX] & (1 << 3)) != 0) {
-          //  msr = AsmReadMsr64 (IA32_ENERGY_PERF_BIAS); //0x1B0
-          //  MsgLog ("MSR 0x1B0             %08x\n", msr);
-          //}
-
-          if (gCPUStructure.MaxRatio) {
-            gCPUStructure.FSBFrequency = DivU64x32 (gCPUStructure.TSCFrequency, gCPUStructure.MaxRatio);
-          } else {
-            gCPUStructure.FSBFrequency = 100000000ULL; //100 * Mega
-          }
-
-          msr = AsmReadMsr64 (MSR_TURBO_RATIO_LIMIT);   //0x1AD
-          gCPUStructure.Turbo1 = (UINT8)(RShiftU64 (msr, 0) & 0xff);
-          gCPUStructure.Turbo2 = (UINT8)(RShiftU64 (msr, 8) & 0xff);
-          gCPUStructure.Turbo3 = (UINT8)(RShiftU64 (msr, 16) & 0xff);
-          gCPUStructure.Turbo4 = (UINT8)(RShiftU64 (msr, 24) & 0xff);
+        if (gCPUStructure.Turbo4 == 0) {
+          gCPUStructure.Turbo4 = gCPUStructure.Turbo1;
 
           if (gCPUStructure.Turbo4 == 0) {
-            gCPUStructure.Turbo4 = gCPUStructure.Turbo1;
-
-            if (gCPUStructure.Turbo4 == 0) {
-              gCPUStructure.Turbo4 = (UINT16)gCPUStructure.MaxRatio;
-            }
+            gCPUStructure.Turbo4 = (UINT16)gCPUStructure.MaxRatio;
           }
+        }
 
-          //Slice - we found that for some i5-2400 and i7-2600 MSR 1AD reports wrong turbo mult
-          // another similar bug in i7-3820
-          //MSR 000001AD  0000-0000-3B3B-3B3B - from AIDA64
-          // so there is a workaround
-          if ((gCPUStructure.Turbo4 == 0x3B) || (gCPUStructure.Turbo4 == 0x39)) {
-            gCPUStructure.Turbo4 = (UINT16)gCPUStructure.MaxRatio + (gCPUStructure.Turbo?1:0);
-            //this correspond to 2nd-gen-core-desktop-specification-update.pdf
-          }
+        //Slice - we found that for some i5-2400 and i7-2600 MSR 1AD reports wrong turbo mult
+        // another similar bug in i7-3820
+        //MSR 000001AD  0000-0000-3B3B-3B3B - from AIDA64
+        // so there is a workaround
+        if ((gCPUStructure.Turbo4 == 0x3B) || (gCPUStructure.Turbo4 == 0x39)) {
+          gCPUStructure.Turbo4 = (UINT16)gCPUStructure.MaxRatio + (gCPUStructure.Turbo?1:0);
+          //this correspond to 2nd-gen-core-desktop-specification-update.pdf
+        }
 
-          gCPUStructure.MaxRatio *= 10;
-          gCPUStructure.Turbo1 *= 10;
-          gCPUStructure.Turbo2 *= 10;
-          gCPUStructure.Turbo3 *= 10;
-          gCPUStructure.Turbo4 *= 10;
-          break;
+        gCPUStructure.MaxRatio *= 10;
+        gCPUStructure.Turbo1 *= 10;
+        gCPUStructure.Turbo2 *= 10;
+        gCPUStructure.Turbo3 *= 10;
+        gCPUStructure.Turbo4 *= 10;
+      } else {
+        gCPUStructure.TSCFrequency = MultU64x32 (gCPUStructure.CurrentSpeed, Mega); //MHz -> Hz
+        gCPUStructure.CPUFrequency = gCPUStructure.TSCFrequency;
+        gCPUStructure.MinRatio = 60;
 
-         default:
-          gCPUStructure.TSCFrequency = MultU64x32 (gCPUStructure.CurrentSpeed, Mega); //MHz -> Hz
-          gCPUStructure.CPUFrequency = gCPUStructure.TSCFrequency;
-          gCPUStructure.MinRatio = 60;
+        if (!gCPUStructure.FSBFrequency) {
+          gCPUStructure.FSBFrequency = 100000000ULL; //100 * Mega
+        }
 
-          if (!gCPUStructure.FSBFrequency) {
-            gCPUStructure.FSBFrequency = 100000000ULL; //100 * Mega
-          }
-
-          gCPUStructure.MaxRatio = (UINT32)(MultU64x32 (DivU64x64Remainder (gCPUStructure.TSCFrequency, gCPUStructure.FSBFrequency, NULL), 10));
-          gCPUStructure.CPUFrequency = gCPUStructure.TSCFrequency;
-          break;
-       }
+        gCPUStructure.MaxRatio = (UINT32)(MultU64x32 (DivU64x64Remainder (gCPUStructure.TSCFrequency, gCPUStructure.FSBFrequency, NULL), 10));
+        gCPUStructure.CPUFrequency = gCPUStructure.TSCFrequency;
+      }
     }
   }
 
@@ -538,73 +396,7 @@ GetCPUProperties () {
   tmpU = gCPUStructure.FSBFrequency;
   DBG ("Corrected FSBFrequency=%dMHz\n", DivU64x32 (tmpU, Mega));
 
-  if ((gCPUStructure.Vendor == CPU_VENDOR_INTEL) && (gCPUStructure.Model == CPU_MODEL_NEHALEM)) {
-    //Slice - for Nehalem we can do more calculation as in Cham
-    // but this algo almost always wrong
-    //
-    // thanks to dgobe for i3/i5/i7 bus speed detection
-    qpimult = 2; //init
-    /* Scan PCI BUS For QPI Frequency */
-    // get all PciIo handles
-    Status = gBS->LocateHandleBuffer (ByProtocol, &gEfiPciIoProtocolGuid, NULL, &HandleCount, &HandleBuffer);
-    if (Status == EFI_SUCCESS) {
-      for (HandleIndex = 0; HandleIndex < HandleCount; HandleIndex++) {
-        Status = gBS->HandleProtocol (HandleBuffer[HandleIndex], &gEfiPciIoProtocolGuid, (VOID **)&PciIo);
-        if (!EFI_ERROR (Status)) {
-          /* Read PCI BUS */
-          Status = PciIo->GetLocation (PciIo, &Segment, &Bus, &Device, &Function);
-          if ((Bus & 0x3F) != 0x3F) {
-            continue;
-          }
-
-          Status = PciIo->Pci.Read (
-                                PciIo,
-                                EfiPciIoWidthUint32,
-                                0,
-                                sizeof (Pci) / sizeof (UINT32),
-                                &Pci
-                              );
-
-          vid = Pci.Hdr.VendorId & 0xFFFF;
-          did = Pci.Hdr.DeviceId & 0xFF00;
-
-          if (
-            (vid == 0x8086) &&
-            (did >= 0x2C00) &&
-              //Slice - why 2:1? Intel spec said 3:4 - QCLK_RATIO at offset 0x50
-              //  && (Device == 2) && (Function == 1)) {
-            (Device == 3) &&
-            (Function == 4)
-          ) {
-            DBG ("Found QCLK_RATIO at bus 0x%02x dev=%x funs=%x\n", Bus, Device, Function);
-            Status = PciIo->Mem.Read (
-                                  PciIo,
-                                  EfiPciIoWidthUint32,
-                                  EFI_PCI_IO_PASS_THROUGH_BAR,
-                                  0x50,
-                                  1,
-                                  &qpimult
-                                );
-
-            DBG ("qpi read from PCI %x\n", qpimult & 0x1F);
-
-            if (EFI_ERROR (Status)) continue;
-            qpimult &= 0x1F; //bits 0:4
-            break;
-          }
-        }
-      }
-    }
-
-    DBG ("qpimult %d\n", qpimult);
-    qpibusspeed = qpimult * 2 * gCPUStructure.ExternalClock; //kHz
-    DBG ("qpibusspeed %dkHz\n", qpibusspeed);
-    gCPUStructure.ProcessorInterconnectSpeed = DivU64x32 (qpibusspeed, kilo); //kHz->MHz
-
-  } else {
-    gCPUStructure.ProcessorInterconnectSpeed = DivU64x32 (LShiftU64 (gCPUStructure.ExternalClock, 2), kilo); //kHz->MHz
-  }
-
+  gCPUStructure.ProcessorInterconnectSpeed = DivU64x32 (LShiftU64 (gCPUStructure.ExternalClock, 2), kilo); //kHz->MHz
   gCPUStructure.MaxSpeed = (UINT32)(DivU64x32 (MultU64x64 (gCPUStructure.FSBFrequency, gCPUStructure.MaxRatio), Mega * 10)); //kHz->MHz
 
   DBG ("Vendor/Model/Stepping: 0x%x/0x%x/0x%x\n", gCPUStructure.Vendor, gCPUStructure.Model, gCPUStructure.Stepping);
@@ -647,6 +439,7 @@ SetCPUProperties () {
 
 UINT16
 GetStandardCpuType () {
+/*
   if (gCPUStructure.Threads >= 4) {
     return 0x402;   // Quad-Core Xeon
   } else if (gCPUStructure.Threads == 1) {
@@ -654,342 +447,161 @@ GetStandardCpuType () {
   }
 
   return 0x301;   // Core 2 Duo
+*/
+  return (0x900 + BRIDGETYPE_SANDY_BRIDGE); // i3
 }
 
 UINT16
 GetAdvancedCpuType () {
-  if (gCPUStructure.Vendor == CPU_VENDOR_INTEL) {
-    switch (gCPUStructure.Family) {
-      case 0x06:
-      {
-        switch (gCPUStructure.Model) {
-          case CPU_MODEL_ATOM:  // Atom (45nm)
-            return GetStandardCpuType ();
+  if (
+    (gCPUStructure.Vendor == CPU_VENDOR_INTEL) &&
+    (gCPUStructure.Family == 0x06)
+  ) {
+    UINT8    CoreBridgeType = 0;
 
-          case CPU_MODEL_NEHALEM_EX: //Xeon 5300
-            return 0x402;
+    switch (gCPUStructure.Model) {
+      case CPUID_MODEL_KABYLAKE:
+      case CPUID_MODEL_KABYLAKE_DT:
+        CoreBridgeType = BRIDGETYPE_KABYLAKE;
+        break;
 
-          case CPU_MODEL_NEHALEM: // Intel Core i7 LGA1366 (45nm)
-            if (AsciiStrStr (gCPUStructure.BrandString, "Xeon")) {
-             return 0x501; // Xeon
-            }
+      case CPUID_MODEL_SKYLAKE:
+      case CPUID_MODEL_SKYLAKE_DT:
+        CoreBridgeType = BRIDGETYPE_SKYLAKE;
+        break;
 
-            return 0x701; // Core i7
+      case CPUID_MODEL_BROADWELL:
+      case CPUID_MODEL_BRYSTALWELL:
+        CoreBridgeType = BRIDGETYPE_BROADWELL;
+        break;
 
-          case CPU_MODEL_FIELDS: // Lynnfield, Clarksfield, Jasper
-            if (AsciiStrStr (gCPUStructure.BrandString, "Core (TM) i5")) {
-              return 0x601; // Core i5
-            }
+      case CPUID_MODEL_CRYSTALWELL:
+      case CPUID_MODEL_HASWELL:
+      case CPUID_MODEL_HASWELL_EP:
+      case CPUID_MODEL_HASWELL_ULT:
+        CoreBridgeType = BRIDGETYPE_HASWELL;
+        break;
 
-            return 0x701; // Core i7
+      case CPUID_MODEL_IVYBRIDGE:
+      case CPUID_MODEL_IVYBRIDGE_EP:
+        CoreBridgeType = BRIDGETYPE_IVY_BRIDGE;
+        break;
 
-          case CPU_MODEL_DALES: // Intel Core i5, i7 LGA1156 (45nm) (Havendale, Auburndale)
-            if (AsciiStrStr (gCPUStructure.BrandString, "Core (TM) i3")) {
-              return 0x901; // Core i3 //why not 902? Ask Apple
-            }
+      case CPUID_MODEL_SANDYBRIDGE:
+      //case CPUID_MODEL_JAKETOWN:
+        CoreBridgeType = BRIDGETYPE_SANDY_BRIDGE;
+        break;
+    }
 
-            if (AsciiStrStr (gCPUStructure.BrandString, "Core (TM) i5")) {
-              return 0x602; // Core i5
-            }
-
-            if (AsciiStrStr (gCPUStructure.BrandString, "Core (TM) i7")) {
-              return 0x702; // Core i7
-            }
-
-            if (gCPUStructure.Cores <= 2) {
-              return 0x602;
-            }
-
-            return 0x702; // Core i7
-
-          //case CPU_MODEL_ARRANDALE:
-          case CPU_MODEL_CLARKDALE: // Intel Core i3, i5, i7 LGA1156 (32nm) (Clarkdale, Arrandale)
-            if (AsciiStrStr (gCPUStructure.BrandString, "Core (TM) i3")) {
-              return 0x901; // Core i3
-            }
-
-            if (AsciiStrStr (gCPUStructure.BrandString, "Core (TM) i5")) {
-              return 0x601; // Core i5 - (M540 -> 0x0602)
-            }
-
-            if (AsciiStrStr (gCPUStructure.BrandString, "Core (TM) i7")) {
-              return 0x701; // Core i7
-            }
-
-            if (gCPUStructure.Cores <= 2) {
-              return 0x601;
-            }
-
-            return 0x701; // Core i7
-
-          case CPU_MODEL_WESTMERE: // Intel Core i7 LGA1366 (32nm) 6 Core (Gulftown, Westmere-EP, Westmere-WS)
-          case CPU_MODEL_WESTMERE_EX: // Intel Core i7 LGA1366 (45nm) 6 Core ???
-            if (AsciiStrStr (gCPUStructure.BrandString, "Xeon")) {
-              return 0x501; // Xeon
-            }
-
-            return 0x701; // Core i7
-
-          case CPU_MODEL_SANDY_BRIDGE:
-            if (AsciiStrStr (gCPUStructure.BrandString, "Core (TM) i3")) {
-              return 0x903; // Core i3
-            }
-
-            if (AsciiStrStr (gCPUStructure.BrandString, "Core (TM) i5")) {
-              return 0x603; // Core i5
-            }
-
-            if (AsciiStrStr (gCPUStructure.BrandString, "Core (TM) i7")) {
-              return 0x703; // Core i7
-            }
-
-            if (gCPUStructure.Cores <= 2) {
-              return 0x603;
-            }
-
-            return 0x703;
-
-          case CPU_MODEL_IVY_BRIDGE:
-            if (AsciiStrStr (gCPUStructure.BrandString, "Core (TM) i3")) {
-              return 0x903; // Core i3 - Apple doesn't use it
-            }
-
-            if (AsciiStrStr (gCPUStructure.BrandString, "Core (TM) i5")) {
-              return 0x604; // Core i5
-            }
-
-            if (AsciiStrStr (gCPUStructure.BrandString, "Core (TM) i7")) {
-              return 0x704; // Core i7
-            }
-
-            if (gCPUStructure.Cores <= 2) {
-              return 0x604;
-            }
-
-            return 0x704;
-
-          case CPU_MODEL_HASWELL_U5:
-          //case CPU_MODEL_SKYLAKE_S:
-            if (AsciiStrStr (gCPUStructure.BrandString, "Core (TM) M")) {
-              return 0xB06; // Core M
-            }
-
-            if (AsciiStrStr (gCPUStructure.BrandString, "Core (TM) i3")) {
-              return 0x906; // Core i3 - Apple doesn't use it
-            }
-
-            if (AsciiStrStr (gCPUStructure.BrandString, "Core (TM) i5")) {
-              return 0x606; // Core i5
-            }
-
-            if (AsciiStrStr (gCPUStructure.BrandString, "Core (TM) i7")) {
-              return 0x706; // Core i7
-            }
-
-            if (gCPUStructure.Cores <= 2) {
-              return 0x606;
-            }
-
-            return 0x706;
-
-          case CPU_MODEL_HASWELL_E:
-            return 0x507;
-
-          case CPU_MODEL_IVY_BRIDGE_E5:
-            return 0xA01;
-
-          case CPU_MODEL_ATOM_3700:
-          case CPU_MODEL_HASWELL:
-          case CPU_MODEL_HASWELL_ULT:
-          case CPU_MODEL_CRYSTALWELL:
-          case CPU_MODEL_BROADWELL_HQ:
-          case CPU_MODEL_SKYLAKE_U:
-          case CPU_MODEL_SKYLAKE_S:
-            if (AsciiStrStr (gCPUStructure.BrandString, "Core (TM) i3")) {
-              return 0x905; // Core i3 - Apple doesn't use it
-            }
-
-            if (AsciiStrStr (gCPUStructure.BrandString, "Core (TM) i5")) {
-              return 0x605; // Core i5
-            }
-
-            if (AsciiStrStr (gCPUStructure.BrandString, "Core (TM) i7")) {
-              return 0x705; // Core i7
-            }
-
-            if (gCPUStructure.Cores <= 2) {
-              return 0x605;
-            }
-
-            return 0x705;
-        }
-      }
+    if (AsciiStrStr (gCPUStructure.BrandString, "Core(TM) i7")) {
+      return (0x700 + CoreBridgeType);
+    }
+    else if (AsciiStrStr (gCPUStructure.BrandString, "Core(TM) i5")) {
+      return (0x600 + CoreBridgeType);
+    }
+    else if (AsciiStrStr (gCPUStructure.BrandString, "Core(TM) i3")) {
+      return (0x900 + CoreBridgeType);
+    }
+    else if (AsciiStrStr (gCPUStructure.BrandString, "Xeon(R)")) {
+      return (0xA00 + CoreBridgeType);
     }
   }
 
   return GetStandardCpuType ();
 }
 
+/*
+MACHINE_TYPES
+GetModelByBrandString (
+  MACHINE_TYPES   i3,
+  MACHINE_TYPES   i5,
+  MACHINE_TYPES   i7,
+  MACHINE_TYPES   Other // Xeon?
+) {
+  MACHINE_TYPES   DefaultType = MinMachineType + 1;
+
+  if (AsciiStrStr (gCPUStructure.BrandString, "i3")) {
+    return i3;
+  } else if (AsciiStrStr (gCPUStructure.BrandString, "i5")) {
+    return i5;
+  } else if (AsciiStrStr (gCPUStructure.BrandString, "i7")) {
+    return i7;
+  }
+
+  return Other ? Other : DefaultType;
+}
+*/
+
 MACHINE_TYPES
 GetDefaultModel () {
-  MACHINE_TYPES DefaultType = MacPro31;
+  MACHINE_TYPES   DefaultType = MinMachineType + 1;
 
   if (gCPUStructure.Vendor != CPU_VENDOR_INTEL) {
     return DefaultType;
   }
 
-  // TODO: Add more CPU models and configure the correct machines per CPU/GFX model
   if (gMobile) {
     switch (gCPUStructure.Model) {
-      case CPU_MODEL_ATOM:
-        DefaultType = MacBookAir31; //MacBookAir1,1 doesn't support _PSS for speedstep!
+      case CPUID_MODEL_KABYLAKE:
+      case CPUID_MODEL_KABYLAKE_DT:
+      case CPUID_MODEL_SKYLAKE:
+      case CPUID_MODEL_SKYLAKE_DT:
+        DefaultType = MacBookPro133;
         break;
 
-      case CPU_MODEL_CLARKDALE:
-        DefaultType = MacBookPro62;
+      case CPUID_MODEL_BROADWELL:
+      case CPUID_MODEL_BRYSTALWELL:
+        DefaultType = MacBookPro121;
         break;
 
-      case CPU_MODEL_JAKETOWN:
-      case CPU_MODEL_SANDY_BRIDGE:
-        if (
-          (AsciiStrStr (gCPUStructure.BrandString, "i3")) ||
-          (AsciiStrStr (gCPUStructure.BrandString, "i5"))
-        ) {
-          DefaultType = MacBookPro81;
-          break;
-        }
-
-        DefaultType = MacBookPro83;
+      case CPUID_MODEL_CRYSTALWELL:
+      case CPUID_MODEL_HASWELL:
+      case CPUID_MODEL_HASWELL_EP:
+      case CPUID_MODEL_HASWELL_ULT:
+        DefaultType = MacBookPro115;
         break;
 
-      case CPU_MODEL_IVY_BRIDGE:
-      case CPU_MODEL_IVY_BRIDGE_E5:
-        DefaultType = MacBookAir52;
+      case CPUID_MODEL_IVYBRIDGE:
+      case CPUID_MODEL_IVYBRIDGE_EP:
+        DefaultType = MacBookPro102;
         break;
 
-      case CPU_MODEL_HASWELL:
-      case CPU_MODEL_HASWELL_E:
-      case CPU_MODEL_ATOM_3700:
-        DefaultType = MacBookAir62;
-        break;
-
-      case CPU_MODEL_HASWELL_ULT:
-      case CPU_MODEL_CRYSTALWELL:
-      case CPU_MODEL_HASWELL_U5:
-      case CPU_MODEL_BROADWELL_HQ:
-      case CPU_MODEL_SKYLAKE_U:
-        DefaultType = MacBookPro111;
-        break;
-
+      case CPUID_MODEL_SANDYBRIDGE:
+      //case CPUID_MODEL_JAKETOWN:
       default:
-        if ((gGraphics[0].Vendor == Nvidia) || (gGraphics[1].Vendor == Nvidia)) {
-          DefaultType = MacBookPro51;
-        } else
-          DefaultType = MacBook52;
+        DefaultType = MacBookPro83;
         break;
     }
   } else {
     switch (gCPUStructure.Model) {
-      case CPU_MODEL_LINCROFT:
-        DefaultType = MacMini21;
-        break;
-
-      case CPU_MODEL_ATOM:
-        DefaultType = MacMini21;
-        break;
-
-      case CPU_MODEL_NEHALEM:
-        DefaultType = iMac111;
-        break;
-
-      case CPU_MODEL_NEHALEM_EX:
-        DefaultType = MacPro41;
-        break;
-
-      case CPU_MODEL_FIELDS:
-        if (AsciiStrStr (gCPUStructure.BrandString, "Xeon")) {
-          DefaultType = MacPro41;
-          break;
-        }
-
-        DefaultType = iMac113;
-        break;
-
-      case CPU_MODEL_DALES:
-        DefaultType = iMac112;
-        break;
-
-      case CPU_MODEL_CLARKDALE:
-        DefaultType = iMac112;
-        break;
-
-      case CPU_MODEL_WESTMERE:
-        DefaultType = MacPro51;
-        break;
-
-      case CPU_MODEL_WESTMERE_EX:
-        DefaultType = MacPro51;
-        break;
-
-      case CPU_MODEL_SANDY_BRIDGE:
-        if (gGraphics[0].Vendor == Intel) {
-          DefaultType = MacMini51;
-          break;
-        }
-
-        if (
-          (AsciiStrStr (gCPUStructure.BrandString, "i3")) ||
-          (AsciiStrStr (gCPUStructure.BrandString, "i5"))
-        ) {
-          DefaultType = iMac121;
-          break;
-        }
-
-        if (AsciiStrStr (gCPUStructure.BrandString, "i7")) {
-          DefaultType = iMac122;
-          break;
-        }
-
-        DefaultType = MacPro51;
-        break;
-
-      case CPU_MODEL_IVY_BRIDGE:
-      case CPU_MODEL_IVY_BRIDGE_E5:
-        DefaultType = iMac132;
-        if (gGraphics[0].Vendor == Intel) {
-          DefaultType = MacMini62;
-          break;
-        }
-
-        if (AsciiStrStr (gCPUStructure.BrandString, "i3")) {
-          DefaultType = iMac131;
-          break;
-        }
-        break;
-
-      case CPU_MODEL_JAKETOWN:
-        DefaultType = MacPro41;
-        break;
-
-      case CPU_MODEL_HASWELL_U5:
-        DefaultType = iMac151;
-        break;
-
-      case CPU_MODEL_SKYLAKE_S:
+      case CPUID_MODEL_KABYLAKE:
+      case CPUID_MODEL_KABYLAKE_DT:
+      case CPUID_MODEL_SKYLAKE:
+      case CPUID_MODEL_SKYLAKE_DT:
         DefaultType = iMac171;
         break;
 
-      case CPU_MODEL_HASWELL:
-      case CPU_MODEL_HASWELL_E:
-        DefaultType = iMac142;
-        if (AsciiStrStr (gCPUStructure.BrandString, "70S")) {
-          DefaultType = iMac141;
-          break;
-        }
+      case CPUID_MODEL_BROADWELL:
+      case CPUID_MODEL_BRYSTALWELL:
+        DefaultType = iMac162;
         break;
 
+      case CPUID_MODEL_CRYSTALWELL:
+      case CPUID_MODEL_HASWELL:
+      case CPUID_MODEL_HASWELL_EP:
+      case CPUID_MODEL_HASWELL_ULT:
+        DefaultType = MacMini71;
+        break;
+
+      case CPUID_MODEL_IVYBRIDGE:
+      case CPUID_MODEL_IVYBRIDGE_EP:
+        DefaultType = MacMini62;
+        break;
+
+      case CPUID_MODEL_SANDYBRIDGE:
+      //case CPUID_MODEL_JAKETOWN:
       default:
-        DefaultType = MacPro31;
+        //DefaultType = MacMini53;
         break;
     }
   }

@@ -25,18 +25,18 @@
   Include
 
 [Guids]
-  gDataHubPlatformGuid                    = {0X64517CC8, 0X6561, 0X4051, {0XB0, 0X3C, 0X59, 0X64, 0XB6, 0X0F, 0X4C, 0X7A}}
-  gEfiAppleBootGuid                       = {0X7C436110, 0XAB2A, 0X4BBB, {0XA8, 0X80, 0XFE, 0X41, 0X99, 0X5C, 0X9F, 0X82}}
-  gEfiAppleNvramGuid                      = {0X4D1EDE05, 0X38C7, 0X4A6A, {0X9C, 0XC6, 0X4B, 0XCC, 0XA8, 0XB3, 0X8C, 0X14}}
-  gEfiGlobalVariableGuid                  = {0X8BE4DF61, 0X93CA, 0X11D2, {0XAA, 0X0D, 0X00, 0XE0, 0X98, 0X03, 0X2B, 0X8C}}
+  gDataHubPlatformGuid                    = { 0X64517CC8, 0X6561, 0X4051, { 0XB0, 0X3C, 0X59, 0X64, 0XB6, 0X0F, 0X4C, 0X7A } }
+  gEfiAppleBootGuid                       = { 0X7C436110, 0XAB2A, 0X4BBB, { 0XA8, 0X80, 0XFE, 0X41, 0X99, 0X5C, 0X9F, 0X82 } }
+  gEfiAppleNvramGuid                      = { 0X4D1EDE05, 0X38C7, 0X4A6A, { 0X9C, 0XC6, 0X4B, 0XCC, 0XA8, 0XB3, 0X8C, 0X14 } }
+  gEfiGlobalVariableGuid                  = { 0X8BE4DF61, 0X93CA, 0X11D2, { 0XAA, 0X0D, 0X00, 0XE0, 0X98, 0X03, 0X2B, 0X8C } }
 
-[Protocols]
-  gAppleDevicePropertyProtocolGuid        = {0X91BD12FE, 0XF6C3, 0X44FB, {0XA5, 0XB7, 0X51, 0X22, 0XAB, 0X30, 0X3A, 0XE0}}
-  gAppleFramebufferInfoProtocolGuid       = {0XE316E100, 0X0751, 0X4C49, {0X90, 0X56, 0X48, 0X6C, 0X7E, 0X47, 0X29, 0X03}}
-  gEfiConsoleControlProtocolGuid          = {0XF42F7782, 0X012E, 0X4C12, {0X99, 0X56, 0X49, 0XF9, 0X43, 0X04, 0XF7, 0X21}}
-  gEfiMiscSubClassGuid                    = {0X772484B2, 0X7482, 0X4B91, {0X9F, 0X9A, 0XAD, 0X43, 0XF8, 0X1C, 0X58, 0X81}}
-  gEfiSimpleTextInputExProtocolGuid       = {0xdd9e7534, 0x7762, 0x4698, {0x8c, 0x14, 0xf5, 0x85, 0x17, 0xa6, 0x25, 0xaa}}
+ [Protocols]
+  gAppleDevicePropertyProtocolGuid        = { 0X91BD12FE, 0XF6C3, 0X44FB, { 0XA5, 0XB7, 0X51, 0X22, 0XAB, 0X30, 0X3A, 0XE0 } }
+  gAppleFramebufferInfoProtocolGuid       = { 0XE316E100, 0X0751, 0X4C49, { 0X90, 0X56, 0X48, 0X6C, 0X7E, 0X47, 0X29, 0X03 } }
+  gEfiConsoleControlProtocolGuid          = { 0XF42F7782, 0X012E, 0X4C12, { 0X99, 0X56, 0X49, 0XF9, 0X43, 0X04, 0XF7, 0X21 } }
+  gEfiMiscSubClassGuid                    = { 0X772484B2, 0X7482, 0X4B91, { 0X9F, 0X9A, 0XAD, 0X43, 0XF8, 0X1C, 0X58, 0X81 } }
+  gEfiSimpleTextInputExProtocolGuid       = { 0xdd9e7534, 0x7762, 0x4698, { 0x8c, 0x14, 0xf5, 0x85, 0x17, 0xa6, 0x25, 0xaa } }
 
-  gAptioFixProtocolGuid                   = {0XB79DCC2E, 0X61BE, 0X453F, {0XBC, 0XAC, 0XC2, 0X60, 0XFA, 0XAE, 0XCC, 0XDA}}
-  gFSInjectProtocolGuid                   = {0X3F048284, 0X6D4C, 0X11E1, {0XA4, 0XD7, 0X37, 0XE3, 0X48, 0X24, 0X01, 0X9B}}
-  gMsgLogProtocolGuid                     = {0X511CE018, 0X0018, 0X4002, {0X20, 0X12, 0X17, 0X38, 0X05, 0X01, 0X02, 0X03}}
+  gAptioFixProtocolGuid                   = { 0XB79DCC2E, 0X61BE, 0X453F, { 0XBC, 0XAC, 0XC2, 0X60, 0XFA, 0XAE, 0XCC, 0XDA } }
+  gFSInjectProtocolGuid                   = { 0X3F048284, 0X6D4C, 0X11E1, { 0XA4, 0XD7, 0X37, 0XE3, 0X48, 0X24, 0X01, 0X9B } }
+  gMsgLogProtocolGuid                     = { 0X511CE018, 0X0018, 0X4002, { 0X20, 0X12, 0X17, 0X38, 0X05, 0X01, 0X02, 0X03 } }
