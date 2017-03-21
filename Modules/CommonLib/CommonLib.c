@@ -1416,3 +1416,31 @@ VersionFromStr (
 
   return SVer;
 }
+
+UINT8 *
+EFIAPI
+MacAddressToStr (
+  IN CHAR8   *Str
+) {
+  UINTN   i = 0, y = 0, Count = AsciiStrLen (Str);
+  UINT8   *Ret = AllocateZeroPool (6 * sizeof (UINT8));
+  CHAR8   *StrFound = NULL;
+
+  if (!Str || (Count != 17)) {
+    return NULL;
+  }
+
+  while (y < 6) {
+    StrFound = FindCharDelimited (Str, ':', i++);
+
+    if (!StrFound || !AsciiStrLen (StrFound)) {
+      break;
+    }
+
+    Ret[y++] = (UINT8)AsciiStrHexToUintn (StrFound);
+  }
+
+  return (y == 6) ? Ret : NULL;
+}
+
+

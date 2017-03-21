@@ -279,4 +279,10 @@ VersionFromStr (
   CHAR8   *Str
 );
 
+UINT8 *
+EFIAPI
+MacAddressToStr (
+  IN CHAR8   *Str
+);
+
 #endif  // _GENERIC_ICH_H_

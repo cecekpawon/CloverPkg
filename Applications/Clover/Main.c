@@ -1634,8 +1634,6 @@ RefitMain (
     gSettings.EnabledCores = gCPUStructure.Cores;
   }
 
-  GetMacAddress ();
-
   ScanSPD ();
 
   SetPrivateVarProto ();
@@ -1659,6 +1657,10 @@ RefitMain (
   DrawLoadMessage (L"Load Settings");
 
   if (gConfigDict) {
+    if (GetLegacyLanAddress) {
+      GetMacAddress ();
+    }
+
     Status = GetUserSettings (SelfRootDir, gConfigDict);
     DBG ("Load Settings: User: %r\n", Status);
   }

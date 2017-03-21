@@ -1178,6 +1178,12 @@ extern INPUT_ITEM                       *InputItems;
 extern BOOLEAN                          SavePreBootLog;
 //extern EFI_GRAPHICS_OUTPUT_PROTOCOL   *GraphicsOutput;
 extern CHAR16                           *InjectKextsDir[3];
+extern UINTN                            nLanCards;     // number of LAN cards
+extern UINTN                            nLanPaths;     // number of UEFI LAN
+extern UINT16                           gLanVendor[4]; // their vendors
+extern UINT8                            *gLanMmio[4];  // their MMIO regions
+extern UINT8                            gLanMac[4][6]; // their MAC addresses
+extern BOOLEAN                          GetLegacyLanAddress;
 
 #if 0
 extern EFI_EVENT                        mVirtualAddressChangeEvent;

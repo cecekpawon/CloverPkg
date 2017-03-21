@@ -194,8 +194,6 @@ GetDefaultConfig () {
   //gSettings.CustomEDID           = NULL; //no sense to assign 0 as the structure is zeroed
   gSettings.DualLink             = 0;
   gSettings.HDALayoutId          = 0;
-  //gSettings.HDAInjection         = TRUE;
-  //gSettings.USBInjection         = TRUE; // enabled by default to have the same behavior as before
 
   StrCpyS (gSettings.DsdtName, ARRAY_SIZE (gSettings.DsdtName), DSDT_NAME);
 
@@ -212,6 +210,7 @@ GetDefaultConfig () {
   gSettings.CsrActiveConfig      = 0xFFFF;
   gSettings.BooterConfig         = 0xFFFF;
   gSettings.QPI                  = 0xFFFF;
+  gSettings.XMPDetection         = -1;
 
   //gLanguage = english;
 }
@@ -1291,7 +1290,7 @@ FillinCustomEntry (
   }
 
   Prop = GetProperty (DictPointer, "Volume");
-  if (Prop != NULL && (Prop->type == kTagTypeString)) {
+  if ((Prop != NULL) && (Prop->type == kTagTypeString)) {
     if (Entry->Volume) {
       FreePool (Entry->Volume);
     }
@@ -1300,7 +1299,7 @@ FillinCustomEntry (
   }
 
   Prop = GetProperty (DictPointer, "Path");
-  if (Prop != NULL && (Prop->type == kTagTypeString)) {
+  if ((Prop != NULL) && (Prop->type == kTagTypeString)) {
     if (Entry->Path) {
       FreePool (Entry->Path);
     }
@@ -1309,7 +1308,7 @@ FillinCustomEntry (
   }
 
   Prop = GetProperty (DictPointer, "Settings");
-  if (Prop != NULL && (Prop->type == kTagTypeString)) {
+  if ((Prop != NULL) && (Prop->type == kTagTypeString)) {
     if (Entry->Settings) {
       FreePool (Entry->Settings);
     }
@@ -1320,7 +1319,7 @@ FillinCustomEntry (
   Entry->CommonSettings = GetPropertyBool (GetProperty (DictPointer, "CommonSettings"), FALSE);
 
   Prop = GetProperty (DictPointer, "AddArguments");
-  if (Prop != NULL && (Prop->type == kTagTypeString)) {
+  if ((Prop != NULL) && (Prop->type == kTagTypeString)) {
     if (Entry->Options != NULL) {
       CHAR16 *OldOptions = Entry->Options;
       Entry->Options = PoolPrint (L"%s %a", OldOptions, Prop->string);
@@ -1330,7 +1329,7 @@ FillinCustomEntry (
     }
   } else {
     Prop = GetProperty (DictPointer, "Arguments");
-    if (Prop != NULL && (Prop->type == kTagTypeString)) {
+    if ((Prop != NULL) && (Prop->type == kTagTypeString)) {
       if (Entry->Options != NULL) {
         FreePool (Entry->Options);
       }
@@ -1341,7 +1340,7 @@ FillinCustomEntry (
   }
 
   Prop = GetProperty (DictPointer, "Title");
-  if (Prop != NULL && (Prop->type == kTagTypeString)) {
+  if ((Prop != NULL) && (Prop->type == kTagTypeString)) {
     if (Entry->FullTitle != NULL) {
       FreePool (Entry->FullTitle);
       Entry->FullTitle = NULL;
@@ -1355,7 +1354,7 @@ FillinCustomEntry (
   }
 
   Prop = GetProperty (DictPointer, "FullTitle");
-  if (Prop != NULL && (Prop->type == kTagTypeString)) {
+  if ((Prop != NULL) && (Prop->type == kTagTypeString)) {
     if (Entry->FullTitle) {
       FreePool (Entry->FullTitle);
     }
@@ -1476,7 +1475,7 @@ FillinCustomEntry (
   }
 
   Prop = GetProperty (DictPointer, "Type");
-  if (Prop != NULL && (Prop->type == kTagTypeString)) {
+  if ((Prop != NULL) && (Prop->type == kTagTypeString)) {
     if (AsciiStriCmp (Prop->string, "OSX") == 0) {
       Entry->Type = OSTYPE_DARWIN;
     } else if (AsciiStriCmp (Prop->string, "OSXInstaller") == 0) {
@@ -2849,12 +2848,12 @@ GetEarlyUserSettings (
             gSettings.XMPDetection = (INT8)AsciiStrDecimalToUintn (Prop->string);
           }
         } else if (Prop->type == kTagTypeInteger) {
-          gSettings.XMPDetection   = (INT8)(UINTN)Prop->integer;//Prop->string;
+          gSettings.XMPDetection = (INT8)(UINTN)Prop->integer;//Prop->string;
         }
 
         // Check that the setting value is sane
         if ((gSettings.XMPDetection < -1) || (gSettings.XMPDetection > 2)) {
-          gSettings.XMPDetection   = -1;
+          gSettings.XMPDetection = -1;
         }
       }
     }
@@ -2863,14 +2862,24 @@ GetEarlyUserSettings (
 
     DictPointer = GetProperty (Dict, "SystemParameters");
     if (DictPointer != NULL) {
-      // Inject kexts
       gSettings.WithKexts = GetPropertyBool (GetProperty (DictPointer, "InjectKexts"), TRUE);
-
-      // No caches
       gSettings.NoCaches = GetPropertyBool (GetProperty (DictPointer, "NoCaches"), FALSE);
-
-      // No caches
       gSettings.FakeSMCOverrides = GetPropertyBool (GetProperty (DictPointer, "FakeSMCOverrides"), TRUE);
+
+      Prop = GetProperty (DictPointer, "MacAddress");
+      if ((Prop != NULL) && Prop->string) {
+        UINT8   *Ret = AllocateZeroPool (6 * sizeof (UINT8));
+
+        MsgLog ("MAC address: %a\n", Prop->string);
+
+        Ret = MacAddressToStr (Prop->string);
+        if (Ret != NULL) {
+          GetLegacyLanAddress = FALSE;
+          CopyMem (gLanMac[0], Ret, sizeof (gLanMac[0]));
+          CopyMem (gLanMac[1], Ret, sizeof (gLanMac[0]));
+          FreePool (Ret);
+        }
+      }
     }
 
     // KernelAndKextPatches
@@ -3126,7 +3135,7 @@ ParseBootSettings (
   DictPointer = GetProperty (CurrentDict, "Boot");
   if (DictPointer != NULL) {
     Prop = GetProperty (DictPointer, "Arguments");
-    //if (Prop != NULL && (Prop->type == kTagTypeString) && Prop->string != NULL) {
+    //if ((Prop != NULL) && (Prop->type == kTagTypeString) && (Prop->string != NULL)) {
     if (
       (Prop != NULL) &&
       (Prop->type == kTagTypeString) &&
@@ -3497,9 +3506,9 @@ ParseGraphicsSettings (
     Dict = GetProperty (DictPointer, "Inject");
     if (Dict != NULL) {
       if (GetPropertyBool (Dict, FALSE)) {
-        gSettings.InjectIntel      = TRUE;
-        gSettings.InjectATI        = TRUE;
-        gSettings.InjectNVidia     = TRUE;
+        gSettings.InjectIntel  = TRUE;
+        gSettings.InjectATI    = TRUE;
+        gSettings.InjectNVidia = TRUE;
       } else if (Dict->type == kTagTypeDict) {
         gSettings.InjectIntel = GetPropertyBool (GetProperty (Dict, "Intel"), FALSE);
         gSettings.InjectATI = GetPropertyBool (GetProperty (Dict, "ATI"), FALSE);

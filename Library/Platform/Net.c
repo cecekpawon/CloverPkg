@@ -16,13 +16,6 @@
 
 #define DBG(...) DebugLog (DEBUG_MAC_ADDRESS, __VA_ARGS__)
 
-extern UINTN                            nLanCards;     // number of LAN cards
-extern UINTN                            nLanPaths;     // number of UEFI LAN
-extern UINT16                           gLanVendor[4]; // their vendors
-extern UINT8                            *gLanMmio[4];   // their MMIO regions
-extern UINT8                            gLanMac[4][6]; // their MAC addresses
-extern BOOLEAN                          GetLegacyLanAddress;
-
 //Marvell Yukon
 #define B2_MAC_1                        0x0100    /* NA reg MAC Address 1 */
 #define B2_MAC_2                        0x0108    /* NA reg MAC Address 2 */
@@ -49,7 +42,7 @@ extern BOOLEAN                          GetLegacyLanAddress;
 VOID
 GetMacAddress () {
   EFI_STATUS                  Status;
-  EFI_MAC_ADDRESS             MacAddr;
+  //EFI_MAC_ADDRESS             MacAddr;
   UINTN                       HwAddressSize, Index, Index2, Offset, NumberOfHandles;
   EFI_HANDLE                  *HandleBuffer;
   EFI_DEVICE_PATH_PROTOCOL    *Node, *DevicePath;
@@ -58,6 +51,10 @@ GetMacAddress () {
   UINT16                      PreviousVendor = 0;
   UINT32                      Mac0, Mac4;
   UINT8                       *HwAddress;
+
+  //if (!GetLegacyLanAddress) {
+  //  return;
+  //}
 
   HwAddressSize = 6;
 
@@ -109,7 +106,7 @@ GetMacAddress () {
         //if (MacAddressNode->IfType == 0x01 || MacAddressNode->IfType == 0x00) {
         //  HwAddressSize = 6;
         //}
-        CopyMem (&MacAddr, &MacAddressNode->MacAddress.Addr[0], HwAddressSize);
+        //CopyMem (&MacAddr, &MacAddressNode->MacAddress.Addr[0], HwAddressSize);
         MsgLog ("MAC address of LAN #%d = ", nLanPaths);
         HwAddress = &MacAddressNode->MacAddress.Addr[0];
 
@@ -135,7 +132,7 @@ GetMacAddress () {
     FreePool (HandleBuffer);
   }
 
-  if (!Found && GetLegacyLanAddress) {
+  if (!Found/* && GetLegacyLanAddress*/) {
     ////
     //
     //  Legacy boot. Get MAC-address from hardwaredirectly
