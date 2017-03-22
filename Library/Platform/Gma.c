@@ -87,8 +87,8 @@ SetupGmaDevprop (
   pci_dt_t    *GMADev
 ) {
 #if 0
-  UINT32          DualLink = 0; //local variable must be inited
-  UINT8           BuiltIn =   0x00;
+  UINT32          DualLink = 0;
+  UINT8           BuiltIn = 0x00;
 #endif
 
   CHAR8           *Model;

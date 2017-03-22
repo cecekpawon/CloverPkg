@@ -1380,7 +1380,7 @@ FindCharDelimited (
 
 SVersion *
 EFIAPI
-VersionFromStr (
+StrToVersion (
   CHAR8   *Str
 ) {
   SVersion  *SVer = AllocateZeroPool (sizeof (SVersion));
@@ -1419,7 +1419,7 @@ VersionFromStr (
 
 UINT8 *
 EFIAPI
-MacAddressToStr (
+StrToMacAddress (
   IN CHAR8   *Str
 ) {
   UINTN   i = 0, y = 0, Count = AsciiStrLen (Str);

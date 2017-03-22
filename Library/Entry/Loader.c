@@ -683,7 +683,7 @@ CreateLoaderEntry (
 
   if (OSTYPE_IS_DARWIN_GLOB (OSType)) {
     GetDarwinVersion (OSType, Volume->RootDir, &OSVersion, &OSBuildVersion);
-    DarwinOSVersion = VersionFromStr (OSVersion);
+    DarwinOSVersion = StrToVersion (OSVersion);
 
     //if (!DARWIN_OS_VER_MINIMUM (DarwinOSVersion->VersionMajor, DarwinOSVersion->VersionMinor)) {
     if (OSX_LT (OSVersion, DARWIN_OS_VER_STR_MINIMUM)) {
@@ -1589,6 +1589,7 @@ AddCustomEntry (
           } else { // Duplicate entry
             BetterMatch = (i <= CustomIndex);
           }
+
           if (BetterMatch) {
             break;
           }

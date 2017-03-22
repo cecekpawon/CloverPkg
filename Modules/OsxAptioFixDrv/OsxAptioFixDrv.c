@@ -716,9 +716,9 @@ OsxAptioFixDrvEntrypoint (
   APTIOFIX_PROTOCOL       *AptioFix;
   EFI_HANDLE              AptioFixIHandle;
 
-//#ifndef EMBED_APTIOFIX
+#ifndef EMBED_APTIOFIX
   DBG ("Starting module: AptioFix (ver %d)\n", APTIOFIX_VER);
-//#endif
+#endif
 
   // install StartImage override
   // all other overrides will be started when boot.efi is started

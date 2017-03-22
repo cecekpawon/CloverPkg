@@ -682,9 +682,9 @@ CopyKernelAndKextPatches (
       (Src->KPATIConnectorsData != NULL) &&
       (Src->KPATIConnectorsPatch != NULL)
     ) {
-      Dst->KPATIConnectorsDataLen = Src->KPATIConnectorsDataLen;
-      Dst->KPATIConnectorsData    = AllocateCopyPool (Src->KPATIConnectorsDataLen, Src->KPATIConnectorsData);
-      Dst->KPATIConnectorsPatch   = AllocateCopyPool (Src->KPATIConnectorsDataLen, Src->KPATIConnectorsPatch);
+      Dst->KPATIConnectorsDataLen  = Src->KPATIConnectorsDataLen;
+      Dst->KPATIConnectorsData     = AllocateCopyPool (Src->KPATIConnectorsDataLen, Src->KPATIConnectorsData);
+      Dst->KPATIConnectorsPatch    = AllocateCopyPool (Src->KPATIConnectorsDataLen, Src->KPATIConnectorsPatch);
       Dst->KPATIConnectorsWildcard = Src->KPATIConnectorsWildcard;
     }
   }
@@ -1509,7 +1509,7 @@ FillinCustomEntry (
     if (OSTYPE_IS_DARWIN_RECOVERY (Entry->Type)) {
       Entry->Title = PoolPrint (L"Recovery");
     } else if (OSTYPE_IS_DARWIN_INSTALLER (Entry->Type)) {
-      Entry->Title = PoolPrint (L"Install OSX");
+      Entry->Title = PoolPrint (L"Installer");
     }
   }
 
@@ -2858,6 +2858,19 @@ GetEarlyUserSettings (
       }
     }
 
+    DictPointer = GetProperty (Dict, "RtVariables");
+    if (DictPointer != NULL) {
+      Prop = GetProperty (DictPointer, "ROM");
+      if (Prop != NULL) {
+        if (
+          (AsciiStriCmp (Prop->string, "UseMacAddr0") == 0) ||
+          (AsciiStriCmp (Prop->string, "UseMacAddr1") == 0)
+        ) {
+          GetLegacyLanAddress = TRUE;
+        }
+      }
+    }
+
     //*** SYSTEM ***
 
     DictPointer = GetProperty (Dict, "SystemParameters");
@@ -2866,18 +2879,20 @@ GetEarlyUserSettings (
       gSettings.NoCaches = GetPropertyBool (GetProperty (DictPointer, "NoCaches"), FALSE);
       gSettings.FakeSMCOverrides = GetPropertyBool (GetProperty (DictPointer, "FakeSMCOverrides"), TRUE);
 
-      Prop = GetProperty (DictPointer, "MacAddress");
-      if ((Prop != NULL) && Prop->string) {
-        UINT8   *Ret = AllocateZeroPool (6 * sizeof (UINT8));
+      if (GetLegacyLanAddress) {
+        Prop = GetProperty (DictPointer, "MacAddress");
+        if ((Prop != NULL) && Prop->string) {
+          UINT8   *Ret = AllocateZeroPool (6 * sizeof (UINT8));
 
-        MsgLog ("MAC address: %a\n", Prop->string);
+          MsgLog ("MAC address: %a\n", Prop->string);
 
-        Ret = MacAddressToStr (Prop->string);
-        if (Ret != NULL) {
-          GetLegacyLanAddress = FALSE;
-          CopyMem (gLanMac[0], Ret, sizeof (gLanMac[0]));
-          CopyMem (gLanMac[1], Ret, sizeof (gLanMac[0]));
-          FreePool (Ret);
+          Ret = StrToMacAddress (Prop->string);
+          if (Ret != NULL) {
+            GetLegacyLanAddress = FALSE;
+            CopyMem (gLanMac[0], Ret, ARRAY_SIZE (gLanMac[0]));
+            CopyMem (gLanMac[1], Ret, ARRAY_SIZE (gLanMac[0]));
+            FreePool (Ret);
+          }
         }
       }
     }
@@ -3102,19 +3117,6 @@ GetEarlyUserSettings (
           ) {
             gSettings.BlackList[gSettings.BlackListCount++] = PoolPrint (L"%a", Prop->string);
           }
-        }
-      }
-    }
-
-    DictPointer = GetProperty (Dict, "RtVariables");
-    if (DictPointer != NULL) {
-      Prop = GetProperty (DictPointer, "ROM");
-      if (Prop != NULL) {
-        if (
-          (AsciiStriCmp (Prop->string, "UseMacAddr0") == 0) ||
-          (AsciiStriCmp (Prop->string, "UseMacAddr1") == 0)
-        ) {
-          GetLegacyLanAddress = TRUE;
         }
       }
     }

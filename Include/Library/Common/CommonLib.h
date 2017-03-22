@@ -275,13 +275,13 @@ FindCharDelimited (
 
 SVersion *
 EFIAPI
-VersionFromStr (
+StrToVersion (
   CHAR8   *Str
 );
 
 UINT8 *
 EFIAPI
-MacAddressToStr (
+StrToMacAddress (
   IN CHAR8   *Str
 );
 
