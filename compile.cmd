@@ -7,6 +7,7 @@ rem # setup EDK2
 
 set CYGWIN_HOME=c:\cygwin
 set NASM_BIN=%CYGWIN_HOME%\bin\
+set NASM_PREFIX=%NASM_BIN%
 rem set PYTHON_HOME=c:\Python27
 rem set PYTHON_PATH=%PYTHON_HOME%
 rem set PYTHON_FREEZER_PATH=%PYTHON_PATH%\Scripts
