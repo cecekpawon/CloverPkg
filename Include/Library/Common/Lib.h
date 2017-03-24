@@ -255,7 +255,6 @@ typedef struct {
   //BOOLEAN     Proportional;
   BOOLEAN     NoEarlyProgress;
   INTN        PruneScrollRows;
-  INTN        IconFormat;
 
   INTN        row0TileSize;
   INTN        row1TileSize;
@@ -573,10 +572,20 @@ CheckError (
 VOID
 ReinitVolumes ();
 
+VOID
+DbgHeader (
+  CHAR8   *str
+);
+
 BOOLEAN
 BootArgsExists (
   IN CHAR16   *LoadOptions,
   IN CHAR16   *LoadOption
+);
+
+VOID
+SetOEMPath (
+  CHAR16  *ConfName
 );
 
 LOADER_ENTRY *
@@ -584,10 +593,53 @@ DuplicateLoaderEntry (
   IN LOADER_ENTRY   *Entry
 );
 
+INTN
+FindDefaultEntry ();
+
 VOID
 AddOptionEntries (
   REFIT_MENU_SCREEN   *SubScreen,
   LOADER_ENTRY        *SubEntry
+);
+
+EFI_STATUS
+LoadEFIImageList (
+  IN  EFI_DEVICE_PATH   **DevicePaths,
+  IN  CHAR16            *ImageTitle,
+  OUT UINTN             *ErrorInStep,
+  OUT EFI_HANDLE        *NewImageHandle
+);
+
+EFI_STATUS
+StartEFILoadedImage (
+  IN  EFI_HANDLE    ChildImageHandle,
+  IN  CHAR16        *LoadOptions,
+  IN  CHAR16        *LoadOptionsPrefix,
+  IN  CHAR16        *ImageTitle,
+  OUT UINTN         *ErrorInStep
+);
+
+EFI_STATUS
+LoadEFIImage (
+  IN  EFI_DEVICE_PATH   *DevicePath,
+  IN  CHAR16            *ImageTitle,
+  OUT UINTN             *ErrorInStep,
+  OUT EFI_HANDLE        *NewImageHandle
+);
+
+EFI_STATUS
+StartEFIImage (
+  IN  EFI_DEVICE_PATH   *DevicePath,
+  IN  CHAR16            *LoadOptions,
+  IN  CHAR16            *LoadOptionsPrefix,
+  IN  CHAR16            *ImageTitle,
+  OUT UINTN             *ErrorInStep,
+  OUT EFI_HANDLE        *NewImageHandle
+);
+
+VOID
+StartLoader (
+  IN LOADER_ENTRY   *Entry
 );
 
 UINT32

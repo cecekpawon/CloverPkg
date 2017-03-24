@@ -23,15 +23,45 @@ EFI_EVENT   mSimpleFileSystemChangeEvent = NULL;
 
 VOID
 EFIAPI
-SaveDarwinLog () {
-  DTEntry   PlatformEntry;
-  VOID      *PropValue;
-  UINT32    PropSize;
+ClosingEventAndLog (
+  IN LOADER_ENTRY   *Entry
+) {
+  EFI_STATUS    Status;
+  BOOLEAN       CloseBootServiceEvent = TRUE;
 
-  if (DTLookupEntry (NULL, "/efi/platform", &PlatformEntry) == kSuccess) {
-    if (DTGetProperty (PlatformEntry, DATAHUB_LOG, &PropValue, &PropSize) == kSuccess) {
-      CONSTRAIN_MAX (PropSize, (UINT32)GetMemLogLen ());
-      CopyMem (PropValue, GetMemLogBuffer (), PropSize);
+  //MsgLog ("Closing Event & Log\n");
+
+  if (OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType)) {
+    if (DoHibernateWake) {
+      // When doing hibernate wake, save to DataHub only up to initial size of log
+      SavePreBootLog = FALSE;
+    } else {
+      // delete boot-switch-vars if exists
+      /*Status = */gRT->SetVariable (
+                          L"boot-switch-vars", &gEfiAppleBootGuid,
+                          NVRAM_ATTR_RT_BS_NV,
+                          0, NULL
+                        );
+
+      CloseBootServiceEvent = FALSE;
+    }
+
+    if (OSTYPE_IS_DARWIN (Entry->LoaderType)) {
+      SetupBooterLog (/*!DoHibernateWake*/);
+    }
+  }
+
+  if (CloseBootServiceEvent) {
+    //gBS->CloseEvent (OnReadyToBootEvent);
+    gBS->CloseEvent (ExitBootServiceEvent);
+    //gBS->CloseEvent (mSimpleFileSystemChangeEvent);
+    //gBS->CloseEvent (mVirtualAddressChangeEvent);
+  }
+
+  if (SavePreBootLog) {
+    Status = SaveBooterLog (SelfRootDir, PREBOOT_LOG);
+    if (EFI_ERROR (Status)) {
+      /*Status = */SaveBooterLog (NULL, PREBOOT_LOG);
     }
   }
 }

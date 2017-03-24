@@ -832,7 +832,7 @@ CreateLoaderEntry (
       goto Finish;
     }
 
-    ImageTmp = LoadOSIcon (OSIconName, &OSIconNameHover, L"unknown", 128, FALSE, TRUE);
+    ImageTmp = LoadOSIcon (OSIconName, &OSIconNameHover, L"unknown", FALSE, TRUE);
     Entry->me.Image = Image ? Image : ImageTmp;
 
     // DBG ("HideBadges=%d Volume=%s ", GlobalConfig.HideBadges, Volume->VolName);
@@ -845,8 +845,8 @@ CreateLoaderEntry (
         if (OSIconNameHover != NULL) {
           // DBG (" Show badge as OSImage.");
           HoverImage = AllocateZeroPool (sizeof (OSIconNameHover));
-          HoverImage = GetIconsExt (PoolPrint (L"icons\\%s", OSIconNameHover), L"icns");
-          Entry->me.ImageHover = LoadHoverIcon (HoverImage, 128);
+          HoverImage = PoolPrint (L"icons\\%s.png", OSIconNameHover);
+          Entry->me.ImageHover = LoadHoverIcon (HoverImage);
           FreePool (HoverImage);
         }
       }
@@ -1150,7 +1150,7 @@ ScanLoader () {
           if (aFound && (aFound == aIndex)) {
             AddLoaderEntry (
               AndroidEntryData[Index].Path, L"", AndroidEntryData[Index].Title, Volume,
-              LoadOSIcon (AndroidEntryData[Index].Icon, NULL, L"unknown", 128, FALSE, TRUE),
+              LoadOSIcon (AndroidEntryData[Index].Icon, NULL, L"unknown", FALSE, TRUE),
               OSTYPE_LIN, OSFLAG_NODEFAULTARGS
             );
           }
@@ -1167,7 +1167,7 @@ ScanLoader () {
       for (Index = 0; Index < LinuxEntryDataCount; ++Index) {
         AddLoaderEntry (
           LinuxEntryData[Index].Path, L"", LinuxEntryData[Index].Title, Volume,
-          LoadOSIcon (LinuxEntryData[Index].Icon, NULL, L"unknown", 128, FALSE, TRUE),
+          LoadOSIcon (LinuxEntryData[Index].Icon, NULL, L"unknown", FALSE, TRUE),
           OSTYPE_LIN, OSFLAG_NODEFAULTARGS
         );
       }
@@ -1403,24 +1403,24 @@ AddCustomEntry (
                           FindExtension (Custom->ImagePath)
                         );
 
-      Image = LoadImage (Volume->RootDir, Custom->ImagePath, TRUE);
+      Image = LoadImage (Volume->RootDir, Custom->ImagePath);
       if (Image == NULL) {
-        Image = LoadImage (ThemeDir, Custom->ImagePath, TRUE);
+        Image = LoadImage (ThemeDir, Custom->ImagePath);
         if (Image == NULL) {
-          Image = LoadImage (SelfDir, Custom->ImagePath, TRUE);
+          Image = LoadImage (SelfDir, Custom->ImagePath);
           if (Image == NULL) {
-            Image = LoadImage (SelfRootDir, Custom->ImagePath, TRUE);
+            Image = LoadImage (SelfRootDir, Custom->ImagePath);
             if (Image != NULL) {
-              ImageHover = LoadImage (SelfRootDir, ImageHoverPath, TRUE);
+              ImageHover = LoadImage (SelfRootDir, ImageHoverPath);
             }
           } else {
-            ImageHover = LoadImage (SelfDir, ImageHoverPath, TRUE);
+            ImageHover = LoadImage (SelfDir, ImageHoverPath);
           }
         } else {
-          ImageHover = LoadImage (ThemeDir, ImageHoverPath, TRUE);
+          ImageHover = LoadImage (ThemeDir, ImageHoverPath);
         }
       } else {
-        ImageHover = LoadImage (Volume->RootDir, ImageHoverPath, TRUE);
+        ImageHover = LoadImage (Volume->RootDir, ImageHoverPath);
       }
       FreePool (ImageHoverPath);
     } else {
@@ -1430,13 +1430,13 @@ AddCustomEntry (
     // Change to custom drive image if needed
     DriveImage = Custom->DriveImage;
     if ((DriveImage == NULL) && Custom->DriveImagePath) {
-      DriveImage = LoadImage (Volume->RootDir, Custom->DriveImagePath, TRUE);
+      DriveImage = LoadImage (Volume->RootDir, Custom->DriveImagePath);
       if (DriveImage == NULL) {
-        DriveImage = LoadImage (ThemeDir, Custom->DriveImagePath, TRUE);
+        DriveImage = LoadImage (ThemeDir, Custom->DriveImagePath);
         if (DriveImage == NULL) {
-          DriveImage = LoadImage (SelfDir, Custom->DriveImagePath, TRUE);
+          DriveImage = LoadImage (SelfDir, Custom->DriveImagePath);
           if (DriveImage == NULL) {
-            DriveImage = LoadImage (SelfRootDir, Custom->DriveImagePath, TRUE);
+            DriveImage = LoadImage (SelfRootDir, Custom->DriveImagePath);
             if (DriveImage == NULL) {
               DriveImage = LoadBuiltinIcon (Custom->DriveImagePath);
             }
@@ -1777,6 +1777,71 @@ DuplicateLoaderEntry (
   return DuplicateEntry;
 }
 
+INTN
+FindDefaultEntry () {
+  INTN                Index = -1;
+  REFIT_VOLUME        *Volume;
+  LOADER_ENTRY        *Entry;
+  BOOLEAN             SearchForLoader;
+
+  //DBG ("FindDefaultEntry ...\n");
+  DbgHeader ("FindDefaultEntry");
+
+  Index = FindStartupDiskVolume (&MainMenu);
+
+  if (Index >= 0) {
+    DBG ("Boot redirected to Entry %d. '%s'\n", Index, MainMenu.Entries[Index]->Title);
+    return Index;
+  }
+
+  //
+  // if not found, then try DefaultVolume from config.plist
+  // if not null or empty, search volume that matches gSettings.DefaultVolume
+  //
+  if (gSettings.DefaultVolume != NULL) {
+    // if not null or empty, also search for loader that matches gSettings.DefaultLoader
+    SearchForLoader = ((gSettings.DefaultLoader != NULL) && (gSettings.DefaultLoader[0] != L'\0'));
+
+    for (Index = 0; ((Index < (INTN)MainMenu.EntryCount) && (MainMenu.Entries[Index]->Row == 0)); Index++) {
+      Entry = (LOADER_ENTRY *)MainMenu.Entries[Index];
+      if (!Entry->Volume) {
+        continue;
+      }
+
+      Volume = Entry->Volume;
+      if (
+        (
+          (Volume->VolName == NULL) ||
+          (StrCmp (Volume->VolName, gSettings.DefaultVolume) != 0)
+        ) &&
+        (StrStr (Volume->DevicePathString, gSettings.DefaultVolume) == NULL)
+      ) {
+        continue;
+      }
+
+      if (
+        SearchForLoader &&
+        (
+          (Entry->me.Tag != TAG_LOADER) ||
+          (StriStr (Entry->LoaderPath, gSettings.DefaultLoader) == NULL)
+        )
+      ) {
+        continue;
+      }
+
+      DBG (" - found entry %d. '%s', Volume '%s', DevicePath '%s'\n",
+        Index, Entry->me.Title, Volume->VolName, Entry->DevicePathString);
+
+      return Index;
+    }
+
+  }
+
+  DBG ("Default boot entry not found\n");
+
+  return -1;
+}
+
 CHAR16 *
 ToggleLoadOptions (
   IN  BOOLEAN   State,
@@ -1886,4 +1951,559 @@ RemoveLoadOption (
   }
 
   return NewLoadOptions;
+}
+
+//
+// Null ConOut OutputString () implementation - for blocking
+// text output from boot.efi when booting in graphics mode
+//
+
+EFI_STATUS
+EFIAPI
+NullConOutOutputString (
+  IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL  *This,
+  IN CHAR16                           *String
+) {
+  return EFI_SUCCESS;
+}
+
+
+EFI_STATUS
+LoadEFIImageList (
+  IN  EFI_DEVICE_PATH   **DevicePaths,
+  IN  CHAR16            *ImageTitle,
+  OUT UINTN             *ErrorInStep,
+  OUT EFI_HANDLE        *NewImageHandle
+) {
+  EFI_STATUS      Status, ReturnStatus;
+  EFI_HANDLE      ChildImageHandle = 0;
+  UINTN           DevicePathIndex;
+  CHAR16          ErrorInfo[AVALUE_MAX_SIZE];
+
+  DBG ("Loading %s", ImageTitle);
+
+  if (ErrorInStep != NULL) {
+    *ErrorInStep = 0;
+  }
+
+  if (NewImageHandle != NULL) {
+    *NewImageHandle = NULL;
+  }
+
+  // load the image into memory
+  ReturnStatus = Status = EFI_NOT_FOUND;  // in case the list is empty
+
+  for (DevicePathIndex = 0; (DevicePaths[DevicePathIndex] != NULL); DevicePathIndex++) {
+    ReturnStatus = Status = gBS->LoadImage (
+                                    FALSE,
+                                    SelfImageHandle,
+                                    DevicePaths[DevicePathIndex],
+                                    NULL,
+                                    0,
+                                    &ChildImageHandle
+                                  );
+
+    DBG (" ... %r", Status);
+
+    if (ReturnStatus != EFI_NOT_FOUND) {
+      break;
+    }
+  }
+
+  UnicodeSPrint (ErrorInfo, ARRAY_SIZE (ErrorInfo), L"while loading %s", ImageTitle);
+
+  if (CheckError (Status, ErrorInfo)) {
+    if (ErrorInStep != NULL) {
+      *ErrorInStep = 1;
+    }
+
+    goto bailout;
+  }
+
+  if (!EFI_ERROR (ReturnStatus)) { //why unload driver?!
+    if (NewImageHandle != NULL) {
+      *NewImageHandle = ChildImageHandle;
+    }
+
+    goto bailout;
+  }
+
+  // unload the image, we don't care if it works or not...
+  Status = gBS->UnloadImage (ChildImageHandle);
+
+bailout:
+
+  DBG ("\n");
+
+  return ReturnStatus;
+}
+
+EFI_STATUS
+StartEFILoadedImage (
+  IN  EFI_HANDLE    ChildImageHandle,
+  IN  CHAR16        *LoadOptions,
+  IN  CHAR16        *LoadOptionsPrefix,
+  IN  CHAR16        *ImageTitle,
+  OUT UINTN         *ErrorInStep
+) {
+  EFI_STATUS          Status, ReturnStatus;
+  EFI_LOADED_IMAGE    *ChildLoadedImage;
+  CHAR16              ErrorInfo[AVALUE_MAX_SIZE], *FullLoadOptions = NULL;
+
+  //DBG ("Starting %s\n", ImageTitle);
+
+  if (ErrorInStep != NULL) {
+    *ErrorInStep = 0;
+  }
+
+  ReturnStatus = Status = EFI_NOT_FOUND;  // in case no image handle was specified
+
+  if (ChildImageHandle == NULL) {
+    if (ErrorInStep != NULL) {
+      *ErrorInStep = 1;
+    }
+
+    goto bailout;
+  }
+
+  // set load options
+  if (LoadOptions != NULL) {
+    ReturnStatus = Status = gBS->HandleProtocol (
+                                    ChildImageHandle,
+                                    &gEfiLoadedImageProtocolGuid,
+                                    (VOID **)&ChildLoadedImage
+                                  );
+
+    if (CheckError (Status, L"while getting a LoadedImageProtocol handle")) {
+      if (ErrorInStep != NULL) {
+        *ErrorInStep = 2;
+      }
+
+      goto bailout_unload;
+    }
+
+    if (LoadOptionsPrefix != NULL) {
+      FullLoadOptions = PoolPrint (L"%s %s ", LoadOptionsPrefix, LoadOptions);
+      // NOTE: That last space is also added by the EFI shell and seems to be significant
+      //  when passing options to Apple's boot.efi...
+      LoadOptions = FullLoadOptions;
+    }
+
+    // NOTE: We also include the terminating null in the length for safety.
+    ChildLoadedImage->LoadOptions = (VOID *)LoadOptions;
+    ChildLoadedImage->LoadOptionsSize = (UINT32)StrSize (LoadOptions);
+
+    //DBG ("Using load options '%s'\n", LoadOptions);
+  }
+
+  //DBG ("Image loaded at: %p\n", ChildLoadedImage->ImageBase);
+
+  // close open file handles
+  UninitRefitLib ();
+
+  // turn control over to the image
+  //
+  // Before calling the image, enable the Watchdog Timer for
+  // the 5 Minute period - Slice - NO! For slow driver and slow disk we need more
+  //
+  //gBS->SetWatchdogTimer (5 * 60, 0x0000, 0x00, NULL);
+
+  ReturnStatus = Status = gBS->StartImage (ChildImageHandle, NULL, NULL);
+
+  //
+  // Clear the Watchdog Timer after the image returns
+  //
+  //gBS->SetWatchdogTimer (0x0000, 0x0000, 0x0000, NULL);
+
+  // control returns here when the child image calls Exit ()
+  if (ImageTitle) {
+    UnicodeSPrint (ErrorInfo, ARRAY_SIZE (ErrorInfo), L"returned from %s", ImageTitle);
+  }
+
+  if (CheckError (Status, ErrorInfo)) {
+    if (ErrorInStep != NULL) {
+      *ErrorInStep = 3;
+    }
+  }
+
+  if (!EFI_ERROR (ReturnStatus)) { //why unload driver?!
+    //gBS->CloseEvent (ExitBootServiceEvent);
+    goto bailout;
+  }
+
+  // re-open file handles
+  //ReinitRefitLib();
+
+bailout_unload:
+
+  // unload the image, we don't care if it works or not...
+  Status = gBS->UnloadImage (ChildImageHandle);
+
+  if (FullLoadOptions != NULL) {
+    FreePool (FullLoadOptions);
+  }
+
+bailout:
+
+  return ReturnStatus;
+}
+
+EFI_STATUS
+LoadEFIImage (
+  IN  EFI_DEVICE_PATH   *DevicePath,
+  IN  CHAR16            *ImageTitle,
+  OUT UINTN             *ErrorInStep,
+  OUT EFI_HANDLE        *NewImageHandle
+) {
+  EFI_DEVICE_PATH   *DevicePaths[2];
+
+  // Load the image now
+  DevicePaths[0] = DevicePath;
+  DevicePaths[1] = NULL;
+
+  return LoadEFIImageList (DevicePaths, ImageTitle, ErrorInStep, NewImageHandle);
+}
+
+EFI_STATUS
+StartEFIImage (
+  IN  EFI_DEVICE_PATH   *DevicePath,
+  IN  CHAR16            *LoadOptions,
+  IN  CHAR16            *LoadOptionsPrefix,
+  IN  CHAR16            *ImageTitle,
+  OUT UINTN             *ErrorInStep,
+  OUT EFI_HANDLE        *NewImageHandle
+) {
+  EFI_STATUS    Status;
+  EFI_HANDLE    ChildImageHandle = NULL;
+
+  Status = LoadEFIImage (DevicePath, ImageTitle, ErrorInStep, &ChildImageHandle);
+
+  if (!EFI_ERROR (Status)) {
+    Status = StartEFILoadedImage (
+                ChildImageHandle,
+                LoadOptions,
+                LoadOptionsPrefix,
+                ImageTitle,
+                ErrorInStep
+              );
+  }
+
+  if (NewImageHandle != NULL) {
+    *NewImageHandle = ChildImageHandle;
+  }
+
+  return Status;
+}
+
+VOID
+StartLoader (
+  IN LOADER_ENTRY   *Entry
+) {
+  EFI_STATUS          Status;
+  EFI_TEXT_STRING     ConOutOutputString = 0;
+  EFI_HANDLE          ImageHandle = NULL;
+  EFI_LOADED_IMAGE    *LoadedImage;
+  TagPtr              Dict = NULL;
+  BOOLEAN             UseGraphicsMode = TRUE;
+
+  DbgHeader ("StartLoader");
+
+  if (Entry->Settings) {
+    DBG ("Entry->Settings: %s\n", Entry->Settings);
+    Status = LoadUserSettings (SelfRootDir, Entry->Settings, &Dict);
+
+    if (!EFI_ERROR (Status)) {
+      DBG (" - found custom settings for this entry: %s\n", Entry->Settings);
+      gBootChanged = TRUE;
+
+      Status = GetUserSettings (SelfRootDir, Dict);
+      if (EFI_ERROR (Status)) {
+        DBG (" - ... but: %r\n", Status);
+      } else {
+        if ((gSettings.CpuFreqMHz > 100) && (gSettings.CpuFreqMHz < 20000)) {
+          gCPUStructure.MaxSpeed = gSettings.CpuFreqMHz;
+        }
+      }
+    } else {
+      DBG (" - [!] LoadUserSettings failed: %r\n", Status);
+    }
+  }
+
+  DBG ("Finally: Bus=%ldkHz CPU=%ldMHz\n",
+    DivU64x32 (gCPUStructure.FSBFrequency, kilo),
+    gCPUStructure.MaxSpeed
+  );
+
+  // Unified
+  Entry->Flags = (UINT16)(gSettings.OptionsBits | gSettings.FlagsBits);
+  gSettings.OptionsBits = gSettings.FlagsBits = Entry->Flags;
+
+  //DumpKernelAndKextPatches (Entry->KernelAndKextPatches);
+
+  // Load image into memory (will be started later)
+  Status = LoadEFIImage (
+              Entry->DevicePath,
+              Basename (Entry->LoaderPath),
+              NULL,
+              &ImageHandle
+            );
+
+  if (EFI_ERROR (Status)) {
+    DBG ("Image is not loaded, status=%r\n", Status);
+    return; // no reason to continue if loading image failed
+  }
+
+#if BOOT_GRAY
+  ClearScreen (&GrayBackgroundPixel);
+#else
+  ClearScreen (&BlackBackgroundPixel);
+#endif
+
+  if (OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType)) {
+    CHAR8   *BooterOSVersion = NULL;
+
+    gSettings.BooterPatchesAllowed = OSFLAG_ISSET (Entry->Flags, OSFLAG_ALLOW_BOOTER_PATCHES);
+    gSettings.KextPatchesAllowed = OSFLAG_ISSET (Entry->Flags, OSFLAG_ALLOW_KEXT_PATCHES);
+    gSettings.KernelPatchesAllowed = OSFLAG_ISSET (Entry->Flags, OSFLAG_ALLOW_KERNEL_PATCHES);
+
+    Status = gBS->HandleProtocol (
+                    ImageHandle,
+                    &gEfiLoadedImageProtocolGuid,
+                    (VOID **)&LoadedImage
+                  );
+
+    if (!EFI_ERROR (Status)) {
+      BOOT_EFI_HEADER   *BootEfiHeader = ParseBooterHeader (LoadedImage->ImageBase);
+
+      if (BootEfiHeader) {
+        // version in boot.efi appears as "Mac OS X 10.?"
+        /*
+          Start OSName Mac OS X 10.12 End OSName Start OSVendor Apple Inc. End
+        */
+        BooterOSVersion = SearchString ((CHAR8 *)LoadedImage->ImageBase + BootEfiHeader->TextOffset, BootEfiHeader->TextSize, "Mac OS X ", 9);
+
+        if (BooterOSVersion != NULL) { // string was found
+          BooterOSVersion += 9; // advance to version location
+
+          if (
+            AsciiStrnCmp (BooterOSVersion, "10.", 3) /* &&
+            AsciiStrnCmp (BooterOSVersion, "11.", 3) &&
+            AsciiStrnCmp (BooterOSVersion, "12.", 3) */
+          ) {
+            DBG ("NO BooterOSVersion\n");
+            FreePool (BooterOSVersion);
+            BooterOSVersion = NULL;
+          } else { // known version was found in image
+            MsgLog ("Found BooterOSVersion: %a\n", BooterOSVersion);
+
+            if (OSX_LT (BooterOSVersion, DARWIN_OS_VER_STR_MINIMUM)) {
+              MsgLog ("Unsupported version\n");
+              return;
+            }
+
+            PatchBooter (
+              Entry,
+              LoadedImage,
+              BootEfiHeader,
+              BooterOSVersion
+            );
+          }
+        }
+      }
+    }
+
+    MsgLog ("OS Version:");
+
+    // Correct OSVersion if it was not found
+    // This should happen only for 10.7-10.9 OSTYPE_OSX_INSTALLER
+    // For these cases, take OSVersion from loaded boot.efi image in memory
+    if (/* OSTYPE_IS_DARWIN_INSTALLER (Entry->LoaderType) || */ !Entry->OSVersion && BooterOSVersion) {
+      UINTN   Len = AsciiStrLen (BooterOSVersion);
+
+      Entry->OSVersion = AllocateCopyPool ((Len + 1), BooterOSVersion);
+      Entry->OSVersion[Len] = '\0';
+
+      //if (Entry->OSBuildVersion != NULL) {
+      //  FreePool (Entry->OSBuildVersion);
+      //  Entry->OSBuildVersion = NULL;
+      //}
+    }
+
+    if (BooterOSVersion != NULL) {
+      FreePool (BooterOSVersion);
+    }
+
+    if (Entry->OSBuildVersion != NULL) {
+      MsgLog (" %a (%a)\n", Entry->OSVersion, Entry->OSBuildVersion);
+    } else {
+      MsgLog (" %a\n", Entry->OSVersion);
+    }
+
+    if (OSX_GT (Entry->OSVersion, DARWIN_OS_VER_STR_ELCAPITAN)) {
+    //if (
+    //  (Entry->OSVersionMajor > DARWIN_OS_VER_MAJOR_10) ||
+    //  (
+    //    (Entry->OSVersionMajor == DARWIN_OS_VER_MAJOR_10) &&
+    //    (Entry->OSVersionMinor > DARWIN_OS_VER_MINOR_ELCAPITAN)
+    //  )
+    //) {
+      if (OSFLAG_ISSET (Entry->Flags, OSFLAG_NOSIP)) {
+        gSettings.CsrActiveConfig = (UINT32)DEF_NOSIP_CSR_ACTIVE_CONFIG;
+        gSettings.BooterConfig = (UINT16)DEF_NOSIP_BOOTER_CONFIG;
+      }
+
+      ReadCsrCfg ();
+    }
+
+    FilterKextPatches (Entry);
+
+    FilterKernelPatches (Entry);
+
+    // Set boot argument for kernel if no caches, this should force kernel loading
+    if (
+      OSFLAG_ISSET (Entry->Flags, OSFLAG_NOCACHES) &&
+      !BootArgsExists (Entry->LoadOptions, L"Kernel=")
+    ) {
+      CHAR16  *TempOptions,
+              *KernelLocation = OSX_LE (Entry->OSVersion, DARWIN_OS_VER_STR_MAVERICKS)
+                                  ? L"\"Kernel=/mach_kernel\""
+                                  // used for 10.10, 10.11, and new version.
+                                  : L"\"Kernel=/System/Library/Kernels/kernel\"";
+
+      TempOptions = AddLoadOption (Entry->LoadOptions, KernelLocation);
+      FreePool (Entry->LoadOptions);
+      Entry->LoadOptions = TempOptions;
+    }
+
+    // first patchACPI and find PCIROOT and RTC
+    // but before ACPI patch we need smbios patch
+    PatchSmbios ();
+
+    PatchACPI (Entry->Volume, Entry->OSVersion);
+
+    // If KPDebug is true boot in verbose mode to see the debug messages
+    // Also: -x | -s
+    if (
+      OSFLAG_ISSET (Entry->Flags, OPT_SINGLE_USER) ||
+      OSFLAG_ISSET (Entry->Flags, OPT_SAFE) ||
+      (
+        (Entry->KernelAndKextPatches != NULL) &&
+        (
+          Entry->KernelAndKextPatches->KPDebug ||
+          gSettings.DebugKP ||
+          OSFLAG_ISSET (Entry->Flags, OSFLAG_DBGPATCHES)
+        )
+      )
+    ) {
+      Entry->Flags = OSFLAG_SET (Entry->Flags, OPT_VERBOSE);
+    }
+
+    Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_USEGRAPHICS);
+    UseGraphicsMode = OSFLAG_ISUNSET (Entry->Flags, OPT_VERBOSE);
+    if (!UseGraphicsMode) {
+      Entry->Flags = OSFLAG_UNSET (Entry->Flags, OSFLAG_USEGRAPHICS);
+    }
+
+    //DbgHeader ("RestSetupOSX");
+
+    GetEdidDiscovered ();
+
+    SetDevices (Entry);
+
+    SetFSInjection (Entry);
+    //PauseForKey (L"SetFSInjection");
+
+    SetVariablesForOSX ();
+
+    EventsInitialize (Entry);
+
+    FinalizeSmbios ();
+
+    SetupDataForOSX ();
+
+    SetCPUProperties ();
+
+    if (OSFLAG_ISSET (Entry->Flags, OSFLAG_HIBERNATED)) {
+      DoHibernateWake = PrepareHibernation (Entry->Volume);
+    }
+
+    if (
+      gDriversFlags.AptioFixLoaded &&
+      !DoHibernateWake &&
+      !BootArgsExists (Entry->LoadOptions, L"slide=")
+    ) {
+      // Add slide=0 argument for ML+ if not present
+      CHAR16  *TempOptions = AddLoadOption (Entry->LoadOptions, L"slide=0");
+
+      FreePool (Entry->LoadOptions);
+      Entry->LoadOptions = TempOptions;
+    }
+
+    //DBG ("LoadKexts\n");
+    // LoadKexts writes to DataHub, where large writes can prevent hibernate wake
+    // (happens when several kexts present in Clover's kexts dir)
+    if (!DoHibernateWake) {
+      LoadKexts (Entry);
+    }
+
+    if (!Entry->LoadOptions) {
+      CHAR16  *TempOptions = AddLoadOption (Entry->LoadOptions, L" ");
+
+      FreePool (Entry->LoadOptions);
+      Entry->LoadOptions = TempOptions;
+    }
+  } else if (OSTYPE_IS_WINDOWS_GLOB (Entry->LoaderType)) {
+    //DBG ("Closing events for Windows\n");
+
+    PatchACPIOS (L"Windows", FALSE);
+    //PauseForKey (L"continue");
+  } else if (OSTYPE_IS_LINUX_GLOB (Entry->LoaderType)) {
+    //DBG ("Closing events for Linux\n");
+
+    //FinalizeSmbios ();
+    PatchACPIOS (L"Linux", FALSE);
+    //PauseForKey (L"continue");
+  }
+
+  if (gSettings.LastBootedVolume) {
+    SetStartupDiskVolume (Entry->Volume, OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType) ? NULL : Entry->LoaderPath);
+  } else if (gSettings.DefaultVolume != NULL) {
+    // DefaultVolume specified in Config.plist or in Boot Option
+    // we'll remove OSX Startup Disk vars which may be present if it is used
+    // to reboot into another volume
+    RemoveStartupDiskVolume ();
+  }
+
+  // re-Unified
+  gSettings.OptionsBits = Entry->Flags;
+  DecodeOptions (Entry);
+
+  MsgLog ("LoadOptions: %s\n", Entry->LoadOptions);
+
+  ClosingEventAndLog (Entry);
+
+  //DBG ("BeginExternalScreen\n");
+  BeginExternalScreen (UseGraphicsMode, L"Booting OS");
+
+  if (UseGraphicsMode && !OSTYPE_IS_WINDOWS_GLOB (Entry->LoaderType)) {
+    // save orig OutputString and replace it with null implementation
+    ConOutOutputString = gST->ConOut->OutputString;
+    gST->ConOut->OutputString = NullConOutOutputString;
+  }
+
+  //DBG ("StartEFILoadedImage\n");
+  StartEFILoadedImage (
+    ImageHandle,
+    Entry->LoadOptions,
+    Basename (Entry->LoaderPath),
+    Basename (Entry->LoaderPath),
+    NULL
+  );
+
+  if (UseGraphicsMode) {
+    // return back orig OutputString
+    gST->ConOut->OutputString = ConOutOutputString;
+  }
+
+  FinishExternalScreen ();
 }

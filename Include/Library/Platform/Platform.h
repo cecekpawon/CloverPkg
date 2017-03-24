@@ -52,11 +52,9 @@ Headers collection for procedures
 
 #include <IndustryStandard/AppleSmBios.h>
 #include <IndustryStandard/Atapi.h>
-#include <IndustryStandard/Bmp.h>
 #include <IndustryStandard/Pci.h>
 
 #include <Library/Common/Lib.h>
-#include <Library/Common/Boot.h>
 
 #include <Protocol/FSInjectProtocol.h>
 #include <Protocol/MsgLog.h>
@@ -105,9 +103,6 @@ Headers collection for procedures
 #define OSX_LE(OSVersion, CurrVer) (OSVersion && CurrVer && (AsciiOSVersionToUint64 (OSVersion) <= AsciiOSVersionToUint64 (CurrVer)))
 #define OSX_GT(OSVersion, CurrVer) (OSVersion && CurrVer && (AsciiOSVersionToUint64 (OSVersion) > AsciiOSVersionToUint64 (CurrVer)))
 #define OSX_GE(OSVersion, CurrVer) (OSVersion && CurrVer && (AsciiOSVersionToUint64 (OSVersion) >= AsciiOSVersionToUint64 (CurrVer)))
-
-#define DEC_PNG_BUILTIN(ico) DecodePNG (ico, ARRAY_SIZE (ico), 0, TRUE)
-
 
 
 #define MAX_NUM_DEVICES  64
@@ -166,11 +161,19 @@ Headers collection for procedures
 #define DSDT_PATCHED_NAME         L"DSDT-%x.aml"
 #define DSDT_DUMP_LOG             L"DumpLog.txt"
 
+//#ifndef DEBUG_ALL
+//#define MsgLog(...)  DebugLog (1, __VA_ARGS__)
+//#else
+//#define MsgLog(...)  DebugLog (DEBUG_ALL, __VA_ARGS__)
+//#endif
+
 #ifndef DEBUG_ALL
-#define MsgLog(...)  DebugLog (1, __VA_ARGS__)
+#define MsgLog(...)  MemLog (TRUE, 1, __VA_ARGS__)
 #else
-#define MsgLog(...)  DebugLog (DEBUG_ALL, __VA_ARGS__)
+#define MsgLog(...)  MemLog (TRUE, DEBUG_ALL, __VA_ARGS__)
 #endif
+
+#define DebugLog(Mode, ...) do { if ((Mode > 0) && (Mode < 3)) MemLog (TRUE, Mode, __VA_ARGS__); } while (0)
 
 #ifndef CLOVER_VERSION
   #define CLOVER_VERSION "2.3k"
@@ -1209,7 +1212,6 @@ extern ACPI_PATCHED_AML                 *ACPIPatchedAML;
 extern S_FILES                          *aConfigs;
 extern S_FILES                          *aThemes;
 
-// Hold theme fixed IconFormat / extension
 extern UINTN                            ACPIDropTablesNum;
 extern UINTN                            ACPIPatchedAMLNum;
 
@@ -1248,6 +1250,11 @@ VOID AddCustomEntries ();
 // tool
 VOID ScanTool ();
 VOID AddCustomTool ();
+
+VOID
+StartTool (
+  IN LOADER_ENTRY   *Entry
+);
 
 //-----------------------------------
 
@@ -1289,20 +1296,20 @@ SaveBooterLog (
   IN  CHAR16            *FileName
 );
 
-VOID
-EFIAPI
-DebugLog (
-  IN        INTN    DebugMode,
-  IN CONST  CHAR8   *FormatString,
-  ...
-);
+//VOID
+//EFIAPI
+//DebugLog (
+//  IN        INTN    DebugMode,
+//  IN CONST  CHAR8   *FormatString,
+//  ...
+//);
 
 /** Prints series of bytes. */
-VOID
-PrintBytes (
-  IN  VOID    *Bytes,
-  IN  UINTN   Number
-);
+//VOID
+//PrintBytes (
+//  IN  VOID    *Bytes,
+//  IN  UINTN   Number
+//);
 
 VOID
 SetDMISettingsForModel (
@@ -1419,6 +1426,9 @@ SetFSInjection (
   IN LOADER_ENTRY   *Entry
 );
 
+VOID
+ReadCsrCfg ();
+
 CHAR16 *
 GetOtherKextsDir (
   BOOLEAN   Slave
@@ -1492,6 +1502,9 @@ ResetNvram ();
 VOID
 DoResetNvram ();
 
+VOID
+SetVariablesFromNvram ();
+
 EFI_STATUS
 GetEfiBootDeviceFromNvram ();
 
@@ -1528,6 +1541,10 @@ LogDataHub (
   IN  VOID      *Data,
   IN  UINT32    DataSize
 );
+
+VOID
+EFIAPI
+SaveDarwinLog ();
 
 EFI_STATUS
 EFIAPI
@@ -1629,6 +1646,12 @@ GetAcpiTablesList ();
 
 EFI_STATUS
 EventsInitialize (
+  IN LOADER_ENTRY   *Entry
+);
+
+VOID
+EFIAPI
+ClosingEventAndLog (
   IN LOADER_ENTRY   *Entry
 );
 
@@ -1849,5 +1872,8 @@ hehe ();
 
 VOID
 hehe2 ();
+
+VOID
+LoadDrivers ();
 
 #endif

@@ -2711,7 +2711,7 @@ DrawMainMenuEntry (
   }
 
   if (!MainImage) {
-    MainImage = LoadIcon (ThemeDir, GetIconsExt (L"icons\\os_mac", L"icns"), Scale << 3);
+    MainImage = LoadImage (ThemeDir, L"icons\\os_mac.png");
 
     if (!MainImage) {
       MainImage = DummyImage (Scale << 3);

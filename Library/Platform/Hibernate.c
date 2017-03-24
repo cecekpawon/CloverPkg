@@ -478,7 +478,7 @@ PrepareHibernation (
   //DBG (" boot-image device path:\n");
   Size = GetDevicePathSize (BootImageDevPath);
   VarData = (UINT8 *)BootImageDevPath;
-  PrintBytes (VarData, Size);
+  //PrintBytes (VarData, Size);
   DBG ("boot-image before: %s\n", FileDevicePathToStr (BootImageDevPath));
   //VarData[6] = 8;
 

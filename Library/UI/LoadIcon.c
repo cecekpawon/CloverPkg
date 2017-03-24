@@ -55,60 +55,60 @@
 //
 
 BUILTIN_ICON BuiltinIconTable[BUILTIN_ICON_COUNT] = {
-  { NULL, L"icons\\func_about",         L"png",  32 },
-  { NULL, L"icons\\func_options",       L"png",  32 },
-  //{ NULL, L"icons\\func_clover",        L"png",  32 },
-  { NULL, L"icons\\func_reset",         L"png",  32 },
-  //{ NULL, L"icons\\func_shutdown",      L"png",  32 },
-  { NULL, L"icons\\func_exit",          L"png",  32 },
-  { NULL, L"icons\\func_help",          L"png",  32 },
-  { NULL, L"icons\\tool_shell",         L"png",  32 },
-  //{ NULL, L"icons\\pointer",            L"png",  32 },
+  { NULL, L"icons\\func_about" },
+  { NULL, L"icons\\func_options" },
+  //{ NULL, L"icons\\func_clover" },
+  { NULL, L"icons\\func_reset" },
+  //{ NULL, L"icons\\func_shutdown" },
+  { NULL, L"icons\\func_exit" },
+  { NULL, L"icons\\func_help" },
+  { NULL, L"icons\\tool_shell" },
+  //{ NULL, L"icons\\pointer" },
 
-  { NULL, L"icons\\vol_internal",       L"icns", 128 },
-  { NULL, L"icons\\vol_external",       L"icns", 128 },
-  { NULL, L"icons\\vol_optical",        L"icns", 128 },
-  { NULL, L"icons\\vol_firewire",       L"icns", 128 },
-  { NULL, L"icons\\vol_clover",         L"icns", 128 },
-  { NULL, L"icons\\vol_internal_hfs",   L"icns", 128 },
-  { NULL, L"icons\\vol_internal_ntfs",  L"icns", 128 },
-  { NULL, L"icons\\vol_internal_ext3",  L"icns", 128 },
-  { NULL, L"icons\\vol_recovery",       L"icns", 128 },
-  { NULL, L"logo",                      L"png",  128 },
+  { NULL, L"icons\\vol_internal" },
+  { NULL, L"icons\\vol_external" },
+  { NULL, L"icons\\vol_optical" },
+  { NULL, L"icons\\vol_firewire" },
+  { NULL, L"icons\\vol_clover" },
+  { NULL, L"icons\\vol_internal_hfs" },
+  { NULL, L"icons\\vol_internal_ntfs" },
+  { NULL, L"icons\\vol_internal_ext3" },
+  { NULL, L"icons\\vol_recovery" },
+  { NULL, L"logo" },
 
-  { NULL, L"selection_small",           L"png",  64  },
-  { NULL, L"selection_big",             L"png",  144 }
+  { NULL, L"selection_small" },
+  { NULL, L"selection_big" }
 };
 
 UI_IMG ScrollbarImg[] = {
-  { NULL, L"scrollbar\\bar_fill",       L"png" },
-  { NULL, L"scrollbar\\bar_start",      L"png" },
-  { NULL, L"scrollbar\\bar_end",        L"png" },
-  { NULL, L"scrollbar\\scroll_fill",    L"png" },
-  { NULL, L"scrollbar\\scroll_start",   L"png" },
-  { NULL, L"scrollbar\\scroll_end",     L"png" },
-  { NULL, L"scrollbar\\up_button",      L"png" },
-  { NULL, L"scrollbar\\down_button",    L"png" },
+  { NULL, L"scrollbar\\bar_fill" },
+  { NULL, L"scrollbar\\bar_start" },
+  { NULL, L"scrollbar\\bar_end" },
+  { NULL, L"scrollbar\\scroll_fill" },
+  { NULL, L"scrollbar\\scroll_start" },
+  { NULL, L"scrollbar\\scroll_end" },
+  { NULL, L"scrollbar\\up_button" },
+  { NULL, L"scrollbar\\down_button" },
 };
 
 CONST INTN    ScrollbarImgCount = ARRAY_SIZE (ScrollbarImg);
 
 UI_IMG ButtonsImg[] = {
-  { NULL, L"radio_button",              L"png" },
-  { NULL, L"radio_button_selected",     L"png" },
-  { NULL, L"checkbox",                  L"png" },
-  { NULL, L"checkbox_checked",          L"png" },
+  { NULL, L"radio_button" },
+  { NULL, L"radio_button_selected" },
+  { NULL, L"checkbox" },
+  { NULL, L"checkbox_checked" },
 };
 
 CONST INTN    ButtonsImgCount = ARRAY_SIZE (ButtonsImg);
 
 UI_IMG SelectionImg[] = {
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL },
+  { NULL, NULL },
+  { NULL, NULL },
+  { NULL, NULL },
+  { NULL, NULL },
+  { NULL, NULL },
+  { NULL, NULL },
 };
 
 CONST INTN      SelectionImgCount = ARRAY_SIZE (SelectionImg);
@@ -120,7 +120,7 @@ CONST INTN      SelectionImgCount = ARRAY_SIZE (SelectionImg);
                 UpButton, DownButton, ScrollbarBackground, Scrollbar,
                 ScrollbarOldPointerPlace, ScrollbarNewPointerPlace;
 
-#define DEC_BUILTIN_ICON(id, ico) BuiltinIconTable[id].Image = DecodePNG (&ico[0], ARRAY_SIZE (ico), 0, TRUE)
+#define DEC_BUILTIN_ICON(id, ico) BuiltinIconTable[id].Image = DecodePNG (&ico[0], ARRAY_SIZE (ico))
 
 STATIC CHAR16 *BuiltinIconNames[] = {
   L"Internal",
@@ -151,7 +151,7 @@ LoadIcns (
   }
 
   if (BaseDir) {
-    return LoadIcon (BaseDir, FileName, PixelSize);
+    return LoadImage (BaseDir, FileName);
   }
 
   return DummyImage (PixelSize);
@@ -196,27 +196,13 @@ DummyImage (
 EG_IMAGE *
 LoadIcnsFallback (
   IN EFI_FILE_HANDLE  BaseDir,
-  IN CHAR16           *FileName,
-  IN UINTN            PixelSize
+  IN CHAR16           *FileName
 ) {
   if (GlobalConfig.TextOnly) {
     return NULL;
   }
 
-  return LoadIcon (BaseDir, FileName, PixelSize);
-}
-
-CHAR16 *
-GetIconsExt (
-  IN CHAR16   *Icon,
-  IN CHAR16   *Def
-) {
-  return PoolPrint (L"%s.%s",
-            Icon,
-            (GlobalConfig.IconFormat != ICON_FORMAT_DEF)
-              ? ((GlobalConfig.IconFormat == ICON_FORMAT_ICNS) ? L"icns" : L"png")
-              : Def
-          );
+  return LoadImage (BaseDir, FileName);
 }
 
 //
@@ -257,7 +243,7 @@ InitUISelection () {
         }
 
         if (ThemeDir && (SelectionImg[i].Path != NULL)) {
-          SelectionImg[i].Image = LoadImage (ThemeDir, SelectionImg[i].Path, TRUE); //FALSE
+          SelectionImg[i].Image = LoadImage (ThemeDir, SelectionImg[i].Path);
         }
 
         if (SelectionImg[i].Image == NULL) {
@@ -294,7 +280,7 @@ InitUISelection () {
 
   for (i = 0; i < ButtonsImgCount; ++i) {
     if (ThemeDir && !IsEmbeddedTheme ()) {
-      ButtonsImg[i].Image = LoadImage (ThemeDir, GetIconsExt (ButtonsImg[i].Path, ButtonsImg[i].Format), TRUE);
+      ButtonsImg[i].Image = LoadImage (ThemeDir, PoolPrint (L"%s.png", ButtonsImg[i].Path));
     }
 
     if (!ButtonsImg[i].Image) {
@@ -386,7 +372,7 @@ InitUIBar () {
 
   for (i = 0; i < ScrollbarImgCount; ++i) {
     if (ThemeDir && !ScrollbarImg[i].Image) {
-      ScrollbarImg[i].Image = LoadImage (ThemeDir, GetIconsExt (ScrollbarImg[i].Path, ScrollbarImg[i].Format), TRUE);
+      ScrollbarImg[i].Image = LoadImage (ThemeDir, PoolPrint (L"%s.png", ScrollbarImg[i].Path));
     }
 
     if (!ScrollbarImg[i].Image) {
@@ -586,8 +572,8 @@ GetSmallHover (
   } else {
     CHAR16    *Path = AllocateZeroPool (AVALUE_MAX_SIZE);
 
-    Path = GetIconsExt (PoolPrint (L"%s_hover", BuiltinIconTable[Id].Path), BuiltinIconTable[Id].Format);
-    return LoadIcon (ThemeDir, Path, BuiltinIconTable[Id].PixelSize);
+    Path = PoolPrint (L"%s_hover.png", BuiltinIconTable[Id].Path);
+    return LoadImage (ThemeDir, Path);
   }
 }
 
@@ -595,7 +581,6 @@ EG_IMAGE *
 BuiltinIcon (
   IN UINTN    Id
 ) {
-  INTN      Size = 0;
   EG_IMAGE  *TextBuffer = NULL;
   CHAR16    *p, *Text;
 
@@ -611,19 +596,17 @@ BuiltinIcon (
     goto GET_EMBEDDED;
   }
 
-  Size = BuiltinIconTable[Id].PixelSize;
-
   if (ThemeDir) {
-    CHAR16    *Path = GetIconsExt (BuiltinIconTable[Id].Path, BuiltinIconTable[Id].Format);
+    CHAR16    *Path = PoolPrint (L"%s.png", BuiltinIconTable[Id].Path);
 
-    BuiltinIconTable[Id].Image = LoadIcnsFallback (ThemeDir, Path, Size);
+    BuiltinIconTable[Id].Image = LoadIcnsFallback (ThemeDir, Path);
 
     if (!BuiltinIconTable[Id].Image) {
       DBG ("        [!] Icon %d (%s) not found (path: %s)\n", Id, Path, ThemePath);
       if (Id >= BUILTIN_ICON_VOL_INTERNAL) {
         FreePool (Path);
-        Path = GetIconsExt (BuiltinIconTable[BUILTIN_ICON_VOL_INTERNAL].Path, BuiltinIconTable[BUILTIN_ICON_VOL_INTERNAL].Format);
-        BuiltinIconTable[Id].Image = LoadIcnsFallback (ThemeDir, Path, Size);
+        Path = PoolPrint (L"%s.png", BuiltinIconTable[BUILTIN_ICON_VOL_INTERNAL].Path);
+        BuiltinIconTable[Id].Image = LoadIcnsFallback (ThemeDir, Path);
       }
     }
 
@@ -681,6 +664,8 @@ GET_EMBEDDED:
   }
 
   if (!BuiltinIconTable[Id].Image) {
+    INTN  Size = (Id  < BUILTIN_ICON_VOL_INTERNAL) ? TOOL_DIMENSION : VOL_DIMENSION;
+
     TextBuffer = CreateImage (Size, Size, TRUE);
     FillImage (TextBuffer, &TransparentBackgroundPixel);
     p = StrStr (BuiltinIconTable[Id].Path, L"_"); p++;
@@ -787,7 +772,6 @@ LoadOSIcon (
   IN  CHAR16    *OSIconName OPTIONAL,
   OUT CHAR16    **OSIconNameHover,
   IN  CHAR16    *FallbackIconName,
-  IN  UINTN     PixelSize,
   IN  BOOLEAN   BootLogo,
   IN  BOOLEAN   WantDummy
 ) {
@@ -826,10 +810,10 @@ LoadOSIcon (
     CopyMem (CutoutName, OSIconName + StartIndex, (Index - StartIndex) * sizeof (CHAR16));
     CutoutName[Index - StartIndex] = 0;
     UnicodeSPrint (TmpName, 64, L"%s_%s", BootLogo ? L"boot" : L"os", CutoutName);
-    UnicodeSPrint (FileName, ARRAY_SIZE (FileName), GetIconsExt (PoolPrint (L"icons\\%s", TmpName), L"icns"));
+    UnicodeSPrint (FileName, ARRAY_SIZE (FileName), PoolPrint (L"icons\\%s.png", TmpName));
 
     // try to load it
-    Image = LoadIcon (ThemeDir, FileName, PixelSize);
+    Image = LoadImage (ThemeDir, FileName);
     if (Image != NULL) {
       *OSIconNameHover = AllocateZeroPool (64);
       UnicodeSPrint (*OSIconNameHover, 64, L"%s_hover", TmpName);
@@ -839,9 +823,9 @@ LoadOSIcon (
 
   // try the fallback name
   UnicodeSPrint (TmpName, ARRAY_SIZE (TmpName), L"%s_%s", BootLogo ? L"boot" : L"os", FallbackIconName);
-  UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s", GetIconsExt (PoolPrint (L"icons\\%s", TmpName), L"icns"));
+  UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s", PoolPrint (L"icons\\%s.png", TmpName));
 
-  Image = LoadIcon (ThemeDir, FileName, PixelSize);
+  Image = LoadImage (ThemeDir, FileName);
 
   if (Image != NULL) {
     *OSIconNameHover = AllocateZeroPool (64);
@@ -851,230 +835,23 @@ LoadOSIcon (
 
   // try the fallback name with os_ instead of boot_
   if (BootLogo) {
-    Image = LoadOSIcon (NULL, NULL, FallbackIconName, PixelSize, FALSE, WantDummy);
+    Image = LoadOSIcon (NULL, NULL, FallbackIconName, FALSE, WantDummy);
 
     if (Image != NULL) {
       return Image;
     }
   }
 
-  return WantDummy ? DummyImage (PixelSize) : NULL;
+  return WantDummy ? DummyImage (VOL_DIMENSION) : NULL;
 }
 
 EG_IMAGE *
 LoadHoverIcon (
-  IN CHAR16   *OSIconName,
-  IN UINTN    PixelSize
+  IN CHAR16   *OSIconName
 ) {
   if (GlobalConfig.TextOnly || IsEmbeddedTheme ()) {
     return NULL;
   }
 
-  return LoadIcon (ThemeDir, OSIconName, PixelSize);
-}
-
-//////////////////////////////////////////////////
-
-//
-// Decompress .icns RLE data
-//
-
-VOID
-DecompressIcnsRLE (
-  IN OUT  UINT8   **CompData,
-  IN OUT  UINTN   *CompLen,
-  IN      UINT8   *PixelData,
-  IN      UINTN   PixelCount
-) {
-  UINT8   *cp, *cp_end, *pp, value;
-  UINTN   pp_left, len, i;
-
-  // setup variables
-  cp = *CompData;
-  cp_end = cp + *CompLen;
-  pp = PixelData;
-  pp_left = PixelCount;
-
-  // decode
-  while (cp + 1 < cp_end && pp_left > 0) {
-    len = *cp++;
-
-    if (len & 0x80) { // compressed data: repeat next byte
-      len -= 125;
-
-      if (len > pp_left) {
-        break;
-      }
-
-      value = *cp++;
-
-      for (i = 0; i < len; i++) {
-        *pp = value;
-        pp += 4;
-      }
-    } else {  // uncompressed data: copy bytes
-      len++;
-      if ((len > pp_left )|| ((cp + len) > cp_end)) {
-        break;
-      }
-
-      for (i = 0; i < len; i++) {
-        *pp = *cp++;
-        pp += 4;
-      }
-    }
-
-    pp_left -= len;
-  }
-
-  if (pp_left > 0) {
-    DBG (" DecompressIcnsRLE: still need %d bytes of pixel data\n", pp_left);
-  }
-
-  // record what's left of the compressed data stream
-  *CompData = cp;
-  *CompLen = (UINTN)(cp_end - cp);
-}
-
-//
-// Load Apple .icns icons
-//
-
-EG_IMAGE *
-DecodeICNS (
-  IN UINT8      *FileData,
-  IN UINTN      FileDataLength,
-  IN UINTN      IconSize,
-  IN BOOLEAN    WantAlpha
-) {
-  EG_IMAGE    *NewImage;
-  EG_PIXEL    *DestPtr;
-  UINT8       *Ptr, *BufferEnd, *DataPtr, *MaskPtr, *CompData, *SrcPtr;
-  UINT32      BlockLen, DataLen, MaskLen;
-  UINTN       FetchPixelSize, PixelCount, i, CompLen;
-
-  if (
-    (FileDataLength < 8) || (FileData == NULL) ||
-    (FileData[0] != 'i') || (FileData[1] != 'c') || (FileData[2] != 'n') || (FileData[3] != 's')
-  ) {
-    // not an icns file...
-    DBG ("not icns\n");
-    return NULL;
-  }
-
-  FetchPixelSize = IconSize;
-
-  for (;;) {
-    DataPtr = NULL;
-    DataLen = 0;
-    MaskPtr = NULL;
-    MaskLen = 0;
-
-    Ptr = FileData + 8;
-    BufferEnd = FileData + FileDataLength;
-
-    // iterate over tagged blocks in the file
-    while (Ptr + 8 <= BufferEnd) {
-      BlockLen = ((UINT32)Ptr[4] << 24) + ((UINT32)Ptr[5] << 16) + ((UINT32)Ptr[6] << 8) + (UINT32)Ptr[7];
-
-      if (Ptr + BlockLen > BufferEnd) {   // block continues beyond end of file
-        break;
-      }
-
-      // extract the appropriate blocks for each pixel size
-      if (FetchPixelSize == 128) {
-        if (((Ptr[0] == 'i') && (Ptr[1] == 't')) && (Ptr[2] == '3') && (Ptr[3] == '2')) {
-          if ((Ptr[8] == 0) && (Ptr[9] == 0) && (Ptr[10] == 0) && (Ptr[11] == 0)) {
-            DataPtr = Ptr + 12;
-            DataLen = BlockLen - 12;
-          }
-        } else if ((Ptr[0] == 't') && (Ptr[1] == '8') && (Ptr[2] == 'm') && (Ptr[3] == 'k')) {
-          MaskPtr = Ptr + 8;
-          MaskLen = BlockLen - 8;
-        }
-      } else if (FetchPixelSize == 48) {
-        if ((Ptr[0] == 'i') && (Ptr[1] == 'h') && (Ptr[2] == '3') && (Ptr[3] == '2')) {
-          DataPtr = Ptr + 8;
-          DataLen = BlockLen - 8;
-        } else if ((Ptr[0] == 'h') && (Ptr[1] == '8') && (Ptr[2] == 'm') && (Ptr[3] == 'k')) {
-          MaskPtr = Ptr + 8;
-          MaskLen = BlockLen - 8;
-        }
-      } else if (FetchPixelSize == 32) {
-          if ((Ptr[0] == 'i') && (Ptr[1] == 'l') && (Ptr[2] == '3') && (Ptr[3] == '2')) {
-            DataPtr = Ptr + 8;
-            DataLen = BlockLen - 8;
-          } else if ((Ptr[0] == 'l') && (Ptr[1] == '8') && (Ptr[2] == 'm') && (Ptr[3] == 'k')) {
-            MaskPtr = Ptr + 8;
-            MaskLen = BlockLen - 8;
-          }
-      } else if (FetchPixelSize == 16) {
-        if ((Ptr[0] == 'i') && (Ptr[1] == 's') && (Ptr[2] == '3') && (Ptr[3] == '2')) {
-          DataPtr = Ptr + 8;
-          DataLen = BlockLen - 8;
-        } else if ((Ptr[0] == 's') && (Ptr[1] == '8') && (Ptr[2] == 'm') && (Ptr[3] == 'k')) {
-          MaskPtr = Ptr + 8;
-          MaskLen = BlockLen - 8;
-        }
-      }
-
-      Ptr += BlockLen;
-    }
-
-    //TODO - take different larger size if not found
-    // FUTURE: try to load a different size and scale it later
-    if ((DataPtr == NULL) && (FetchPixelSize == 128)) {
-      FetchPixelSize = 32;
-      continue;
-    }
-
-    break;
-  }
-
-  if (DataPtr == NULL) {
-    DBG ("not found such IconSize\n");
-    return NULL;   // no image found
-  }
-
-  // allocate image structure and buffer
-  NewImage = CreateImage (FetchPixelSize, FetchPixelSize, WantAlpha);
-
-  if (NewImage == NULL) {
-    return NULL;
-  }
-
-  PixelCount = FetchPixelSize * FetchPixelSize;
-
-  if (DataLen < PixelCount * 3) {
-    // pixel data is compressed, RGB planar
-    CompData = DataPtr;
-    CompLen  = DataLen;
-    DecompressIcnsRLE (&CompData, &CompLen, PLPTR (NewImage, r), PixelCount);
-    DecompressIcnsRLE (&CompData, &CompLen, PLPTR (NewImage, g), PixelCount);
-    DecompressIcnsRLE (&CompData, &CompLen, PLPTR (NewImage, b), PixelCount);
-    // possible assertion: CompLen == 0
-    if (CompLen > 0) {
-      DBG (" LoadICNSIcon: %d bytes of compressed data left\n", CompLen);
-    }
-  } else {
-    // pixel data is uncompressed, RGB interleaved
-    SrcPtr  = DataPtr;
-    DestPtr = NewImage->PixelData;
-    for (i = 0; i < PixelCount; i++, DestPtr++) {
-      DestPtr->r = *SrcPtr++;
-      DestPtr->g = *SrcPtr++;
-      DestPtr->b = *SrcPtr++;
-    }
-  }
-
-  // add/set alpha plane
-  if (MaskPtr != NULL && MaskLen >= PixelCount && WantAlpha) {
-    InsertPlane (MaskPtr, PLPTR (NewImage, a), PixelCount);
-  } else {
-    SetPlane (PLPTR (NewImage, a), WantAlpha ? 255 : 0, PixelCount);
-  }
-
-  // FUTURE: scale to originally requested size if we had to load another size
-
-  return NewImage;
+  return LoadImage (ThemeDir, OSIconName);
 }

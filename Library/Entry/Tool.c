@@ -222,24 +222,24 @@ AddCustomTool () {
                             FindExtension (Custom->ImagePath)
                           );
 
-        Image = LoadImage (Volume->RootDir, Custom->ImagePath, TRUE);
+        Image = LoadImage (Volume->RootDir, Custom->ImagePath);
         if (Image == NULL) {
-          Image = LoadImage (ThemeDir, Custom->ImagePath, TRUE);
+          Image = LoadImage (ThemeDir, Custom->ImagePath);
           if (Image == NULL) {
-            Image = LoadImage (SelfDir, Custom->ImagePath, TRUE);
+            Image = LoadImage (SelfDir, Custom->ImagePath);
             if (Image == NULL) {
-              Image = LoadImage (SelfRootDir, Custom->ImagePath, TRUE);
+              Image = LoadImage (SelfRootDir, Custom->ImagePath);
               if (Image != NULL) {
-                ImageHover = LoadIcon (SelfRootDir, ImageHoverPath, 32);
+                ImageHover = LoadImage (SelfRootDir, ImageHoverPath);
               }
             } else {
-              ImageHover = LoadIcon (SelfDir, ImageHoverPath, 32);
+              ImageHover = LoadImage (SelfDir, ImageHoverPath);
             }
           } else {
-            ImageHover = LoadIcon (ThemeDir, ImageHoverPath, 32);
+            ImageHover = LoadImage (ThemeDir, ImageHoverPath);
           }
         } else {
-          ImageHover = LoadIcon (Volume->RootDir, ImageHoverPath, 32);
+          ImageHover = LoadImage (Volume->RootDir, ImageHoverPath);
         }
         FreePool (ImageHoverPath);
       } else {
@@ -268,4 +268,33 @@ AddCustomTool () {
     }
   }
   //DBG ("Custom tool end\n");
+}
+
+VOID
+StartTool (
+  IN LOADER_ENTRY   *Entry
+) {
+  DBG ("StartTool: %s\n", Entry->LoaderPath);
+  //SaveBooterLog (SelfRootDir, PREBOOT_LOG);
+  ClearScreen (&BlackBackgroundPixel);
+  // assumes "Start <title>" as assigned below
+  //BeginExternalScreen (OSFLAG_ISSET (Entry->Flags, OSFLAG_USEGRAPHICS), Entry->me.Title + 6);
+
+  //
+  // Entry->Flags never set, title never used
+  //
+
+  BeginExternalScreen (TRUE, NULL);
+
+  StartEFIImage (
+    Entry->DevicePath,
+    Entry->ToolOptions,
+    Basename (Entry->LoaderPath),
+    Basename (Entry->LoaderPath),
+    NULL,
+    NULL
+  );
+
+  FinishExternalScreen ();
+  //ReinitRefitLib ();
 }

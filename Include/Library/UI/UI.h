@@ -163,12 +163,8 @@
 #define X_IS_RIGHT                        (0)
 #define X_IS_CENTER                       (1)
 #define BADGE_DIMENSION                   (64)
-
-// IconFormat
-#define ICON_FORMAT_DEF                   (0)
-#define ICON_FORMAT_ICNS                  (1)
-#define ICON_FORMAT_PNG                   (2)
-//#define ICON_FORMAT_BMP                 (3)
+#define VOL_DIMENSION                     (128)
+#define TOOL_DIMENSION                    (32)
 
 #define LAYOUT_TEXT_WIDTH                 (500)
 #define LAYOUT_TOTAL_HEIGHT               (376)
@@ -257,8 +253,7 @@ typedef struct {
 typedef struct {
   EG_IMAGE    *Image;
   CHAR16      *Path;
-  CHAR16      *Format;
-  UINTN       PixelSize; // for .icns
+  //UINTN       PixelSize; // for .icns
 } BUILTIN_ICON;
 
 typedef enum {
@@ -307,7 +302,6 @@ typedef struct {
 typedef struct UI_IMG {
   EG_IMAGE    *Image;
   CHAR16      *Path;
-  CHAR16      *Format;
 } UI_IMG;
 
 typedef enum {
@@ -478,7 +472,7 @@ VOID
 AboutRefit ();
 
 //
-// icns loader module
+// icons loader module
 //
 
 EG_IMAGE *
@@ -486,30 +480,14 @@ LoadOSIcon (
   IN  CHAR16    *OSIconName OPTIONAL,
   OUT CHAR16    **OSIconNameHover,
   IN  CHAR16    *FallbackIconName,
-  IN  UINTN     PixelSize,
   IN  BOOLEAN   BootLogo,
   IN  BOOLEAN   WantDummy
 );
 
 EG_IMAGE *
 LoadHoverIcon (
-  IN CHAR16   *OSIconName,
-  IN UINTN    PixelSize
+  IN CHAR16   *OSIconName
 );
-
-//EG_IMAGE *
-//LoadIcns (
-//  IN EFI_FILE_HANDLE    BaseDir,
-//  IN CHAR16             *FileName,
-//  IN UINTN              PixelSize
-//);
-
-//EG_IMAGE *
-//LoadIcnsFallback (
-//  IN EFI_FILE_HANDLE  BaseDir,
-//  IN CHAR16           *FileName,
-//  IN UINTN            PixelSize
-//);
 
 EG_IMAGE *
 DummyImage (
@@ -524,12 +502,6 @@ BuiltinIcon (
 EG_IMAGE *
 GetSmallHover (
   IN UINTN    Id
-);
-
-CHAR16 *
-GetIconsExt (
-  IN CHAR16   *Icon,
-  IN CHAR16   *Def
 );
 
 EG_IMAGE *
@@ -672,22 +644,14 @@ ScaleImage (
 EG_IMAGE *
 LoadImage (
   IN EFI_FILE_HANDLE    BaseDir,
-  IN CHAR16             *FileName,
-  IN BOOLEAN            WantAlpha
+  IN CHAR16             *FileName
 );
 
-EG_IMAGE *
-LoadIcon (
-  IN EFI_FILE_HANDLE  BaseDir,
-  IN CHAR16           *FileName,
-  IN UINTN            IconSize
-);
-
-EG_IMAGE *
-PrepareEmbeddedImage (
-  IN EG_EMBEDDED_IMAGE    *EmbeddedImage,
-  IN BOOLEAN              WantAlpha
-);
+//EG_IMAGE *
+//PrepareEmbeddedImage (
+//  IN EG_EMBEDDED_IMAGE    *EmbeddedImage,
+//  IN BOOLEAN              WantAlpha
+//);
 
 VOID
 FillImage (
@@ -753,14 +717,6 @@ RawComposeOnFlat (
 );
 
 VOID
-DecompressIcnsRLE (
-  IN OUT  UINT8   **CompData,
-  IN OUT  UINTN   *CompLen,
-  IN      UINT8   *PixelData,
-  IN      UINTN   PixelCount
-);
-
-VOID
 InsertPlane (
   IN UINT8    *SrcDataPtr,
   IN UINT8    *DestPlanePtr,
@@ -806,40 +762,15 @@ RenderText (
 // Image Format
 
 EG_IMAGE *
-DecodeBMP (
-  IN UINT8    *FileData,
-  IN UINTN    FileDataLength,
-  IN UINTN    IconSize,
-  IN BOOLEAN  WantAlpha
-);
-
-EG_IMAGE *
-DecodeICNS (
-  IN UINT8      *FileData,
-  IN UINTN      FileDataLength,
-  IN UINTN      IconSize,
-  IN BOOLEAN    WantAlpha
-);
-
-EG_IMAGE *
 DecodePNG (
   IN UINT8      *FileData,
-  IN UINTN      FileDataLength,
-  IN UINTN      IconSize,
-  IN BOOLEAN    WantAlpha
-);
-
-VOID
-EncodeBMP (
-  IN  EG_IMAGE  *Image,
-  OUT UINT8     **FileDataReturn,
-  OUT UINTN     *FileDataLengthReturn
+  IN UINTN      FileDataLength
 );
 
 #define PLPTR(imagevar, colorname) ((UINT8 *) &((imagevar)->PixelData->colorname))
-#define DEC_PNG_BUILTIN(ico) DecodePNG (ico, ARRAY_SIZE (ico), 0, TRUE)
+#define DEC_PNG_BUILTIN(ico) DecodePNG (ico, ARRAY_SIZE (ico))
 
-typedef EG_IMAGE * (*EG_DECODE_FUNC)(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha);
+//typedef EG_IMAGE * (*EG_DECODE_FUNC)(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha);
 
 
 extern UI_IMG               ButtonsImg[];

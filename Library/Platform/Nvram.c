@@ -923,3 +923,107 @@ RemoveStartupDiskVolume () {
   //DBG ("  * BootCampHD = %r\n", Status);
   //DBG ("Removed efi-boot-device-data variable: %r\n", Status);
 }
+
+VOID
+SetVariablesFromNvram () {
+  CHAR8   *tmpString, *arg = NULL, *lBootArgs;
+  UINTN   iNVRAM = 0, iBootArgs = 0, index = 0, index2, len, i;
+
+  DbgHeader ("SetVariablesFromNvram");
+
+  iBootArgs = AsciiStrLen (gSettings.BootArgs);
+
+  if (iBootArgs >= AVALUE_MAX_SIZE) {
+    return;
+  }
+
+  lBootArgs = AsciiStrToLower (gSettings.BootArgs);
+
+  tmpString = GetNvramVariable (L"boot-args", &gEfiAppleBootGuid, NULL, &iNVRAM);
+  iNVRAM = AsciiStrLen (tmpString);
+
+  if (!tmpString || !iNVRAM) {
+    return;
+  }
+
+  DBG ("Setting BootArgs: %a\n", gSettings.BootArgs);
+  DBG ("Found boot-args in NVRAM: %a, size=%d\n", tmpString, iNVRAM);
+
+  CONSTRAIN_MAX (iNVRAM, AVALUE_MAX_SIZE - 1 - iBootArgs);
+
+  arg = AllocatePool (iNVRAM);
+
+  while ((index < iNVRAM) && (tmpString[index] != 0x0)) {
+    ZeroMem (arg, iNVRAM + 1);
+    index2 = 0;
+
+    if (tmpString[index] != 0x22) {
+      //DBG ("search space index=%d\n", index);
+      while ((index < iNVRAM) && (tmpString[index] != 0x20) && (tmpString[index] != 0x0)) {
+        arg[index2++] = tmpString[index++];
+      }
+
+      DBG ("...found arg:%a\n", arg);
+    } else {
+      index++;
+      //DBG ("search quote index=%d\n", index);
+      while ((index < iNVRAM) && (tmpString[index] != 0x22) && (tmpString[index] != 0x0)) {
+        arg[index2++] = tmpString[index++];
+      }
+
+      if (tmpString[index] == 0x22) {
+        index++;
+      }
+
+      DBG ("...found quoted arg:\n", arg);
+    }
+
+    while (tmpString[index] == 0x20) {
+      index++;
+    }
+
+    // For the moment only arg -s must be ignored
+    //if (AsciiStrCmp (arg, "-s") == 0) {
+    //  DBG ("...ignoring arg:%a\n", arg);
+    //  continue;
+    //}
+
+    if (AsciiStrStr (lBootArgs, AsciiStrToLower (arg)) == NULL) {
+      len = AsciiStrLen (gSettings.BootArgs);
+      CONSTRAIN_MAX (len, AVALUE_MAX_SIZE - 1);
+
+      if ((len + index2) >= AVALUE_MAX_SIZE) {
+        DBG ("boot-args overflow... bytes=%d+%d\n", len, index2);
+        break;
+      }
+
+      gSettings.BootArgs[len++] = 0x20;
+
+      for (i = 0; i < index2; i++) {
+        gSettings.BootArgs[len++] = arg[i];
+      }
+
+      DBG (" - added\n");
+    } else {
+      DBG (" - skip\n");
+    }
+  }
+
+  DBG ("Final BootArgs: %a\n", gSettings.BootArgs);
+
+  FreePool (tmpString);
+  FreePool (arg);
+  FreePool (lBootArgs);
+}
+
+VOID
+DoResetNvram () {
+  ClearScreen (&BlueBackgroundPixel);
+  gBS->Stall (1 * 1000000);
+  ClearScreen (&GreenBackgroundPixel);
+  gBS->Stall (1 * 1000000);
+  ClearScreen (&RedBackgroundPixel);
+  gBS->Stall (1 * 1000000);
+
+  ResetNvram ();
+}

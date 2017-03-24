@@ -10,8 +10,6 @@
 #include <Library/DebugLib.h>
 #include <Library/BaseMemoryLib.h>
 
-#include <Library/Common/Boot.h>
-
 #include "Lib.h"
 
 VOID

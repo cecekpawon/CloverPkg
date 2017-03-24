@@ -99,7 +99,6 @@ REFIT_CONFIG   DefaultConfig = {
   //FALSE,            // BOOLEAN      Proportional;
   FALSE,              // BOOLEAN      NoEarlyProgress;
   0,                  // INTN         PruneScrollRows;
-  ICON_FORMAT_DEF,    // INTN         IconFormat;
   144,                // INTN         row0TileSize
   64,                 // INTN         row1TileSize
   64,                 // INTN         LayoutBannerOffset
@@ -1397,11 +1396,11 @@ FillinCustomEntry (
           UINT8   *data  = (UINT8 *)AllocateZeroPool (len);
 
           if (data) {
-            Entry->Image = DecodePNG (data, Hex2Bin (Prop->string, data, len), 0, TRUE);
+            Entry->Image = DecodePNG (data, Hex2Bin (Prop->string, data, len));
           }
         }
       } else if (Prop->type == kTagTypeData) {
-        Entry->Image = DecodePNG (Prop->data, Prop->size, 0, TRUE);
+        Entry->Image = DecodePNG (Prop->data, Prop->size);
       }
     }
   }
@@ -1441,11 +1440,11 @@ FillinCustomEntry (
           UINT8   *data = (UINT8 *)AllocateZeroPool (len);
 
           if (data) {
-            Entry->DriveImage = DecodePNG (data, Hex2Bin (Prop->string, data, len), 0, TRUE);
+            Entry->DriveImage = DecodePNG (data, Hex2Bin (Prop->string, data, len));
           }
         }
       } else if (Prop->type == kTagTypeData) {
-        Entry->DriveImage = DecodePNG (Prop->data, Prop->size, 0, TRUE);
+        Entry->DriveImage = DecodePNG (Prop->data, Prop->size);
       }
     }
   }
@@ -1693,11 +1692,11 @@ FillinCustomTool (
           UINT8   *data = (UINT8 *)AllocateZeroPool (Len);
 
           if (data != NULL) {
-            Entry->Image = DecodePNG (data, Hex2Bin (Prop->string, data, Len), 0, TRUE);
+            Entry->Image = DecodePNG (data, Hex2Bin (Prop->string, data, Len));
           }
         }
       } else if (Prop->type == kTagTypeData) {
-        Entry->Image = DecodePNG (Prop->data, Prop->size, 0, TRUE);
+        Entry->Image = DecodePNG (Prop->data, Prop->size);
       }
     }
   }
@@ -2007,7 +2006,6 @@ GetThemeTagSettings (
   GlobalConfig.HideBadges                       = DefaultConfig.HideBadges;
   GlobalConfig.HideUIFlags                      = DefaultConfig.HideUIFlags;
   GlobalConfig.DisableFlags                     = DefaultConfig.DisableFlags;
-  GlobalConfig.IconFormat                       = DefaultConfig.IconFormat;
   GlobalConfig.MainEntriesSize                  = DefaultConfig.MainEntriesSize;
   GlobalConfig.PruneScrollRows                  = DefaultConfig.PruneScrollRows;
   GlobalConfig.SelectionColor                   = DefaultConfig.SelectionColor;
@@ -2417,48 +2415,28 @@ GetThemeTagSettings (
     }
   }
 
-  // set file defaults in case they were not set
-  Dict = GetProperty (DictPointer, "Icon");
-  if (Dict != NULL) {
-    Dict2 = GetProperty (Dict, "Format");
-    if ((Dict2 != NULL) && (Dict2->type == kTagTypeString) && Dict2->string) {
-      if (AsciiStriCmp (Dict2->string, "ICNS") == 0) {
-        GlobalConfig.IconFormat = ICON_FORMAT_ICNS;
-        //IconFormat = PoolPrint (L"%s", L"icns");
-      } else if (AsciiStriCmp (Dict2->string, "PNG") == 0) {
-        GlobalConfig.IconFormat = ICON_FORMAT_PNG;
-        //IconFormat = PoolPrint (L"%s", L"png");
-      }/* else if (AsciiStriCmp (Dict2->string, "BMP") == 0) {
-        GlobalConfig.IconFormat = ICON_FORMAT_BMP;
-        IconFormat = PoolPrint (L"%s", L"bmp");
-      } else {
-        GlobalConfig.IconFormat = ICON_FORMAT_DEF;
-      }*/
-    }
-  }
-
   if (GlobalConfig.BackgroundName == NULL) {
-    GlobalConfig.BackgroundName = GetIconsExt (L"background", L"png");
+    GlobalConfig.BackgroundName = L"background.png";
   }
 
   if (GlobalConfig.BannerFileName == NULL) {
-    GlobalConfig.BannerFileName = GetIconsExt (L"logo", L"png");
+    GlobalConfig.BannerFileName = L"logo.png";
   }
 
   if (GlobalConfig.SelectionSmallFileName == NULL) {
-    GlobalConfig.SelectionSmallFileName = GetIconsExt (L"selection_small", L"png");
+    GlobalConfig.SelectionSmallFileName = L"selection_small.png";
   }
 
   if (GlobalConfig.SelectionBigFileName == NULL) {
-    GlobalConfig.SelectionBigFileName = GetIconsExt (L"selection_big", L"png");
+    GlobalConfig.SelectionBigFileName = L"selection_big.png";
   }
 
   if (GlobalConfig.SelectionIndicatorName == NULL) {
-    GlobalConfig.SelectionIndicatorName = GetIconsExt (L"selection_indicator", L"png");
+    GlobalConfig.SelectionIndicatorName = L"selection_indicator.png";
   }
 
   if (GlobalConfig.FontFileName == NULL) {
-    GlobalConfig.FontFileName = GetIconsExt (L"font", L"png");
+    GlobalConfig.FontFileName = L"font.png";
   }
 
   if (
@@ -5251,4 +5229,33 @@ SetFSInjection (
   Finish:
 
   return Status;
+}
+
+VOID
+ReadCsrCfg () {
+  UINT32    csrCfg = gSettings.CsrActiveConfig & CSR_VALID_FLAGS;
+  CHAR16    *csrLog = AllocateZeroPool (SVALUE_MAX_SIZE);
+
+  if (csrCfg & CSR_ALLOW_UNTRUSTED_KEXTS)
+    StrCatS (csrLog, SVALUE_MAX_SIZE, L"CSR_ALLOW_UNTRUSTED_KEXTS");
+  if (csrCfg & CSR_ALLOW_UNRESTRICTED_FS)
+    StrCatS (csrLog, SVALUE_MAX_SIZE, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_UNRESTRICTED_FS"));
+  if (csrCfg & CSR_ALLOW_TASK_FOR_PID)
+    StrCatS (csrLog, SVALUE_MAX_SIZE, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_TASK_FOR_PID"));
+  if (csrCfg & CSR_ALLOW_KERNEL_DEBUGGER)
+    StrCatS (csrLog, SVALUE_MAX_SIZE, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_KERNEL_DEBUGGER"));
+  if (csrCfg & CSR_ALLOW_APPLE_INTERNAL)
+    StrCatS (csrLog, SVALUE_MAX_SIZE, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_APPLE_INTERNAL"));
+  if (csrCfg & CSR_ALLOW_UNRESTRICTED_DTRACE)
+    StrCatS (csrLog, SVALUE_MAX_SIZE, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_UNRESTRICTED_DTRACE"));
+  if (csrCfg & CSR_ALLOW_UNRESTRICTED_NVRAM)
+    StrCatS (csrLog, SVALUE_MAX_SIZE, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_UNRESTRICTED_NVRAM"));
+  if (csrCfg & CSR_ALLOW_DEVICE_CONFIGURATION)
+    StrCatS (csrLog, SVALUE_MAX_SIZE, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_DEVICE_CONFIGURATION"));
+  if (csrCfg & CSR_ALLOW_ANY_RECOVERY_OS)
+    StrCatS (csrLog, SVALUE_MAX_SIZE, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_ANY_RECOVERY_OS"));
+
+  if (StrLen (csrLog)) MsgLog ("CSR_CFG: %s\n", csrLog);
+
+  FreePool (csrLog);
 }

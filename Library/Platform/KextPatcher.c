@@ -35,6 +35,74 @@ LIST_ENTRY gPrelinkKextList = INITIALIZE_LIST_HEAD_VARIABLE (gPrelinkKextList)/*
            gLoadedKextList = INITIALIZE_LIST_HEAD_VARIABLE (gLoadedKextList)*/;
 #endif
 
+VOID
+FilterKextPatches (
+  IN LOADER_ENTRY   *Entry
+) {
+  if (
+    gSettings.KextPatchesAllowed &&
+    (Entry->KernelAndKextPatches->KextPatches != NULL) &&
+    Entry->KernelAndKextPatches->NrKexts
+  ) {
+    INTN    i = 0;
+
+    MsgLog ("Filtering KextPatches:\n");
+
+    for (; i < Entry->KernelAndKextPatches->NrKexts; ++i) {
+      BOOLEAN   NeedBuildVersion = (
+                  (Entry->OSBuildVersion != NULL) &&
+                  (Entry->KernelAndKextPatches->KextPatches[i].MatchBuild != NULL)
+                );
+
+      // If dot exist in the patch name, store string after last dot to Filename for FSInject to load kext
+      if (CountOccurrences (Entry->KernelAndKextPatches->KextPatches[i].Name, '.') >= 2) {
+        CHAR16  *Str = AllocateZeroPool (SVALUE_MAX_SIZE);
+        UINTN   Len;
+
+        Str = FindExtension (PoolPrint (L"%a", Entry->KernelAndKextPatches->KextPatches[i].Name));
+        Len = StrLen (Str) + 1;
+        Entry->KernelAndKextPatches->KextPatches[i].Filename = AllocateZeroPool (Len);
+
+        UnicodeStrToAsciiStrS (
+          Str,
+          Entry->KernelAndKextPatches->KextPatches[i].Filename,
+          Len
+        );
+
+        FreePool (Str);
+      }
+
+      MsgLog (" - [%02d]: %a | %a | [MatchOS: %a | MatchBuild: %a]",
+        i,
+        Entry->KernelAndKextPatches->KextPatches[i].Label,
+        Entry->KernelAndKextPatches->KextPatches[i].IsPlistPatch ? "PlistPatch" : "BinPatch",
+        Entry->KernelAndKextPatches->KextPatches[i].MatchOS
+          ? Entry->KernelAndKextPatches->KextPatches[i].MatchOS
+          : "All",
+        NeedBuildVersion
+          ? Entry->KernelAndKextPatches->KextPatches[i].MatchBuild
+          : "All"
+      );
+
+      if (NeedBuildVersion) {
+        Entry->KernelAndKextPatches->KextPatches[i].Disabled = !IsPatchEnabled (
+          Entry->KernelAndKextPatches->KextPatches[i].MatchBuild, Entry->OSBuildVersion);
+
+        MsgLog (" ==> %a\n", Entry->KernelAndKextPatches->KextPatches[i].Disabled ? "not allowed" : "allowed");
+
+        //if (!Entry->KernelAndKextPatches->KextPatches[i].Disabled) {
+          continue; // If user give MatchOS, should we ignore MatchOS / keep reading 'em?
+        //}
+      }
+
+      Entry->KernelAndKextPatches->KextPatches[i].Disabled = !IsPatchEnabled (
+        Entry->KernelAndKextPatches->KextPatches[i].MatchOS, Entry->OSVersion);
+
+      MsgLog (" ==> %a\n", Entry->KernelAndKextPatches->KextPatches[i].Disabled ? "not allowed" : "allowed");
+    }
+  }
+}
+
 //
 // Searches Source for Search pattern of size SearchSize
 // and returns the number of occurences.

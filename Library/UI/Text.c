@@ -91,7 +91,7 @@ LoadFontImage (
     DBG ("Using embedded font\n");
     goto F_EMBEDDED;
   } else {
-    NewImage = LoadImage (ThemeDir, GlobalConfig.FontFileName, TRUE);
+    NewImage = LoadImage (ThemeDir, GlobalConfig.FontFileName);
     DBG ("Loading font from ThemeDir: %a\n", NewImage ? "Success" : "Error");
   }
 
@@ -99,7 +99,7 @@ LoadFontImage (
     goto F_THEME;
   } else {
     fontFilePath = PoolPrint (L"%s\\%s", commonFontDir, GlobalConfig.FontFileName);
-    NewImage = LoadImage (SelfRootDir, fontFilePath, TRUE);
+    NewImage = LoadImage (SelfRootDir, fontFilePath);
 
     if (NewImage) {
       DBG ("font %s loaded from common font dir %s\n", GlobalConfig.FontFileName, commonFontDir);

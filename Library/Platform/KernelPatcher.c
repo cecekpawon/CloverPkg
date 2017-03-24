@@ -52,6 +52,55 @@ typedef struct _loaded_kext_summary_header {
 OSKextLoadedKextSummaryHeader *loadedKextSummaries = {0};
 #endif
 
+VOID
+FilterKernelPatches (
+  IN LOADER_ENTRY   *Entry
+) {
+  if (
+    gSettings.KernelPatchesAllowed &&
+    (Entry->KernelAndKextPatches->KernelPatches != NULL) &&
+    Entry->KernelAndKextPatches->NrKernels
+  ) {
+    INTN    i = 0;
+
+    MsgLog ("Filtering KernelPatches:\n");
+
+    for (; i < Entry->KernelAndKextPatches->NrKernels; ++i) {
+      BOOLEAN   NeedBuildVersion = (
+                  (Entry->OSBuildVersion != NULL) &&
+                  (Entry->KernelAndKextPatches->KernelPatches[i].MatchBuild != NULL)
+                );
+
+      MsgLog (" - [%02d]: %a | [MatchOS: %a | MatchBuild: %a]",
+        i,
+        Entry->KernelAndKextPatches->KernelPatches[i].Label,
+        Entry->KernelAndKextPatches->KernelPatches[i].MatchOS
+          ? Entry->KernelAndKextPatches->KernelPatches[i].MatchOS
+          : "All",
+        NeedBuildVersion
+          ? Entry->KernelAndKextPatches->KernelPatches[i].MatchBuild
+          : "All"
+      );
+
+      if (NeedBuildVersion) {
+        Entry->KernelAndKextPatches->KernelPatches[i].Disabled = !IsPatchEnabled (
+          Entry->KernelAndKextPatches->KernelPatches[i].MatchBuild, Entry->OSBuildVersion);
+
+        MsgLog (" ==> %a\n", Entry->KernelAndKextPatches->KernelPatches[i].Disabled ? "not allowed" : "allowed");
+
+        //if (!Entry->KernelAndKextPatches->KernelPatches[i].Disabled) {
+          continue; // If user give MatchOS, should we ignore MatchOS / keep reading 'em?
+        //}
+      }
+
+      Entry->KernelAndKextPatches->KernelPatches[i].Disabled = !IsPatchEnabled (
+        Entry->KernelAndKextPatches->KernelPatches[i].MatchOS, Entry->OSVersion);
+
+      MsgLog (" ==> %a\n", Entry->KernelAndKextPatches->KernelPatches[i].Disabled ? "not allowed" : "allowed");
+    }
+  }
+}
+
 /*
   KernelInfo->RelocBase will normally be 0
   but if OsxAptioFixDrv is used, then it will be > 0

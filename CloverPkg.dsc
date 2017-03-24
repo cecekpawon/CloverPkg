@@ -66,29 +66,29 @@
   #
   # Our libs
   #
-  MemLogLib|CloverPkg/Modules/MemLogLibDefault/MemLogLibDefault.inf
+  MemLogLib|CloverPkg/Module/MemLogLibDefault/MemLogLibDefault.inf
   !ifdef EMBED_FSINJECT
-    NULL|CloverPkg/Modules/FSInject/FSInject_embed.inf
+    NULL|CloverPkg/Module/FSInject/FSInject_embed.inf
   !endif
   !ifdef EMBED_APTIOFIX
-    NULL|CloverPkg/Modules/OsxAptioFixDrv/OsxAptioFixDrv_embed.inf
+    NULL|CloverPkg/Module/OsxAptioFixDrv/OsxAptioFixDrv_embed.inf
   !endif
-  CommonLib|CloverPkg/Modules/CommonLib/CommonLib.inf
-  DeviceTreeLib|CloverPkg/Modules/DeviceTreeLib/DeviceTreeLib.inf
+  CommonLib|CloverPkg/Module/CommonLib/CommonLib.inf
+  DeviceTreeLib|CloverPkg/Module/DeviceTreeLib/DeviceTreeLib.inf
 
 [Components.X64]
   # Misc
   !ifndef EMBED_FSINJECT
-    CloverPkg/Modules/FSInject/FSInject.inf
+    CloverPkg/Module/FSInject/FSInject.inf
   !endif
 
   !ifndef EMBED_APTIOFIX
-    CloverPkg/Modules/OsxAptioFixDrv/OsxAptioFixDrv.inf
+    CloverPkg/Module/OsxAptioFixDrv/OsxAptioFixDrv.inf
   !endif
 
-  #CloverPkg/Modules/OsxFatBinaryDrv/OsxFatBinaryDrv.inf
-  #CloverPkg/Applications/bdmesg_efi/bdmesg.inf
-  CloverPkg/Applications/Clover/Clover.inf
+  #CloverPkg/Module/OsxFatBinaryDrv/OsxFatBinaryDrv.inf
+  #CloverPkg/Application/bdmesg_efi/bdmesg.inf
+  CloverPkg/Application/Clover/Clover.inf
 
 [BuildOptions]
   #!ifdef DISABLE_LTO

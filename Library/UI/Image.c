@@ -347,76 +347,11 @@ FreeImage (
   }
 }
 
-//
-// Loading images from files and embedded data
-//
-
-STATIC
-EG_IMAGE *
-DecodeAny (
-  IN UINT8      *FileData,
-  IN UINTN      FileDataLength,
-  IN CHAR16     *Format,
-  IN UINTN      IconSize,
-  IN BOOLEAN    WantAlpha
-) {
-  EG_DECODE_FUNC    DecodeFunc;
-  EG_IMAGE          *NewImage;
-
-  if (Format) {
-    // dispatch by extension
-    DecodeFunc = NULL;
-
-    if (StriCmp (Format, L"PNG") == 0) {
-      //DBG ("decode format PNG\n");
-      DecodeFunc = DecodePNG;
-    } else if (StriCmp (Format, L"ICNS") == 0){
-      //DBG ("decode format ICNS\n");
-      DecodeFunc = DecodeICNS;
-    } else  if (StriCmp (Format, L"BMP") == 0) {
-      //DBG ("decode format BMP\n");
-      DecodeFunc = DecodeBMP;
-    }
-    //  else if (StriCmp (Format, L"TGA") == 0)
-    //    DecodeFunc = DecodeTGA;
-
-    if (DecodeFunc == NULL) {
-      return NULL;
-    }
-    //  DBG ("will decode data=%x len=%d icns=%d alpha=%c\n", FileData, FileDataLength, IconSize, WantAlpha?'Y':'N');
-
-    // decode it
-    NewImage = DecodeFunc (FileData, FileDataLength, IconSize, WantAlpha);
-  } else {
-    //automatic choose format
-    NewImage = DecodePNG (FileData, FileDataLength, IconSize, WantAlpha);
-
-    if (!NewImage) {
-      //DBG (" ..png is wrong try to decode icns\n");
-      NewImage = DecodeICNS (FileData, FileDataLength, IconSize, WantAlpha);
-    } /* else {
-      DBG (" ..decoded as png\n");
-    } */
-
-    if (!NewImage) {
-      //DBG (" ..png and icns is wrong try to decode bmp\n");
-      NewImage = DecodeBMP (FileData, FileDataLength, IconSize, WantAlpha);
-    }
-  }
-
-//#if DEBUG_IMG == 2
-//   PauseForKey (L"After DecodeAny\n");
-//#endif
-
-  return NewImage;
-}
-
 //caller is responsible for free image
 EG_IMAGE *
 LoadImage (
   IN EFI_FILE_HANDLE    BaseDir,
-  IN CHAR16             *FileName,
-  IN BOOLEAN            WantAlpha
+  IN CHAR16             *FileName
 ) {
   EFI_STATUS    Status;
   UINT8         *FileData = NULL;
@@ -437,8 +372,7 @@ LoadImage (
 
   //DBG ("   extension = %s\n", FindExtension (FileName));
   // decode it
-  //NewImage = DecodeAny (FileData, FileDataLength, NULL, /*FindExtension (FileName),*/ 128, WantAlpha);
-  NewImage = DecodePNG (FileData, FileDataLength, 128, WantAlpha);
+  NewImage = DecodePNG (FileData, FileDataLength);
   //DBG ("decoded\n");
 
   if (!NewImage) {
@@ -447,143 +381,6 @@ LoadImage (
 
   FreePool (FileData);
   //DBG ("FreePool OK\n");
-
-  return NewImage;
-}
-
-//caller is responsible for free image
-EG_IMAGE *
-LoadIcon (
-  IN EFI_FILE_HANDLE  BaseDir,
-  IN CHAR16           *FileName,
-  IN UINTN            IconSize
-) {
-  EFI_STATUS    Status;
-  UINT8         *FileData;
-  UINTN         FileDataLength;
-  EG_IMAGE      *NewImage;
-
-  if (BaseDir == NULL || FileName == NULL || IsEmbeddedTheme ()) {
-    return NULL;
-  }
-
-  //DBG ("egLoadIcon filename: %s\n", FileName);
-
-  // load file
-  Status = LoadFile (BaseDir, FileName, &FileData, &FileDataLength);
-
-  if (EFI_ERROR (Status)) {
-  //DBG ("egLoadIcon status=%r\n", Status);
-    return NULL;
-  }
-
-  // decode it
-  NewImage = DecodeAny (FileData, FileDataLength, NULL, /*FindExtension (FileName),*/ IconSize, TRUE);
-  //NewImage = DecodePNG (FileData, FileDataLength, IconSize, TRUE);
-  FreePool (FileData);
-
-  return NewImage;
-}
-
-/*
-EG_IMAGE *
-DecodeImage (
-  IN UINT8      *FileData,
-  IN UINTN      FileDataLength,
-  IN CHAR16     *Format,
-  IN BOOLEAN    WantAlpha
-) {
-  return DecodeAny (FileData, FileDataLength, Format, 128, WantAlpha);
-}
-*/
-
-EG_IMAGE *
-PrepareEmbeddedImage (
-  IN EG_EMBEDDED_IMAGE    *EmbeddedImage,
-  IN BOOLEAN              WantAlpha
-) {
-  EG_IMAGE    *NewImage;
-  UINT8       *CompData;
-  UINTN       CompLen, PixelCount;
-
-  // sanity check
-  if (
-    (EmbeddedImage->PixelMode > EG_MAX_EIPIXELMODE) ||
-    (
-      (EmbeddedImage->CompressMode != EG_EICOMPMODE_NONE) &&
-      (EmbeddedImage->CompressMode != EG_EICOMPMODE_RLE))
-  ) {
-    return NULL;
-  }
-
-  // allocate image structure and pixel buffer
-  NewImage = CreateImage (EmbeddedImage->Width, EmbeddedImage->Height, WantAlpha);
-
-  if (NewImage == NULL) {
-    return NULL;
-  }
-
-  CompData = (UINT8 *)EmbeddedImage->Data;   // drop const
-  CompLen  = EmbeddedImage->DataLength;
-  PixelCount = EmbeddedImage->Width * EmbeddedImage->Height;
-
-  // FUTURE: for EG_EICOMPMODE_EFICOMPRESS, decompress whole data block here
-
-  if (
-    (EmbeddedImage->PixelMode == EG_EIPIXELMODE_GRAY) ||
-    (EmbeddedImage->PixelMode == EG_EIPIXELMODE_GRAY_ALPHA)
-  ) {
-    // copy grayscale plane and expand
-    if (EmbeddedImage->CompressMode == EG_EICOMPMODE_RLE) {
-      DecompressIcnsRLE (&CompData, &CompLen, PLPTR (NewImage, r), PixelCount);
-    } else {
-      InsertPlane (CompData, PLPTR (NewImage, r), PixelCount);
-      CompData += PixelCount;
-    }
-
-    CopyPlane (PLPTR (NewImage, r), PLPTR (NewImage, g), PixelCount);
-    CopyPlane (PLPTR (NewImage, r), PLPTR (NewImage, b), PixelCount);
-  } else if (
-    (EmbeddedImage->PixelMode == EG_EIPIXELMODE_COLOR) ||
-    (EmbeddedImage->PixelMode == EG_EIPIXELMODE_COLOR_ALPHA)
-  ) {
-    // copy color planes
-    if (EmbeddedImage->CompressMode == EG_EICOMPMODE_RLE) {
-      DecompressIcnsRLE (&CompData, &CompLen, PLPTR (NewImage, r), PixelCount);
-      DecompressIcnsRLE (&CompData, &CompLen, PLPTR (NewImage, g), PixelCount);
-      DecompressIcnsRLE (&CompData, &CompLen, PLPTR (NewImage, b), PixelCount);
-    } else {
-      InsertPlane (CompData, PLPTR (NewImage, r), PixelCount);
-      CompData += PixelCount;
-      InsertPlane (CompData, PLPTR (NewImage, g), PixelCount);
-      CompData += PixelCount;
-      InsertPlane (CompData, PLPTR (NewImage, b), PixelCount);
-      CompData += PixelCount;
-    }
-  } else {
-    // set color planes to black
-    SetPlane (PLPTR (NewImage, r), 0, PixelCount);
-    SetPlane (PLPTR (NewImage, g), 0, PixelCount);
-    SetPlane (PLPTR (NewImage, b), 0, PixelCount);
-  }
-
-  if (
-    WantAlpha &&
-    (
-      (EmbeddedImage->PixelMode == EG_EIPIXELMODE_GRAY_ALPHA) ||
-      (EmbeddedImage->PixelMode == EG_EIPIXELMODE_COLOR_ALPHA) ||
-      (EmbeddedImage->PixelMode == EG_EIPIXELMODE_ALPHA))
-  ) {
-    // copy alpha plane
-    if (EmbeddedImage->CompressMode == EG_EICOMPMODE_RLE) {
-      DecompressIcnsRLE (&CompData, &CompLen, PLPTR (NewImage, a), PixelCount);
-    } else {
-      InsertPlane (CompData, PLPTR (NewImage, a), PixelCount);
-      //            CompData += PixelCount;
-    }
-  } else {
-    SetPlane (PLPTR (NewImage, a), WantAlpha ? 255 : 0, PixelCount);
-  }
 
   return NewImage;
 }
@@ -959,9 +756,7 @@ CopyPlane (
 EG_IMAGE *
 DecodePNG (
   IN UINT8      *FileData,
-  IN UINTN      FileDataLength,
-  IN UINTN      IconSize,
-  IN BOOLEAN    WantAlpha
+  IN UINTN      FileDataLength
 ) {
   EG_IMAGE    *NewImage = NULL;
   EG_PIXEL    *PixelData, *Pixel, *PixelD;
@@ -975,7 +770,7 @@ DecodePNG (
   }
 
   // allocate image structure and buffer
-  NewImage = CreateImage ((INTN)Width, (INTN)Height, WantAlpha);
+  NewImage = CreateImage ((INTN)Width, (INTN)Height, TRUE);
   if ((NewImage == NULL) || (NewImage->Width != (INTN)Width) || (NewImage->Height != (INTN)Height)) {
     return NULL;
   }
@@ -1110,7 +905,7 @@ BltClearScreen (
         Banner = BuiltinIcon (BUILTIN_ICON_BANNER);
         CopyMem (&TmpBackgroundPixel, &GrayBackgroundPixel, sizeof (EG_PIXEL));
       } else  {
-        Banner = LoadImage (ThemeDir, GlobalConfig.BannerFileName, FALSE);
+        Banner = LoadImage (ThemeDir, GlobalConfig.BannerFileName);
         if (Banner) {
           // Banner was changed, so copy into BlueBackgroundBixel first pixel of banner
           CopyMem (&TmpBackgroundPixel, &Banner->PixelData[0], sizeof (EG_PIXEL));
@@ -1172,7 +967,7 @@ BltClearScreen (
 
   // Load Background and scale
   if (!BigBack && (GlobalConfig.BackgroundName != NULL)) {
-    BigBack = LoadImage (ThemeDir, GlobalConfig.BackgroundName, FALSE);
+    BigBack = LoadImage (ThemeDir, GlobalConfig.BackgroundName);
   }
 
   if (
@@ -1678,7 +1473,7 @@ InitAnime (
         UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s\\%s_%03d.png", Path, Path, i);
         //DBG ("Try to load file %s\n", FileName);
 
-        p = LoadImage (ThemeDir, FileName, TRUE);
+        p = LoadImage (ThemeDir, FileName);
         if (!p) {
           p = Last;
           if (!p) break;

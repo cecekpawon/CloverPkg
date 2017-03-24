@@ -12,10 +12,8 @@
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
 
-#include <Library/Common/LoaderUefi.h>
 #include <Library/Platform/DeviceTree.h>
 
-#include <Library/Common/Boot.h>
 #include <Library/Common/Hibernate.h>
 
 #include "BootFixes.h"

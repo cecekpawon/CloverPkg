@@ -2024,6 +2024,21 @@ BootArgsExists (
   return Found;
 }
 
+VOID
+SetOEMPath (
+  CHAR16  *ConfName
+) {
+  if (ConfName == NULL) {
+    OEMPath = PoolPrint (DIR_CLOVER);
+  } else if (FileExists (SelfRootDir, PoolPrint (L"%s\\%a\\%s.plist", DIR_OEM, gSettings.OEMProduct, ConfName))) {
+    OEMPath = PoolPrint (L"%s\\%a", DIR_OEM, gSettings.OEMProduct);
+  } else if (FileExists (SelfRootDir, PoolPrint (L"%s\\%a\\%s.plist", DIR_OEM, gSettings.OEMBoard, ConfName))) {
+    OEMPath = PoolPrint (L"%s\\%a", DIR_OEM, gSettings.OEMBoard);
+  } else {
+    OEMPath = PoolPrint (DIR_CLOVER);
+  }
+}
+
 //
 //  BmLib.c
 //
@@ -2526,6 +2541,37 @@ WaitForInputEventPoll (
   }
 
   return Status;
+}
+
+EFI_STATUS
+SetupBooterLog () {
+  EFI_STATUS    Status = EFI_SUCCESS;
+
+  Status = LogDataHub (
+              &gEfiMiscSubClassGuid,
+              PoolPrint (L"%a", DATAHUB_LOG),
+              AllocateZeroPool (MEM_LOG_INITIAL_SIZE),
+              (UINT32)MEM_LOG_INITIAL_SIZE
+            );
+
+  return Status;
+}
+
+// Made msgbuf and msgCursor private to this source
+// so we need a different way of saving the msg log - apianti
+EFI_STATUS
+SaveBooterLog (
+  IN EFI_FILE_HANDLE    BaseDir OPTIONAL,
+  IN CHAR16             *FileName
+) {
+  CHAR8         *MemLogBuffer = GetMemLogBuffer ();
+  UINTN         MemLogLen = GetMemLogLen ();
+
+  if ((MemLogBuffer == NULL) || (MemLogLen == 0)) {
+    return EFI_NOT_FOUND;
+  }
+
+  return SaveFile (BaseDir, FileName, (UINT8 *)MemLogBuffer, MemLogLen);
 }
 
 // EOF

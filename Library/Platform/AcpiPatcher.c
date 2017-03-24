@@ -1692,7 +1692,7 @@ PatchACPI (
     DBG ("Xsdt reallocation done\n");
   }
 
-  //  DBG ("FADT pointer = %x\n", (UINTN)FadtPointer);
+  //DBG ("FADT pointer = %x\n", (UINTN)FadtPointer);
   if (!FadtPointer) {
     return EFI_NOT_FOUND;
   }

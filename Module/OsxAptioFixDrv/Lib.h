@@ -17,6 +17,7 @@
 #define _APTIOFIX_LIB_H_
 
 #include <Library/Common/CommonLib.h>
+#include <Library/Common/LoaderUefi.h>
 #include <Library/Common/MemLogLib.h>
 
 // DBG_TO: 0=no debug, 1=serial, 2=console

@@ -25,10 +25,10 @@
 [Sources]
   ../../Library/Entry/Loader.c
   ../../Library/Entry/Tool.c
+  ../../Library/Entry/Driver.c
 
   ../../Library/UI/Image.c
-  ../../Library/UI/LoadBmp.c
-  ../../Library/UI/LoadIcns.c
+  ../../Library/UI/LoadIcon.c
   ../../Library/UI/LodePng.c
   ../../Library/UI/Menu.c
   ../../Library/UI/Text.c
@@ -37,7 +37,7 @@
   ../../Library/Platform/AmlGenerator.c
   ../../Library/Platform/Ati.c
   ../../Library/Platform/BdsConnect.c
-  ../../Library/Platform/BootLog.c
+  ../../Library/Platform/BooterPatcher.c
   ../../Library/Platform/Cpu.c
   ../../Library/Platform/DataHubCpu.c
   ../../Library/Platform/DeviceInject.c

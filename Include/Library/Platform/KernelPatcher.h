@@ -211,12 +211,17 @@ IsKernelIs64BitOnly (
 );
 
 VOID
-DbgHeader (
-  CHAR8   *str
+KernelAndKextsPatcherStart (
+  IN LOADER_ENTRY   *Entry
 );
 
 VOID
-KernelAndKextsPatcherStart (
+FilterKernelPatches (
+  IN LOADER_ENTRY   *Entry
+);
+
+VOID
+FilterKextPatches (
   IN LOADER_ENTRY   *Entry
 );
 
@@ -324,6 +329,19 @@ IsPatchNameMatch (
   CHAR8   *Name,
   CHAR8   *InfoPlist,
   INT32   *isBundle
+);
+
+BOOT_EFI_HEADER *
+ParseBooterHeader (
+  IN  VOID  *FileBuffer
+);
+
+VOID
+PatchBooter (
+  IN LOADER_ENTRY       *Entry,
+  IN EFI_LOADED_IMAGE   *LoadedImage,
+  IN BOOT_EFI_HEADER    *BootEfiHeader,
+  IN CHAR8              *OSVer
 );
 
 #endif /* !__LIBSAIO_KERNEL_PATCHER_H */
