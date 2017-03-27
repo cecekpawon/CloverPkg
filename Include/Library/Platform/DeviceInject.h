@@ -14,42 +14,42 @@
  */
 #define MAX_PCI_DEV_PATHS   16
 
-typedef struct pci_dt_t {
+typedef struct PCI_DT {
   EFI_HANDLE        DeviceHandle;
   UINT8             *regs;
 
   union {
     struct {
-      UINT32      :2;
-      UINT32  reg :6;
-      UINT32  func:3;
-      UINT32  dev :5;
-      UINT32  bus :8;
-      UINT32      :7;
-      UINT32  eb  :1;
+      UINT32          :2;
+      UINT32      reg :6;
+      UINT32      func:3;
+      UINT32      dev :5;
+      UINT32      bus :8;
+      UINT32          :7;
+      UINT32      eb  :1;
     } bits;
-    UINT32      addr;
+    UINT32        addr;
   } dev;
 
-  UINT16            vendor_id;
-  UINT16            device_id;
+  UINT16          vendor_id;
+  UINT16          device_id;
 
   union {
     struct {
-      UINT16        vendor_id;
-      UINT16        device_id;
+      UINT16      vendor_id;
+      UINT16      device_id;
     } subsys;
-    UINT32          subsys_id;
+    UINT32        subsys_id;
   } subsys_id;
 
-  UINT8             revision;
-  UINT8             subclass;
-  UINT16            class_id;
+  UINT8           revision;
+  UINT8           subclass;
+  UINT16          class_id;
 
-  struct pci_dt_t   *parent;
-  struct pci_dt_t   *children;
-  struct pci_dt_t   *next;
-} pci_dt_t;
+  struct PCI_DT   *parent;
+  struct PCI_DT   *children;
+  struct PCI_DT   *next;
+} PCI_DT;
 
 /* Option ROM header */
 typedef struct {
@@ -60,7 +60,7 @@ typedef struct {
   UINT8     reserved[16];
   UINT16    pci_header_offset;  //@0x18
   UINT16    expansion_header_offset;
-} option_rom_header_t;
+} OPTION_ROM_HEADER;
 
 /* Option ROM PCI Data Structure */
 typedef struct {
@@ -76,7 +76,7 @@ typedef struct {
   UINT8     code_type;
   UINT8     indicator;
   UINT16    reserved;
-} option_rom_pci_header_t;
+} OPTION_ROM_PCI_HEADER;
 
 typedef struct ACPIDevPath {
   UINT8   type;     // = 2 ACPI device-path
@@ -92,7 +92,7 @@ typedef struct PCIDevPath {
   UINT16  length;   // = 6
   UINT8   function; // pci func number
   UINT8   device;   // pci dev number
-} PCIDevPath  ;
+} PCIDevPath;
 
 typedef struct DevicePathEnd {
   UINT8   type;     // = 0x7f
@@ -125,13 +125,13 @@ typedef struct DevPropString {
 
 CHAR8 *
 GetPciDevPath (
-  pci_dt_t    *PciDt
+  PCI_DT    *PciDt
 );
 
 UINT32
 PciConfigRead32 (
-  pci_dt_t    *PciDt,
-  UINT8       reg
+  PCI_DT    *PciDt,
+  UINT8     Reg
 );
 
 DevPropString *
@@ -140,15 +140,15 @@ DevpropCreateString ();
 DevPropDevice *
 DevpropAddDevicePci (
   DevPropString   *StringBuf,
-  pci_dt_t        *PciDt
+  PCI_DT          *PciDt
 );
 
 BOOLEAN
 DevpropAddValue (
-  DevPropDevice   *device,
-  CHAR8           *nm,
-  UINT8           *vl,
-  UINTN           len
+  DevPropDevice   *Device,
+  CHAR8           *Nm,
+  UINT8           *Vl,
+  UINTN           Len
 );
 
 CHAR8 *
@@ -161,19 +161,7 @@ DevpropFreeString (
   DevPropString   *StringBuf
 );
 
-BOOLEAN
-SetupEthernetDevprop (
-  pci_dt_t    *eth_dev
-);
-
-BOOLEAN
-SetupHdaDevprop (
-  EFI_PCI_IO_PROTOCOL   *PciIo,
-  pci_dt_t              *hda_dev /*,
-  CHAR8                 *OSVersion */
-);
-
-//extern pci_dt_t       *nvdevice;
+//extern PCI_DT       *nvdevice;
 extern DevPropString  *gDevPropString;
 //extern UINT8          *stringdata;
 extern UINT32         gDevPropStringLength;

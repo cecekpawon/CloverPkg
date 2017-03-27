@@ -301,13 +301,13 @@ ScanVolumeBootcode (
       ) {
         Volume->HasBootCode = TRUE;
         Volume->LegacyOS->IconName = L"linux";
-        Volume->LegacyOS->Name = L"Linux";
+        Volume->LegacyOS->Name = OSTYPE_LINUX_STR;
         Volume->LegacyOS->Type = OSTYPE_LIN;
         Volume->BootType = BOOTING_BY_PBR;
       } else if (FindMem (SectorBuffer, 512, "Geom\0Hard Disk\0Read\0 Error", 26) >= 0) {   // GRUB
         Volume->HasBootCode = TRUE;
         Volume->LegacyOS->IconName = L"grub,linux";
-        Volume->LegacyOS->Name = L"Linux";
+        Volume->LegacyOS->Name = OSTYPE_LINUX_STR;
         Volume->BootType = BOOTING_BY_PBR;
       } else if (
           (
@@ -356,13 +356,13 @@ ScanVolumeBootcode (
       } else if (FindMem (SectorBuffer, 2048, "NTLDR", 5) >= 0) {
         Volume->HasBootCode = TRUE;
         Volume->LegacyOS->IconName = L"win";
-        Volume->LegacyOS->Name = L"Windows";
+        Volume->LegacyOS->Name = OSTYPE_WINDOWS_STR;
         Volume->LegacyOS->Type = OSTYPE_WIN;
         Volume->BootType = BOOTING_BY_PBR;
       } else if (FindMem (SectorBuffer, 2048, "BOOTMGR", 7) >= 0) {
         Volume->HasBootCode = TRUE;
         Volume->LegacyOS->IconName = L"vista,win";
-        Volume->LegacyOS->Name = L"Windows";
+        Volume->LegacyOS->Name = OSTYPE_WINDOWS_STR;
         Volume->LegacyOS->Type = OSTYPE_WIN;
         Volume->BootType = BOOTING_BY_PBR;
       } else if (
@@ -2572,6 +2572,52 @@ SaveBooterLog (
   }
 
   return SaveFile (BaseDir, FileName, (UINT8 *)MemLogBuffer, MemLogLen);
+}
+
+STATIC
+VOID
+DestroyGeneratedACPI () {
+  REFIT_DIR_ITER      DirIter;
+  EFI_FILE_INFO       *DirEntry;
+  CHAR16              *AcpiPath = AllocateZeroPool (SVALUE_MAX_SIZE);
+  UINTN               PathIndex, PathCount = ARRAY_SIZE (SupportedOsType);
+
+  //DbgHeader ("DestroyGeneratedAML");
+
+  for (PathIndex = 0; PathIndex < PathCount; PathIndex++) {
+    AcpiPath = PoolPrint (DIR_ACPI_PATCHED L"\\%s", OEMPath, SupportedOsType[PathIndex]);
+
+    DirIterOpen (SelfRootDir, AcpiPath, &DirIter);
+
+    while (DirIterNext (&DirIter, 2, L"*.aml", &DirEntry)) {
+      if (
+        (DirEntry->FileName[0] != L'.') &&
+        (
+          (StriStr (DirEntry->FileName, DSDT_CLOVER_PREFIX) != NULL) ||
+          (StriStr (DirEntry->FileName, SSDT_CLOVER_PREFIX) != NULL)
+        )
+      ) {
+        DeleteFile (SelfRootDir, PoolPrint (L"%s\\%s", AcpiPath, DirEntry->FileName));
+      }
+    }
+
+    DirIterClose (&DirIter);
+
+    FreePool (AcpiPath);
+  }
+}
+
+VOID
+ResetClover () {
+  ClearScreen (&BlueBackgroundPixel);
+  gBS->Stall (1 * 1000000);
+  ClearScreen (&GreenBackgroundPixel);
+  gBS->Stall (1 * 1000000);
+  ClearScreen (&RedBackgroundPixel);
+  gBS->Stall (1 * 1000000);
+
+  DestroyGeneratedACPI ();
+  ResetNvram ();
 }
 
 // EOF

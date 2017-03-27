@@ -257,8 +257,6 @@ RefitMain (
 
   DrawLoadMessage (L"Init Hardware");
 
-  //DumpBiosMemoryMap ();
-
   //GuiEventsInitialize ();
 
   if (!gSettings.EnabledCores) {

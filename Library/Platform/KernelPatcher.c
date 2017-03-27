@@ -9,17 +9,17 @@
 #include <Library/Platform/KernelPatcher.h>
 
 #ifndef DEBUG_ALL
-#ifndef DEBUG_KERNEL
-#define DEBUG_KERNEL 0
+#ifndef DEBUG_KERNEL_PATCHER
+#define DEBUG_KERNEL_PATCHER 0
 #endif
 #else
-#ifdef DEBUG_KERNEL
-#undef DEBUG_KERNEL
+#ifdef DEBUG_KERNEL_PATCHER
+#undef DEBUG_KERNEL_PATCHER
 #endif
-#define DEBUG_KERNEL DEBUG_ALL
+#define DEBUG_KERNEL_PATCHER DEBUG_ALL
 #endif
 
-#define DBG(...) DebugLog (DEBUG_KERNEL, __VA_ARGS__)
+#define DBG(...) DebugLog (DEBUG_KERNEL_PATCHER, __VA_ARGS__)
 
 BootArgs2     *gBootArgs = NULL;
 CHAR8         *gDtRoot = NULL;

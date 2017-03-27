@@ -52,16 +52,10 @@
 
 extern CHAR8  *gDeviceProperties;
 
-struct nvidia_pci_info_t;
-typedef struct {
-  UINT32    device; // VendorID + DeviceID
-  CHAR8     *name_model;
-} nvidia_pci_info_t;
-
-struct bios {
-  UINT16    signature;  /* 0x55AA */
-  UINT8     size;       /* Size in multiples of 512 */
-};
+//typedef struct nvidia_pci_info_t {
+//  UINT32    device; // VendorID + DeviceID
+//  CHAR8     *name_model;
+//} nvidia_pci_info_t;
 
 //#define NVCAP_LEN ARRAY_SIZE (default_NVCAP)
 //#define NVPM_LEN ARRAY_SIZE (default_NVPM)

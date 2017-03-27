@@ -83,8 +83,8 @@ SetIgPlatform (
 }
 
 BOOLEAN
-SetupGmaDevprop (
-  pci_dt_t    *GMADev
+SetupDevprop (
+  PCI_DT    *Dev
 ) {
 #if 0
   UINT32          DualLink = 0;
@@ -94,19 +94,19 @@ SetupGmaDevprop (
   CHAR8           *Model;
   DevPropDevice   *Device;
   INTN            i;
-  UINT16          DevId = GMADev->device_id;
+  UINT16          DevId = Dev->device_id;
   BOOLEAN         Injected = FALSE, NeedIgPlatform = TRUE, NeedDualLink = TRUE;
 
   Model = (CHAR8 *)AllocateCopyPool (AsciiStrSize (S_INTELMODEL), S_INTELMODEL);
 
   MsgLog (" - %a [%04x:%04x] | %a\n",
-    Model, GMADev->vendor_id, DevId, GetPciDevPath (GMADev));
+    Model, Dev->vendor_id, DevId, GetPciDevPath (Dev));
 
   if (!gDevPropString) {
     gDevPropString = DevpropCreateString ();
   }
 
-  Device = DevpropAddDevicePci (gDevPropString, GMADev);
+  Device = DevpropAddDevicePci (gDevPropString, Dev);
 
   if (!Device) {
     DBG (" - Failed initializing dev-prop string dev-entry.\n");

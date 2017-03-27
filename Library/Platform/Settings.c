@@ -1475,11 +1475,11 @@ FillinCustomEntry (
 
   Prop = GetProperty (DictPointer, "Type");
   if ((Prop != NULL) && (Prop->type == kTagTypeString)) {
-    if (AsciiStriCmp (Prop->string, "OSX") == 0) {
+    if (AsciiStriCmp (Prop->string, "Darwin") == 0) {
       Entry->Type = OSTYPE_DARWIN;
-    } else if (AsciiStriCmp (Prop->string, "OSXInstaller") == 0) {
+    } else if (AsciiStriCmp (Prop->string, "DarwinInstaller") == 0) {
       Entry->Type = OSTYPE_DARWIN_INSTALLER;
-    } else if (AsciiStriCmp (Prop->string, "OSXRecovery") == 0) {
+    } else if (AsciiStriCmp (Prop->string, "DarwinRecovery") == 0) {
       Entry->Type = OSTYPE_DARWIN_RECOVERY;
     } else if (AsciiStriCmp (Prop->string, "Windows") == 0) {
       Entry->Type = OSTYPE_WINEFI;
@@ -1732,37 +1732,61 @@ VOID
 GetListOfACPI () {
   REFIT_DIR_ITER      DirIter;
   EFI_FILE_INFO       *DirEntry;
-  UINTN               i = 0, y;
-  CHAR16              *AcpiPath = PoolPrint (DIR_ACPI_PATCHED, OEMPath);
+  CHAR16              *AcpiPath = AllocateZeroPool (SVALUE_MAX_SIZE);
+  UINTN               i = 0, y, PathIndex, PathCount = ARRAY_SIZE (SupportedOsType);
+  UINT8               LoaderType;
 
   DbgHeader ("GetListOfACPI");
 
-  DirIterOpen (SelfRootDir, AcpiPath, &DirIter);
+  for (PathIndex = 0; PathIndex < PathCount; PathIndex++) {
+    AcpiPath = PoolPrint (DIR_ACPI_PATCHED L"\\%s", OEMPath, SupportedOsType[PathIndex]);
 
-  while (DirIterNext (&DirIter, 2, L"*.aml", &DirEntry)) {
-    if (
-      (DirEntry->FileName[0] != L'.') &&
-      (StriStr (DirEntry->FileName, L"DSDT") == NULL)
-    ) {
-      BOOLEAN   ACPIDisabled = FALSE;
-      ACPI_PATCHED_AML    *ACPIPatchedAMLTmp = AllocateZeroPool (sizeof (ACPI_PATCHED_AML));
+    switch (PathIndex) {
+      case 0:
+        LoaderType = OSTYPE_DARWIN;
+        break;
 
-      MsgLog ("- [%02d]: %s\n", i++, DirEntry->FileName);
+      case 1:
+        LoaderType = OSTYPE_LIN;
+        break;
 
-      ACPIPatchedAMLTmp->FileName = PoolPrint (DirEntry->FileName);
-
-      for (y = 0; y < gSettings.DisabledAMLCount; y++) {
-        if (StriCmp (ACPIPatchedAMLTmp->FileName, gSettings.DisabledAML[y]) == 0) {
-          ACPIDisabled = TRUE;
-          break;
-        }
-      }
-
-      ACPIPatchedAMLTmp->MenuItem.BValue = ACPIDisabled;
-      ACPIPatchedAMLTmp->Next = ACPIPatchedAML;
-      ACPIPatchedAML = ACPIPatchedAMLTmp;
-      ACPIPatchedAMLNum++;
+      case 2:
+        LoaderType = OSTYPE_WIN;
+        break;
     }
+
+    DirIterOpen (SelfRootDir, AcpiPath, &DirIter);
+
+    while (DirIterNext (&DirIter, 2, L"*.aml", &DirEntry)) {
+      if (
+        (DirEntry->FileName[0] != L'.') &&
+        (StriStr (DirEntry->FileName, L"DSDT") == NULL)
+      ) {
+        BOOLEAN   ACPIDisabled = FALSE;
+        ACPI_PATCHED_AML    *ACPIPatchedAMLTmp = AllocateZeroPool (sizeof (ACPI_PATCHED_AML));
+
+        MsgLog ("- [%02d]: %s: %s\n", i++, SupportedOsType[PathIndex], DirEntry->FileName);
+
+        ACPIPatchedAMLTmp->FileName = PoolPrint (DirEntry->FileName);
+
+        for (y = 0; y < gSettings.DisabledAMLCount; y++) {
+          if (StriCmp (ACPIPatchedAMLTmp->FileName, gSettings.DisabledAML[y]) == 0) {
+            ACPIDisabled = TRUE;
+            break;
+          }
+        }
+
+        ACPIPatchedAMLTmp->OSType = LoaderType;
+        ACPIPatchedAMLTmp->MenuItem.BValue = ACPIDisabled;
+        ACPIPatchedAMLTmp->Next = ACPIPatchedAML;
+        ACPIPatchedAML = ACPIPatchedAMLTmp;
+        ACPIPatchedAMLNum++;
+      }
+    }
+
+    DirIterClose (&DirIter);
+
+    FreePool (AcpiPath);
   }
 
   if (ACPIPatchedAMLNum) {
@@ -1778,9 +1802,6 @@ GetListOfACPI () {
       aTmp = next;
     }
   }
-
-  DirIterClose (&DirIter);
-  FreePool (AcpiPath);
 }
 
 VOID
@@ -4841,7 +4862,7 @@ SetDevices (
   EFI_PCI_IO_PROTOCOL     *PciIo;
   PCI_TYPE00              Pci;
   EFI_HANDLE              *HandleBuffer;
-  pci_dt_t                PCIdevice;
+  PCI_DT                  PCIdevice;
   UINTN                   HandleCount, i, Segment, Bus, Device, Function;
   BOOLEAN                 StringDirty = FALSE, TmpDirty = FALSE;
 

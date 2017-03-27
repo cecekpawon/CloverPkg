@@ -49,23 +49,24 @@
 #define DBG(...) DebugLog (DEBUG_SCAN_LOADER, __VA_ARGS__)
 
 //#define DUMP_KERNEL_KEXT_PATCHES 1
+CHAR16  *SupportedOsType[3] = { OSTYPE_DARWIN_STR, OSTYPE_LINUX_STR, OSTYPE_WINDOWS_STR };
 
-#define BOOT_LOADER_PATH L"\\EFI\\BOOT\\BOOTX64.efi"
+#define BOOT_LOADER_PATH                  L"\\EFI\\BOOT\\BOOTX64.efi"
 
-#define DARWIN_LOADER_PATH L"\\System\\Library\\CoreServices\\boot.efi"
-#define DARWIN_INSTALLER_LOADERBASE_PATH L"\\System\\Library\\CoreServices\\bootbase.efi"
-#define DARWIN_RECOVERY_LOADER_PATH L"\\com.apple.recovery.boot\\boot.efi"
+#define DARWIN_LOADER_PATH                L"\\System\\Library\\CoreServices\\boot.efi"
+#define DARWIN_INSTALLER_LOADERBASE_PATH  L"\\System\\Library\\CoreServices\\bootbase.efi"
+#define DARWIN_RECOVERY_LOADER_PATH       L"\\com.apple.recovery.boot\\boot.efi"
 
-#define LINUX_ISSUE_PATH L"\\etc\\issue"
-#define LINUX_BOOT_PATH L"\\boot"
-#define LINUX_BOOT_ALT_PATH L"\\boot"
-#define LINUX_LOADER_PATH L"vmlinuz"
-#define LINUX_FULL_LOADER_PATH LINUX_BOOT_PATH L"\\" LINUX_LOADER_PATH
-#define LINUX_LOADER_SEARCH_PATH L"vmlinuz*"
-#define LINUX_DEFAULT_OPTIONS L"ro add_efi_memmap quiet splash vt.handoff=7"
+#define LINUX_ISSUE_PATH                  L"\\etc\\issue"
+#define LINUX_BOOT_PATH                   L"\\boot"
+#define LINUX_BOOT_ALT_PATH               L"\\boot"
+#define LINUX_LOADER_PATH                 L"vmlinuz"
+#define LINUX_FULL_LOADER_PATH            LINUX_BOOT_PATH L"\\" LINUX_LOADER_PATH
+#define LINUX_LOADER_SEARCH_PATH          L"vmlinuz*"
+#define LINUX_DEFAULT_OPTIONS             L"ro add_efi_memmap quiet splash vt.handoff=7"
 
 // Linux loader path data
-typedef struct LINUX_PATH_DATA {
+typedef struct {
   CHAR16 *Path;
   CHAR16 *Title;
   CHAR16 *Icon;
@@ -104,7 +105,7 @@ STATIC CONST UINTN LinuxInitImagePathCount = ARRAY_SIZE (LinuxInitImagePath);
 
 #define ANDX86_FINDLEN 3
 
-typedef struct ANDX86_PATH_DATA {
+typedef struct {
   CHAR16   *Path;
   CHAR16   *Title;
   CHAR16   *Icon;
@@ -164,6 +165,7 @@ GetOSTypeFromPath (
   if (Path == NULL) {
     return OSTYPE_OTHER;
   }
+
   if (StriCmp (Path, DARWIN_INSTALLER_LOADERBASE_PATH) == 0) {
     return OSTYPE_DARWIN_INSTALLER;
   } else if (StriCmp (Path, DARWIN_RECOVERY_LOADER_PATH) == 0) {
@@ -297,16 +299,16 @@ IsFirstRootUUID (
   REFIT_VOLUME    *Volume
 ) {
   UINTN           VolumeIndex;
-  REFIT_VOLUME    *scanedVolume;
+  REFIT_VOLUME    *ScanedVolume;
 
   for (VolumeIndex = 0; VolumeIndex < VolumesCount; VolumeIndex++) {
-    scanedVolume = Volumes[VolumeIndex];
+    ScanedVolume = Volumes[VolumeIndex];
 
-    if (scanedVolume == Volume) {
+    if (ScanedVolume == Volume) {
       return TRUE;
     }
 
-    if (CompareGuid (&scanedVolume->RootUUID, &Volume->RootUUID)) {
+    if (CompareGuid (&ScanedVolume->RootUUID, &Volume->RootUUID)) {
       return FALSE;
     }
   }
@@ -321,28 +323,28 @@ GetOSXVolumeName (
   LOADER_ENTRY    *Entry
 ) {
   EFI_STATUS    Status = EFI_NOT_FOUND;
-  CHAR16        *targetNameFile = L"\\System\\Library\\CoreServices\\.disk_label.contentDetails";
-  CHAR8         *fileBuffer, *targetString;
-  UINTN         fileLen = 0, Len;
+  CHAR16        *TargetNameFile = L"\\System\\Library\\CoreServices\\.disk_label.contentDetails";
+  CHAR8         *FileBuffer, *TargetString;
+  UINTN         FileLen = 0, Len;
 
-  if (FileExists (Entry->Volume->RootDir, targetNameFile)) {
-    Status = LoadFile (Entry->Volume->RootDir, targetNameFile, (UINT8 **)&fileBuffer, &fileLen);
+  if (FileExists (Entry->Volume->RootDir, TargetNameFile)) {
+    Status = LoadFile (Entry->Volume->RootDir, TargetNameFile, (UINT8 **)&FileBuffer, &FileLen);
     if (!EFI_ERROR (Status)) {
-      Len = fileLen + 1;
+      Len = FileLen + 1;
 
       //Create null terminated string
-      targetString = AllocateZeroPool (Len);
-      CopyMem ((VOID *)targetString, (VOID *)fileBuffer, fileLen);
-      DBG (" - found disk_label with contents:%a\n", targetString);
+      TargetString = AllocateZeroPool (Len);
+      CopyMem ((VOID *)TargetString, (VOID *)FileBuffer, FileLen);
+      DBG (" - found disk_label with contents:%a\n", TargetString);
 
       //Convert to Unicode
       Entry->VolName = AllocateZeroPool (Len);
-      AsciiStrToUnicodeStrS (targetString, Entry->VolName, Len);
+      AsciiStrToUnicodeStrS (TargetString, Entry->VolName, Len);
 
       DBG (" - created name: %s\n", Entry->VolName);
 
-      FreePool (fileBuffer);
-      FreePool (targetString);
+      FreePool (FileBuffer);
+      FreePool (TargetString);
     }
   }
 
@@ -400,7 +402,7 @@ TranslateLoaderTitleTemplate (
   }
 
   if (OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType)) {
-    Platform = L"Darwin";
+    Platform = OSTYPE_DARWIN_STR;
     Major = Entry->OSVersionMajor;
     Minor = Entry->OSVersionMinor;
     Revision = Entry->OSRevision;
@@ -436,7 +438,7 @@ TranslateLoaderTitleTemplate (
 
     case OSTYPE_WIN:
     case OSTYPE_WINEFI:
-      Platform = L"Windows";
+      Platform = OSTYPE_WINDOWS_STR;
       TplLen = StrLen (gSettings.WindowsDiskTemplate);
       if (TplLen) {
         Tpl = gSettings.WindowsDiskTemplate;
@@ -447,7 +449,7 @@ TranslateLoaderTitleTemplate (
 
     case OSTYPE_LIN:
     case OSTYPE_LINEFI:
-      Platform = L"Linux";
+      Platform = OSTYPE_LINUX_STR;
       TplLen = StrLen (gSettings.LinuxDiskTemplate);
       if (TplLen) {
         Tpl = gSettings.LinuxDiskTemplate;
@@ -1714,16 +1716,20 @@ AddCustomEntries () {
     if ((Custom->Path == NULL) && (Custom->Type != 0)) {
       if (OSTYPE_IS_DARWIN (Custom->Type)) {
         AddCustomEntry (i, DARWIN_LOADER_PATH, Custom, NULL);
+
       } else if (OSTYPE_IS_DARWIN_RECOVERY (Custom->Type)) {
         AddCustomEntry (i, DARWIN_RECOVERY_LOADER_PATH, Custom, NULL);
+
       } else if (OSTYPE_IS_DARWIN_INSTALLER (Custom->Type)) {
         //Index = 0;
         //while (Index < OSXInstallerPathsCount) {
         //  AddCustomEntry (i, OSXInstallerPaths[Index++], Custom, NULL);
         //}
         AddCustomEntry (i, DARWIN_LOADER_PATH, Custom, NULL);
+
       } else if (OSTYPE_IS_WINDOWS (Custom->Type)) {
         AddCustomEntry (i, WINEFIPaths[0], Custom, NULL);
+
       } else if (OSTYPE_IS_LINUX (Custom->Type)) {
         Index= 0;
         while (Index < AndroidEntryDataCount) {
@@ -1741,6 +1747,7 @@ AddCustomEntries () {
       } else {
         AddCustomEntry (i, BOOT_LOADER_PATH, Custom, NULL);
       }
+
     } else {
       AddCustomEntry (i, Custom->Path, Custom, NULL);
     }
@@ -2375,11 +2382,11 @@ StartLoader (
       Entry->LoadOptions = TempOptions;
     }
 
-    // first patchACPI and find PCIROOT and RTC
+    // first PatchDarwinACPI and find PCIROOT and RTC
     // but before ACPI patch we need smbios patch
     PatchSmbios ();
 
-    PatchACPI (Entry->Volume, Entry->OSVersion);
+    PatchACPI (Entry->LoaderType);
 
     // If KPDebug is true boot in verbose mode to see the debug messages
     // Also: -x | -s
@@ -2452,18 +2459,22 @@ StartLoader (
       FreePool (Entry->LoadOptions);
       Entry->LoadOptions = TempOptions;
     }
+
   } else if (OSTYPE_IS_WINDOWS_GLOB (Entry->LoaderType)) {
     //DBG ("Closing events for Windows\n");
 
-    PatchACPIOS (L"Windows", FALSE);
+    PatchACPI (/* FALSE,*/ Entry->LoaderType);
     //PauseForKey (L"continue");
+
   } else if (OSTYPE_IS_LINUX_GLOB (Entry->LoaderType)) {
     //DBG ("Closing events for Linux\n");
 
     //FinalizeSmbios ();
-    PatchACPIOS (L"Linux", FALSE);
+    PatchACPI (/* FALSE,*/ Entry->LoaderType);
     //PauseForKey (L"continue");
   }
+
+  SaveOemDsdt (FALSE, Entry->LoaderType);
 
   if (gSettings.LastBootedVolume) {
     SetStartupDiskVolume (Entry->Volume, OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType) ? NULL : Entry->LoaderPath);

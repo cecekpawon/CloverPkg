@@ -10,17 +10,17 @@
 #include <Library/PeCoffLib.h>
 
 #ifndef DEBUG_ALL
-#ifndef DEBUG_KERNEL
-#define DEBUG_KERNEL 0
+#ifndef DEBUG_BOOTER_PATCHER
+#define DEBUG_BOOTER_PATCHER 0
 #endif
 #else
-#ifdef DEBUG_KERNEL
-#undef DEBUG_KERNEL
+#ifdef DEBUG_BOOTER_PATCHER
+#undef DEBUG_BOOTER_PATCHER
 #endif
-#define DEBUG_KERNEL DEBUG_ALL
+#define DEBUG_BOOTER_PATCHER DEBUG_ALL
 #endif
 
-#define DBG(...) DebugLog (DEBUG_KERNEL, __VA_ARGS__)
+#define DBG(...) DebugLog (DEBUG_BOOTER_PATCHER, __VA_ARGS__)
 
 BOOT_EFI_HEADER *
 ParseBooterHeader (

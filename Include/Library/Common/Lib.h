@@ -102,6 +102,10 @@ typedef struct {
 #define OSTYPE_OTHER              (99)
 //#define OSTYPE_HIDE             (100)
 
+#define OSTYPE_DARWIN_STR         L"Darwin"
+#define OSTYPE_LINUX_STR          L"Linux"
+#define OSTYPE_WINDOWS_STR        L"Windows"
+
 #define OSTYPE_IS_DARWIN(type) ((type == OSTYPE_DARWIN) || (type == OSTYPE_VAR))
 #define OSTYPE_IS_DARWIN_RECOVERY(type) ((type == OSTYPE_DARWIN_RECOVERY) /*|| ((type >= OSTYPE_TIGER) && (type <= OSTYPE_MAV))*/ || (type == OSTYPE_VAR))
 #define OSTYPE_IS_DARWIN_INSTALLER(type) ((type == OSTYPE_DARWIN_INSTALLER) /*|| ((type >= OSTYPE_TIGER) && (type <= OSTYPE_MAV))*/ || (type == OSTYPE_VAR))

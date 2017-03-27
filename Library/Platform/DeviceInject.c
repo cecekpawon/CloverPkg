@@ -198,7 +198,7 @@ DevpropCreateString () {
 
 CHAR8 *
 GetPciDevPath (
-  pci_dt_t    *PciDt
+  PCI_DT    *PciDt
 ) {
   UINTN                       Len;
   CHAR8                       *Tmp;
@@ -221,8 +221,8 @@ GetPciDevPath (
 
 UINT32
 PciConfigRead32 (
-  pci_dt_t    *PciDt,
-  UINT8       Reg
+  PCI_DT    *PciDt,
+  UINT8     Reg
 ) {
   EFI_STATUS            Status;
   EFI_PCI_IO_PROTOCOL   *PciIo;
@@ -279,7 +279,7 @@ PciConfigRead32 (
 DevPropDevice *
 DevpropAddDevicePci (
   DevPropString   *StringBuf,
-  pci_dt_t        *PciDt
+  PCI_DT          *PciDt
 ) {
   EFI_DEVICE_PATH_PROTOCOL    *DevicePath;
   DevPropDevice               *Device;
@@ -540,7 +540,7 @@ DevpropFreeString (
 // Ethernet built-in device injection
 BOOLEAN
 SetupEthernetDevprop (
-  pci_dt_t    *EthDev
+  PCI_DT    *Dev
 ) {
   DevPropDevice   *Device;
   UINT8           Builtin = 0x0;
@@ -552,16 +552,16 @@ SetupEthernetDevprop (
     gDevPropString = DevpropCreateString ();
   }
 
-  Device = DevpropAddDevicePci (gDevPropString, EthDev);
+  Device = DevpropAddDevicePci (gDevPropString, Dev);
 
   if (!Device) {
     MsgLog (" - Unknown, continue\n");
     return FALSE;
   }
 
-  MsgLog ("LAN Controller [%04x:%04x]\n", EthDev->vendor_id, EthDev->device_id);
+  MsgLog ("LAN Controller [%04x:%04x]\n", Dev->vendor_id, Dev->device_id);
 
-  if ((EthDev->vendor_id != 0x168c) && (BuiltinSet == 0)) {
+  if ((Dev->vendor_id != 0x168c) && (BuiltinSet == 0)) {
     BuiltinSet = 1;
     Builtin = 0x01;
   }
@@ -660,8 +660,7 @@ IsHDMIAudio (
 BOOLEAN
 SetupHdaDevprop (
   EFI_PCI_IO_PROTOCOL   *PciIo,
-  pci_dt_t              *HdaDev /*,
-  CHAR8                 *OSVersion */
+  PCI_DT                *Dev
 ) {
   CHAR8           *DevicePath;
   DevPropDevice   *Device;
@@ -677,16 +676,16 @@ SetupHdaDevprop (
     gDevPropString = DevpropCreateString ();
   }
 
-  DevicePath = GetPciDevPath (HdaDev);
-  Device = DevpropAddDevicePci (gDevPropString, HdaDev);
+  DevicePath = GetPciDevPath (Dev);
+  Device = DevpropAddDevicePci (gDevPropString, Dev);
 
   if (!Device) {
     return FALSE;
   }
 
-  MsgLog (" - HDA Controller [%04x:%04x] %a\n", HdaDev->vendor_id, HdaDev->device_id, DevicePath);
+  MsgLog (" - HDA Controller [%04x:%04x] %a\n", Dev->vendor_id, Dev->device_id, DevicePath);
 
-  if (IsHDMIAudio (HdaDev->DeviceHandle)) {
+  if (IsHDMIAudio (Dev->DeviceHandle)) {
     if (gSettings.NrAddProperties != 0xFFFE) {
       for (i = 0; i < gSettings.NrAddProperties; i++) {
         if (gSettings.AddProperties[i].Device != DEV_HDMI) {

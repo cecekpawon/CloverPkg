@@ -25,23 +25,23 @@
 
 BOOLEAN
 AmlAddToParent (
-  AML_CHUNK   *parent,
-  AML_CHUNK   *node
+  AML_CHUNK   *Parent,
+  AML_CHUNK   *Node
 ) {
-  if (parent && node) {
-    switch (parent->Type) {
+  if (Parent && Node) {
+    switch (Parent->Type) {
       case AML_CHUNK_NONE:
       case AML_CHUNK_BYTE:
       case AML_CHUNK_WORD:
       case AML_CHUNK_DWORD:
       case AML_CHUNK_QWORD:
       case AML_CHUNK_ALIAS:
-        MsgLog ("AmlAddToParent: node doesn't support child nodes!\n");
+        MsgLog ("AmlAddToParent: Node doesn't support Child Nodes!\n");
         return FALSE;
 
       case AML_CHUNK_NAME:
-        if (parent->First) {
-          MsgLog ("AmlAddToParent: name node supports only one child node!\n");
+        if (Parent->First) {
+          MsgLog ("AmlAddToParent: Name Node supports only one Child Node!\n");
           return FALSE;
         }
         break;
@@ -50,15 +50,15 @@ AmlAddToParent (
         break;
     }
 
-    if (!parent->First) {
-      parent->First = node;
+    if (!Parent->First) {
+      Parent->First = Node;
     }
 
-    if (parent->Last) {
-      parent->Last->Next = node;
+    if (Parent->Last) {
+      Parent->Last->Next = Node;
     }
 
-    parent->Last = node;
+    Parent->Last = Node;
 
     return TRUE;
   }
@@ -68,458 +68,458 @@ AmlAddToParent (
 
 AML_CHUNK *
 AmlCreateNode (
-  AML_CHUNK   *parent
+  AML_CHUNK   *Parent
 ) {
-  AML_CHUNK   *node = (AML_CHUNK *)AllocateZeroPool (sizeof (AML_CHUNK));
+  AML_CHUNK   *Node = (AML_CHUNK *)AllocateZeroPool (sizeof (AML_CHUNK));
 
-  AmlAddToParent (parent, node);
+  AmlAddToParent (Parent, Node);
 
-  return node;
+  return Node;
 }
 
 VOID
 AmlDestroyNode (
-  AML_CHUNK   *node
+  AML_CHUNK   *Node
 ) {
-  // Delete child nodes
-  AML_CHUNK   *child = node->First;
+  // Delete Child Nodes
+  AML_CHUNK   *Child = Node->First;
 
-  while (child) {
-    AML_CHUNK   *next = child->Next;
+  while (Child) {
+    AML_CHUNK   *Next = Child->Next;
 
-    if (child->Buffer) {
-      FreePool (child->Buffer);
+    if (Child->Buffer) {
+      FreePool (Child->Buffer);
     }
 
-    FreePool (child);
+    FreePool (Child);
 
-    child = next;
+    Child = Next;
   }
 
-  // Free node
-  if (node->Buffer) {
-    FreePool (node->Buffer);
+  // Free Node
+  if (Node->Buffer) {
+    FreePool (Node->Buffer);
   }
 
-  FreePool (node);
+  FreePool (Node);
 }
 
 AML_CHUNK *
 AmlAddBuffer (
-  AML_CHUNK   *parent,
-  CHAR8       *buffer,
-  UINT32      size
+  AML_CHUNK   *Parent,
+  CHAR8       *Buffer,
+  UINT32      Size
 ) {
-  AML_CHUNK   *node = AmlCreateNode (parent);
+  AML_CHUNK   *Node = AmlCreateNode (Parent);
 
-  if (node) {
-    node->Type = AML_CHUNK_NONE;
-    node->Length = (UINT16)size;
-    node->Buffer = AllocateZeroPool (node->Length);
-    CopyMem (node->Buffer, buffer, node->Length);
+  if (Node) {
+    Node->Type = AML_CHUNK_NONE;
+    Node->Length = (UINT16)Size;
+    Node->Buffer = AllocateZeroPool (Node->Length);
+    CopyMem (Node->Buffer, Buffer, Node->Length);
   }
 
-  return node;
+  return Node;
 }
 
 AML_CHUNK *
 AmlAddByte (
-  AML_CHUNK   *parent,
-  UINT8       value
+  AML_CHUNK   *Parent,
+  UINT8       Value
 ) {
-  AML_CHUNK   *node = AmlCreateNode (parent);
+  AML_CHUNK   *Node = AmlCreateNode (Parent);
 
-  if (node) {
-    node->Type = AML_CHUNK_BYTE;
+  if (Node) {
+    Node->Type = AML_CHUNK_BYTE;
 
-    node->Length = 1;
-    node->Buffer = AllocateZeroPool (node->Length);
-    node->Buffer[0] = value;
+    Node->Length = 1;
+    Node->Buffer = AllocateZeroPool (Node->Length);
+    Node->Buffer[0] = Value;
   }
 
-  return node;
+  return Node;
 }
 
 AML_CHUNK *
 AmlAddWord (
-  AML_CHUNK   *parent,
-  UINT16      value
+  AML_CHUNK   *Parent,
+  UINT16      Value
 ) {
-  AML_CHUNK   *node = AmlCreateNode (parent);
+  AML_CHUNK   *Node = AmlCreateNode (Parent);
 
-  if (node) {
-    node->Type = AML_CHUNK_WORD;
-    node->Length = 2;
-    node->Buffer = AllocateZeroPool (node->Length);
-    node->Buffer[0] = value & 0xff;
-    node->Buffer[1] = value >> 8;
+  if (Node) {
+    Node->Type = AML_CHUNK_WORD;
+    Node->Length = 2;
+    Node->Buffer = AllocateZeroPool (Node->Length);
+    Node->Buffer[0] = Value & 0xff;
+    Node->Buffer[1] = Value >> 8;
   }
 
-  return node;
+  return Node;
 }
 
 AML_CHUNK *
 AmlAddDword (
-  AML_CHUNK   *parent,
-  UINT32      value
+  AML_CHUNK   *Parent,
+  UINT32      Value
 ) {
-  AML_CHUNK   *node = AmlCreateNode (parent);
+  AML_CHUNK   *Node = AmlCreateNode (Parent);
 
-  if (node) {
-    node->Type = AML_CHUNK_DWORD;
-    node->Length = 4;
-    node->Buffer = AllocateZeroPool (node->Length);
-    node->Buffer[0] = value & 0xff;
-    node->Buffer[1] = (value >> 8) & 0xff;
-    node->Buffer[2] = (value >> 16) & 0xff;
-    node->Buffer[3] = (value >> 24) & 0xff;
+  if (Node) {
+    Node->Type = AML_CHUNK_DWORD;
+    Node->Length = 4;
+    Node->Buffer = AllocateZeroPool (Node->Length);
+    Node->Buffer[0] = Value & 0xff;
+    Node->Buffer[1] = (Value >> 8) & 0xff;
+    Node->Buffer[2] = (Value >> 16) & 0xff;
+    Node->Buffer[3] = (Value >> 24) & 0xff;
   }
 
-  return node;
+  return Node;
 }
 
 AML_CHUNK *
 AmlAddQword (
-  AML_CHUNK   *parent,
-  UINT64      value
+  AML_CHUNK   *Parent,
+  UINT64      Value
 ) {
-  AML_CHUNK   *node = AmlCreateNode (parent);
+  AML_CHUNK   *Node = AmlCreateNode (Parent);
 
-  if (node) {
-    node->Type = AML_CHUNK_QWORD;
-    node->Length = 8;
-    node->Buffer = AllocateZeroPool (node->Length);
-    node->Buffer[0] = value & 0xff;
-    node->Buffer[1] = RShiftU64 (value, 8) & 0xff;
-    node->Buffer[2] = RShiftU64 (value, 16) & 0xff;
-    node->Buffer[3] = RShiftU64 (value, 24) & 0xff;
-    node->Buffer[4] = RShiftU64 (value, 32) & 0xff;
-    node->Buffer[5] = RShiftU64 (value, 40) & 0xff;
-    node->Buffer[6] = RShiftU64 (value, 48) & 0xff;
-    node->Buffer[7] = RShiftU64 (value, 56) & 0xff;
+  if (Node) {
+    Node->Type = AML_CHUNK_QWORD;
+    Node->Length = 8;
+    Node->Buffer = AllocateZeroPool (Node->Length);
+    Node->Buffer[0] = Value & 0xff;
+    Node->Buffer[1] = RShiftU64 (Value, 8) & 0xff;
+    Node->Buffer[2] = RShiftU64 (Value, 16) & 0xff;
+    Node->Buffer[3] = RShiftU64 (Value, 24) & 0xff;
+    Node->Buffer[4] = RShiftU64 (Value, 32) & 0xff;
+    Node->Buffer[5] = RShiftU64 (Value, 40) & 0xff;
+    Node->Buffer[6] = RShiftU64 (Value, 48) & 0xff;
+    Node->Buffer[7] = RShiftU64 (Value, 56) & 0xff;
   }
 
-  return node;
+  return Node;
 }
 
 UINT32
 AmlFillSimpleName (
-  CHAR8     *buffer,
-  CHAR8     *name
+  CHAR8     *Buffer,
+  CHAR8     *Name
 ) {
-  if (AsciiStrLen (name) < 4) {
-    //    MsgLog ("AmlFillSimpleName: simple name %a has incorrect lengh! Must
-    //    be 4.\n", name);
+  if (AsciiStrLen (Name) < 4) {
+    //    MsgLog ("AmlFillSimpleName: simple Name %a has incorrect Length! Must
+    //    be 4.\n", Name);
     return 0;
   }
 
-  CopyMem (buffer, name, 4);
+  CopyMem (Buffer, Name, 4);
   return 4;
 }
 
 UINT32
 AmlFillName (
-  AML_CHUNK   *node,
-  CHAR8       *name
+  AML_CHUNK   *Node,
+  CHAR8       *Name
 ) {
-  INTN      len, offset, count;
-  UINT32    root = 0;
+  INTN      Len, Offset, Count;
+  UINT32    Root = 0;
 
-  if (!node) {
+  if (!Node) {
     return 0;
   }
 
-  len = AsciiStrLen (name);
-  offset = 0;
-  count = len >> 2;
+  Len = AsciiStrLen (Name);
+  Offset = 0;
+  Count = Len >> 2;
 
-  if (((len % 4) > 1) || (count == 0)) {
-    //    MsgLog ("AmlFillName: pathname %a has incorrect length! Must be 4, 8,
-    //    12, 16, etc...\n", name);
+  if (((Len % 4) > 1) || (Count == 0)) {
+    //    MsgLog ("AmlFillName: pathName %a has incorrect Length! Must be 4, 8,
+    //    12, 16, etc...\n", Name);
     return 0;
   }
 
-  if (((len % 4) == 1) && (name[0] == '\\')) {
-    root++;
+  if (((Len % 4) == 1) && (Name[0] == '\\')) {
+    Root++;
   }
 
-  if (count == 1) {
-    node->Length = (UINT16)(4 + root);
-    node->Buffer = AllocateZeroPool (node->Length + 4);
-    CopyMem (node->Buffer, name, 4 + root);
-    offset += 4 + root;
-    return (UINT32)offset;
+  if (Count == 1) {
+    Node->Length = (UINT16)(4 + Root);
+    Node->Buffer = AllocateZeroPool (Node->Length + 4);
+    CopyMem (Node->Buffer, Name, 4 + Root);
+    Offset += 4 + Root;
+    return (UINT32)Offset;
   }
 
-  if (count == 2) {
-    node->Length = 2 + 8;
-    node->Buffer = AllocateZeroPool (node->Length + 4);
-    node->Buffer[offset++] = 0x5c;  // Root Char
-    node->Buffer[offset++] = 0x2e;  // Double name
-    CopyMem (node->Buffer + offset, name + root, 8);
-    offset += 8;
-    return (UINT32)offset;
+  if (Count == 2) {
+    Node->Length = 2 + 8;
+    Node->Buffer = AllocateZeroPool (Node->Length + 4);
+    Node->Buffer[Offset++] = 0x5c;  // Root Char
+    Node->Buffer[Offset++] = 0x2e;  // Double Name
+    CopyMem (Node->Buffer + Offset, Name + Root, 8);
+    Offset += 8;
+    return (UINT32)Offset;
   }
 
-  node->Length = (UINT16)(3 + (count << 2));
-  node->Buffer = AllocateZeroPool (node->Length + 4);
-  node->Buffer[offset++] = 0x5c;          // Root Char
-  node->Buffer[offset++] = 0x2f;          // Multi name
-  node->Buffer[offset++] = (CHAR8)count;  // Names count
-  CopyMem (node->Buffer + offset, name + root, count * 4);
-  offset += count * 4;
+  Node->Length = (UINT16)(3 + (Count << 2));
+  Node->Buffer = AllocateZeroPool (Node->Length + 4);
+  Node->Buffer[Offset++] = 0x5c;          // Root Char
+  Node->Buffer[Offset++] = 0x2f;          // Multi Name
+  Node->Buffer[Offset++] = (CHAR8)Count;  // Names Count
+  CopyMem (Node->Buffer + Offset, Name + Root, Count * 4);
+  Offset += Count * 4;
 
-  return (UINT32)offset;  // node->Length;
+  return (UINT32)Offset;  // Node->Length;
 }
 
 AML_CHUNK *
 AmlAddScope (
-  AML_CHUNK   *parent,
-  CHAR8       *name
+  AML_CHUNK   *Parent,
+  CHAR8       *Name
 ) {
-  AML_CHUNK   *node = AmlCreateNode (parent);
+  AML_CHUNK   *Node = AmlCreateNode (Parent);
 
-  if (node) {
-    node->Type = AML_CHUNK_SCOPE;
+  if (Node) {
+    Node->Type = AML_CHUNK_SCOPE;
 
-    AmlFillName (node, name);
+    AmlFillName (Node, Name);
   }
 
-  return node;
+  return Node;
 }
 
 AML_CHUNK *
 AmlAddName (
-  AML_CHUNK   *parent,
-  CHAR8       *name
+  AML_CHUNK   *Parent,
+  CHAR8       *Name
 ) {
-  AML_CHUNK   *node = AmlCreateNode (parent);
+  AML_CHUNK   *Node = AmlCreateNode (Parent);
 
-  if (node) {
-    node->Type = AML_CHUNK_NAME;
+  if (Node) {
+    Node->Type = AML_CHUNK_NAME;
 
-    AmlFillName (node, name);
+    AmlFillName (Node, Name);
   }
 
-  return node;
+  return Node;
 }
 
 AML_CHUNK *
 AmlAddMethod (
-  AML_CHUNK   *parent,
-  CHAR8       *name,
-  UINT8       args
+  AML_CHUNK   *Parent,
+  CHAR8       *Name,
+  UINT8       Args
 ) {
-  AML_CHUNK   *node = AmlCreateNode (parent);
+  AML_CHUNK   *Node = AmlCreateNode (Parent);
 
-  if (node) {
-    UINTN offset = AmlFillName (node, name);
-    node->Type = AML_CHUNK_METHOD;
-    node->Length++;
-    node->Buffer[offset] = args;
-    //AML_CHUNK *meth = AmlAddByte (node, args);
+  if (Node) {
+    UINTN Offset = AmlFillName (Node, Name);
+    Node->Type = AML_CHUNK_METHOD;
+    Node->Length++;
+    Node->Buffer[Offset] = Args;
+    //AML_CHUNK *meth = AmlAddByte (Node, Args);
     //return meth;
   }
 
-  return node;
+  return Node;
 }
 
 AML_CHUNK *
 AmlAddPackage (
-  AML_CHUNK   *parent
+  AML_CHUNK   *Parent
 ) {
-  AML_CHUNK   *node = AmlCreateNode (parent);
+  AML_CHUNK   *Node = AmlCreateNode (Parent);
 
-  if (node) {
-    node->Type = AML_CHUNK_PACKAGE;
+  if (Node) {
+    Node->Type = AML_CHUNK_PACKAGE;
 
-    node->Length = 1;
-    node->Buffer = AllocateZeroPool (node->Length);
+    Node->Length = 1;
+    Node->Buffer = AllocateZeroPool (Node->Length);
   }
 
-  return node;
+  return Node;
 }
 
 AML_CHUNK *
 AmlAddAlias (
-  AML_CHUNK   *parent,
-  CHAR8       *name1,
-  CHAR8       *name2
+  AML_CHUNK   *Parent,
+  CHAR8       *Name1,
+  CHAR8       *Name2
 ) {
-  AML_CHUNK   *node = AmlCreateNode (parent);
+  AML_CHUNK   *Node = AmlCreateNode (Parent);
 
-  if (node) {
-    node->Type = AML_CHUNK_ALIAS;
+  if (Node) {
+    Node->Type = AML_CHUNK_ALIAS;
 
-    node->Length = 8;
-    node->Buffer = AllocateZeroPool (node->Length);
-    AmlFillSimpleName (node->Buffer, name1);
-    AmlFillSimpleName (node->Buffer + 4, name2);
+    Node->Length = 8;
+    Node->Buffer = AllocateZeroPool (Node->Length);
+    AmlFillSimpleName (Node->Buffer, Name1);
+    AmlFillSimpleName (Node->Buffer + 4, Name2);
   }
 
-  return node;
+  return Node;
 }
 
 AML_CHUNK *
 AmlAddReturnName (
-  AML_CHUNK   *parent,
-  CHAR8       *name
+  AML_CHUNK   *Parent,
+  CHAR8       *Name
 ) {
-  AML_CHUNK   *node = AmlCreateNode (parent);
+  AML_CHUNK   *Node = AmlCreateNode (Parent);
 
-  if (node) {
-    node->Type = AML_CHUNK_RETURN;
-    AmlFillName (node, name);
+  if (Node) {
+    Node->Type = AML_CHUNK_RETURN;
+    AmlFillName (Node, Name);
   }
 
-  return node;
+  return Node;
 }
 
 AML_CHUNK *
 AmlAddReturnByte (
-  AML_CHUNK   *parent,
-  UINT8       value
+  AML_CHUNK   *Parent,
+  UINT8       Value
 ) {
-  AML_CHUNK   *node = AmlCreateNode (parent);
+  AML_CHUNK   *Node = AmlCreateNode (Parent);
 
-  if (node) {
-    node->Type = AML_CHUNK_RETURN;
-    AmlAddByte (node, value);
+  if (Node) {
+    Node->Type = AML_CHUNK_RETURN;
+    AmlAddByte (Node, Value);
   }
 
-  return node;
+  return Node;
 }
 
 AML_CHUNK *
 AmlAddDevice (
-  AML_CHUNK   *parent,
-  CHAR8       *name
+  AML_CHUNK   *Parent,
+  CHAR8       *Name
 ) {
-  AML_CHUNK   *node = AmlCreateNode (parent);
+  AML_CHUNK   *Node = AmlCreateNode (Parent);
 
-  if (node) {
-    node->Type = AML_CHUNK_DEVICE;
-    AmlFillName (node, name);
+  if (Node) {
+    Node->Type = AML_CHUNK_DEVICE;
+    AmlFillName (Node, Name);
   }
 
-  return node;
+  return Node;
 }
 
 AML_CHUNK *
 AmlAddLocal0 (
-  AML_CHUNK   *parent
+  AML_CHUNK   *Parent
 ) {
-  AML_CHUNK   *node = AmlCreateNode (parent);
+  AML_CHUNK   *Node = AmlCreateNode (Parent);
 
-  if (node) {
-    node->Type = AML_CHUNK_LOCAL0;
-    node->Length = 1;
+  if (Node) {
+    Node->Type = AML_CHUNK_LOCAL0;
+    Node->Length = 1;
   }
 
-  return node;
+  return Node;
 }
 
 AML_CHUNK *
 AmlAddStore (
-  AML_CHUNK   *parent
+  AML_CHUNK   *Parent
 ) {
-  AML_CHUNK   *node = AmlCreateNode (parent);
+  AML_CHUNK   *Node = AmlCreateNode (Parent);
 
-  if (node) {
-    node->Type = AML_STORE_OP;
-    node->Length = 1;
+  if (Node) {
+    Node->Type = AML_STORE_OP;
+    Node->Length = 1;
   }
 
-  return node;
+  return Node;
 }
 
 AML_CHUNK *
 AmlAddByteBuffer (
-  AML_CHUNK   *parent,
+  AML_CHUNK   *Parent,
   CHAR8       *data,
-  UINT32      size
+  UINT32      Size
 ) {
-  AML_CHUNK *node = AmlCreateNode (parent);
+  AML_CHUNK *Node = AmlCreateNode (Parent);
 
-  if (node) {
-    INTN    offset = 0;
+  if (Node) {
+    INTN    Offset = 0;
 
-    node->Type = AML_CHUNK_BUFFER;
-    node->Length = (UINT8)(size + 2);
-    node->Buffer = AllocateZeroPool (node->Length);
-    node->Buffer[offset++] = AML_CHUNK_BYTE;  // 0x0A
-    node->Buffer[offset++] = (CHAR8)size;
-    CopyMem (node->Buffer + offset, data, node->Length);
+    Node->Type = AML_CHUNK_BUFFER;
+    Node->Length = (UINT8)(Size + 2);
+    Node->Buffer = AllocateZeroPool (Node->Length);
+    Node->Buffer[Offset++] = AML_CHUNK_BYTE;  // 0x0A
+    Node->Buffer[Offset++] = (CHAR8)Size;
+    CopyMem (Node->Buffer + Offset, data, Node->Length);
   }
 
-  return node;
+  return Node;
 }
 
 AML_CHUNK *
 AmlAddStringBuffer (
-  AML_CHUNK   *parent,
+  AML_CHUNK   *Parent,
   CHAR8       *StringBuf
 ) {
-  AML_CHUNK *node = AmlCreateNode (parent);
+  AML_CHUNK *Node = AmlCreateNode (Parent);
 
-  if (node) {
-    UINTN   offset = 0, len = AsciiStrLen (StringBuf);
+  if (Node) {
+    UINTN   Offset = 0, Len = AsciiStrLen (StringBuf);
 
-    node->Type = AML_CHUNK_BUFFER;
-    node->Length = (UINT8)(len + 3);
-    node->Buffer = AllocateZeroPool (node->Length);
-    node->Buffer[offset++] = AML_CHUNK_BYTE;
-    node->Buffer[offset++] = (CHAR8)(len + 1);
-    CopyMem (node->Buffer + offset, StringBuf, len);
-    //node->Buffer[offset + len] = '\0';  //already zero pool
+    Node->Type = AML_CHUNK_BUFFER;
+    Node->Length = (UINT8)(Len + 3);
+    Node->Buffer = AllocateZeroPool (Node->Length);
+    Node->Buffer[Offset++] = AML_CHUNK_BYTE;
+    Node->Buffer[Offset++] = (CHAR8)(Len + 1);
+    CopyMem (Node->Buffer + Offset, StringBuf, Len);
+    //Node->Buffer[Offset + Len] = '\0';  //already zero pool
   }
 
-  return node;
+  return Node;
 }
 
 AML_CHUNK *
 AmlAddString (
-  AML_CHUNK   *parent,
+  AML_CHUNK   *Parent,
   CHAR8       *StringBuf
 ) {
-  AML_CHUNK   *node = AmlCreateNode (parent);
+  AML_CHUNK   *Node = AmlCreateNode (Parent);
 
-  if (node) {
-    INTN    len = AsciiStrLen (StringBuf);
+  if (Node) {
+    INTN    Len = AsciiStrLen (StringBuf);
 
-    node->Type = AML_CHUNK_STRING;
-    node->Length = (UINT8)(len + 1);
-    node->Buffer = AllocateZeroPool (len + 1);
-    CopyMem (node->Buffer, StringBuf, len);
-    //node->Buffer[len] = '\0';
+    Node->Type = AML_CHUNK_STRING;
+    Node->Length = (UINT8)(Len + 1);
+    Node->Buffer = AllocateZeroPool (Len + 1);
+    CopyMem (Node->Buffer, StringBuf, Len);
+    //Node->Buffer[Len] = '\0';
   }
 
-  return node;
+  return Node;
 }
 
 AML_CHUNK *
 AmlAddReturn (
-  AML_CHUNK   *parent
+  AML_CHUNK   *Parent
 ) {
-  AML_CHUNK   *node = AmlCreateNode (parent);
+  AML_CHUNK   *Node = AmlCreateNode (Parent);
 
-  if (node) {
-    node->Type = AML_CHUNK_RETURN;
-    // AmlAddByte (node, value);
+  if (Node) {
+    Node->Type = AML_CHUNK_RETURN;
+    // AmlAddByte (Node, Value);
   }
 
-  return node;
+  return Node;
 }
 
 UINT8
 AmlGetSizeLength (
-  UINT32      size
+  UINT32      Size
 ) {
-  if ((size + 1) <= 0x3f) {
+  if ((Size + 1) <= 0x3f) {
     return 1;
-  } else if ((size + 2) <= 0xfff) {/* Encode in 4 bits and 1 byte */
+  } else if ((Size + 2) <= 0xfff) {/* Encode in 4 bits and 1 byte */
     return 2;
-  } else if ((size + 3) <= 0xfffff) { /* Encode in 4 bits and 2 bytes */
+  } else if ((Size + 3) <= 0xfffff) { /* Encode in 4 bits and 2 bytes */
     return 3;
   }
 
@@ -528,52 +528,52 @@ AmlGetSizeLength (
 
 UINT32
 AmlCalculateSize (
-  AML_CHUNK     *node
+  AML_CHUNK     *Node
 ) {
-  if (node) {
-    // Calculate child nodes size
-    AML_CHUNK   *child = node->First;
-    UINT8       child_count = 0;
+  if (Node) {
+    // Calculate Child Nodes Size
+    AML_CHUNK   *Child = Node->First;
+    UINT8       Child_Count = 0;
 
-    node->Size = 0;
-    while (child) {
-      child_count++;
+    Node->Size = 0;
+    while (Child) {
+      Child_Count++;
 
-      node->Size += (UINT16)AmlCalculateSize (child);
+      Node->Size += (UINT16)AmlCalculateSize (Child);
 
-      child = child->Next;
+      Child = Child->Next;
     }
 
-    switch (node->Type) {
+    switch (Node->Type) {
       case AML_CHUNK_NONE:
       case AML_STORE_OP:
       case AML_CHUNK_LOCAL0:
-        node->Size += node->Length;
+        Node->Size += Node->Length;
         break;
 
       case AML_CHUNK_METHOD:
       case AML_CHUNK_SCOPE:
       case AML_CHUNK_BUFFER:
-        node->Size += 1 + node->Length;
-        node->Size += AmlGetSizeLength (node->Size);
+        Node->Size += 1 + Node->Length;
+        Node->Size += AmlGetSizeLength (Node->Size);
         break;
 
       case AML_CHUNK_DEVICE:
-        node->Size += 2 + node->Length;
-        node->Size += AmlGetSizeLength (node->Size);
+        Node->Size += 2 + Node->Length;
+        Node->Size += AmlGetSizeLength (Node->Size);
         break;
 
       case AML_CHUNK_PACKAGE:
-        node->Buffer[0] = child_count;
-        node->Size += 1 + node->Length;
-        node->Size += AmlGetSizeLength (node->Size);
+        Node->Buffer[0] = Child_Count;
+        Node->Size += 1 + Node->Length;
+        Node->Size += AmlGetSizeLength (Node->Size);
         break;
 
       case AML_CHUNK_BYTE:
-        if ((node->Buffer[0] == 0x0) || (node->Buffer[0] == 0x1)) {
-          node->Size += node->Length;
+        if ((Node->Buffer[0] == 0x0) || (Node->Buffer[0] == 0x1)) {
+          Node->Size += Node->Length;
         } else {
-          node->Size += 1 + node->Length;
+          Node->Size += 1 + Node->Length;
         }
 
         break;
@@ -585,11 +585,11 @@ AmlCalculateSize (
       case AML_CHUNK_NAME:
       case AML_CHUNK_RETURN:
       case AML_CHUNK_STRING:
-        node->Size += 1 + node->Length;
+        Node->Size += 1 + Node->Length;
         break;
     }
 
-    return node->Size;
+    return Node->Size;
   }
 
   return 0;
@@ -597,141 +597,141 @@ AmlCalculateSize (
 
 UINT32
 AmlWriteByte (
-  UINT8     value,
-  CHAR8     *buffer,
-  UINT32    offset
+  UINT8     Value,
+  CHAR8     *Buffer,
+  UINT32    Offset
 ) {
-  buffer[offset++] = value;
+  Buffer[Offset++] = Value;
 
-  return offset;
+  return Offset;
 }
 
 UINT32
 AmlWriteWord (
-  UINT16    value,
-  CHAR8     *buffer,
-  UINT32    offset
+  UINT16    Value,
+  CHAR8     *Buffer,
+  UINT32    Offset
 ) {
-  buffer[offset++] = value & 0xff;
-  buffer[offset++] = value >> 8;
+  Buffer[Offset++] = Value & 0xff;
+  Buffer[Offset++] = Value >> 8;
 
-  return offset;
+  return Offset;
 }
 
 UINT32
 AmlWriteDword (
-  UINT32    value,
-  CHAR8     *buffer,
-  UINT32    offset
+  UINT32    Value,
+  CHAR8     *Buffer,
+  UINT32    Offset
 ) {
-  buffer[offset++] = value & 0xff;
-  buffer[offset++] = (value >> 8) & 0xff;
-  buffer[offset++] = (value >> 16) & 0xff;
-  buffer[offset++] = (value >> 24) & 0xff;
+  Buffer[Offset++] = Value & 0xff;
+  Buffer[Offset++] = (Value >> 8) & 0xff;
+  Buffer[Offset++] = (Value >> 16) & 0xff;
+  Buffer[Offset++] = (Value >> 24) & 0xff;
 
-  return offset;
+  return Offset;
 }
 
 UINT32
 AmlWriteQword (
-  UINT64    value,
-  CHAR8     *buffer,
-  UINT32    offset
+  UINT64    Value,
+  CHAR8     *Buffer,
+  UINT32    Offset
 ) {
-  buffer[offset++] = value & 0xff;
-  buffer[offset++] = RShiftU64 (value, 8) & 0xff;
-  buffer[offset++] = RShiftU64 (value, 16) & 0xff;
-  buffer[offset++] = RShiftU64 (value, 24) & 0xff;
-  buffer[offset++] = RShiftU64 (value, 32) & 0xff;
-  buffer[offset++] = RShiftU64 (value, 40) & 0xff;
-  buffer[offset++] = RShiftU64 (value, 48) & 0xff;
-  buffer[offset++] = RShiftU64 (value, 56) & 0xff;
+  Buffer[Offset++] = Value & 0xff;
+  Buffer[Offset++] = RShiftU64 (Value, 8) & 0xff;
+  Buffer[Offset++] = RShiftU64 (Value, 16) & 0xff;
+  Buffer[Offset++] = RShiftU64 (Value, 24) & 0xff;
+  Buffer[Offset++] = RShiftU64 (Value, 32) & 0xff;
+  Buffer[Offset++] = RShiftU64 (Value, 40) & 0xff;
+  Buffer[Offset++] = RShiftU64 (Value, 48) & 0xff;
+  Buffer[Offset++] = RShiftU64 (Value, 56) & 0xff;
 
-  return offset;
+  return Offset;
 }
 
 UINT32
 AmlWriteBuffer (
-  CONST CHAR8     *value,
-        UINT32    size,
-        CHAR8     *buffer,
-        UINT32    offset
+  CONST CHAR8     *Value,
+        UINT32    Size,
+        CHAR8     *Buffer,
+        UINT32    Offset
 ) {
-  if (size > 0) {
-    CopyMem (buffer + offset, value, size);
+  if (Size > 0) {
+    CopyMem (Buffer + Offset, Value, Size);
   }
 
-  return offset + size;
+  return Offset + Size;
 }
 
 UINT32
 AmlWriteSize (
-  UINT32    size,
-  CHAR8     *buffer,
-  UINT32    offset
+  UINT32    Size,
+  CHAR8     *Buffer,
+  UINT32    Offset
 ) {
-  if (size <= 0x3f) { /* simple 1 byte length in 6 bits */
+  if (Size <= 0x3f) { /* simple 1 byte Length in 6 bits */
 
-    buffer[offset++] = (CHAR8)size;
-  } else if (size <= 0xfff) {
-    buffer[offset++] = 0x40 | (size & 0xf); /* 0x40 is type, 0x0X is first nibble of length */
-    buffer[offset++] = (size >> 4) & 0xff;  /* +1 bytes for rest length */
-  } else if (size <= 0xfffff) {
-    buffer[offset++] = 0x80 | (size & 0xf); /* 0x80 is type, 0x0X is first nibble of length */
-    buffer[offset++] = (size >> 4) & 0xff;  /* +2 bytes for rest length */
-    buffer[offset++] = (size >> 12) & 0xff;
+    Buffer[Offset++] = (CHAR8)Size;
+  } else if (Size <= 0xfff) {
+    Buffer[Offset++] = 0x40 | (Size & 0xf); /* 0x40 is type, 0x0X is first nibble of Length */
+    Buffer[Offset++] = (Size >> 4) & 0xff;  /* +1 bytes for rest Length */
+  } else if (Size <= 0xfffff) {
+    Buffer[Offset++] = 0x80 | (Size & 0xf); /* 0x80 is type, 0x0X is first nibble of Length */
+    Buffer[Offset++] = (Size >> 4) & 0xff;  /* +2 bytes for rest Length */
+    Buffer[Offset++] = (Size >> 12) & 0xff;
   } else {
-    buffer[offset++] = 0xc0 | (size & 0xf); /* 0xC0 is type, 0x0X is first nibble of length */
-    buffer[offset++] = (size >> 4) & 0xff;  /* +3 bytes for rest length */
-    buffer[offset++] = (size >> 12) & 0xff;
-    buffer[offset++] = (size >> 20) & 0xff;
+    Buffer[Offset++] = 0xc0 | (Size & 0xf); /* 0xC0 is type, 0x0X is first nibble of Length */
+    Buffer[Offset++] = (Size >> 4) & 0xff;  /* +3 bytes for rest Length */
+    Buffer[Offset++] = (Size >> 12) & 0xff;
+    Buffer[Offset++] = (Size >> 20) & 0xff;
   }
 
-  return offset;
+  return Offset;
 }
 
 UINT32
 AmlWriteNode (
-  AML_CHUNK   *node,
-  CHAR8       *buffer,
-  UINT32      offset
+  AML_CHUNK   *Node,
+  CHAR8       *Buffer,
+  UINT32      Offset
 ) {
-  if (node && buffer) {
-    UINT32      old = offset;
-    AML_CHUNK   *child = node->First;
+  if (Node && Buffer) {
+    UINT32      Old = Offset;
+    AML_CHUNK   *Child = Node->First;
 
-    switch (node->Type) {
+    switch (Node->Type) {
       case AML_CHUNK_NONE:
-        offset = AmlWriteBuffer (node->Buffer, node->Length, buffer, offset);
+        Offset = AmlWriteBuffer (Node->Buffer, Node->Length, Buffer, Offset);
         break;
 
       case AML_CHUNK_LOCAL0:
       case AML_STORE_OP:
-        offset = AmlWriteByte (node->Type, buffer, offset);
+        Offset = AmlWriteByte (Node->Type, Buffer, Offset);
         break;
 
       case AML_CHUNK_DEVICE:
-        offset = AmlWriteByte (AML_CHUNK_OP, buffer, offset);
-        offset = AmlWriteByte (node->Type, buffer, offset);
-        offset = AmlWriteSize (node->Size - 2, buffer, offset);
-        offset = AmlWriteBuffer (node->Buffer, node->Length, buffer, offset);
+        Offset = AmlWriteByte (AML_CHUNK_OP, Buffer, Offset);
+        Offset = AmlWriteByte (Node->Type, Buffer, Offset);
+        Offset = AmlWriteSize (Node->Size - 2, Buffer, Offset);
+        Offset = AmlWriteBuffer (Node->Buffer, Node->Length, Buffer, Offset);
         break;
 
       case AML_CHUNK_SCOPE:
       case AML_CHUNK_METHOD:
       case AML_CHUNK_PACKAGE:
       case AML_CHUNK_BUFFER:
-        offset = AmlWriteByte (node->Type, buffer, offset);
-        offset = AmlWriteSize (node->Size - 1, buffer, offset);
-        offset = AmlWriteBuffer (node->Buffer, node->Length, buffer, offset);
+        Offset = AmlWriteByte (Node->Type, Buffer, Offset);
+        Offset = AmlWriteSize (Node->Size - 1, Buffer, Offset);
+        Offset = AmlWriteBuffer (Node->Buffer, Node->Length, Buffer, Offset);
         break;
 
       case AML_CHUNK_BYTE:
-        if ((node->Buffer[0] == 0x0) || (node->Buffer[0] == 0x1)) {
-          offset = AmlWriteBuffer (node->Buffer, node->Length, buffer, offset);
+        if ((Node->Buffer[0] == 0x0) || (Node->Buffer[0] == 0x1)) {
+          Offset = AmlWriteBuffer (Node->Buffer, Node->Length, Buffer, Offset);
         } else {
-          offset = AmlWriteByte (node->Type, buffer, offset);
-          offset = AmlWriteBuffer (node->Buffer, node->Length, buffer, offset);
+          Offset = AmlWriteByte (Node->Type, Buffer, Offset);
+          Offset = AmlWriteBuffer (Node->Buffer, Node->Length, Buffer, Offset);
         }
         break;
 
@@ -742,24 +742,24 @@ AmlWriteNode (
       case AML_CHUNK_NAME:
       case AML_CHUNK_RETURN:
       case AML_CHUNK_STRING:
-        offset = AmlWriteByte (node->Type, buffer, offset);
-        offset = AmlWriteBuffer (node->Buffer, node->Length, buffer, offset);
+        Offset = AmlWriteByte (Node->Type, Buffer, Offset);
+        Offset = AmlWriteBuffer (Node->Buffer, Node->Length, Buffer, Offset);
         break;
 
       default:
         break;
     }
 
-    while (child) {
-      offset = AmlWriteNode (child, buffer, offset);
-      child = child->Next;
+    while (Child) {
+      Offset = AmlWriteNode (Child, Buffer, Offset);
+      Child = Child->Next;
     }
 
-    if ((offset - old) != node->Size) {
-      MsgLog ("Node size incorrect: type=0x%x size=%x offset=%x\n", node->Type,
-             node->Size, (offset - old));
+    if ((Offset - Old) != Node->Size) {
+      MsgLog ("Node Size incorrect: type=0x%x Size=%x Offset=%x\n", Node->Type,
+             Node->Size, (Offset - Old));
     }
   }
 
-  return offset;
+  return Offset;
 }

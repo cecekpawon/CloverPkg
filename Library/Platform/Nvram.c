@@ -1015,15 +1015,3 @@ SetVariablesFromNvram () {
   FreePool (arg);
   FreePool (lBootArgs);
 }
-
-VOID
-DoResetNvram () {
-  ClearScreen (&BlueBackgroundPixel);
-  gBS->Stall (1 * 1000000);
-  ClearScreen (&GreenBackgroundPixel);
-  gBS->Stall (1 * 1000000);
-  ClearScreen (&RedBackgroundPixel);
-  gBS->Stall (1 * 1000000);
-
-  ResetNvram ();
-}

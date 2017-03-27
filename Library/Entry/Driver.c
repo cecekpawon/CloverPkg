@@ -1,17 +1,17 @@
 #include <Library/Platform/Platform.h>
 
 #ifndef DEBUG_ALL
-#ifndef DEBUG_SCAN_LOADER
-#define DEBUG_SCAN_LOADER -1
+#ifndef DEBUG_SCAN_DRIVER
+#define DEBUG_SCAN_DRIVER -1
 #endif
 #else
-#ifdef DEBUG_SCAN_LOADER
-#undef DEBUG_SCAN_LOADER
+#ifdef DEBUG_SCAN_DRIVER
+#undef DEBUG_SCAN_DRIVER
 #endif
-#define DEBUG_SCAN_LOADER DEBUG_ALL
+#define DEBUG_SCAN_DRIVER DEBUG_ALL
 #endif
 
-#define DBG(...) DebugLog (DEBUG_SCAN_LOADER, __VA_ARGS__)
+#define DBG(...) DebugLog (DEBUG_SCAN_DRIVER, __VA_ARGS__)
 
 DRIVERS_FLAGS   gDriversFlags = { FALSE, FALSE, FALSE, FALSE };  //the initializer is not needed for global variables
 

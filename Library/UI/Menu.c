@@ -1710,7 +1710,7 @@ RunGenericMenu (
           break;
 
         case SCAN_F5:
-          SaveOemDsdt (TRUE); //full patch
+          SaveOemDsdt (TRUE, 0); //full patch
           break;
 
         case SCAN_F6:
@@ -1765,7 +1765,7 @@ RunGenericMenu (
       if (CtrlKeyPressed) {
         switch (CurrChar) {
           case 'R':
-            DoResetNvram ();
+            ResetClover ();
             (Screen->Entries[State.CurrentSelection])->Tag = TAG_RESET;
             MenuExit = MENU_EXIT_OTHER;
             break;
@@ -3332,7 +3332,18 @@ SubMenuAcpi () {
     AddSeparator (SubScreen, "Patched ACPI");
 
     while (ACPIPatchedAMLTmp) {
-      AddMenuBOOL (SubScreen, PoolPrint (L"Drop \"%s\"", ACPIPatchedAMLTmp->FileName), &(ACPIPatchedAMLTmp->MenuItem), 0);
+      CHAR16  *OsSubdir = NULL;
+
+      if (OSTYPE_IS_DARWIN_GLOB (ACPIPatchedAMLTmp->OSType)) {
+        OsSubdir = OSTYPE_DARWIN_STR;
+      } else if (OSTYPE_IS_LINUX_GLOB (ACPIPatchedAMLTmp->OSType)) {
+        OsSubdir = OSTYPE_LINUX_STR;
+      } else if (OSTYPE_IS_WINDOWS_GLOB (ACPIPatchedAMLTmp->OSType)) {
+        OsSubdir = OSTYPE_WINDOWS_STR;
+      }
+
+      AddMenuBOOL (SubScreen, PoolPrint (L"Drop \"%s: %s\"", OsSubdir, ACPIPatchedAMLTmp->FileName), &(ACPIPatchedAMLTmp->MenuItem), 0);
+
       ACPIPatchedAMLTmp = ACPIPatchedAMLTmp->Next;
     }
   }

@@ -23,12 +23,12 @@
 
 #define S_ATIMODEL "ATI/AMD Graphics"
 
-STATIC value_t aty_name;
-STATIC value_t aty_nameparent;
-card_t *card;
-//STATIC value_t aty_model;
+//STATIC ATI_VAL  ATYModel;
+STATIC  ATI_VAL   ATYName;
+STATIC  ATI_VAL   ATYNameParent;
+        ATI_CARD  *Card;
 
-card_config_t card_configs[] = {
+ATI_CARD_CONFIG   ATICardConfigs[] = {
   { NULL, 0 },
   /* OLDController */
   { "Wormy", 2 },
@@ -116,11 +116,11 @@ card_config_t card_configs[] = {
   { "Labrador", 6 },
 };
 
-radeon_card_info_t radeon_cards[] = {
+ATI_CARD_INFO   ATICards[] = {
 
   // Earlier cards are not supported
   //
-  // Layout is device_id, fake_id, chip_family_name, display name, frame buffer
+  // Layout is device_id, fake_id, ATIFamilyName, display name, frame buffer
   // Cards are grouped by device id  to make it easier to add new cards
   //
 
@@ -129,7 +129,7 @@ radeon_card_info_t radeon_cards[] = {
   // Oland: R7-240, 250  - Southand Island
   // Earlier cards are not supported
   //
-  // Layout is device_id, fake_id, chip_family_name, display name, frame buffer
+  // Layout is device_id, fake_id, ATIFamilyName, display name, frame buffer
   // Cards are grouped by device id  to make it easier to add new cards
   //
 
@@ -518,7 +518,7 @@ radeon_card_info_t radeon_cards[] = {
 
 };
 
-CONST CHAR8   *chip_family_name[] = {
+CONST CHAR8   *ATIFamilyName[] = {
   "UNKNOW",
   "R420",
   "R423",
@@ -583,7 +583,7 @@ CONST CHAR8   *chip_family_name[] = {
   ""
 };
 
-AtiDevProp  ati_devprop_list[] = {
+ATI_DEV_PROP  ATIDevPropList[] = {
   {FLAGTRUE,    FALSE,  "@0,AAPL,boot-display",             GetBootDisplayVal,    NULVAL },
   //{FLAGTRUE,  FALSE,  "@0,ATY,EFIDisplay",                NULL,                 STRVAL ("TMDSA") },
 
@@ -636,51 +636,48 @@ AtiDevProp  ati_devprop_list[] = {
 
 VOID
 GetAtiModel (
-  OUT GFX_PROPERTIES  *gfx,
-  IN  UINT32          device_id
+  OUT GFX_PROPERTIES  *Gfx,
+  IN  UINT32          DevId
 ) {
-  radeon_card_info_t    *info = NULL;
-  UINTN                 i = 0;
+  ATI_CARD_INFO   *Info = NULL;
+  UINTN           i = 0;
 
   do {
-    info = &radeon_cards[i];
-    if (info->device_id == device_id) {
+    Info = &ATICards[i];
+    if (Info->device_id == DevId) {
       break;
     }
-  } while (radeon_cards[i++].device_id != 0);
+  } while (ATICards[i++].device_id != 0);
 
-  //AsciiSPrint (gfx->Model,  64, "%a", info->model_name);
-  AsciiSPrint (gfx->Model,  64, "%a", S_ATIMODEL);
-  AsciiSPrint (gfx->Config, 64, "%a", card_configs[info->cfg_name].name);
-  gfx->Ports = card_configs[info->cfg_name].ports;
+  //AsciiSPrint (Gfx->Model,  64, "%a", Info->model_name);
+  AsciiSPrint (Gfx->Model,  64, "%a", S_ATIMODEL);
+  AsciiSPrint (Gfx->Config, 64, "%a", ATICardConfigs[Info->cfg_name].name);
+  Gfx->Ports = ATICardConfigs[Info->cfg_name].ports;
 }
 
 BOOLEAN
 GetBootDisplayVal (
-  value_t *val,
-  INTN index
+  ATI_VAL   *Val,
+  INTN      Index
 ) {
   UINT32   v = 0;
 
-  if (v)
-    return FALSE;
-
-  if (!card->posted) {
+  if (v || !Card->posted) {
     return FALSE;
   }
 
   v = 1;
-  val->type = kCst;
-  val->size = 4;
-  val->data = (UINT8 *)&v;
+  Val->type = kCst;
+  Val->size = 4;
+  Val->data = (UINT8 *)&v;
 
   return TRUE;
 }
 
 BOOLEAN
 GetDualLinkVal (
-  value_t   *val,
-  INTN      index
+  ATI_VAL   *Val,
+  INTN      Index
 ) {
   UINT32   v = 0;
 
@@ -689,25 +686,25 @@ GetDualLinkVal (
   }
 
   v = gSettings.DualLink;
-  val->type = kCst;
-  val->size = 4;
-  val->data = (UINT8 *)&v;
+  Val->type = kCst;
+  Val->size = 4;
+  Val->data = (UINT8 *)&v;
 
   return TRUE;
 }
 
 BOOLEAN
 GetVramVal (
-  value_t   *val,
-  INTN      index
+  ATI_VAL   *Val,
+  INTN      Index
 ) {
   return FALSE;
 }
 
 BOOLEAN
 GetEdidVal (
-  value_t   *val,
-  INTN      index
+  ATI_VAL   *Val,
+  INTN      Index
 ) {
   UINT32   v = 0;
 
@@ -716,9 +713,9 @@ GetEdidVal (
   }
 
   v = 1;
-  val->type = kPtr;
-  val->size = 128;
-  val->data = AllocateCopyPool (val->size, gSettings.CustomEDID);
+  Val->type = kPtr;
+  Val->size = 128;
+  Val->data = AllocateCopyPool (Val->size, gSettings.CustomEDID);
 
   return TRUE;
 }
@@ -728,8 +725,8 @@ STATIC UINT32 dti = 0;
 
 BOOLEAN
 GetDisplayType (
-  value_t   *val,
-  INTN      index
+  ATI_VAL   *Val,
+  INTN      Index
 ) {
   dti++;
 
@@ -737,33 +734,33 @@ GetDisplayType (
     dti = 0;
   }
 
-  val->type = kStr;
-  val->size = 4;
-  val->data = (UINT8 *)dtyp[dti];
+  Val->type = kStr;
+  Val->size = 4;
+  Val->data = (UINT8 *)dtyp[dti];
 
   return TRUE;
 }
 
 BOOLEAN
 GetNameVal (
-  value_t   *val,
-  INTN      index
+  ATI_VAL   *Val,
+  INTN      Index
 ) {
-  val->type = aty_name.type;
-  val->size = aty_name.size;
-  val->data = aty_name.data;
+  Val->type = ATYName.type;
+  Val->size = ATYName.size;
+  Val->data = ATYName.data;
 
   return TRUE;
 }
 
 BOOLEAN
 GetNameParentVal (
-  value_t   *val,
-  INTN      index
+  ATI_VAL   *Val,
+  INTN      Index
 ) {
-  val->type = aty_nameparent.type;
-  val->size = aty_nameparent.size;
-  val->data = aty_nameparent.data;
+  Val->type = ATYNameParent.type;
+  Val->size = ATYNameParent.size;
+  Val->data = ATYNameParent.data;
 
   return TRUE;
 }
@@ -772,39 +769,39 @@ STATIC CHAR8 pciName[15];
 
 BOOLEAN
 GetNamePciVal (
-  value_t   *val,
-  INTN      index
+  ATI_VAL   *Val,
+  INTN      Index
 ) {
   UINTN   Len = ARRAY_SIZE (pciName);
 
-  if (!gSettings.FakeATI) { //(!card->info->model_name || !gSettings.FakeATI)
+  if (!gSettings.FakeATI) { //(!Card->info->model_name || !gSettings.FakeATI)
     return FALSE;
   }
 
   AsciiSPrint (pciName, Len, "pci1002,%x", gSettings.FakeATI >> 16);
   AsciiStrCpyS (pciName, Len, AsciiStrToLower (pciName));
 
-  val->type = kStr;
-  val->size = 13;
-  val->data = (UINT8 *)&pciName[0];
+  Val->type = kStr;
+  Val->size = 13;
+  Val->data = (UINT8 *)&pciName[0];
 
   return TRUE;
 }
 
 BOOLEAN
 GetModelVal (
-  value_t   *val,
-  INTN      index
+  ATI_VAL   *Val,
+  INTN      Index
 ) {
-  //if (!card->info->model_name) {
+  //if (!Card->info->model_name) {
   //  return FALSE;
   //}
 
-  val->type = kStr;
-  //val->size = (UINT32)AsciiStrLen (card->info->model_name);
-  //val->data = (UINT8 *)card->info->model_name;
-  val->size = (UINT32)AsciiStrLen (S_ATIMODEL);
-  val->data = (UINT8 *)S_ATIMODEL;
+  Val->type = kStr;
+  //Val->size = (UINT32)AsciiStrLen (Card->info->model_name);
+  //Val->data = (UINT8 *)Card->info->model_name;
+  Val->size = (UINT32)AsciiStrLen (S_ATIMODEL);
+  Val->data = (UINT8 *)S_ATIMODEL;
 
   return TRUE;
 }
@@ -818,8 +815,8 @@ KERNEL_AND_KEXT_PATCHES *CurrentPatches;
 //TODO - get connectors from ATIConnectorsPatch
 BOOLEAN
 GetConnTypeVal (
-  value_t   *val,
-  INTN      index
+  ATI_VAL   *Val,
+  INTN      Index
 ) {
   UINT8   *ct;
   //Connector types:
@@ -842,9 +839,9 @@ GetConnTypeVal (
    ct = (UINT32 *)&ctd[0];
   */
 
-  val->type = kCst;
-  val->size = 4;
-  val->data = (UINT8 *)&ct[index * 16];
+  Val->type = kCst;
+  Val->size = 4;
+  Val->data = (UINT8 *)&ct[Index * 16];
 
   //  cti++;
   //  if (cti > 3) cti = 0;
@@ -854,271 +851,271 @@ GetConnTypeVal (
 
 BOOLEAN
 GetVramSizeVal (
-  value_t   *val,
-  INTN      index
+  ATI_VAL   *Val,
+  INTN      Index
 ) {
-  INTN     idx = -1;
-  UINT64   memsize;
+  INTN     i = -1;
+  UINT64   MemSize;
 
-  idx++;
-  memsize = LShiftU64 ((UINT64)card->vram_size, 32);
+  i++;
+  MemSize = LShiftU64 ((UINT64)Card->vram_size, 32);
 
-  if (idx == 0) {
-    memsize = memsize | (UINT64)card->vram_size;
+  if (i == 0) {
+    MemSize = MemSize | (UINT64)Card->vram_size;
   }
 
-  val->type = kCst;
-  val->size = 8;
-  val->data = (UINT8 *)&memsize;
+  Val->type = kCst;
+  Val->size = 8;
+  Val->data = (UINT8 *)&MemSize;
 
   return TRUE;
 }
 
 BOOLEAN
 GetBinImageVal (
-  value_t   *val,
-  INTN      index
+  ATI_VAL   *Val,
+  INTN      Index
 ) {
-  if (!card->rom) {
+  if (!Card->rom) {
     return FALSE;
   }
 
-  val->type = kPtr;
-  val->size = card->rom_size;
-  val->data = card->rom;
+  Val->type = kPtr;
+  Val->size = Card->rom_size;
+  Val->data = Card->rom;
 
   return TRUE;
 }
 
 BOOLEAN
 GetBinImageOwr (
-  value_t   *val,
-  INTN      index
+  ATI_VAL   *Val,
+  INTN      Index
 ) {
-  STATIC UINT32   v = 0;
+  UINT32   v = 0;
 
   if (!gSettings.LoadVBios) {
     return FALSE;
   }
 
   v = 1;
-  val->type = kCst;
-  val->size = 4;
-  val->data = (UINT8 *)&v;
+  Val->type = kCst;
+  Val->size = 4;
+  Val->data = (UINT8 *)&v;
 
   return TRUE;
 }
 
 BOOLEAN
 GetRomRevisionVal (
-  value_t   *val,
-  INTN      index
+  ATI_VAL   *Val,
+  INTN      Index
 ) {
-  CHAR8   *cRev="109-B77101-00";
-  UINT8   *rev;
+  CHAR8   *CRev = "109-B77101-00";
+  UINT8   *Rev;
 
-  if (!card->rom){
-    val->type = kPtr;
-    val->size = 13;
-    val->data = AllocateZeroPool (val->size);
-    if (!val->data)
+  if (!Card->rom){
+    Val->type = kPtr;
+    Val->size = 13;
+    Val->data = AllocateZeroPool (Val->size);
+    if (!Val->data)
       return FALSE;
 
-    CopyMem (val->data, cRev, val->size);
+    CopyMem (Val->data, CRev, Val->size);
 
     return TRUE;
   }
 
-  rev = card->rom + *(UINT8 *)(card->rom + OFFSET_TO_GET_ATOMBIOS_STRINGS_START);
+  Rev = Card->rom + *(UINT8 *)(Card->rom + OFFSET_TO_GET_ATOMBIOS_STRINGS_START);
 
-  val->type = kPtr;
-  val->size = (UINT32)AsciiStrLen ((CHAR8 *)rev);
+  Val->type = kPtr;
+  Val->size = (UINT32)AsciiStrLen ((CHAR8 *)Rev);
 
-  if ((val->size < 3) || (val->size > 30)) { //fool proof. Real value 13
-    rev = (UINT8 *)cRev;
-    val->size = 13;
+  if ((Val->size < 3) || (Val->size > 30)) { //fool proof. Real Value 13
+    Rev = (UINT8 *)CRev;
+    Val->size = 13;
   }
 
-  val->data = AllocateZeroPool (val->size);
+  Val->data = AllocateZeroPool (Val->size);
 
-  if (!val->data) {
+  if (!Val->data) {
     return FALSE;
   }
 
-  CopyMem (val->data, rev, val->size);
+  CopyMem (Val->data, Rev, Val->size);
 
   return TRUE;
 }
 
 BOOLEAN
 GetDeviceIdVal (
-  value_t   *val,
-  INTN      index
+  ATI_VAL   *Val,
+  INTN      Index
 ) {
-  val->type = kCst;
-  val->size = 2;
-  val->data = (UINT8 *)&card->pci_dev->device_id;
+  Val->type = kCst;
+  Val->size = 2;
+  Val->data = (UINT8 *)&Card->pci_dev->device_id;
 
   return TRUE;
 }
 
 BOOLEAN
 GetMclkVal (
-  value_t   *val,
-  INTN      index
+  ATI_VAL   *Val,
+  INTN      Index
 ) {
   return FALSE;
 }
 
 BOOLEAN
 GetSclkVal (
-  value_t   *val,
-  INTN      index
+  ATI_VAL   *Val,
+  INTN      Index
 ) {
   return FALSE;
 }
 
 BOOLEAN
 GetRefclkVal (
-  value_t   *val,
-  INTN      index
+  ATI_VAL   *Val,
+  INTN      Index
 ) {
   //if (!gSettings.RefCLK) {
     return FALSE;
   //}
 
-  //val->type = kCst;
-  //val->size = 4;
-  //val->data = (UINT8 *)&gSettings.RefCLK;
+  //Val->type = kCst;
+  //Val->size = 4;
+  //Val->data = (UINT8 *)&gSettings.RefCLK;
 
   //return TRUE;
 }
 
 BOOLEAN
 GetPlatformInfoVal (
-  value_t   *val,
-  INTN      index
+  ATI_VAL   *Val,
+  INTN      Index
 ) {
-  val->data = AllocateZeroPool (0x80);
+  Val->data = AllocateZeroPool (0x80);
 
-  if (!val->data) {
+  if (!Val->data) {
     return FALSE;
   }
 
-  //  bzero (val->data, 0x80);
+  //  bzero (Val->data, 0x80);
 
-  val->type   = kPtr;
-  val->size   = 0x80;
-  val->data[0]  = 1;
+  Val->type   = kPtr;
+  Val->size   = 0x80;
+  Val->data[0]  = 1;
 
   return TRUE;
 }
 
 BOOLEAN
 GetVramTotalSizeVal (
-  value_t   *val,
+  ATI_VAL   *Val,
   INTN      index
 ) {
-  val->type = kCst;
-  val->size = 4;
-  val->data = (UINT8 *)&card->vram_size;
+  Val->type = kCst;
+  Val->size = 4;
+  Val->data = (UINT8 *)&Card->vram_size;
 
   return TRUE;
 }
 
 VOID
 FreeVal (
-  value_t   *val
+  ATI_VAL   *Val
 ) {
-  if (val->type == kPtr) {
-    FreePool (val->data);
+  if (Val->type == kPtr) {
+    FreePool (Val->data);
   }
 
-  ZeroMem (val, sizeof (value_t));
+  ZeroMem (Val, sizeof (ATI_VAL));
 }
 
 VOID
 DevpropAddList (
-  AtiDevProp    devprop_list[]
+  ATI_DEV_PROP    DevPropList[]
 ) {
-  INTN      i, pnum;
-  value_t   *val = AllocateZeroPool (sizeof (value_t));
+  INTN      i, PNum;
+  ATI_VAL   *Val = AllocateZeroPool (sizeof (ATI_VAL));
 
-  for (i = 0; devprop_list[i].name != NULL; i++) {
-    if ((devprop_list[i].flags == FLAGTRUE) || (devprop_list[i].flags & card->flags)) {
-      if (devprop_list[i].get_value && devprop_list[i].get_value (val, 0)) {
-        DevpropAddValue (card->device, devprop_list[i].name, val->data, val->size);
-        FreeVal (val);
+  for (i = 0; DevPropList[i].name != NULL; i++) {
+    if ((DevPropList[i].flags == FLAGTRUE) || (DevPropList[i].flags & Card->flags)) {
+      if (DevPropList[i].get_value && DevPropList[i].get_value (Val, 0)) {
+        DevpropAddValue (Card->device, DevPropList[i].name, Val->data, Val->size);
+        FreeVal (Val);
 
-        if (devprop_list[i].all_ports) {
-          for (pnum = 1; pnum < card->ports; pnum++) {
-            if (devprop_list[i].get_value (val, pnum)) {
-              devprop_list[i].name[1] = (CHAR8)(0x30 + pnum); // convert to ascii
-              DevpropAddValue (card->device, devprop_list[i].name, val->data, val->size);
-              FreeVal (val);
+        if (DevPropList[i].all_ports) {
+          for (PNum = 1; PNum < Card->ports; PNum++) {
+            if (DevPropList[i].get_value (Val, PNum)) {
+              DevPropList[i].name[1] = (CHAR8)(0x30 + PNum); // convert to ascii
+              DevpropAddValue (Card->device, DevPropList[i].name, Val->data, Val->size);
+              FreeVal (Val);
             }
           }
 
-          devprop_list[i].name[1] = 0x30; // write back our "@0," for a next possible card
+          DevPropList[i].name[1] = 0x30; // write back our "@0," for a next possible card
         }
       } else {
-        if (devprop_list[i].default_val.type != kNul) {
+        if (DevPropList[i].default_val.type != kNul) {
           DevpropAddValue (
-            card->device, devprop_list[i].name,
-            devprop_list[i].default_val.type == kCst
-              ? (UINT8 *)&(devprop_list[i].default_val.data)
-              : devprop_list[i].default_val.data,
-            devprop_list[i].default_val.size
+            Card->device, DevPropList[i].name,
+            DevPropList[i].default_val.type == kCst
+              ? (UINT8 *)&(DevPropList[i].default_val.data)
+              : DevPropList[i].default_val.data,
+            DevPropList[i].default_val.size
           );
         }
 
-        if (devprop_list[i].all_ports) {
-          for (pnum = 1; pnum < card->ports; pnum++) {
-            if (devprop_list[i].default_val.type != kNul) {
-              devprop_list[i].name[1] = (CHAR8)(0x30 + pnum); // convert to ascii
+        if (DevPropList[i].all_ports) {
+          for (PNum = 1; PNum < Card->ports; PNum++) {
+            if (DevPropList[i].default_val.type != kNul) {
+              DevPropList[i].name[1] = (CHAR8)(0x30 + PNum); // convert to ascii
               DevpropAddValue (
-                card->device, devprop_list[i].name,
-                devprop_list[i].default_val.type == kCst
-                  ? (UINT8 *)&(devprop_list[i].default_val.data)
-                  : devprop_list[i].default_val.data,
-                devprop_list[i].default_val.size
+                Card->device, DevPropList[i].name,
+                DevPropList[i].default_val.type == kCst
+                  ? (UINT8 *)&(DevPropList[i].default_val.data)
+                  : DevPropList[i].default_val.data,
+                DevPropList[i].default_val.size
               );
             }
           }
 
-          devprop_list[i].name[1] = 0x30; // write back our "@0," for a next possible card
+          DevPropList[i].name[1] = 0x30; // write back our "@0," for a next possible card
         }
       }
     }
   }
 
-  FreePool (val);
+  FreePool (Val);
 }
 
 BOOLEAN
 ValidateROM (
-  option_rom_header_t   *rom_header,
-  pci_dt_t              *pci_dev
+  OPTION_ROM_HEADER   *RomHeader,
+  PCI_DT              *Dev
 ) {
-  option_rom_pci_header_t   *rom_pci_header;
+  OPTION_ROM_PCI_HEADER   *RomPciHeader;
 
-  if (rom_header->signature != 0xaa55){
-    DBG ("invalid ROM signature %x\n", rom_header->signature);
+  if (RomHeader->signature != 0xaa55){
+    DBG ("invalid ROM signature %x\n", RomHeader->signature);
     return FALSE;
   }
 
-  rom_pci_header = (option_rom_pci_header_t *)((UINT8 *)rom_header + rom_header->pci_header_offset);
+  RomPciHeader = (OPTION_ROM_PCI_HEADER *)((UINT8 *)RomHeader + RomHeader->pci_header_offset);
 
-  if (rom_pci_header->signature != 0x52494350) {
-    DBG ("invalid ROM header %x\n", rom_pci_header->signature);
+  if (RomPciHeader->signature != 0x52494350) {
+    DBG ("invalid ROM header %x\n", RomPciHeader->signature);
     return FALSE;
   }
 
   if (
-    (rom_pci_header->vendor_id != pci_dev->vendor_id) ||
-    (rom_pci_header->device_id != pci_dev->device_id)
+    (RomPciHeader->vendor_id != Dev->vendor_id) ||
+    (RomPciHeader->device_id != Dev->device_id)
   ){
-    DBG ("invalid ROM vendor=%x deviceID=%d\n", rom_pci_header->vendor_id, rom_pci_header->device_id);
+    DBG ("invalid ROM vendor=%x deviceID=%d\n", RomPciHeader->vendor_id, RomPciHeader->device_id);
     return FALSE;
   }
 
@@ -1127,266 +1124,266 @@ ValidateROM (
 
 BOOLEAN
 LoadVbiosFile (
-  UINT16  vendor_id,
-  UINT16  device_id
+  UINT16  VendorId,
+  UINT16  DeviceId
 ) {
   EFI_STATUS    Status = EFI_NOT_FOUND;
-  UINTN         bufferLen = 0;
+  UINTN         BufferLen = 0;
   CHAR16        FileName[64], *RomPath = Basename (PoolPrint (DIR_ROM, L""));
-  UINT8         *buffer = 0;
+  UINT8         *Buffer = 0;
 
   //if we are here then TRUE
   //  if (!gSettings.LoadVBios)
   //    return FALSE;
 
-  UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s\\%04x_%04x.rom", RomPath, vendor_id, device_id);
+  UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s\\%04x_%04x.rom", RomPath, VendorId, DeviceId);
   if (FileExists (OEMDir, FileName)){
-    DBG ("Found generic VBIOS ROM file (%04x_%04x.rom)\n", vendor_id, device_id);
-    Status = LoadFile (OEMDir, FileName, &buffer, &bufferLen);
+    DBG ("Found generic VBIOS ROM file (%04x_%04x.rom)\n", VendorId, DeviceId);
+    Status = LoadFile (OEMDir, FileName, &Buffer, &BufferLen);
   }
 
   if (EFI_ERROR (Status)) {
     FreePool (RomPath);
     RomPath = PoolPrint (DIR_ROM, DIR_CLOVER);
 
-    UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s\\%04x_%04x.rom", RomPath, vendor_id, device_id);
+    UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s\\%04x_%04x.rom", RomPath, VendorId, DeviceId);
     if (FileExists (SelfRootDir, FileName)){
-      DBG ("Found generic VBIOS ROM file (%04x_%04x.rom)\n", vendor_id, device_id);
-      Status = LoadFile (SelfRootDir, FileName, &buffer, &bufferLen);
+      DBG ("Found generic VBIOS ROM file (%04x_%04x.rom)\n", VendorId, DeviceId);
+      Status = LoadFile (SelfRootDir, FileName, &Buffer, &BufferLen);
     }
   }
 
   FreePool (RomPath);
 
-  if (EFI_ERROR (Status) || (bufferLen == 0)){
+  if (EFI_ERROR (Status) || (BufferLen == 0)){
     DBG ("ATI ROM not found \n");
-    card->rom_size = 0;
-    card->rom = 0;
+    Card->rom_size = 0;
+    Card->rom = 0;
     return FALSE;
   }
 
-  DBG ("Loaded ROM len=%d\n", bufferLen);
+  DBG ("Loaded ROM len=%d\n", BufferLen);
 
-  card->rom_size = (UINT32)bufferLen;
-  card->rom = AllocateZeroPool (bufferLen);
+  Card->rom_size = (UINT32)BufferLen;
+  Card->rom = AllocateZeroPool (BufferLen);
 
-  if (!card->rom) {
+  if (!Card->rom) {
     return FALSE;
   }
 
-  CopyMem (card->rom, buffer, bufferLen);
-  //  read (fd, (CHAR8 *)card->rom, card->rom_size);
+  CopyMem (Card->rom, Buffer, BufferLen);
+  //  read (fd, (CHAR8 *)Card->rom, Card->rom_size);
 
-  if (!ValidateROM ((option_rom_header_t *)card->rom, card->pci_dev)) {
+  if (!ValidateROM ((OPTION_ROM_HEADER *)Card->rom, Card->pci_dev)) {
     DBG ("ValidateROM fails\n");
-    card->rom_size = 0;
-    card->rom = 0;
+    Card->rom_size = 0;
+    Card->rom = 0;
     return FALSE;
   }
 
-  bufferLen = ((option_rom_header_t *)card->rom)->rom_size;
-  card->rom_size = (UINT32)(bufferLen << 9);
-  DBG ("Calculated ROM len=%d\n", card->rom_size);
+  BufferLen = ((OPTION_ROM_HEADER *)Card->rom)->rom_size;
+  Card->rom_size = (UINT32)(BufferLen << 9);
+  DBG ("Calculated ROM len=%d\n", Card->rom_size);
   //  close (fd);
-  FreePool (buffer);
+  FreePool (Buffer);
 
   return TRUE;
 }
 
 VOID
 GetVramSize () {
-  //check card->vram_size in bytes!
-  ati_chip_family_t chip_family = card->info->chip_family;
+  //check Card->vram_size in bytes!
+  ATI_CHIP_FAMILY   ChipFamily = Card->info->chip_family;
 
-  card->vram_size = 128 << 20; //default 128Mb, this is minimum for OS
+  Card->vram_size = 128 << 20; //default 128Mb, this is minimum for OS
   if (gSettings.VRAM != 0) {
-    card->vram_size = gSettings.VRAM;
-    DBG ("Set VRAM from config=%dMb\n", (INTN)RShiftU64 (card->vram_size, 20));
-    //    WRITEREG32 (card->mmio, RADEON_CONFIG_MEMSIZE, card->vram_size);
+    Card->vram_size = gSettings.VRAM;
+    DBG ("Set VRAM from config=%dMb\n", (INTN)RShiftU64 (Card->vram_size, 20));
+    //    WRITEREG32 (Card->mmio, RADEON_CONFIG_MEMSIZE, Card->vram_size);
   } else {
-    if (chip_family >= CHIP_FAMILY_CEDAR) {
+    if (ChipFamily >= CHIP_FAMILY_CEDAR) {
       // size in MB on evergreen
       // XXX watch for overflow!!!
-      card->vram_size = ((UINT64)REG32 (card->mmio, R600_CONFIG_MEMSIZE)) << 20;
-      DBG ("Set VRAM for Cedar+ =%dMb\n", (INTN)RShiftU64 (card->vram_size, 20));
-    } else if (chip_family >= CHIP_FAMILY_R600) {
-      card->vram_size = REG32 (card->mmio, R600_CONFIG_MEMSIZE);
+      Card->vram_size = ((UINT64)REG32 (Card->mmio, R600_CONFIG_MEMSIZE)) << 20;
+      DBG ("Set VRAM for Cedar+ =%dMb\n", (INTN)RShiftU64 (Card->vram_size, 20));
+    } else if (ChipFamily >= CHIP_FAMILY_R600) {
+      Card->vram_size = REG32 (Card->mmio, R600_CONFIG_MEMSIZE);
     } else {
-      card->vram_size = REG32 (card->mmio, RADEON_CONFIG_MEMSIZE);
-      if (card->vram_size == 0) {
-        card->vram_size = REG32 (card->mmio, RADEON_CONFIG_APER_SIZE);
+      Card->vram_size = REG32 (Card->mmio, RADEON_CONFIG_MEMSIZE);
+      if (Card->vram_size == 0) {
+        Card->vram_size = REG32 (Card->mmio, RADEON_CONFIG_APER_SIZE);
         //Slice - previously I successfully made Radeon9000 working
         //by writing this register
-        WRITEREG32 (card->mmio, RADEON_CONFIG_MEMSIZE, (UINT32)card->vram_size);
+        WRITEREG32 (Card->mmio, RADEON_CONFIG_MEMSIZE, (UINT32)Card->vram_size);
       }
     }
   }
 
-  gSettings.VRAM = card->vram_size;
-  DBG ("ATI: GetVramSize returned 0x%x\n", card->vram_size);
+  gSettings.VRAM = Card->vram_size;
+  DBG ("ATI: GetVramSize returned 0x%x\n", Card->vram_size);
 }
 
 BOOLEAN
 ReadVBios (
-  BOOLEAN   from_pci
+  BOOLEAN   FromPci
 ) {
-  option_rom_header_t *rom_addr;
+  OPTION_ROM_HEADER   *RomAddr;
 
-  if (from_pci) {
-    rom_addr = (option_rom_header_t *)(UINTN)(PciConfigRead32 (card->pci_dev, PCI_EXPANSION_ROM_BASE) & ~0x7ff);
-    DBG (" @0x%x\n", rom_addr);
+  if (FromPci) {
+    RomAddr = (OPTION_ROM_HEADER *)(UINTN)(PciConfigRead32 (Card->pci_dev, PCI_EXPANSION_ROM_BASE) & ~0x7ff);
+    DBG (" @0x%x\n", RomAddr);
   } else {
-    rom_addr = (option_rom_header_t *)(UINTN)0xc0000;
+    RomAddr = (OPTION_ROM_HEADER *)(UINTN)0xc0000;
   }
 
-  if (!ValidateROM (rom_addr, card->pci_dev)){
-    DBG ("There is no ROM @0x%x\n", rom_addr);
-    //   gBS->Stall (3000000);
+  if (!ValidateROM (RomAddr, Card->pci_dev)){
+    DBG ("There is no ROM @0x%x\n", RomAddr);
+    //gBS->Stall (3000000);
     return FALSE;
   }
 
-  card->rom_size = (UINT32)(rom_addr->rom_size) << 9;
+  Card->rom_size = (UINT32)(RomAddr->rom_size) << 9;
 
-  if (!card->rom_size){
+  if (!Card->rom_size){
     DBG ("invalid ROM size =0\n");
     return FALSE;
   }
 
-  card->rom = AllocateZeroPool (card->rom_size);
+  Card->rom = AllocateZeroPool (Card->rom_size);
 
-  if (!card->rom) {
+  if (!Card->rom) {
     return FALSE;
   }
 
-  CopyMem (card->rom, (VOID *)rom_addr, card->rom_size);
+  CopyMem (Card->rom, (VOID *)RomAddr, Card->rom_size);
 
   return TRUE;
 }
 
 BOOLEAN
 ReadDisabledVbios () {
-  BOOLEAN               ret = FALSE;
-  ati_chip_family_t     chip_family = card->info->chip_family;
+  BOOLEAN             Ret = FALSE;
+  ATI_CHIP_FAMILY     ChipFamily = Card->info->chip_family;
 
-  if (chip_family >= CHIP_FAMILY_RV770) {
-    UINT32    viph_control       = REG32 (card->mmio, RADEON_VIPH_CONTROL),
-              bus_cntl           = REG32 (card->mmio, RADEON_BUS_CNTL),
-              d1vga_control      = REG32 (card->mmio, AVIVO_D1VGA_CONTROL),
-              d2vga_control      = REG32 (card->mmio, AVIVO_D2VGA_CONTROL),
-              vga_render_control = REG32 (card->mmio, AVIVO_VGA_RENDER_CONTROL),
-              rom_cntl           = REG32 (card->mmio, R600_ROM_CNTL),
-              cg_spll_func_cntl  = 0,
-              cg_spll_status;
+  if (ChipFamily >= CHIP_FAMILY_RV770) {
+    UINT32    ViphControl       = REG32 (Card->mmio, RADEON_VIPH_CONTROL),
+              BusCntl           = REG32 (Card->mmio, RADEON_BUS_CNTL),
+              D1VgaControl      = REG32 (Card->mmio, AVIVO_D1VGA_CONTROL),
+              D2VgaControl      = REG32 (Card->mmio, AVIVO_D2VGA_CONTROL),
+              VgaRenderControl  = REG32 (Card->mmio, AVIVO_VGA_RENDER_CONTROL),
+              RomCntl           = REG32 (Card->mmio, R600_ROM_CNTL),
+              CgSpllFuncCntl    = 0,
+              CgSpllStatus;
 
     // disable VIP
-    WRITEREG32 (card->mmio, RADEON_VIPH_CONTROL, (viph_control & ~RADEON_VIPH_EN));
+    WRITEREG32 (Card->mmio, RADEON_VIPH_CONTROL, (ViphControl & ~RADEON_VIPH_EN));
 
     // enable the rom
-    WRITEREG32 (card->mmio, RADEON_BUS_CNTL, (bus_cntl & ~RADEON_BUS_BIOS_DIS_ROM));
+    WRITEREG32 (Card->mmio, RADEON_BUS_CNTL, (BusCntl & ~RADEON_BUS_BIOS_DIS_ROM));
 
     // Disable VGA mode
-    WRITEREG32 (card->mmio, AVIVO_D1VGA_CONTROL, (d1vga_control & ~(AVIVO_DVGA_CONTROL_MODE_ENABLE | AVIVO_DVGA_CONTROL_TIMING_SELECT)));
-    WRITEREG32 (card->mmio, AVIVO_D2VGA_CONTROL, (d2vga_control & ~(AVIVO_DVGA_CONTROL_MODE_ENABLE | AVIVO_DVGA_CONTROL_TIMING_SELECT)));
-    WRITEREG32 (card->mmio, AVIVO_VGA_RENDER_CONTROL, (vga_render_control & ~AVIVO_VGA_VSTATUS_CNTL_MASK));
+    WRITEREG32 (Card->mmio, AVIVO_D1VGA_CONTROL, (D1VgaControl & ~(AVIVO_DVGA_CONTROL_MODE_ENABLE | AVIVO_DVGA_CONTROL_TIMING_SELECT)));
+    WRITEREG32 (Card->mmio, AVIVO_D2VGA_CONTROL, (D2VgaControl & ~(AVIVO_DVGA_CONTROL_MODE_ENABLE | AVIVO_DVGA_CONTROL_TIMING_SELECT)));
+    WRITEREG32 (Card->mmio, AVIVO_VGA_RENDER_CONTROL, (VgaRenderControl & ~AVIVO_VGA_VSTATUS_CNTL_MASK));
 
-    if (chip_family == CHIP_FAMILY_RV730) {
-      cg_spll_func_cntl = REG32 (card->mmio, R600_CG_SPLL_FUNC_CNTL);
+    if (ChipFamily == CHIP_FAMILY_RV730) {
+      CgSpllFuncCntl = REG32 (Card->mmio, R600_CG_SPLL_FUNC_CNTL);
 
       // enable bypass mode
-      WRITEREG32 (card->mmio, R600_CG_SPLL_FUNC_CNTL, (cg_spll_func_cntl | R600_SPLL_BYPASS_EN));
+      WRITEREG32 (Card->mmio, R600_CG_SPLL_FUNC_CNTL, (CgSpllFuncCntl | R600_SPLL_BYPASS_EN));
 
       // wait for SPLL_CHG_STATUS to change to 1
-      cg_spll_status = 0;
-      while (!(cg_spll_status & R600_SPLL_CHG_STATUS))
-        cg_spll_status = REG32 (card->mmio, R600_CG_SPLL_STATUS);
+      CgSpllStatus = 0;
+      while (!(CgSpllStatus & R600_SPLL_CHG_STATUS))
+        CgSpllStatus = REG32 (Card->mmio, R600_CG_SPLL_STATUS);
 
-      WRITEREG32 (card->mmio, R600_ROM_CNTL, (rom_cntl & ~R600_SCK_OVERWRITE));
+      WRITEREG32 (Card->mmio, R600_ROM_CNTL, (RomCntl & ~R600_SCK_OVERWRITE));
     } else {
-      WRITEREG32 (card->mmio, R600_ROM_CNTL, (rom_cntl | R600_SCK_OVERWRITE));
+      WRITEREG32 (Card->mmio, R600_ROM_CNTL, (RomCntl | R600_SCK_OVERWRITE));
     }
 
-    ret = ReadVBios (TRUE);
+    Ret = ReadVBios (TRUE);
 
     // restore regs
-    if (chip_family == CHIP_FAMILY_RV730) {
-      WRITEREG32 (card->mmio, R600_CG_SPLL_FUNC_CNTL, cg_spll_func_cntl);
+    if (ChipFamily == CHIP_FAMILY_RV730) {
+      WRITEREG32 (Card->mmio, R600_CG_SPLL_FUNC_CNTL, CgSpllFuncCntl);
 
       // wait for SPLL_CHG_STATUS to change to 1
-      cg_spll_status = 0;
-      while (!(cg_spll_status & R600_SPLL_CHG_STATUS))
-        cg_spll_status = REG32 (card->mmio, R600_CG_SPLL_STATUS);
+      CgSpllStatus = 0;
+      while (!(CgSpllStatus & R600_SPLL_CHG_STATUS))
+        CgSpllStatus = REG32 (Card->mmio, R600_CG_SPLL_STATUS);
     }
 
-    WRITEREG32 (card->mmio, RADEON_VIPH_CONTROL, viph_control);
-    WRITEREG32 (card->mmio, RADEON_BUS_CNTL, bus_cntl);
-    WRITEREG32 (card->mmio, AVIVO_D1VGA_CONTROL, d1vga_control);
-    WRITEREG32 (card->mmio, AVIVO_D2VGA_CONTROL, d2vga_control);
-    WRITEREG32 (card->mmio, AVIVO_VGA_RENDER_CONTROL, vga_render_control);
-    WRITEREG32 (card->mmio, R600_ROM_CNTL, rom_cntl);
-  } else if (chip_family >= CHIP_FAMILY_R600) {
-    UINT32    viph_control                  = REG32 (card->mmio, RADEON_VIPH_CONTROL),
-              bus_cntl                      = REG32 (card->mmio, RADEON_BUS_CNTL),
-              d1vga_control                 = REG32 (card->mmio, AVIVO_D1VGA_CONTROL),
-              d2vga_control                 = REG32 (card->mmio, AVIVO_D2VGA_CONTROL),
-              vga_render_control            = REG32 (card->mmio, AVIVO_VGA_RENDER_CONTROL),
-              rom_cntl                      = REG32 (card->mmio, R600_ROM_CNTL),
-              general_pwrmgt                = REG32 (card->mmio, R600_GENERAL_PWRMGT),
-              low_vid_lower_gpio_cntl       = REG32 (card->mmio, R600_LOW_VID_LOWER_GPIO_CNTL),
-              medium_vid_lower_gpio_cntl    = REG32 (card->mmio, R600_MEDIUM_VID_LOWER_GPIO_CNTL),
-              high_vid_lower_gpio_cntl      = REG32 (card->mmio, R600_HIGH_VID_LOWER_GPIO_CNTL),
-              ctxsw_vid_lower_gpio_cntl     = REG32 (card->mmio, R600_CTXSW_VID_LOWER_GPIO_CNTL),
-              lower_gpio_enable             = REG32 (card->mmio, R600_LOWER_GPIO_ENABLE);
+    WRITEREG32 (Card->mmio, RADEON_VIPH_CONTROL, ViphControl);
+    WRITEREG32 (Card->mmio, RADEON_BUS_CNTL, BusCntl);
+    WRITEREG32 (Card->mmio, AVIVO_D1VGA_CONTROL, D1VgaControl);
+    WRITEREG32 (Card->mmio, AVIVO_D2VGA_CONTROL, D2VgaControl);
+    WRITEREG32 (Card->mmio, AVIVO_VGA_RENDER_CONTROL, VgaRenderControl);
+    WRITEREG32 (Card->mmio, R600_ROM_CNTL, RomCntl);
+  } else if (ChipFamily >= CHIP_FAMILY_R600) {
+    UINT32    ViphControl                  = REG32 (Card->mmio, RADEON_VIPH_CONTROL),
+              BusCntl                      = REG32 (Card->mmio, RADEON_BUS_CNTL),
+              D1VgaControl                 = REG32 (Card->mmio, AVIVO_D1VGA_CONTROL),
+              D2VgaControl                 = REG32 (Card->mmio, AVIVO_D2VGA_CONTROL),
+              VgaRenderControl             = REG32 (Card->mmio, AVIVO_VGA_RENDER_CONTROL),
+              RomCntl                      = REG32 (Card->mmio, R600_ROM_CNTL),
+              general_pwrmgt                = REG32 (Card->mmio, R600_GENERAL_PWRMGT),
+              low_vid_lower_gpio_cntl       = REG32 (Card->mmio, R600_LOW_VID_LOWER_GPIO_CNTL),
+              medium_vid_lower_gpio_cntl    = REG32 (Card->mmio, R600_MEDIUM_VID_LOWER_GPIO_CNTL),
+              high_vid_lower_gpio_cntl      = REG32 (Card->mmio, R600_HIGH_VID_LOWER_GPIO_CNTL),
+              ctxsw_vid_lower_gpio_cntl     = REG32 (Card->mmio, R600_CTXSW_VID_LOWER_GPIO_CNTL),
+              lower_gpio_enable             = REG32 (Card->mmio, R600_LOWER_GPIO_ENABLE);
 
     // disable VIP
-    WRITEREG32 (card->mmio, RADEON_VIPH_CONTROL, (viph_control & ~RADEON_VIPH_EN));
+    WRITEREG32 (Card->mmio, RADEON_VIPH_CONTROL, (ViphControl & ~RADEON_VIPH_EN));
 
     // enable the rom
-    WRITEREG32 (card->mmio, RADEON_BUS_CNTL, (bus_cntl & ~RADEON_BUS_BIOS_DIS_ROM));
+    WRITEREG32 (Card->mmio, RADEON_BUS_CNTL, (BusCntl & ~RADEON_BUS_BIOS_DIS_ROM));
 
     // Disable VGA mode
-    WRITEREG32 (card->mmio, AVIVO_D1VGA_CONTROL, (d1vga_control & ~(AVIVO_DVGA_CONTROL_MODE_ENABLE | AVIVO_DVGA_CONTROL_TIMING_SELECT)));
-    WRITEREG32 (card->mmio, AVIVO_D2VGA_CONTROL, (d2vga_control & ~(AVIVO_DVGA_CONTROL_MODE_ENABLE | AVIVO_DVGA_CONTROL_TIMING_SELECT)));
-    WRITEREG32 (card->mmio, AVIVO_VGA_RENDER_CONTROL, (vga_render_control & ~AVIVO_VGA_VSTATUS_CNTL_MASK));
-    WRITEREG32 (card->mmio, R600_ROM_CNTL, ((rom_cntl & ~R600_SCK_PRESCALE_CRYSTAL_CLK_MASK) | (1 << R600_SCK_PRESCALE_CRYSTAL_CLK_SHIFT) | R600_SCK_OVERWRITE));
-    WRITEREG32 (card->mmio, R600_GENERAL_PWRMGT, (general_pwrmgt & ~R600_OPEN_DRAIN_PADS));
-    WRITEREG32 (card->mmio, R600_LOW_VID_LOWER_GPIO_CNTL, (low_vid_lower_gpio_cntl & ~0x400));
-    WRITEREG32 (card->mmio, R600_MEDIUM_VID_LOWER_GPIO_CNTL, (medium_vid_lower_gpio_cntl & ~0x400));
-    WRITEREG32 (card->mmio, R600_HIGH_VID_LOWER_GPIO_CNTL, (high_vid_lower_gpio_cntl & ~0x400));
-    WRITEREG32 (card->mmio, R600_CTXSW_VID_LOWER_GPIO_CNTL, (ctxsw_vid_lower_gpio_cntl & ~0x400));
-    WRITEREG32 (card->mmio, R600_LOWER_GPIO_ENABLE, (lower_gpio_enable | 0x400));
+    WRITEREG32 (Card->mmio, AVIVO_D1VGA_CONTROL, (D1VgaControl & ~(AVIVO_DVGA_CONTROL_MODE_ENABLE | AVIVO_DVGA_CONTROL_TIMING_SELECT)));
+    WRITEREG32 (Card->mmio, AVIVO_D2VGA_CONTROL, (D2VgaControl & ~(AVIVO_DVGA_CONTROL_MODE_ENABLE | AVIVO_DVGA_CONTROL_TIMING_SELECT)));
+    WRITEREG32 (Card->mmio, AVIVO_VGA_RENDER_CONTROL, (VgaRenderControl & ~AVIVO_VGA_VSTATUS_CNTL_MASK));
+    WRITEREG32 (Card->mmio, R600_ROM_CNTL, ((RomCntl & ~R600_SCK_PRESCALE_CRYSTAL_CLK_MASK) | (1 << R600_SCK_PRESCALE_CRYSTAL_CLK_SHIFT) | R600_SCK_OVERWRITE));
+    WRITEREG32 (Card->mmio, R600_GENERAL_PWRMGT, (general_pwrmgt & ~R600_OPEN_DRAIN_PADS));
+    WRITEREG32 (Card->mmio, R600_LOW_VID_LOWER_GPIO_CNTL, (low_vid_lower_gpio_cntl & ~0x400));
+    WRITEREG32 (Card->mmio, R600_MEDIUM_VID_LOWER_GPIO_CNTL, (medium_vid_lower_gpio_cntl & ~0x400));
+    WRITEREG32 (Card->mmio, R600_HIGH_VID_LOWER_GPIO_CNTL, (high_vid_lower_gpio_cntl & ~0x400));
+    WRITEREG32 (Card->mmio, R600_CTXSW_VID_LOWER_GPIO_CNTL, (ctxsw_vid_lower_gpio_cntl & ~0x400));
+    WRITEREG32 (Card->mmio, R600_LOWER_GPIO_ENABLE, (lower_gpio_enable | 0x400));
 
-    ret = ReadVBios (TRUE);
+    Ret = ReadVBios (TRUE);
 
     // restore regs
-    WRITEREG32 (card->mmio, RADEON_VIPH_CONTROL, viph_control);
-    WRITEREG32 (card->mmio, RADEON_BUS_CNTL, bus_cntl);
-    WRITEREG32 (card->mmio, AVIVO_D1VGA_CONTROL, d1vga_control);
-    WRITEREG32 (card->mmio, AVIVO_D2VGA_CONTROL, d2vga_control);
-    WRITEREG32 (card->mmio, AVIVO_VGA_RENDER_CONTROL, vga_render_control);
-    WRITEREG32 (card->mmio, R600_ROM_CNTL, rom_cntl);
-    WRITEREG32 (card->mmio, R600_GENERAL_PWRMGT, general_pwrmgt);
-    WRITEREG32 (card->mmio, R600_LOW_VID_LOWER_GPIO_CNTL, low_vid_lower_gpio_cntl);
-    WRITEREG32 (card->mmio, R600_MEDIUM_VID_LOWER_GPIO_CNTL, medium_vid_lower_gpio_cntl);
-    WRITEREG32 (card->mmio, R600_HIGH_VID_LOWER_GPIO_CNTL, high_vid_lower_gpio_cntl);
-    WRITEREG32 (card->mmio, R600_CTXSW_VID_LOWER_GPIO_CNTL, ctxsw_vid_lower_gpio_cntl);
-    WRITEREG32 (card->mmio, R600_LOWER_GPIO_ENABLE, lower_gpio_enable);
+    WRITEREG32 (Card->mmio, RADEON_VIPH_CONTROL, ViphControl);
+    WRITEREG32 (Card->mmio, RADEON_BUS_CNTL, BusCntl);
+    WRITEREG32 (Card->mmio, AVIVO_D1VGA_CONTROL, D1VgaControl);
+    WRITEREG32 (Card->mmio, AVIVO_D2VGA_CONTROL, D2VgaControl);
+    WRITEREG32 (Card->mmio, AVIVO_VGA_RENDER_CONTROL, VgaRenderControl);
+    WRITEREG32 (Card->mmio, R600_ROM_CNTL, RomCntl);
+    WRITEREG32 (Card->mmio, R600_GENERAL_PWRMGT, general_pwrmgt);
+    WRITEREG32 (Card->mmio, R600_LOW_VID_LOWER_GPIO_CNTL, low_vid_lower_gpio_cntl);
+    WRITEREG32 (Card->mmio, R600_MEDIUM_VID_LOWER_GPIO_CNTL, medium_vid_lower_gpio_cntl);
+    WRITEREG32 (Card->mmio, R600_HIGH_VID_LOWER_GPIO_CNTL, high_vid_lower_gpio_cntl);
+    WRITEREG32 (Card->mmio, R600_CTXSW_VID_LOWER_GPIO_CNTL, ctxsw_vid_lower_gpio_cntl);
+    WRITEREG32 (Card->mmio, R600_LOWER_GPIO_ENABLE, lower_gpio_enable);
   }
 
-  return ret;
+  return Ret;
 }
 
 BOOLEAN
 RadeonCardPosted () {
-  UINT32  reg = REG32 (card->mmio, RADEON_CRTC_GEN_CNTL) | REG32 (card->mmio, RADEON_CRTC2_GEN_CNTL);
+  UINT32  Reg = REG32 (Card->mmio, RADEON_CRTC_GEN_CNTL) | REG32 (Card->mmio, RADEON_CRTC2_GEN_CNTL);
 
-  if (reg & RADEON_CRTC_EN) {
+  if (Reg & RADEON_CRTC_EN) {
     return TRUE;
   }
 
   // then check MEM_SIZE, in case something turned the crtcs off
-  reg = REG32 (card->mmio, R600_CONFIG_MEMSIZE);
+  Reg = REG32 (Card->mmio, R600_CONFIG_MEMSIZE);
 
-  if (reg) {
+  if (Reg) {
     return TRUE;
   }
 
@@ -1396,72 +1393,73 @@ RadeonCardPosted () {
 STATIC
 BOOLEAN
 InitCard (
-  pci_dt_t    *pci_dev
+  PCI_DT    *Dev
 ) {
-  BOOLEAN     add_vbios = gSettings.LoadVBios;
-  CHAR8       *name, *name_parent, *CfgName;
+  BOOLEAN     LoadVBios = gSettings.LoadVBios;
+  CHAR8       *Name, *NameParent, *CfgName;
   UINTN       i, j, ExpansionRom = 0;
-  INTN        NameLen = 0, n_ports = 0;
+  INTN        NameLen = 0, PortsNum = 0;
 
-  card = AllocateZeroPool (sizeof (card_t));
+  Card = AllocateZeroPool (sizeof (ATI_CARD));
 
-  if (!card) {
+  if (!Card) {
     return FALSE;
   }
 
-  card->pci_dev = pci_dev;
+  Card->pci_dev = Dev;
 
-  for (i = 0; radeon_cards[i].device_id ; i++) {
-    card->info = &radeon_cards[i];
-    if (radeon_cards[i].device_id == pci_dev->device_id) break;
+  for (i = 0; ATICards[i].device_id ; i++) {
+    Card->info = &ATICards[i];
+    if (ATICards[i].device_id == Dev->device_id) break;
   }
 
   for (j = 0; j < NGFX; j++) {
     if ((gGraphics[j].Vendor == Ati) &&
-        (gGraphics[j].DeviceID == pci_dev->device_id)) {
+        (gGraphics[j].DeviceID == Dev->device_id)) {
       //      model = gGraphics[j].Model;
-      n_ports = gGraphics[j].Ports;
-      add_vbios = gGraphics[j].LoadVBios;
+      PortsNum = gGraphics[j].Ports;
+      LoadVBios = gGraphics[j].LoadVBios;
       break;
     }
   }
 
-  if (!card->info || !card->info->device_id || !card->info->cfg_name) {
+  if (!Card->info || !Card->info->device_id || !Card->info->cfg_name) {
     DBG ("Unsupported ATI card! Device ID: [%04x:%04x] Subsystem ID: [%08x] \n",
-        pci_dev->vendor_id, pci_dev->device_id, pci_dev->subsys_id);
+        Dev->vendor_id, Dev->device_id, Dev->subsys_id);
     DBG ("search for brothers family\n");
-    for (i = 0; radeon_cards[i].device_id ; i++) {
-      if ((radeon_cards[i].device_id & ~0xf) == (pci_dev->device_id & ~0xf)) {
-        card->info = &radeon_cards[i];
+    for (i = 0; ATICards[i].device_id ; i++) {
+      if ((ATICards[i].device_id & ~0xf) == (Dev->device_id & ~0xf)) {
+        Card->info = &ATICards[i];
         break;
       }
     }
-    if (!card->info->cfg_name) {
+
+    if (!Card->info->cfg_name) {
       DBG ("...compatible config is not found\n");
       return FALSE;
     }
   }
 
-  card->fb    = (UINT8 *)(UINTN)(PciConfigRead32 (pci_dev, PCI_BASE_ADDRESS_0) & ~0x0f);
-  card->mmio  = (UINT8 *)(UINTN)(PciConfigRead32 (pci_dev, PCI_BASE_ADDRESS_2) & ~0x0f);
-  card->io    = (UINT8 *)(UINTN)(PciConfigRead32 (pci_dev, PCI_BASE_ADDRESS_4) & ~0x03);
-  pci_dev->regs = card->mmio;
-  ExpansionRom = PciConfigRead32 (pci_dev, PCI_EXPANSION_ROM_BASE); //0x30 as Chimera
+  Card->fb    = (UINT8 *)(UINTN)(PciConfigRead32 (Dev, PCI_BASE_ADDRESS_0) & ~0x0f);
+  Card->mmio  = (UINT8 *)(UINTN)(PciConfigRead32 (Dev, PCI_BASE_ADDRESS_2) & ~0x0f);
+  Card->io    = (UINT8 *)(UINTN)(PciConfigRead32 (Dev, PCI_BASE_ADDRESS_4) & ~0x03);
+  Dev->regs = Card->mmio;
+  ExpansionRom = PciConfigRead32 (Dev, PCI_EXPANSION_ROM_BASE); //0x30 as Chimera
 
   DBG ("Framebuffer @0x%08X  MMIO @0x%08X  I/O Port @0x%08X ROM Addr @0x%08X\n",
-      card->fb, card->mmio, card->io, ExpansionRom);
+      Card->fb, Card->mmio, Card->io, ExpansionRom);
 
-  card->posted = RadeonCardPosted ();
+  Card->posted = RadeonCardPosted ();
 
-  DBG ("ATI card %a\n", card->posted ? "POSTed" : "non-POSTed");
+  DBG ("ATI card %a\n", Card->posted ? "POSTed" : "non-POSTed");
 
   GetVramSize ();
 
-  if (add_vbios) {
-    LoadVbiosFile (pci_dev->vendor_id, pci_dev->device_id);
-    if (!card->rom) {
-      DBG ("reading VBIOS from %a", card->posted ? "legacy space" : "PCI ROM");
-      if (card->posted) { // && ExpansionRom != 0)
+  if (LoadVBios) {
+    LoadVbiosFile (Dev->vendor_id, Dev->device_id);
+    if (!Card->rom) {
+      DBG ("reading VBIOS from %a", Card->posted ? "legacy space" : "PCI ROM");
+      if (Card->posted) { // && ExpansionRom != 0)
         ReadVBios (FALSE);
       } else {
         ReadDisabledVbios ();
@@ -1473,76 +1471,76 @@ InitCard (
 
   }
 
-  if (card->info->chip_family >= CHIP_FAMILY_CEDAR) {
+  if (Card->info->chip_family >= CHIP_FAMILY_CEDAR) {
     DBG ("ATI Radeon EVERGREEN family\n");
-    card->flags |= EVERGREEN;
+    Card->flags |= EVERGREEN;
   }
 
-  if (card->info->chip_family <= CHIP_FAMILY_RV670) {
+  if (Card->info->chip_family <= CHIP_FAMILY_RV670) {
     DBG ("ATI Radeon OLD family\n");
-    card->flags |= FLAGOLD;
+    Card->flags |= FLAGOLD;
   }
 
   if (gMobile) {
     DBG ("ATI Mobile Radeon\n");
-    card->flags |= FLAGMOBILE;
+    Card->flags |= FLAGMOBILE;
   }
 
-  card->flags |= FLAGNOTFAKE;
+  Card->flags |= FLAGNOTFAKE;
 
   NameLen = StrLen (gSettings.FBName);
   if (NameLen > 2) {  //fool proof: cfg_name is 3 character or more.
     CfgName = AllocateZeroPool (NameLen);
     UnicodeStrToAsciiStrS ((CHAR16 *)&gSettings.FBName[0], CfgName, NameLen);
     DBG ("Users config name %a\n", CfgName);
-    card->cfg_name = CfgName;
+    Card->cfg_name = CfgName;
   } else {
-    // use cfg_name on radeon_cards, to retrive the default name from card_configs,
-    card->cfg_name = card_configs[card->info->cfg_name].name;
-    n_ports = card_configs[card->info->cfg_name].ports;
+    // use cfg_name on ATICards, to retrive the default name from ATICardConfigs,
+    Card->cfg_name = ATICardConfigs[Card->info->cfg_name].name;
+    PortsNum = ATICardConfigs[Card->info->cfg_name].ports;
     // which means one of the fb's or kNull
-    DBG ("Framebuffer set to device's default: %a\n", card->cfg_name);
-    DBG (" N ports defaults to %d\n", n_ports);
+    DBG ("Framebuffer set to device's default: %a\n", Card->cfg_name);
+    DBG (" N ports defaults to %d\n", PortsNum);
   }
 
   if (gSettings.VideoPorts != 0) {
-    n_ports = gSettings.VideoPorts;
-    DBG (" use N ports setting from config.plist: %d\n", n_ports);
+    PortsNum = gSettings.VideoPorts;
+    DBG (" use N ports setting from config.plist: %d\n", PortsNum);
   }
 
-  if (n_ports > 0) {
-    card->ports = (UINT8)n_ports; // use it.
-    DBG ("(AtiPorts) Nr of ports set to: %d\n", card->ports);
+  if (PortsNum > 0) {
+    Card->ports = (UINT8)PortsNum; // use it.
+    DBG ("(AtiPorts) Nr of ports set to: %d\n", Card->ports);
   } else {
-    // if (card->cfg_name > 0) // do we want 0 ports if fb is kNull or mistyped ?
+    // if (Card->cfg_name > 0) // do we want 0 ports if fb is kNull or mistyped ?
 
-    // else, match cfg_name with card_configs list and retrive default nr of ports.
+    // else, match cfg_name with ATICardConfigs list and retrive default nr of ports.
     for (i = 0; i < kCfgEnd; i++) {
-      if (AsciiStrCmp (card->cfg_name, card_configs[i].name) == 0) {
-        card->ports = card_configs[i].ports; // default
+      if (AsciiStrCmp (Card->cfg_name, ATICardConfigs[i].name) == 0) {
+        Card->ports = ATICardConfigs[i].ports; // default
       }
     }
 
-    DBG ("Nr of ports set to framebuffer's default: %d\n", card->ports);
+    DBG ("Nr of ports set to framebuffer's default: %d\n", Card->ports);
   }
 
-  if (card->ports == 0) {
-    card->ports = 2; //real minimum
-    DBG ("Nr of ports set to min: %d\n", card->ports);
+  if (Card->ports == 0) {
+    Card->ports = 2; //real minimum
+    DBG ("Nr of ports set to min: %d\n", Card->ports);
   }
 
   //
-  name = AllocateZeroPool (24);
-  AsciiSPrint (name, 24, "ATY,%a", card->cfg_name);
-  aty_name.type = kStr;
-  aty_name.size = (UINT32)AsciiStrLen (name);
-  aty_name.data = (UINT8 *)name;
+  Name = AllocateZeroPool (24);
+  AsciiSPrint (Name, 24, "ATY,%a", Card->cfg_name);
+  ATYName.type = kStr;
+  ATYName.size = (UINT32)AsciiStrLen (Name);
+  ATYName.data = (UINT8 *)Name;
 
-  name_parent = AllocateZeroPool (24);
-  AsciiSPrint (name_parent, 24, "ATY,%aParent", card->cfg_name);
-  aty_nameparent.type = kStr;
-  aty_nameparent.size = (UINT32)AsciiStrLen (name_parent);
-  aty_nameparent.data = (UINT8 *)name_parent;
+  NameParent = AllocateZeroPool (24);
+  AsciiSPrint (NameParent, 24, "ATY,%aParent", Card->cfg_name);
+  ATYNameParent.type = kStr;
+  ATYNameParent.size = (UINT32)AsciiStrLen (NameParent);
+  ATYNameParent.data = (UINT8 *)NameParent;
 
   //how can we free pool when we leave the procedure? Make all pointers global?
   return TRUE;
@@ -1551,13 +1549,13 @@ InitCard (
 BOOLEAN
 SetupAtiDevprop (
   LOADER_ENTRY  *Entry,
-  pci_dt_t      *ati_dev
+  PCI_DT        *Dev
 ) {
-  CHAR8     compatible[64], *devicepath;
+  CHAR8     Compatible[64], *DevPath;
   UINT32    FakeID = 0;
   INT32     i;
 
-  if (!InitCard (ati_dev)) {
+  if (!InitCard (Dev)) {
     return FALSE;
   }
 
@@ -1569,40 +1567,40 @@ SetupAtiDevprop (
     gDevPropString = DevpropCreateString ();
   }
 
-  devicepath = GetPciDevPath (ati_dev);
-  //card->device = devprop_add_device (gDevPropString, devicepath);
-  card->device = DevpropAddDevicePci (gDevPropString, ati_dev);
+  DevPath = GetPciDevPath (Dev);
+  //Card->device = devprop_add_device (gDevPropString, DevPath);
+  Card->device = DevpropAddDevicePci (gDevPropString, Dev);
 
-  if (!card->device) {
+  if (!Card->device) {
     return FALSE;
   }
 
   // -------------------------------------------------
 
   if (gSettings.FakeATI) {
-    UINTN   Len = ARRAY_SIZE (compatible);
+    UINTN   Len = ARRAY_SIZE (Compatible);
 
-    card->flags &= ~FLAGNOTFAKE;
-    card->flags |= FLAGOLD;
+    Card->flags &= ~FLAGNOTFAKE;
+    Card->flags |= FLAGOLD;
 
     FakeID = gSettings.FakeATI >> 16;
-    DevpropAddValue (card->device, "device-id", (UINT8 *)&FakeID, 4);
-    DevpropAddValue (card->device, "ATY,DeviceID", (UINT8 *)&FakeID, 2);
-    AsciiSPrint (compatible, Len, "pci1002,%04x", FakeID);
-    AsciiStrCpyS (compatible, Len, AsciiStrToLower (compatible));
-    DevpropAddValue (card->device, "@0,compatible", (UINT8 *)&compatible[0], 12);
+    DevpropAddValue (Card->device, "device-id", (UINT8 *)&FakeID, 4);
+    DevpropAddValue (Card->device, "ATY,DeviceID", (UINT8 *)&FakeID, 2);
+    AsciiSPrint (Compatible, Len, "pci1002,%04x", FakeID);
+    AsciiStrCpyS (Compatible, Len, AsciiStrToLower (Compatible));
+    DevpropAddValue (Card->device, "@0,compatible", (UINT8 *)&Compatible[0], 12);
     FakeID = gSettings.FakeATI & 0xFFFF;
-    DevpropAddValue (card->device, "vendor-id", (UINT8 *)&FakeID, 4);
-    DevpropAddValue (card->device, "ATY,VendorID", (UINT8 *)&FakeID, 2);
-    MsgLog (" - With FakeID: %a\n", compatible);
+    DevpropAddValue (Card->device, "vendor-id", (UINT8 *)&FakeID, 4);
+    DevpropAddValue (Card->device, "ATY,VendorID", (UINT8 *)&FakeID, 2);
+    MsgLog (" - With FakeID: %a\n", Compatible);
   }
 
   if (!gSettings.NoDefaultProperties) {
-    DevpropAddList (ati_devprop_list);
+    DevpropAddList (ATIDevPropList);
     if (gSettings.UseIntelHDMI) {
-      DevpropAddValue (card->device, "hda-gfx", (UINT8 *)"onboard-2", 10);
+      DevpropAddValue (Card->device, "hda-gfx", (UINT8 *)"onboard-2", 10);
     } else {
-      DevpropAddValue (card->device, "hda-gfx", (UINT8 *)"onboard-1", 10);
+      DevpropAddValue (Card->device, "hda-gfx", (UINT8 *)"onboard-1", 10);
     }
   } /*else {
     MsgLog (" - no default properties\n");
@@ -1615,7 +1613,7 @@ SetupAtiDevprop (
       }
 
       DevpropAddValue (
-        card->device,
+        Card->device,
         gSettings.AddProperties[i].Key,
         (UINT8 *)gSettings.AddProperties[i].Value,
         gSettings.AddProperties[i].ValueLen
@@ -1623,16 +1621,18 @@ SetupAtiDevprop (
     }
   }
 
-  DBG ("ATI %a %a %dMB (%a) [%04x:%04x] (subsys [%04x:%04x]) | %a\n",
-      //chip_family_name[card->info->chip_family], card->info->model_name,
-      chip_family_name[card->info->chip_family], S_ATIMODEL,
-      (UINT32)RShiftU64 (card->vram_size, 20), card->cfg_name,
-      ati_dev->vendor_id, ati_dev->device_id,
-      ati_dev->subsys_id.subsys.vendor_id, ati_dev->subsys_id.subsys.device_id,
-      devicepath);
+  DBG (
+    "ATI %a %a %dMB (%a) [%04x:%04x] (subsys [%04x:%04x]) | %a\n",
+    //ATIFamilyName[Card->info->chip_family], Card->info->model_name,
+    ATIFamilyName[Card->info->chip_family], S_ATIMODEL,
+    (UINT32)RShiftU64 (Card->vram_size, 20), Card->cfg_name,
+    Dev->vendor_id, Dev->device_id,
+    Dev->subsys_id.subsys.vendor_id, Dev->subsys_id.subsys.device_id,
+    DevPath
+  );
 
-  //  FreePool (card->info); //TODO we can't free constant so this info should be copy of constants
-  FreePool (card);
+  //FreePool (Card->info); //TODO we can't free constant so this info should be copy of constants
+  FreePool (Card);
 
   return TRUE;
 }

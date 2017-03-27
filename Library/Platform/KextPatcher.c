@@ -6,17 +6,17 @@
 #include <Library/Platform/KernelPatcher.h>
 
 #ifndef DEBUG_ALL
-#ifndef DEBUG_KEXT_PATCH
-#define DEBUG_KEXT_PATCH 0
+#ifndef DEBUG_KEXT_PATCHER
+#define DEBUG_KEXT_PATCHER 0
 #endif
 #else
-#ifdef DEBUG_KEXT_PATCH
-#undef DEBUG_KEXT_PATCH
+#ifdef DEBUG_KEXT_PATCHER
+#undef DEBUG_KEXT_PATCHER
 #endif
-#define DEBUG_KEXT_PATCH DEBUG_ALL
+#define DEBUG_KEXT_PATCHER DEBUG_ALL
 #endif
 
-#define DBG(...) DebugLog (DEBUG_KEXT_PATCH, __VA_ARGS__)
+#define DBG(...) DebugLog (DEBUG_KEXT_PATCHER, __VA_ARGS__)
 
 #ifdef LAZY_PARSE_KEXT_PLIST
 #define PRELINKKEXTLIST_SIGNATURE SIGNATURE_32 ('C','E','X','T')

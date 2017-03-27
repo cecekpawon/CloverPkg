@@ -12,35 +12,35 @@
 
 #include <Library/Platform/Platform.h>
 
-BOOLEAN     AmlAddToParent      (AML_CHUNK *parent, AML_CHUNK *node);
-AML_CHUNK   *AmlCreateNode      (AML_CHUNK *parent);
-VOID        AmlDestroyNode      (AML_CHUNK *node);
-AML_CHUNK   *AmlAddBuffer       (AML_CHUNK *parent, CHAR8 *buffer, UINT32 size);
-AML_CHUNK   *AmlAddByte         (AML_CHUNK *parent, UINT8 value);
-AML_CHUNK   *AmlAddWord         (AML_CHUNK *parent, UINT16 value);
-AML_CHUNK   *AmlAddDword        (AML_CHUNK *parent, UINT32 value);
-AML_CHUNK   *AmlAddQword        (AML_CHUNK *parent, UINT64 value);
-AML_CHUNK   *AmlAddScope        (AML_CHUNK *parent, CHAR8 *name);
-AML_CHUNK   *AmlAddName         (AML_CHUNK *parent, CHAR8 *name);
-AML_CHUNK   *AmlAddMethod       (AML_CHUNK *parent, CHAR8 *name, UINT8 args);
-AML_CHUNK   *AmlAddPackage      (AML_CHUNK *parent);
-AML_CHUNK   *AmlAddAlias        (AML_CHUNK *parent, CHAR8 *name1, CHAR8 *name2);
-AML_CHUNK   *AmlAddReturnName   (AML_CHUNK *parent, CHAR8 *name);
-AML_CHUNK   *AmlAddReturnByte   (AML_CHUNK *parent, UINT8 value);
-UINT32      AmlCalculateSize    (AML_CHUNK *node);
-UINT32      AmlWriteSize        (UINT32 size, CHAR8 *buffer, UINT32 offset);
-UINT32      AmlWriteNode        (AML_CHUNK *node, CHAR8 *buffer, UINT32 offset);
+BOOLEAN     AmlAddToParent      (AML_CHUNK *Parent, AML_CHUNK *Node);
+AML_CHUNK   *AmlCreateNode      (AML_CHUNK *Parent);
+VOID        AmlDestroyNode      (AML_CHUNK *Node);
+AML_CHUNK   *AmlAddBuffer       (AML_CHUNK *Parent, CHAR8 *Buffer, UINT32 Size);
+AML_CHUNK   *AmlAddByte         (AML_CHUNK *Parent, UINT8 Value);
+AML_CHUNK   *AmlAddWord         (AML_CHUNK *Parent, UINT16 Value);
+AML_CHUNK   *AmlAddDword        (AML_CHUNK *Parent, UINT32 Value);
+AML_CHUNK   *AmlAddQword        (AML_CHUNK *Parent, UINT64 Value);
+AML_CHUNK   *AmlAddScope        (AML_CHUNK *Parent, CHAR8 *Name);
+AML_CHUNK   *AmlAddName         (AML_CHUNK *Parent, CHAR8 *Name);
+AML_CHUNK   *AmlAddMethod       (AML_CHUNK *Parent, CHAR8 *Name, UINT8 args);
+AML_CHUNK   *AmlAddPackage      (AML_CHUNK *Parent);
+AML_CHUNK   *AmlAddAlias        (AML_CHUNK *Parent, CHAR8 *Name1, CHAR8 *Name2);
+AML_CHUNK   *AmlAddReturnName   (AML_CHUNK *Parent, CHAR8 *Name);
+AML_CHUNK   *AmlAddReturnByte   (AML_CHUNK *Parent, UINT8 Value);
+UINT32      AmlCalculateSize    (AML_CHUNK *Node);
+UINT32      AmlWriteSize        (UINT32 Size, CHAR8 *Buffer, UINT32 Offset);
+UINT32      AmlWriteNode        (AML_CHUNK *Node, CHAR8 *Buffer, UINT32 Offset);
 
 // add by pcj
-AML_CHUNK   *AmlAddString       (AML_CHUNK *parent, CHAR8 *string);
-AML_CHUNK   *AmlAddByteBuffer   (AML_CHUNK *parent, CHAR8 *data, UINT32 size);
-AML_CHUNK   *AmlAddStringBuffer (AML_CHUNK *parent, CHAR8 *string);
-AML_CHUNK   *AmlAddDevice       (AML_CHUNK *parent, CHAR8 *name);
-AML_CHUNK   *AmlAddLocal0       (AML_CHUNK *parent);
-AML_CHUNK   *AmlAddStore        (AML_CHUNK *parent);
-AML_CHUNK   *AmlAddReturn       (AML_CHUNK *parent);
+AML_CHUNK   *AmlAddString       (AML_CHUNK *Parent, CHAR8 *StringBuf);
+AML_CHUNK   *AmlAddByteBuffer   (AML_CHUNK *Parent, CHAR8 *data, UINT32 Size);
+AML_CHUNK   *AmlAddStringBuffer (AML_CHUNK *Parent, CHAR8 *StringBuf);
+AML_CHUNK   *AmlAddDevice       (AML_CHUNK *Parent, CHAR8 *Name);
+AML_CHUNK   *AmlAddLocal0       (AML_CHUNK *Parent);
+AML_CHUNK   *AmlAddStore        (AML_CHUNK *Parent);
+AML_CHUNK   *AmlAddReturn       (AML_CHUNK *Parent);
 
-UINT32      AcpiGetSize         (UINT8 *Buffer, UINT32 adr);
+UINT32      AcpiGetSize         (UINT8 *Buffer, UINT32 Adr);
 
 typedef     EFI_ACPI_DESCRIPTION_HEADER SSDT_TABLE;
 
@@ -52,7 +52,7 @@ GeneratePssSsdt (
 
 SSDT_TABLE *
 GenerateCstSsdt (
-  EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE   *fadt,
+  EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE   *Fadt,
   UINT8                                       FirstID,
   UINTN                                       Number
 );

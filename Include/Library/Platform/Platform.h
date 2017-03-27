@@ -140,7 +140,7 @@ Headers collection for procedures
 #define DIR_ACPI_PATCHED          DIR_ACPI L"\\Patched"
 #define DIR_ACPI_ORIGIN           DIR_ACPI L"\\Origin"
 
-#define DSDT_ORIGIN               DIR_ACPI L"\\DSDT-or.aml"
+#define DSDT_ORIGIN               DIR_ACPI_ORIGIN L"\\DSDT-or.aml"
 
 #define DIR_ROM                   L"%s\\Rom"
 
@@ -157,9 +157,15 @@ Headers collection for procedures
 
 #define OSX_PATH_SLE              L"\\System\\Library\\Extensions"
 
+#define DSDT_CLOVER_PREFIX        L"DSDT-Clover"
+#define SSDT_CLOVER_PREFIX        L"SSDT-Clover"
+
 #define DSDT_NAME                 L"DSDT.aml"
-#define DSDT_PATCHED_NAME         L"DSDT-%x.aml"
+#define DSDT_PATCHED_NAME         DSDT_CLOVER_PREFIX L"%x.aml"
 #define DSDT_DUMP_LOG             L"DumpLog.txt"
+
+#define SSDT_PSTATES_NAME         SSDT_CLOVER_PREFIX L"PStates.aml"
+#define SSDT_CSTATES_NAME         SSDT_CLOVER_PREFIX L"CStates.aml"
 
 //#ifndef DEBUG_ALL
 //#define MsgLog(...)  DebugLog (1, __VA_ARGS__)
@@ -668,6 +674,7 @@ typedef struct ACPI_DROP_TABLE {
 } ACPI_DROP_TABLE;
 
 typedef struct ACPI_PATCHED_AML {
+          UINT8               OSType;
           CHAR16              *FileName;
           INPUT_ITEM          MenuItem;
   struct  ACPI_PATCHED_AML    *Next;
@@ -1027,7 +1034,7 @@ typedef struct {
   UINT32                    FakeIMEI;
 
   //Graphics
-  UINT16                    PCIRootUID;
+  //UINT16                    PCIRootUID;
   BOOLEAN                   InjectIntel;
   BOOLEAN                   InjectATI;
   BOOLEAN                   InjectNVidia;
@@ -1200,11 +1207,11 @@ extern UINT32                           gDevicesNumber;
 extern INTN                             OldChosenTheme;
 extern INTN                             OldChosenConfig;
 
-extern UINT64                           BiosDsdt;
-extern UINT32                           BiosDsdtLen;
-extern UINT8                            acpi_cpu_count;
-extern CHAR8                            *acpi_cpu_name[32];
-extern CHAR8                            *acpi_cpu_score;
+//extern UINT64                           BiosDsdt;
+//extern UINT32                           BiosDsdtLen;
+extern UINT8                            AcpiCPUCount;
+extern CHAR8                            *AcpiCPUName[32];
+extern CHAR8                            *AcpiCPUScore;
 
 // ACPI/PATCHED/AML
 extern ACPI_PATCHED_AML                 *ACPIPatchedAML;
@@ -1229,6 +1236,7 @@ extern CHAR8                            *OsVerUndetected;
 extern BOOLEAN                          GraphicsScreenDirty;
 
 extern CONST NVRAM_DATA                 NvramData[];
+extern CHAR16                           *SupportedOsType[3];
 
 // common
 //CHAR16 *
@@ -1260,20 +1268,19 @@ StartTool (
 
 VOID
 FixBiosDsdt (
-  UINT8                                       *Dsdt,
-  EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE   *fadt,
-  CHAR8                                       *OSVersion
+  UINT8     *Temp,
+  BOOLEAN   Patched
 );
 
-VOID
-GetBiosRegions (
-  EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE   *fadt
-);
+//VOID
+//GetBiosRegions (
+//  EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE   *fadt
+//);
 
 INT32
 FindBin (
-  UINT8   *Array,
-  UINT32  ArrayLen,
+  UINT8   *Bin,
+  UINT32  BinLen,
   UINT8   *Pattern,
   UINT32  PatternLen
 );
@@ -1500,7 +1507,7 @@ EFI_STATUS
 ResetNvram ();
 
 VOID
-DoResetNvram ();
+ResetClover ();
 
 VOID
 SetVariablesFromNvram ();
@@ -1568,7 +1575,7 @@ ScanSPD ();
 BOOLEAN
 SetupAtiDevprop (
   LOADER_ENTRY  *Entry,
-  pci_dt_t      *ati_dev
+  PCI_DT        *Dev
 );
 
 VOID
@@ -1579,12 +1586,23 @@ GetAtiModel (
 
 BOOLEAN
 SetupGmaDevprop (
-  pci_dt_t    *GMADev
+  PCI_DT    *Dev
+);
+
+BOOLEAN
+SetupEthernetDevprop (
+  PCI_DT    *Dev
+);
+
+BOOLEAN
+SetupHdaDevprop (
+  EFI_PCI_IO_PROTOCOL   *PciIo,
+  PCI_DT                *Dev
 );
 
 BOOLEAN
 SetupNvidiaDevprop (
-  pci_dt_t  *nvda_dev
+  PCI_DT    *NVDev
 );
 
 VOID
@@ -1598,23 +1616,16 @@ FindCardWithIds (
   UINT32  SubId
 );
 
-//ACPI
+UINT32
+PatchBinACPI (
+  UINT8   *Ptr,
+  UINT32  Len
+);
+
 EFI_STATUS
 PatchACPI (
-  IN  REFIT_VOLUME  *Volume,
-      CHAR8         *OSVersion
-);
-
-UINT32
-PatchACPIBin (
-  UINT8   *temp,
-  UINT32  len
-);
-
-EFI_STATUS
-PatchACPIOS (
-  CHAR16    *OsSubdir,
-  BOOLEAN   DropSSDT
+  //BOOLEAN     DropSSDT,
+  UINT8       OSType
 );
 
 UINT8
@@ -1625,7 +1636,8 @@ Checksum8 (
 
 VOID
 SaveOemDsdt (
-  BOOLEAN   FullPatch
+  BOOLEAN     FullPatch,
+  UINT8       OSType
 );
 
 VOID
@@ -1633,12 +1645,12 @@ SaveOemTables ();
 
 UINT32
 FixAny (
-  UINT8   *dsdt,
-  UINT32  len,
-  UINT8   *ToFind,
-  UINT32  LenTF,
-  UINT8   *ToReplace,
-  UINT32  LenTR
+  UINT8     *Dsdt,
+  UINT32    Len,
+  UINT8     *ToFind,
+  UINT32    LenTF,
+  UINT8     *ToReplace,
+  UINT32    LenTR
 );
 
 VOID

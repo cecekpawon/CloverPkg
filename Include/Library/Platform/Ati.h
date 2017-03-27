@@ -10,14 +10,14 @@
 #include <Library/Platform/Platform.h> //this include needed for Uefi types
 
 #define OFFSET_TO_GET_ATOMBIOS_STRINGS_START 0x6e
-#define DATVAL(x)     {kPtr, sizeof(x), (UINT8 *)x}
-#define STRVAL(x)     {kStr, sizeof(x)-1, (UINT8 *)x}
-#define BYTVAL(x)     {kCst, 1, (UINT8 *)(UINTN)x}
-#define WRDVAL(x)     {kCst, 2, (UINT8 *)(UINTN)x}
-#define DWRVAL(x)     {kCst, 4, (UINT8 *)(UINTN)x}
+#define DATVAL(x)     { kPtr, sizeof(x), (UINT8 *)x }
+#define STRVAL(x)     { kStr, sizeof(x)-1, (UINT8 *)x }
+#define BYTVAL(x)     { kCst, 1, (UINT8 *)(UINTN)x }
+#define WRDVAL(x)     { kCst, 2, (UINT8 *)(UINTN)x }
+#define DWRVAL(x)     { kCst, 4, (UINT8 *)(UINTN)x }
 //QWRVAL would work only in 64 bit
-//#define QWRVAL(x)     {kCst, 8, (UINT8 *)(UINTN)x}
-#define NULVAL        {kNul, 0, (UINT8 *)NULL}
+//#define QWRVAL(x)     { kCst, 8, (UINT8 *)(UINTN)x }
+#define NULVAL        { kNul, 0, (UINT8 *)NULL }
 
 #define RADEON_CONFIG_MEMSIZE                     0x00f8
 #define RADEON_CONFIG_APER_SIZE                   0x0108
@@ -57,7 +57,7 @@ typedef enum {
   kStr,
   kPtr,
   kCst
-} type_t;
+} ATI_TYPE;
 
 typedef enum {
   CHIP_FAMILY_UNKNOW,
@@ -122,12 +122,12 @@ typedef enum {
   CHIP_FAMILY_AMETHYST,
   CHIP_FAMILY_TONGA,
   CHIP_FAMILY_LAST
-} ati_chip_family_t;
+} ATI_CHIP_FAMILY;
 
 typedef struct {
   CONST CHAR8   *name;
   UINT8 ports;
-} card_config_t;
+} ATI_CARD_CONFIG;
 
 typedef enum {
   kNull,
@@ -216,31 +216,31 @@ typedef enum {
   kGreyhound,
   kLabrador,
   kCfgEnd
-} config_name_t;
+} ATI_CONFIG_NAME;
 
 typedef struct {
   UINT16                device_id;
   //UINT32              subsys_id;
-  ati_chip_family_t     chip_family;
+  ATI_CHIP_FAMILY       chip_family;
   //CONST CHAR8         *model_name;
-  config_name_t         cfg_name;
-} radeon_card_info_t;
+  ATI_CONFIG_NAME       cfg_name;
+} ATI_CARD_INFO;
 
 typedef struct {
-  DevPropDevice         *device;
-  radeon_card_info_t    *info;
-  pci_dt_t              *pci_dev;
-  UINT8                 *fb;
-  UINT8                 *mmio;
-  UINT8                 *io;
-  UINT8                 *rom;
-  UINT32                rom_size;
-  UINT64                vram_size;
+        DevPropDevice   *device;
+        ATI_CARD_INFO   *info;
+        PCI_DT          *pci_dev;
+        UINT8           *fb;
+        UINT8           *mmio;
+        UINT8           *io;
+        UINT8           *rom;
+        UINT32          rom_size;
+        UINT64          vram_size;
   CONST CHAR8           *cfg_name;
-  UINT8                 ports;
-  UINT32                flags;
-  BOOLEAN               posted;
-} card_t;
+        UINT8           ports;
+        UINT32          flags;
+        BOOLEAN         posted;
+} ATI_CARD;
 
 #define MKFLAG(n)   (1 << n)
 #define FLAGTRUE    MKFLAG(0)
@@ -250,41 +250,41 @@ typedef struct {
 #define FLAGNOTFAKE MKFLAG(4)
 
 typedef struct {
-  type_t    type;
+  ATI_TYPE  type;
   UINT32    size;
-  UINT8   *data;
-} value_t;
+  UINT8     *data;
+} ATI_VAL;
 
 typedef struct {
   UINT32    flags;
   BOOLEAN   all_ports;
-  CHAR8   *name;
-  BOOLEAN   (*get_value) (value_t *val, INTN index);
-  value_t   default_val;
-} AtiDevProp;
+  CHAR8     *name;
+  BOOLEAN   (*get_value) (ATI_VAL *Val, INTN Index);
+  ATI_VAL   default_val;
+} ATI_DEV_PROP;
 
-BOOLEAN GetBootDisplayVal     (value_t *val, INTN index);
-BOOLEAN GetVramVal            (value_t *val, INTN index);
-BOOLEAN GetEdidVal            (value_t *val, INTN index);
-BOOLEAN GetDisplayType        (value_t *val, INTN index);
-BOOLEAN GetNameVal            (value_t *val, INTN index);
-BOOLEAN GetNameParentVal      (value_t *val, INTN index);
-BOOLEAN GetModelVal           (value_t *val, INTN index);
-BOOLEAN GetConnTypeVal        (value_t *val, INTN index);
-BOOLEAN GetVramSizeVal        (value_t *val, INTN index);
-BOOLEAN GetBinImageVal        (value_t *val, INTN index);
-BOOLEAN GetBinImageOwr        (value_t *val, INTN index);
-BOOLEAN GetRomRevisionVal     (value_t *val, INTN index);
-BOOLEAN GetDeviceIdVal        (value_t *val, INTN index);
-BOOLEAN GetMclkVal            (value_t *val, INTN index);
-BOOLEAN GetSclkVal            (value_t *val, INTN index);
-BOOLEAN GetRefclkVal          (value_t *val, INTN index);
-BOOLEAN GetPlatformInfoVal    (value_t *val, INTN index);
-BOOLEAN GetVramTotalSizeVal   (value_t *val, INTN index);
-BOOLEAN GetDualLinkVal        (value_t *val, INTN index);
-BOOLEAN GetNamePciVal         (value_t *val, INTN index);
+BOOLEAN GetBootDisplayVal       (ATI_VAL *Val, INTN Index);
+BOOLEAN GetVramVal              (ATI_VAL *Val, INTN Index);
+BOOLEAN GetEdidVal              (ATI_VAL *Val, INTN Index);
+BOOLEAN GetDisplayType          (ATI_VAL *Val, INTN Index);
+BOOLEAN GetNameVal              (ATI_VAL *Val, INTN Index);
+BOOLEAN GetNameParentVal        (ATI_VAL *Val, INTN Index);
+BOOLEAN GetModelVal             (ATI_VAL *Val, INTN Index);
+BOOLEAN GetConnTypeVal          (ATI_VAL *Val, INTN Index);
+BOOLEAN GetVramSizeVal          (ATI_VAL *Val, INTN Index);
+BOOLEAN GetBinImageVal          (ATI_VAL *Val, INTN Index);
+BOOLEAN GetBinImageOwr          (ATI_VAL *Val, INTN Index);
+BOOLEAN GetRomRevisionVal       (ATI_VAL *Val, INTN Index);
+BOOLEAN GetDeviceIdVal          (ATI_VAL *Val, INTN Index);
+BOOLEAN GetMclkVal              (ATI_VAL *Val, INTN Index);
+BOOLEAN GetSclkVal              (ATI_VAL *Val, INTN Index);
+BOOLEAN GetRefclkVal            (ATI_VAL *Val, INTN Index);
+BOOLEAN GetPlatformInfoVal      (ATI_VAL *Val, INTN Index);
+BOOLEAN GetVramTotalSizeVal     (ATI_VAL *Val, INTN Index);
+BOOLEAN GetDualLinkVal          (ATI_VAL *Val, INTN Index);
+BOOLEAN GetNamePciVal           (ATI_VAL *Val, INTN Index);
 
-extern card_config_t card_configs[];
-extern radeon_card_info_t radeon_cards[];
-extern AtiDevProp ati_devprop_list[];
-extern CONST CHAR8 *chip_family_name[];
+extern        ATI_CARD_CONFIG   ATICardConfigs[];
+extern        ATI_CARD_INFO     ATICards[];
+extern        ATI_DEV_PROP      ATI_DEV_PROPList[];
+extern CONST  CHAR8             *ATIFamilyName[];

@@ -18,8 +18,7 @@
 
 #define DBG(...) DebugLog (DEBUG_STATE_GEN, __VA_ARGS__)
 
-CONST UINT8 pss_ssdt_header[] =
-{
+CONST UINT8 PssSsdtHeader[] = {
   0x53, 0x53, 0x44, 0x54, 0x7E, 0x00, 0x00, 0x00,   /* SSDT.... */
   0x01, 0x6A, 0x50, 0x6D, 0x52, 0x65, 0x66, 0x00,   /* ..PmRef. */
   0x43, 0x70, 0x75, 0x50, 0x6D, 0x00, 0x00, 0x00,   /* CpuPm... */
@@ -27,8 +26,7 @@ CONST UINT8 pss_ssdt_header[] =
   0x20, 0x03, 0x12, 0x20                            /* 1.._   */
 };
 
-CHAR8 cst_ssdt_header[] =
-{
+CHAR8 CstSsdtHeader[] = {
   0x53, 0x53, 0x44, 0x54, 0xE7, 0x00, 0x00, 0x00,   /* SSDT.... */
   0x01, 0x17, 0x50, 0x6D, 0x52, 0x65, 0x66, 0x41,   /* ..PmRefA */
   0x43, 0x70, 0x75, 0x43, 0x73, 0x74, 0x00, 0x00,   /* CpuCst.. */
@@ -36,22 +34,13 @@ CHAR8 cst_ssdt_header[] =
   0x20, 0x03, 0x12, 0x20                            /* 1.._   */
 };
 
-CHAR8 resource_template_register_fixedhw[] =
-{
+CHAR8 ResourceTemplateRegisterFixedHW[] = {
   0x11, 0x14, 0x0A, 0x11, 0x82, 0x0C, 0x00, 0x7F,
   0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   0x00, 0x00, 0x01, 0x79, 0x00
 };
 
-CHAR8 resource_template_register_systemio[] =
-{
-  0x11, 0x14, 0x0A, 0x11, 0x82, 0x0C, 0x00, 0x01,
-  0x08, 0x00, 0x00, 0x15, 0x04, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x79, 0x00,
-};
-
-CHAR8 plugin_type[] =
-{
+CHAR8 PluginType[] = {
   0x14, 0x22, 0x5F, 0x44, 0x53, 0x4D, 0x04, 0xA0,
   0x09, 0x93, 0x6A, 0x00, 0xA4, 0x11, 0x03, 0x01,
   0x03, 0xA4, 0x12, 0x10, 0x02, 0x0D, 0x70, 0x6C,
@@ -64,21 +53,11 @@ GeneratePssSsdt (
   UINT8   FirstID,
   UINTN   Number
 ) {
-  CHAR8     name[31], name1[31], name2[31];
-  P_STATE   maximum, minimum, p_states[64];
-  UINT8     p_states_count = 0;
-  UINT16    realMax, realMin = 6, realTurbo = 0, Apsn = 0, Aplf = 8;
+  CHAR8     Name[31], Name1[31], Name2[31];
+  P_STATE   Maximum, Minimum, PStates[64];
+  UINT8     PStatesCount = 0;
+  UINT16    RealMax, RealMin = 6, RealTurbo = 0, Apsn = 0, Aplf = 8;
   UINT32    i, j;
-
-  if (gCPUStructure.Vendor != CPU_VENDOR_INTEL) {
-    MsgLog ("Not an Intel platform: P-States will not be generated !!!\n");
-    return NULL;
-  }
-
-  if (!(gCPUStructure.Features & CPUID_FEATURE_MSR)) {
-    MsgLog ("Unsupported CPU: P-States will not be generated !!!\n");
-    return NULL;
-  }
 
   if (gMobile) {
    Aplf = 4;
@@ -109,60 +88,60 @@ GeneratePssSsdt (
       (gCPUStructure.Family == 0x06) &&
       (gCPUStructure.Model >= CPUID_MODEL_SANDYBRIDGE)
     ) {
-      maximum.Control.Control = RShiftU64 (AsmReadMsr64 (MSR_PLATFORM_INFO), 8) & 0xff;
+      Maximum.Control.Control = RShiftU64 (AsmReadMsr64 (MSR_PLATFORM_INFO), 8) & 0xff;
 
       if (gSettings.MaxMultiplier) {
         DBG ("Using custom MaxMultiplier %d instead of automatic %d\n",
-            gSettings.MaxMultiplier, maximum.Control.Control);
-        maximum.Control.Control = gSettings.MaxMultiplier;
+            gSettings.MaxMultiplier, Maximum.Control.Control);
+        Maximum.Control.Control = gSettings.MaxMultiplier;
       }
 
-      realMax = maximum.Control.Control;
-      DBG ("Maximum control=0x%x\n", realMax);
+      RealMax = Maximum.Control.Control;
+      DBG ("Maximum control=0x%x\n", RealMax);
 
       if (gSettings.Turbo) {
-        realTurbo = (gCPUStructure.Turbo4 > gCPUStructure.Turbo1)
+        RealTurbo = (gCPUStructure.Turbo4 > gCPUStructure.Turbo1)
                       ? (gCPUStructure.Turbo4 / 10)
                       : (gCPUStructure.Turbo1 / 10);
-        maximum.Control.Control = realTurbo;
-        DBG ("Turbo control=0x%x\n", realTurbo);
+        Maximum.Control.Control = RealTurbo;
+        DBG ("Turbo control=0x%x\n", RealTurbo);
       }
 
-      Apsn = (realTurbo > realMax) ? (realTurbo - realMax) : 0;
-      realMin =  RShiftU64 (AsmReadMsr64 (MSR_PLATFORM_INFO), 40) & 0xff;
+      Apsn = (RealTurbo > RealMax) ? (RealTurbo - RealMax) : 0;
+      RealMin =  RShiftU64 (AsmReadMsr64 (MSR_PLATFORM_INFO), 40) & 0xff;
 
       if (gSettings.MinMultiplier) {
-        minimum.Control.Control = gSettings.MinMultiplier;
-        Aplf = (realMin > minimum.Control.Control) ? (realMin - minimum.Control.Control) : 0;
+        Minimum.Control.Control = gSettings.MinMultiplier;
+        Aplf = (RealMin > Minimum.Control.Control) ? (RealMin - Minimum.Control.Control) : 0;
       } else {
-        minimum.Control.Control = realMin;
+        Minimum.Control.Control = RealMin;
       }
 
-      DBG ("P-States: min 0x%x, max 0x%x\n", minimum.Control.Control, maximum.Control.Control);
+      DBG ("P-States: min 0x%x, max 0x%x\n", Minimum.Control.Control, Maximum.Control.Control);
 
       // Sanity check
-      if (maximum.Control.Control < minimum.Control.Control) {
+      if (Maximum.Control.Control < Minimum.Control.Control) {
         DBG ("Insane control values!");
-        p_states_count = 0;
+        PStatesCount = 0;
       } else {
-        p_states_count = 0;
+        PStatesCount = 0;
 
-        for (i = maximum.Control.Control; i >= minimum.Control.Control; i--) {
+        for (i = Maximum.Control.Control; i >= Minimum.Control.Control; i--) {
           j = i << 8;
 
-          p_states[p_states_count].Frequency = (UINT32)(100 * i);
-          p_states[p_states_count].Control.Control = (UINT16)j;
-          p_states[p_states_count].CID = j;
+          PStates[PStatesCount].Frequency = (UINT32)(100 * i);
+          PStates[PStatesCount].Control.Control = (UINT16)j;
+          PStates[PStatesCount].CID = j;
 
-          if (!p_states_count && gSettings.DoubleFirstState) {
+          if (!PStatesCount && gSettings.DoubleFirstState) {
             //double first state
-            p_states_count++;
-            p_states[p_states_count].Control.Control = (UINT16)j;
-            p_states[p_states_count].CID = j;
-            p_states[p_states_count].Frequency = (UINT32)(DivU64x32 (MultU64x32 (gCPUStructure.FSBFrequency, i), Mega)) - 1;
+            PStatesCount++;
+            PStates[PStatesCount].Control.Control = (UINT16)j;
+            PStates[PStatesCount].CID = j;
+            PStates[PStatesCount].Frequency = (UINT32)(DivU64x32 (MultU64x32 (gCPUStructure.FSBFrequency, i), Mega)) - 1;
           }
 
-          p_states_count++;
+          PStatesCount++;
         }
       }
     } else {
@@ -170,95 +149,94 @@ GeneratePssSsdt (
     }
 
     // Generating SSDT
-    if (p_states_count > 0) {
-      SSDT_TABLE    *ssdt;
-      AML_CHUNK     *scop, *method, *pack, *metPSS, *metPPC,
-                    *namePCT, *packPCT, *metPCT, *root = AmlCreateNode (NULL);
+    if (PStatesCount > 0) {
+      SSDT_TABLE    *Ssdt;
+      AML_CHUNK     *Scope, *Method, *Pack, *MetPSS, *MetPPC,
+                    *NamePCT, *PackPCT, *MetPCT, *Root = AmlCreateNode (NULL);
 
-      AmlAddBuffer (root, (CHAR8 *)&pss_ssdt_header[0], sizeof (pss_ssdt_header)); // SSDT header
+      AmlAddBuffer (Root, (CHAR8 *)&PssSsdtHeader[0], sizeof (PssSsdtHeader)); // SSDT header
 
-      AsciiSPrint (name, 31, "%a%4a", acpi_cpu_score, acpi_cpu_name[0]);
-      AsciiSPrint (name1, 31, "%a%4aPSS_", acpi_cpu_score, acpi_cpu_name[0]);
-      AsciiSPrint (name2, 31, "%a%4aPCT_", acpi_cpu_score, acpi_cpu_name[0]);
+      AsciiSPrint (Name, 31, "%a%4a", AcpiCPUScore, AcpiCPUName[0]);
+      AsciiSPrint (Name1, 31, "%a%4aPSS_", AcpiCPUScore, AcpiCPUName[0]);
+      AsciiSPrint (Name2, 31, "%a%4aPCT_", AcpiCPUScore, AcpiCPUName[0]);
 
-      scop = AmlAddScope (root, name);
-      method = AmlAddName (scop, "PSS_");
-      pack = AmlAddPackage (method);
+      Scope = AmlAddScope (Root, Name);
+      Method = AmlAddName (Scope, "PSS_");
+      Pack = AmlAddPackage (Method);
 
-      //for (i = gSettings.PLimitDict; i < p_states_count; i++) {
-      for (i = 0; i < p_states_count; i++) {
-        AML_CHUNK   *pstt = AmlAddPackage (pack);
+      //for (i = gSettings.PLimitDict; i < PStatesCount; i++) {
+      for (i = 0; i < PStatesCount; i++) {
+        AML_CHUNK   *pstt = AmlAddPackage (Pack);
 
-        AmlAddDword (pstt, p_states[i].Frequency);
-        if (p_states[i].Control.Control < realMin) {
+        AmlAddDword (pstt, PStates[i].Frequency);
+        if (PStates[i].Control.Control < RealMin) {
           AmlAddDword (pstt, 0); //zero for power
         } else {
-          AmlAddDword (pstt, p_states[i].Frequency<<3); // Power
+          AmlAddDword (pstt, PStates[i].Frequency<<3); // Power
         }
 
         AmlAddDword (pstt, 0x0000000A); // Latency
         AmlAddDword (pstt, 0x0000000A); // Latency
-        AmlAddDword (pstt, p_states[i].Control.Control);
-        AmlAddDword (pstt, p_states[i].Control.Control); // Status
+        AmlAddDword (pstt, PStates[i].Control.Control);
+        AmlAddDword (pstt, PStates[i].Control.Control); // Status
       }
 
-      metPSS = AmlAddMethod (scop, "_PSS", 0);
-      AmlAddReturnName (metPSS, "PSS_");
-      //metPSS = AmlAddMethod (scop, "APSS", 0);
-      //AmlAddReturnName (metPSS, "PSS_");
-      metPPC = AmlAddMethod (scop, "_PPC", 0);
-      //AmlAddReturnByte (metPPC, gSettings.PLimitDict);
-      AmlAddReturnByte (metPPC, 0);
-      namePCT = AmlAddName (scop, "PCT_");
-      packPCT = AmlAddPackage (namePCT);
-      resource_template_register_fixedhw[8] = 0x00;
-      resource_template_register_fixedhw[9] = 0x00;
-      resource_template_register_fixedhw[18] = 0x00;
-      AmlAddBuffer (packPCT, resource_template_register_fixedhw, sizeof (resource_template_register_fixedhw));
-      AmlAddBuffer (packPCT, resource_template_register_fixedhw, sizeof (resource_template_register_fixedhw));
-      metPCT = AmlAddMethod (scop, "_PCT", 0);
-      AmlAddReturnName (metPCT, "PCT_");
+      MetPSS = AmlAddMethod (Scope, "_PSS", 0);
+      AmlAddReturnName (MetPSS, "PSS_");
+      //MetPSS = AmlAddMethod (Scope, "APSS", 0);
+      //AmlAddReturnName (MetPSS, "PSS_");
+      MetPPC = AmlAddMethod (Scope, "_PPC", 0);
+      //AmlAddReturnByte (MetPPC, gSettings.PLimitDict);
+      AmlAddReturnByte (MetPPC, 0);
+      NamePCT = AmlAddName (Scope, "PCT_");
+      PackPCT = AmlAddPackage (NamePCT);
+      ResourceTemplateRegisterFixedHW[8] = 0x00;
+      ResourceTemplateRegisterFixedHW[9] = 0x00;
+      ResourceTemplateRegisterFixedHW[18] = 0x00;
+      AmlAddBuffer (PackPCT, ResourceTemplateRegisterFixedHW, sizeof (ResourceTemplateRegisterFixedHW));
+      AmlAddBuffer (PackPCT, ResourceTemplateRegisterFixedHW, sizeof (ResourceTemplateRegisterFixedHW));
+      MetPCT = AmlAddMethod (Scope, "_PCT", 0);
+      AmlAddReturnName (MetPCT, "PCT_");
 
       if (gSettings.PluginType) {
-        AmlAddBuffer (scop, plugin_type, sizeof (plugin_type));
-        AmlAddByte (scop, gSettings.PluginType);
+        AmlAddBuffer (Scope, PluginType, sizeof (PluginType));
+        AmlAddByte (Scope, gSettings.PluginType);
       }
 
       if (gCPUStructure.Family >= 2) {
-        AmlAddName (scop, "APSN");
-        AmlAddByte (scop, (UINT8)Apsn);
-        AmlAddName (scop, "APLF");
-        AmlAddByte (scop, (UINT8)Aplf);
+        AmlAddName (Scope, "APSN");
+        AmlAddByte (Scope, (UINT8)Apsn);
+        AmlAddName (Scope, "APLF");
+        AmlAddByte (Scope, (UINT8)Aplf);
       }
 
       // Add CPUs
       for (i = 1; i < Number; i++) {
-        AsciiSPrint (name, 31, "%a%4a", acpi_cpu_score, acpi_cpu_name[i]);
-        scop = AmlAddScope (root, name);
-        metPSS = AmlAddMethod (scop, "_PSS", 0);
-        AmlAddReturnName (metPSS, name1);
-        //metPSS = AmlAddMethod (scop, "APSS", 0);
-        //AmlAddReturnName (metPSS, name1);
-        metPPC = AmlAddMethod (scop, "_PPC", 0);
-        //AmlAddReturnByte (metPPC, gSettings.PLimitDict);
-        AmlAddReturnByte (metPPC, 0);
-        metPCT = AmlAddMethod (scop, "_PCT", 0);
-        AmlAddReturnName (metPCT, name2);
-
+        AsciiSPrint (Name, 31, "%a%4a", AcpiCPUScore, AcpiCPUName[i]);
+        Scope = AmlAddScope (Root, Name);
+        MetPSS = AmlAddMethod (Scope, "_PSS", 0);
+        AmlAddReturnName (MetPSS, Name1);
+        //MetPSS = AmlAddMethod (Scope, "APSS", 0);
+        //AmlAddReturnName (MetPSS, Name1);
+        MetPPC = AmlAddMethod (Scope, "_PPC", 0);
+        //AmlAddReturnByte (MetPPC, gSettings.PLimitDict);
+        AmlAddReturnByte (MetPPC, 0);
+        MetPCT = AmlAddMethod (Scope, "_PCT", 0);
+        AmlAddReturnName (MetPCT, Name2);
       }
 
-      AmlCalculateSize (root);
+      AmlCalculateSize (Root);
 
-      ssdt = (SSDT_TABLE *)AllocateZeroPool (root->Size);
-      AmlWriteNode (root, (VOID *)ssdt, 0);
-      ssdt->Length = root->Size;
-      ssdt->Checksum = 0;
-      ssdt->Checksum = (UINT8)(256 - Checksum8 (ssdt, ssdt->Length));
+      Ssdt = (SSDT_TABLE *)AllocateZeroPool (Root->Size);
+      AmlWriteNode (Root, (VOID *)Ssdt, 0);
+      Ssdt->Length = Root->Size;
+      Ssdt->Checksum = 0;
+      Ssdt->Checksum = (UINT8)(256 - Checksum8 (Ssdt, Ssdt->Length));
 
-      AmlDestroyNode (root);
+      AmlDestroyNode (Root);
 
       MsgLog ("SSDT with CPU P-States generated successfully\n");
-      return ssdt;
+      return Ssdt;
     }
   } else {
     MsgLog ("ACPI CPUs not found: P-States not generated !!!\n");
@@ -269,133 +247,133 @@ GeneratePssSsdt (
 
 SSDT_TABLE *
 GenerateCstSsdt (
-  EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE   *fadt,
+  EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE   *Fadt,
   UINT8                                       FirstID,
   UINTN                                       Number
 ) {
-  BOOLEAN       c2_enabled = gSettings.EnableC2,
-                c3_enabled,
-                c4_enabled = gSettings.EnableC4 /*,
+  BOOLEAN       C2Enabled = gSettings.EnableC2,
+                C3Enabled,
+                C4Enabled = gSettings.EnableC4 /*,
                 //c6_enabled = gSettings.EnableC6,
                 cst_using_systemio = gSettings.EnableISS */;
-  UINT8         cstates_count; // p_blk_lo, p_blk_hi,
-  UINT32        acpi_cpu_p_blk;
-  CHAR8         name2[31], name0[31], name1[31];
-  AML_CHUNK     *root, *scop, *name, *pack, *tmpl, *met;
+  UINT8         CStatesCount; // p_blk_lo, p_blk_hi,
+  UINT32        AcpiCPUPBlk;
+  CHAR8         Name2[31], Name0[31], Name1[31];
+  AML_CHUNK     *Root, *Scope, *Name, *Pack, *Tmpl, *Met;
   UINTN         i;
-  SSDT_TABLE    *ssdt;
+  SSDT_TABLE    *Ssdt;
 
-  if (!fadt) {
+  if (!Fadt) {
     return NULL;
   }
 
-  acpi_cpu_p_blk = fadt->Pm1aEvtBlk + 0x10;
-  c2_enabled = c2_enabled || (fadt->PLvl2Lat < 100);
-  c3_enabled = (fadt->PLvl3Lat < 1000);
-  cstates_count = 1 + (c2_enabled ? 1 : 0) + ((c3_enabled || c4_enabled)? 1 : 0)
+  AcpiCPUPBlk = Fadt->Pm1aEvtBlk + 0x10;
+  C2Enabled = C2Enabled || (Fadt->PLvl2Lat < 100);
+  C3Enabled = (Fadt->PLvl3Lat < 1000);
+  CStatesCount = 1 + (C2Enabled ? 1 : 0) + ((C3Enabled || C4Enabled)? 1 : 0)
                   + (gSettings.EnableC6 ? 1 : 0) + (gSettings.EnableC7 ? 1 : 0);
 
-  root = AmlCreateNode (NULL);
-  AmlAddBuffer (root, cst_ssdt_header, sizeof (cst_ssdt_header)); // SSDT header
-  AsciiSPrint (name0, 31, "%a%4a", acpi_cpu_score, acpi_cpu_name[0]);
-  AsciiSPrint (name1, 31, "%a%4aCST_",  acpi_cpu_score, acpi_cpu_name[0]);
-  scop = AmlAddScope (root, name0);
-  name = AmlAddName (scop, "CST_");
-  pack = AmlAddPackage (name);
-  AmlAddByte (pack, cstates_count);
+  Root = AmlCreateNode (NULL);
+  AmlAddBuffer (Root, CstSsdtHeader, sizeof (CstSsdtHeader)); // SSDT header
+  AsciiSPrint (Name0, 31, "%a%4a", AcpiCPUScore, AcpiCPUName[0]);
+  AsciiSPrint (Name1, 31, "%a%4aCST_",  AcpiCPUScore, AcpiCPUName[0]);
+  Scope = AmlAddScope (Root, Name0);
+  Name = AmlAddName (Scope, "CST_");
+  Pack = AmlAddPackage (Name);
+  AmlAddByte (Pack, CStatesCount);
 
-  tmpl = AmlAddPackage (pack);
+  Tmpl = AmlAddPackage (Pack);
 
   // C1
-  resource_template_register_fixedhw[8] = 0x01;
-  resource_template_register_fixedhw[9] = 0x02;
-  //resource_template_register_fixedhw[18] = 0x01;
-  resource_template_register_fixedhw[10] = 0x01;
+  ResourceTemplateRegisterFixedHW[8] = 0x01;
+  ResourceTemplateRegisterFixedHW[9] = 0x02;
+  //ResourceTemplateRegisterFixedHW[18] = 0x01;
+  ResourceTemplateRegisterFixedHW[10] = 0x01;
 
-  resource_template_register_fixedhw[11] = 0x00; // C1
+  ResourceTemplateRegisterFixedHW[11] = 0x00; // C1
 
-  AmlAddBuffer (tmpl, resource_template_register_fixedhw, sizeof (resource_template_register_fixedhw));
-  AmlAddByte (tmpl, 0x01);     // C1
-  AmlAddWord (tmpl, 0x0001);     // Latency
-  AmlAddDword (tmpl, 0x000003e8);  // Power
+  AmlAddBuffer (Tmpl, ResourceTemplateRegisterFixedHW, ARRAY_SIZE (ResourceTemplateRegisterFixedHW));
+  AmlAddByte (Tmpl, 0x01);     // C1
+  AmlAddWord (Tmpl, 0x0001);     // Latency
+  AmlAddDword (Tmpl, 0x000003e8);  // Power
 
-  //resource_template_register_fixedhw[18] = 0x03;
-  resource_template_register_fixedhw[10] = 0x03;
+  //ResourceTemplateRegisterFixedHW[18] = 0x03;
+  ResourceTemplateRegisterFixedHW[10] = 0x03;
 
-  if (c2_enabled) {         // C2
-    tmpl = AmlAddPackage (pack);
-    resource_template_register_fixedhw[11] = 0x10; // C2
-    AmlAddBuffer (tmpl, resource_template_register_fixedhw, sizeof (resource_template_register_fixedhw));
-    AmlAddByte (tmpl, 0x02);     // C2
-    AmlAddWord (tmpl, 0x0040);     // Latency
-    AmlAddDword (tmpl, 0x000001f4);  // Power
+  if (C2Enabled) {         // C2
+    Tmpl = AmlAddPackage (Pack);
+    ResourceTemplateRegisterFixedHW[11] = 0x10; // C2
+    AmlAddBuffer (Tmpl, ResourceTemplateRegisterFixedHW, ARRAY_SIZE (ResourceTemplateRegisterFixedHW));
+    AmlAddByte (Tmpl, 0x02);     // C2
+    AmlAddWord (Tmpl, 0x0040);     // Latency
+    AmlAddDword (Tmpl, 0x000001f4);  // Power
   }
 
-  if (c4_enabled) {         // C4
-    tmpl = AmlAddPackage (pack);
-    resource_template_register_fixedhw[11] = 0x30; // C4
-    AmlAddBuffer (tmpl, resource_template_register_fixedhw, sizeof (resource_template_register_fixedhw));
-    AmlAddByte (tmpl, 0x04);     // C4
-    AmlAddWord (tmpl, 0x0080);     // Latency
-    AmlAddDword (tmpl, 0x000000C8);  // Power
-  } else if (c3_enabled) {
-    tmpl = AmlAddPackage (pack);
-    resource_template_register_fixedhw[11] = 0x20; // C3
-    AmlAddBuffer (tmpl, resource_template_register_fixedhw, sizeof (resource_template_register_fixedhw));
-    AmlAddByte (tmpl, 0x03);     // C3
-    AmlAddWord (tmpl, gSettings.C3Latency);      // Latency as in MacPro6,1 = 0x0043
-    AmlAddDword (tmpl, 0x000001F4);  // Power
+  if (C4Enabled) {         // C4
+    Tmpl = AmlAddPackage (Pack);
+    ResourceTemplateRegisterFixedHW[11] = 0x30; // C4
+    AmlAddBuffer (Tmpl, ResourceTemplateRegisterFixedHW, ARRAY_SIZE (ResourceTemplateRegisterFixedHW));
+    AmlAddByte (Tmpl, 0x04);     // C4
+    AmlAddWord (Tmpl, 0x0080);     // Latency
+    AmlAddDword (Tmpl, 0x000000C8);  // Power
+  } else if (C3Enabled) {
+    Tmpl = AmlAddPackage (Pack);
+    ResourceTemplateRegisterFixedHW[11] = 0x20; // C3
+    AmlAddBuffer (Tmpl, ResourceTemplateRegisterFixedHW, ARRAY_SIZE (ResourceTemplateRegisterFixedHW));
+    AmlAddByte (Tmpl, 0x03);     // C3
+    AmlAddWord (Tmpl, gSettings.C3Latency);      // Latency as in MacPro6,1 = 0x0043
+    AmlAddDword (Tmpl, 0x000001F4);  // Power
   }
 
   if (gSettings.EnableC6) {     // C6
-    tmpl = AmlAddPackage (pack);
-    resource_template_register_fixedhw[11] = 0x20; // C6
-    AmlAddBuffer (tmpl, resource_template_register_fixedhw, sizeof (resource_template_register_fixedhw));
-    AmlAddByte (tmpl, 0x06);     // C6
-    AmlAddWord (tmpl, gSettings.C3Latency + 3);      // Latency as in MacPro6,1 = 0x0046
-    AmlAddDword (tmpl, 0x0000015E);  // Power
+    Tmpl = AmlAddPackage (Pack);
+    ResourceTemplateRegisterFixedHW[11] = 0x20; // C6
+    AmlAddBuffer (Tmpl, ResourceTemplateRegisterFixedHW, ARRAY_SIZE (ResourceTemplateRegisterFixedHW));
+    AmlAddByte (Tmpl, 0x06);     // C6
+    AmlAddWord (Tmpl, gSettings.C3Latency + 3);      // Latency as in MacPro6,1 = 0x0046
+    AmlAddDword (Tmpl, 0x0000015E);  // Power
   }
 
   if (gSettings.EnableC7) {
-    tmpl = AmlAddPackage (pack);
-    resource_template_register_fixedhw[11] = 0x30; // C4 or C7
-    AmlAddBuffer (tmpl, resource_template_register_fixedhw, sizeof (resource_template_register_fixedhw));
-    AmlAddByte (tmpl, 0x07);     // C7
-    AmlAddWord (tmpl, 0xF5);     // Latency as in iMac14,1
-    AmlAddDword (tmpl, 0xC8);  // Power
+    Tmpl = AmlAddPackage (Pack);
+    ResourceTemplateRegisterFixedHW[11] = 0x30; // C4 or C7
+    AmlAddBuffer (Tmpl, ResourceTemplateRegisterFixedHW, ARRAY_SIZE (ResourceTemplateRegisterFixedHW));
+    AmlAddByte (Tmpl, 0x07);     // C7
+    AmlAddWord (Tmpl, 0xF5);     // Latency as in iMac14,1
+    AmlAddDword (Tmpl, 0xC8);  // Power
   }
 
-  met = AmlAddMethod (scop, "_CST", 0);
-  AmlAddReturnName (met, "CST_");
-  //met = AmlAddMethod (scop, "ACST", 0);
-  //ret = AmlAddReturnName (met, "CST_");
+  Met = AmlAddMethod (Scope, "_CST", 0);
+  AmlAddReturnName (Met, "CST_");
+  //Met = AmlAddMethod (Scope, "ACST", 0);
+  //ret = AmlAddReturnName (Met, "CST_");
 
   // Aliases
   for (i = 1; i < Number; i++) {
-    AsciiSPrint (name2, 31, "%a%4a",  acpi_cpu_score, acpi_cpu_name[i]);
+    AsciiSPrint (Name2, 31, "%a%4a",  AcpiCPUScore, AcpiCPUName[i]);
 
-    scop = AmlAddScope (root, name2);
-    met = AmlAddMethod (scop, "_CST", 0);
-    AmlAddReturnName (met, name1);
-    //met = AmlAddMethod (scop, "ACST", 0);
-    //ret = AmlAddReturnName (met, name1);
+    Scope = AmlAddScope (Root, Name2);
+    Met = AmlAddMethod (Scope, "_CST", 0);
+    AmlAddReturnName (Met, Name1);
+    //Met = AmlAddMethod (Scope, "ACST", 0);
+    //ret = AmlAddReturnName (Met, Name1);
   }
 
-  AmlCalculateSize (root);
+  AmlCalculateSize (Root);
 
-  ssdt = (SSDT_TABLE *)AllocateZeroPool (root->Size);
+  Ssdt = (SSDT_TABLE *)AllocateZeroPool (Root->Size);
 
-  AmlWriteNode (root, (VOID *)ssdt, 0);
+  AmlWriteNode (Root, (VOID *)Ssdt, 0);
 
-  ssdt->Length = root->Size;
-  ssdt->Checksum = 0;
-  ssdt->Checksum = (UINT8)(256 - Checksum8 ((VOID *)ssdt, ssdt->Length));
+  Ssdt->Length = Root->Size;
+  Ssdt->Checksum = 0;
+  Ssdt->Checksum = (UINT8)(256 - Checksum8 ((VOID *)Ssdt, Ssdt->Length));
 
-  AmlDestroyNode (root);
+  AmlDestroyNode (Root);
 
-  //dumpPhysAddr ("C-States SSDT content: ", ssdt, ssdt->Length);
+  //dumpPhysAddr ("C-States SSDT content: ", Ssdt, Ssdt->Length);
 
   MsgLog ("SSDT with CPU C-States generated successfully\n");
 
-  return ssdt;
+  return Ssdt;
 }
