@@ -51,7 +51,7 @@
 INT32       ParseTagList (CHAR8 *buffer, TagPtr *tag, INT32 type, INT32 empty);
 INT32       ParseNextTag (CHAR8 *buffer, TagPtr *tag);
 
-INT32       dbgCount = 0;
+//INT32       dbgCount = 0;
 SymbolPtr   gSymbolsHead;
 TagPtr      gTagsFree;
 CHAR8       *buffer_start = NULL;
@@ -136,7 +136,6 @@ XMLDecode (
 
   return out;
 }
-#endif
 
 VOID
 DbgOnce (
@@ -155,6 +154,7 @@ DbgOnce (
   MsgLog ("#----- %a: '%a'\n", lbl, subbuff);
   FreePool (subbuff);
 }
+#endif
 
 INTN
 GetPropInt (
@@ -203,10 +203,10 @@ GetAttr (
 
 INT32
 GetAttrID (
-  CHAR8     *Str,
-  CHAR8     *Attr
+  CHAR8   *Str,
+  CHAR8   *Attr
 ) {
-  CHAR8     *vAttr = GetAttr (Str, Attr);
+  CHAR8   *vAttr = GetAttr (Str, Attr);
 
   if (vAttr == NULL) {
     return -1;
@@ -1099,7 +1099,7 @@ ParseXML (
 
   FreePool (fixedBuffer);
 
-  dbgCount++;
+  //dbgCount++;
 
   // return 0 for no error
   return (length != -1) ? EFI_SUCCESS : EFI_OUT_OF_RESOURCES;

@@ -587,11 +587,6 @@ BootArgsExists (
   IN CHAR16   *LoadOption
 );
 
-VOID
-SetOEMPath (
-  CHAR16  *ConfName
-);
-
 LOADER_ENTRY *
 DuplicateLoaderEntry (
   IN LOADER_ENTRY   *Entry

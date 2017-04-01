@@ -24,11 +24,11 @@ extern CHAR8 ClassFix[];
 
 UINT8 RegTRUE[]                          = { 0x01, 0x00, 0x00, 0x00 };
 UINT8 RegFALSE[]                         = { 0x00, 0x00, 0x00, 0x00 };
-UINT8 OsInfo[]                            = {
-                                              0x30, 0x49, 0x01, 0x11, 0x01, 0x10, 0x08, 0x00, 0x00,
-                                              0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF,
-                                              0xFF, 0xFF
-                                            };
+UINT8 OsInfo[]                           = {
+                                             0x30, 0x49, 0x01, 0x11, 0x01, 0x10, 0x08, 0x00, 0x00,
+                                             0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF,
+                                             0xFF, 0xFF
+                                           };
 
 #if 0
 UINT8 RegBacklightControl[]              = { 0x00, 0x00, 0x00, 0x00 };
@@ -55,16 +55,16 @@ UINT8 RegIgPlatformIdCapriDesktop[]      = { 0x05, 0x00, 0x62, 0x01 };
 UINT8 RegIgPlatformIdSNBMobile[]         = { 0x00, 0x00, 0x01, 0x00 };
 UINT8 RegIgPlatformIdSNBDesktop[]        = { 0x10, 0x00, 0x03, 0x00 };
 
-//UINT8 SKLVals[][4]                        = {
-//                                            { 0x01, 0x00, 0x00, 0x00 }, //0 "AAPL,Gfx324"
-//                                            { 0x01, 0x00, 0x00, 0x00 }, //1 "AAPL,GfxYTile"
-//                                            { 0xfa, 0x00, 0x00, 0x00 }, //2 "AAPL00,PanelCycleDelay"
-//                                            { 0x3c, 0x00, 0x00, 0x08 }, //3 "AAPL00,PanelPowerDown"
-//                                            { 0x11, 0x00, 0x00, 0x00 }, //4 "AAPL00,PanelPowerOff"
-//                                            { 0x19, 0x01, 0x00, 0x08 }, //5 "AAPL00,PanelPowerOn"
-//                                            { 0x30, 0x00, 0x00, 0x00 }, //6 "AAPL00,PanelPowerUp"
-//                                            { 0x0c, 0x00, 0x00, 0x00 }, //7 "graphic-options"
-//                                          };
+//UINT8 SKLVals[][4]                       = {
+//                                           { 0x01, 0x00, 0x00, 0x00 }, //0 "AAPL,Gfx324"
+//                                           { 0x01, 0x00, 0x00, 0x00 }, //1 "AAPL,GfxYTile"
+//                                           { 0xfa, 0x00, 0x00, 0x00 }, //2 "AAPL00,PanelCycleDelay"
+//                                           { 0x3c, 0x00, 0x00, 0x08 }, //3 "AAPL00,PanelPowerDown"
+//                                           { 0x11, 0x00, 0x00, 0x00 }, //4 "AAPL00,PanelPowerOff"
+//                                           { 0x19, 0x01, 0x00, 0x08 }, //5 "AAPL00,PanelPowerOn"
+//                                           { 0x30, 0x00, 0x00, 0x00 }, //6 "AAPL00,PanelPowerUp"
+//                                           { 0x0c, 0x00, 0x00, 0x00 }, //7 "graphic-options"
+//                                         };
 
 UINT8 RegGfxYTile[]                      = { 0x01, 0x00, 0x00, 0x00 };
 
@@ -83,7 +83,7 @@ SetIgPlatform (
 }
 
 BOOLEAN
-SetupDevprop (
+SetupGmaDevprop (
   PCI_DT    *Dev
 ) {
 #if 0

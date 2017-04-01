@@ -114,12 +114,13 @@ if [[ $gBuildError -ne 1 ]]; then
   if [[ -d "${QEMU_EFI_PATH}" ]]; then
     dBuildDir="${CLOVER_BUILD_PATH}/X64"
     if [[ ${#gCloverDrivers[@]} -ne 0 ]]; then
-      dDir="${QEMU_EFI_PATH}/CLOVER/drivers"
-      [[ ! -d "${dDir}" ]] && mkdir -p "${dDir}"
-      for drv in "${gCloverDrivers[@]}"
-      do
-        [[ -f "${dBuildDir}/${drv}.efi" ]] && cp "${dBuildDir}/${drv}.efi" "${dDir}"
-      done
+      dDir="${QEMU_EFI_PATH}/CLOVER/Driver"
+      if [[ -d "${dDir}" ]]; then
+        for drv in "${gCloverDrivers[@]}"
+        do
+          [[ -f "${dBuildDir}/${drv}.efi" ]] && cp "${dBuildDir}/${drv}.efi" "${dDir}"
+        done
+      fi
     fi
     [[ -f "${dBuildDir}/Clover.efi" ]] && cp "${dBuildDir}/Clover.efi" "${QEMU_EFI_PATH}/BOOT/BOOTX64.efi"
   fi

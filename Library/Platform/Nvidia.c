@@ -580,7 +580,7 @@ SetupNvidiaDevprop (
   UINT16                    CardType = 0;
   UINT32                    Bar[7], DeviceId, SubSysId,  BootDisplay = 1;
   UINT64                    VRam = 0;
-  CHAR16                    FileName[64], *RomPath = Basename (PoolPrint (DIR_ROM, L""));
+  CHAR16                    FileName[64];
   UINTN                     BufferLen, j, PortsNum = 0;
   INT32                     MaxBiosVersionLen = 32;
   INT32                     i, VersionStart, CrlfCount = 0, Patch = 0;
@@ -622,51 +622,17 @@ SetupNvidiaDevprop (
   if (LoadVBios) {
     UnicodeSPrint (
       FileName, ARRAY_SIZE (FileName), L"%s\\10de_%04x_%04x_%04x.rom",
-      RomPath, NVDev->device_id, NVDev->subsys_id.subsys.vendor_id, NVDev->subsys_id.subsys.device_id
+      DIR_ROM, NVDev->device_id, NVDev->subsys_id.subsys.vendor_id, NVDev->subsys_id.subsys.device_id
     );
 
-    if (FileExists (OEMDir, FileName)) {
+    if (FileExists (SelfRootDir, FileName)) {
       DBG (" - Found specific VBIOS ROM file (10de_%04x_%04x_%04x.rom)\n",
         NVDev->device_id, NVDev->subsys_id.subsys.vendor_id, NVDev->subsys_id.subsys.device_id
       );
 
-      Status = LoadFile (OEMDir, FileName, &Buffer, &BufferLen);
-    } else {
-      UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s\\10de_%04x.rom", RomPath, NVDev->device_id);
-      if (FileExists (OEMDir, FileName)) {
-        DBG (" - Found generic VBIOS ROM file (10de_%04x.rom)\n", NVDev->device_id);
-
-        Status = LoadFile (OEMDir, FileName, &Buffer, &BufferLen);
-      }
-    }
-
-    if (EFI_ERROR (Status)) {
-      FreePool (RomPath);
-      RomPath = PoolPrint (DIR_ROM, DIR_CLOVER);
-
-      UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s\\10de_%04x_%04x_%04x.rom",
-        RomPath, NVDev->device_id, NVDev->subsys_id.subsys.vendor_id, NVDev->subsys_id.subsys.device_id
-      );
-
-      if (FileExists (SelfRootDir, FileName)) {
-        DBG (" - Found specific VBIOS ROM file (10de_%04x_%04x_%04x.rom)\n",
-          NVDev->device_id, NVDev->subsys_id.subsys.vendor_id, NVDev->subsys_id.subsys.device_id
-        );
-
-        Status = LoadFile (SelfRootDir, FileName, &Buffer, &BufferLen);
-      } else {
-        UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s\\10de_%04x.rom", RomPath, NVDev->device_id);
-
-        if (FileExists (SelfRootDir, FileName)) {
-          DBG (" - Found generic VBIOS ROM file (10de_%04x.rom)\n", NVDev->device_id);
-
-          Status = LoadFile (SelfRootDir, FileName, &Buffer, &BufferLen);
-        }
-      }
+      Status = LoadFile (SelfRootDir, FileName, &Buffer, &BufferLen);
     }
   }
-
-  FreePool (RomPath);
 
   if (EFI_ERROR (Status)) {
     Rom = AllocateZeroPool (NVIDIA_ROM_SIZE + 1);

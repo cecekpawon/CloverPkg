@@ -57,7 +57,7 @@ REFIT_CONFIG   DefaultConfig = {
   FALSE,              // BOOLEAN      DebugLog;
   FALSE,              // BOOLEAN      FastBoot;
   FALSE,              // BOOLEAN      NeverHibernate;
-  FONT_GRAY,          // FONT_TYPE    Font; //Welcome should be white
+  FONT_GRAY,          // FONT_TYPE    Font;
   9,                  // INTN         CharWidth;
   //13,               //INTN          CharHeight;
   6,                  //INTN          CharRows;
@@ -154,7 +154,7 @@ CHAR16    *DarwinSystemPlists[] = {
 CHAR16    *DarwinInstallerSystemPlists = L"\\.IABootFilesSystemVersion.plist";
 CHAR16    *DarwinRecoverySystemPlists = L"\\com.apple.recovery.boot\\SystemVersion.plist";
 
-CHAR16    *InjectKextsDir[3] = { NULL, NULL, NULL };
+CHAR16    *InjectKextsDir[2] = { NULL/*, NULL*/, NULL };
 
 VOID
 GetDefaultConfig () {
@@ -1739,7 +1739,7 @@ GetListOfACPI () {
   DbgHeader ("GetListOfACPI");
 
   for (PathIndex = 0; PathIndex < PathCount; PathIndex++) {
-    AcpiPath = PoolPrint (DIR_ACPI_PATCHED L"\\%s", OEMPath, SupportedOsType[PathIndex]);
+    AcpiPath = PoolPrint (DIR_ACPI_PATCHED L"\\%s", SupportedOsType[PathIndex]);
 
     switch (PathIndex) {
       case 0:
@@ -1813,7 +1813,7 @@ GetListOfConfigs () {
 
   DbgHeader ("GetListOfConfigs");
 
-  DirIterOpen (SelfRootDir, DIR_CLOVER, &DirIter);
+  DirIterOpen (SelfRootDir, OEMPath, &DirIter);
 
   OldChosenConfig = 0;
 
@@ -2898,10 +2898,7 @@ GetEarlyUserSettings (
 
     // KernelAndKextPatches
 
-    DictPointer = GetProperty (Dict, "Patches"); // more generic, will rename it soon
-    if (DictPointer == NULL) {
-      DictPointer = GetProperty (Dict, "KernelAndKextPatches");
-    }
+    DictPointer = GetProperty (Dict, "Patches");
     if (DictPointer != NULL) {
       FillinKextPatches (
         (KERNEL_AND_KEXT_PATCHES *)(((UINTN)&gSettings) + OFFSET_OF (SETTINGS_DATA, KernelAndKextPatches)),
@@ -4011,6 +4008,7 @@ ParseACPISettings (
               PatchDsdt->Replace = GetDataSetting (Prop2, "Replace", &Size);
               PatchDsdt->LenToReplace = (UINT32)Size;
               PatchDsdt->Comment = NULL;
+              PatchDsdt->Wildcard   = (UINT8)GetPropertyInteger (GetProperty (Prop2, "Wildcard"), 0xFF);
 
               Prop3 = GetProperty (Prop2, "Comment");
               if ((Prop3 != NULL) && (Prop3->type == kTagTypeString) && Prop3->string) {
@@ -4421,7 +4419,7 @@ LoadUserSettings (
   EFI_STATUS    Status = EFI_NOT_FOUND;
   UINTN         Size = 0;
   CHAR8         *gConfigPtr = NULL;
-  CHAR16        *ConfigPlistPath, *ConfigOemPath;
+  CHAR16        *ConfigOemPath;
 
   //DbgHeader ("LoadUserSettings");
 
@@ -4431,25 +4429,11 @@ LoadUserSettings (
     return EFI_NOT_FOUND;
   }
 
-  ConfigPlistPath = PoolPrint (L"%s\\%s.plist", DIR_CLOVER, ConfName);
   ConfigOemPath   = PoolPrint (L"%s\\%s.plist", OEMPath, ConfName);
 
   if (FileExists (SelfRootDir, ConfigOemPath)) {
     Status = LoadFile (SelfRootDir, ConfigOemPath, (UINT8 **)&gConfigPtr, &Size);
     DBG ("Load plist: '%s' ... %r\n", ConfigOemPath, Status);
-  }
-
-  if (EFI_ERROR (Status)) {
-    if ((RootDir != NULL) && FileExists (RootDir, ConfigPlistPath)) {
-      Status = LoadFile (RootDir, ConfigPlistPath, (UINT8 **)&gConfigPtr, &Size);
-      DBG ("Load plist: '%s' from RootDir ... %r\n", ConfigPlistPath, Status);
-    }
-
-    if (EFI_ERROR (Status) && FileExists (SelfRootDir, ConfigPlistPath)) {
-      Status = LoadFile (SelfRootDir, ConfigPlistPath, (UINT8 **)&gConfigPtr, &Size);
-      DBG ("Load plist: '%s' from SelfRootDir ... %r\n", ConfigPlistPath, Status);
-    }
-    //DBG ("Using %s.plist at path: %s", ConfName, ConfigPlistPath);
   }
 
   if (!EFI_ERROR (Status) && (gConfigPtr != NULL)) {
@@ -5100,21 +5084,10 @@ SaveSettings () {
 }
 
 CHAR16 *
-GetOtherKextsDir (
-  BOOLEAN   Slave
+GetCommonKextsDir (
+  CHAR16   *SrcDir
 ) {
-  CHAR16    *SrcDir = PoolPrint (Slave ? DIR_KEXTS_OTHER_SLAVE : DIR_KEXTS_OTHER, OEMPath);
-
-  if (!FileExists (SelfVolume->RootDir, SrcDir)) {
-    FreePool (SrcDir);
-    SrcDir = PoolPrint (Slave ? DIR_KEXTS_OTHER_SLAVE : DIR_KEXTS_OTHER, DIR_CLOVER);
-    if (!FileExists (SelfVolume->RootDir, SrcDir)) {
-      FreePool (SrcDir);
-      SrcDir = NULL;
-    }
-  }
-
-  return SrcDir;
+  return FileExists (SelfVolume->RootDir, SrcDir) ? SrcDir : NULL;
 }
 
 //dmazar
@@ -5142,20 +5115,12 @@ GetOSVersionKextsDir (
   // find source injection folder with kexts
   // note: we are just checking for existance of particular folder, not checking if it is empty or not
   // check OEM subfolders: version specific or default to Other
-  SrcDir = AllocateZeroPool (SVALUE_MAX_SIZE);
-  StrCpyS (SrcDir, SVALUE_MAX_SIZE, PoolPrint (DIR_KEXTS, OEMPath));
-  StrCatS (SrcDir, SVALUE_MAX_SIZE, PoolPrint (L"\\%a", FixedVersion));
+  SrcDir = AllocateZeroPool (AVALUE_MAX_SIZE);
+  UnicodeSPrint (SrcDir, AVALUE_MAX_SIZE, L"%s\\%a", DIR_KEXTS, FixedVersion);
 
   if (!FileExists (SelfVolume->RootDir, SrcDir)) {
     FreePool (SrcDir);
-    SrcDir = AllocateZeroPool (SVALUE_MAX_SIZE);
-    StrCpyS (SrcDir, SVALUE_MAX_SIZE, PoolPrint (DIR_KEXTS, DIR_CLOVER));
-    StrCatS (SrcDir, SVALUE_MAX_SIZE, PoolPrint (L"\\%a", FixedVersion));
-
-    if (!FileExists (SelfVolume->RootDir, SrcDir)) {
-      FreePool (SrcDir);
-      SrcDir = NULL;
-    }
+    SrcDir = NULL;
   }
 
   return SrcDir;
@@ -5173,9 +5138,9 @@ SetFSInjection (
   //DbgHeader ("FSInjection");
 
   if (OSFLAG_ISSET (Entry->Flags, OSFLAG_WITHKEXTS)) {
-    InjectKextsDir[0] = GetOtherKextsDir (FALSE);
-    InjectKextsDir[1] = GetOtherKextsDir (TRUE); // Slave
-    InjectKextsDir[2] = GetOSVersionKextsDir (Entry->OSVersion);
+    InjectKextsDir[0] = GetCommonKextsDir (DIR_KEXTS_COMMON);
+    //InjectKextsDir[1] = GetCommonKextsDir (DIR_KEXTS_COMMON_SLAVE); // Slave
+    InjectKextsDir[1] = GetOSVersionKextsDir (Entry->OSVersion);
   }
 
   //check if blocking of caches is needed

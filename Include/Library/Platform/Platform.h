@@ -127,26 +127,23 @@ Headers collection for procedures
 
 #define DIR_CLOVER                L"\\EFI\\CLOVER"
 
-#define DIR_DRIVERS               DIR_CLOVER L"\\Drivers"
-#define DIR_DRIVERS64             DIR_CLOVER L"\\Drivers64UEFI"
+#define DIR_DRIVERS               DIR_CLOVER L"\\Driver"
 #define DIR_MISC                  DIR_CLOVER L"\\Misc"
-#define DIR_OEM                   DIR_CLOVER L"\\Oem"
-//#define DIR_ROM                 DIR_CLOVER L"\\Rom
-#define DIR_THEMES                DIR_CLOVER L"\\Themes"
-#define DIR_TOOLS                 DIR_CLOVER L"\\Tools"
-#define DIR_FONTS                 DIR_CLOVER L"\\Fonts"
+//#define DIR_OEM                   DIR_CLOVER L"\\Oem"
+#define DIR_ROM                   DIR_CLOVER L"\\Rom"
+#define DIR_THEMES                DIR_CLOVER L"\\Theme"
+#define DIR_TOOLS                 DIR_CLOVER L"\\Tool"
+#define DIR_FONTS                 DIR_CLOVER L"\\Font"
 
-#define DIR_ACPI                  L"%s\\Acpi"
-#define DIR_ACPI_PATCHED          DIR_ACPI L"\\Patched"
+#define DIR_ACPI                  DIR_CLOVER L"\\Acpi"
+#define DIR_ACPI_PATCHED          DIR_ACPI L"\\Patch"
 #define DIR_ACPI_ORIGIN           DIR_ACPI L"\\Origin"
 
-#define DSDT_ORIGIN               DIR_ACPI_ORIGIN L"\\DSDT-or.aml"
+#define DSDT_ORIGIN_NAME          DIR_ACPI_ORIGIN L"\\DSDT-or.aml"
 
-#define DIR_ROM                   L"%s\\Rom"
-
-#define DIR_KEXTS                 L"%s\\Kexts"
-#define DIR_KEXTS_OTHER           DIR_KEXTS "\\Other"
-#define DIR_KEXTS_OTHER_SLAVE     DIR_KEXTS_OTHER "\\Slave"
+#define DIR_KEXTS                 DIR_CLOVER L"\\Kext"
+#define DIR_KEXTS_COMMON          DIR_KEXTS "\\Common"
+//#define DIR_KEXTS_COMMON_SLAVE     DIR_KEXTS_COMMON "\\Slave"
 
 #define VBIOS_BIN                 DIR_MISC L"\\c0000.bin"
 
@@ -166,12 +163,6 @@ Headers collection for procedures
 
 #define SSDT_PSTATES_NAME         SSDT_CLOVER_PREFIX L"PStates.aml"
 #define SSDT_CSTATES_NAME         SSDT_CLOVER_PREFIX L"CStates.aml"
-
-//#ifndef DEBUG_ALL
-//#define MsgLog(...)  DebugLog (1, __VA_ARGS__)
-//#else
-//#define MsgLog(...)  DebugLog (DEBUG_ALL, __VA_ARGS__)
-//#endif
 
 #ifndef DEBUG_ALL
 #define MsgLog(...)  MemLog (TRUE, 1, __VA_ARGS__)
@@ -687,6 +678,7 @@ typedef struct PATCH_DSDT {
           UINT32      LenToReplace;
           BOOLEAN     Disabled;
           CHAR8       *Comment;
+          UINT8       Wildcard;
   struct  PATCH_DSDT  *Next;
 } PATCH_DSDT;
 
@@ -1187,7 +1179,7 @@ extern CHAR8                            *cDeviceProperties;
 extern INPUT_ITEM                       *InputItems;
 extern BOOLEAN                          SavePreBootLog;
 //extern EFI_GRAPHICS_OUTPUT_PROTOCOL   *GraphicsOutput;
-extern CHAR16                           *InjectKextsDir[3];
+extern CHAR16                           *InjectKextsDir[2];
 extern UINTN                            nLanCards;     // number of LAN cards
 extern UINTN                            nLanPaths;     // number of UEFI LAN
 extern UINT16                           gLanVendor[4]; // their vendors
@@ -1436,21 +1428,6 @@ SetFSInjection (
 VOID
 ReadCsrCfg ();
 
-CHAR16 *
-GetOtherKextsDir (
-  BOOLEAN   Slave
-);
-
-CHAR16 *
-GetOSVersionKextsDir (
-  CHAR8   *OSVersion
-);
-
-//EFI_STATUS
-//LoadKexts (
-//  IN  LOADER_ENTRY *Entry
-//);
-
 VOID
 ParseLoadOptions (
   OUT  CHAR16   **Conf,
@@ -1640,8 +1617,10 @@ SaveOemDsdt (
   UINT8       OSType
 );
 
+#if DUMP_TABLE
 VOID
 SaveOemTables ();
+#endif
 
 UINT32
 FixAny (

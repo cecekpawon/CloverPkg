@@ -1705,9 +1705,13 @@ RunGenericMenu (
            MenuExit = MENU_EXIT_HIDE_TOGGLE;
            break;
 
+
+#if DUMP_TABLE
+
         case SCAN_F4:
           SaveOemTables ();
           break;
+#endif
 
         case SCAN_F5:
           SaveOemDsdt (TRUE, 0); //full patch
@@ -3585,8 +3589,6 @@ HelpRefit () {
   }
 
   if (HelpMenu.EntryCount == 0) {
-    CHAR16    *PathOrigin = PoolPrint (DIR_ACPI_ORIGIN, OEMPath);
-
     //switch (gLanguage) {
     //  case english:
     //  default:
@@ -3594,8 +3596,10 @@ HelpRefit () {
         AddMenuInfo (&HelpMenu, L"F1 / H - This help");
         AddMenuInfo (&HelpMenu, PoolPrint (L"F2  - Save '%s' into '%s'", Basename (PREBOOT_LOG), DIR_MISC));
         AddMenuInfo (&HelpMenu, L"F3  - Show hidden entries");
-        AddMenuInfo (&HelpMenu, PoolPrint (L"F4  - Save oem DSDT into '%s'", PathOrigin));
-        AddMenuInfo (&HelpMenu, PoolPrint (L"F5  - Save patched DSDT into '%s'", PathOrigin));
+#if DUMP_TABLE
+        AddMenuInfo (&HelpMenu, PoolPrint (L"F4  - Save oem DSDT into '%s'", DIR_ACPI_ORIGIN));
+#endif
+        AddMenuInfo (&HelpMenu, PoolPrint (L"F5  - Save patched DSDT into '%s'", DIR_ACPI_PATCHED));
         AddMenuInfo (&HelpMenu, PoolPrint (L"F6  - Save VideoBios into '%s'", DIR_MISC));
         AddMenuInfo (&HelpMenu, L"F9  - Switch screen mode");
         AddMenuInfo (&HelpMenu, PoolPrint (L"F10 - Save screenshot into '%s'", DIR_MISC));
@@ -3621,8 +3625,6 @@ HelpRefit () {
 
     HelpMenu.AnimeRun = GetAnime (&HelpMenu);
     //AddMenuEntry (&HelpMenu, &MenuEntryReturn);
-
-    FreePool (PathOrigin);
   }
 
   RunMenu (&HelpMenu, NULL);

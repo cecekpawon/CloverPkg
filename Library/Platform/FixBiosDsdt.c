@@ -22,8 +22,6 @@
 
 #define S_NETMODEL "Generic Ethernet"
 
-//OPER_REGION   *gRegions;
-
 // 0=>Display  1=>network  2=>firewire 3=>LPCB 4=>HDAAudio 5=>RTC 6=>TMR 7=>SBUS 8=>PIC 9=>Airport 10=>XHCI 11=>HDMI
 CHAR8  *DeviceName[12];
 //CHAR8  *UsbName[10];

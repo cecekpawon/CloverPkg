@@ -77,12 +77,12 @@ typedef
 EFI_STATUS
 (EFIAPI *EFI_SCREEN_INFO_FUNCTION) (
   VOID    *This,
-  UINT64  *baseAddress,
-  UINT64  *frameBufferSize,
-  UINT32  *byterPerRow,
+  UINT64  *BaseAddress,
+  UINT64  *FrameBufferSize,
+  UINT32  *ByterPerRow,
   UINT32  *Width,
   UINT32  *Height,
-  UINT32  *colorDepth
+  UINT32  *ColorDepth
 );
 
 typedef struct {
@@ -125,12 +125,12 @@ EFI_STATUS
 EFIAPI
 GetScreenInfo (
   VOID    *This,
-  UINT64  *baseAddress,
-  UINT64  *frameBufferSize,
-  UINT32  *bpr,
-  UINT32  *w,
-  UINT32  *h,
-  UINT32  *colorDepth
+  UINT64  *BaseAddress,
+  UINT64  *FrameBufferSize,
+  UINT32  *ByterPerRow,
+  UINT32  *Width,
+  UINT32  *Height,
+  UINT32  *ColorDepth
 ) {
   EFI_GRAPHICS_OUTPUT_PROTOCOL    *mGraphicsOutput=NULL;
   EFI_STATUS                      Status;
@@ -147,17 +147,17 @@ GetScreenInfo (
 
   //this print never occured so this procedure is redundant
   //  Print (L"GetScreenInfo called with args: %lx %lx %lx %lx %lx %lx\n",
-  //        baseAddress, frameBufferSize, bpr, w, h, colorDepth);
+  //        BaseAddress, FrameBufferSize, ByterPerRow, Width, Height, ColorDepth);
 
-  *frameBufferSize = (UINT64)mGraphicsOutput->Mode->FrameBufferSize;
-  *baseAddress = (UINT64)mGraphicsOutput->Mode->FrameBufferBase;
-  *w = (UINT32)mGraphicsOutput->Mode->Info->HorizontalResolution;
-  *h = (UINT32)mGraphicsOutput->Mode->Info->VerticalResolution;
-  *colorDepth = UGAColorDepth /* 32 */;
-  *bpr = (UINT32)(mGraphicsOutput->Mode->Info->PixelsPerScanLine * 32) >> 3;
+  *FrameBufferSize = (UINT64)mGraphicsOutput->Mode->FrameBufferSize;
+  *BaseAddress = (UINT64)mGraphicsOutput->Mode->FrameBufferBase;
+  *Width = (UINT32)mGraphicsOutput->Mode->Info->HorizontalResolution;
+  *Height = (UINT32)mGraphicsOutput->Mode->Info->VerticalResolution;
+  *ColorDepth = UGAColorDepth /* 32 */;
+  *ByterPerRow = (UINT32)(mGraphicsOutput->Mode->Info->PixelsPerScanLine * 32) >> 3;
 
-  //  Print (L"  Screen info: FBsize=%lx FBaddr=%lx w=%d h=%d\n",
-  //      *frameBufferSize, *baseAddress, *w, *h);
+  //  Print (L"  Screen info: FBsize=%lx FBaddr=%lx W=%d H=%d\n",
+  //      *FrameBufferSize, *BaseAddress, *Width, *Height);
   //  PauseForKey (L"--- press any key ---\n");
 
   return EFI_SUCCESS;

@@ -182,7 +182,7 @@ AddKext (
   KextEntry = AllocatePool (sizeof (KEXT_ENTRY));
   KextEntry->Signature = KEXT_SIGNATURE;
 
-  Status = LoadKext (Entry, RootDir, FileName, &KextEntry->kext);
+  Status = LoadKext (Entry, RootDir, FileName, &KextEntry->Kext);
   if (EFI_ERROR (Status)) {
     FreePool (KextEntry);
   } else {
@@ -192,41 +192,18 @@ AddKext (
   return Status;
 }
 
-UINT32
-GetListCount (
-  LIST_ENTRY  CONST *List
-) {
-  LIST_ENTRY    *Link;
-  UINT32        Count = 0;
-
-  if (!IsListEmpty (List)) {
-    for (Link = List->ForwardLink; Link != List; Link = Link->ForwardLink) {
-      Count++;
-    }
-  }
-
-  return Count;
-}
-
-UINT32
-GetKextCount () {
-  return (UINT32)GetListCount (&gKextList);
-}
-
-UINT32
-GetKextsSize () {
+VOID
+GetKextSummaries () {
   LIST_ENTRY    *Link;
   KEXT_ENTRY    *KextEntry;
-  UINT32        kextsSize = 0;
 
   if (!IsListEmpty (&gKextList)) {
     for (Link = gKextList.ForwardLink; Link != &gKextList; Link = Link->ForwardLink) {
       KextEntry = CR (Link, KEXT_ENTRY, Link, KEXT_SIGNATURE);
-      kextsSize += RoundPage (KextEntry->kext.length);
+      gKextSize += RoundPage (KextEntry->Kext.length);
+      gKextCount++;
     }
   }
-
-  return kextsSize;
 }
 
 VOID
@@ -249,7 +226,7 @@ RecursiveLoadKexts (
   DirIterOpen (RootDir, SrcDir, &DirIter);
   while (DirIterNext (&DirIter, 1, L"*.kext", &DirEntry)) {
     if ((DirEntry->FileName[0] == '.') || (StriStr (DirEntry->FileName, L".kext") == NULL)) {
-      continue;   // skip this
+      continue; // skip this
     }
 
     if (!i) {
@@ -311,8 +288,7 @@ LoadKexts (
     }
   }
 
-  gKextCount = GetKextCount ();
-  gKextSize = GetKextsSize ();
+  GetKextSummaries ();
 
   // reserve space in the device tree
   if (gKextCount > 0) {
@@ -420,11 +396,11 @@ InjectKexts (
 
   KextBase = RoundPage (gDTEntry + *deviceTreeLength);
   if (!IsListEmpty (&gKextList)) {
-    Index = 1;
+    Index = 0;
     for (Link = gKextList.ForwardLink; Link != &gKextList; Link = Link->ForwardLink) {
       KextEntry = CR (Link, KEXT_ENTRY, Link, KEXT_SIGNATURE);
 
-      CopyMem ((VOID *)KextBase, (VOID *)(UINTN)KextEntry->kext.paddr, KextEntry->kext.length);
+      CopyMem ((VOID *)KextBase, (VOID *)(UINTN)KextEntry->Kext.paddr, KextEntry->Kext.length);
       Drvinfo = (BooterKextFileInfo *)KextBase;
       Drvinfo->infoDictPhysAddr += (UINT32)KextBase;
       Drvinfo->executablePhysAddr += (UINT32)KextBase;
@@ -435,13 +411,13 @@ InjectKexts (
       Prop->length = sizeof (DeviceTreeBuffer);
       MM = (DeviceTreeBuffer *) (((UINT8 *)Prop) + sizeof (DeviceTreeNodeProperty));
       MM->paddr = (UINT32)KextBase;
-      MM->length = KextEntry->kext.length;
+      MM->length = KextEntry->Kext.length;
       AsciiSPrint (Prop->name, 31, BOOTER_KEXT_PREFIX "%x", KextBase);
 
       DrvPtr += sizeof (DeviceTreeNodeProperty) + sizeof (DeviceTreeBuffer);
-      KextBase = RoundPage (KextBase + KextEntry->kext.length);
+      KextBase = RoundPage (KextBase + KextEntry->Kext.length);
 
-      DBG (" %d - %a\n", Index, (CHAR8 *)(UINTN)Drvinfo->bundlePathPhysAddr);
+      DBG (" - [%02d]: %a\n", Index, (CHAR8 *)(UINTN)Drvinfo->bundlePathPhysAddr);
 
       if (
         gSettings.KextPatchesAllowed &&

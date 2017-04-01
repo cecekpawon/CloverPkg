@@ -39,8 +39,8 @@ kext injection
 // types
 ////////////////////
 typedef struct {
-  UINT32   magic;          /* FAT_MAGIC */
-  UINT32   nfat_arch;      /* number of structs that follow */
+  UINT32   magic;         /* FAT_MAGIC */
+  UINT32   nfat_arch;     /* number of structs that follow */
 } FAT_HEADER;
 
 typedef struct {
@@ -54,7 +54,7 @@ typedef struct {
 typedef struct {
   UINT32              Signature;
   LIST_ENTRY          Link;
-  DeviceTreeBuffer    kext;
+  DeviceTreeBuffer    Kext;
 } KEXT_ENTRY;
 
 ////////////////////
@@ -77,7 +77,7 @@ EFIAPI
 ThinFatFile (
   IN OUT  UINT8         **Binary,
   IN OUT  UINTN         *Length,
-  IN      cpu_type_t   archCpuType
+  IN      cpu_type_t    ArchCpuType
 );
 
 #endif

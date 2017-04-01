@@ -105,7 +105,7 @@ rem # copy binary
 
 if exist "%QEMU_EFI_PATH%" (
   for %%i in %DRV_LIST% do (
-    copy /B /Y "%CLOVER_BUILD_PATH%\X64\%%i.efi" "%QEMU_EFI_PATH%\CLOVER\drivers">nul
+    copy /B /Y "%CLOVER_BUILD_PATH%\X64\%%i.efi" "%QEMU_EFI_PATH%\CLOVER\Driver">nul
   )
   copy /B /Y "%CLOVER_BUILD_PATH%\X64\Clover.efi" "%QEMU_EFI_PATH%\BOOT\BOOTX64.efi">nul
 )

@@ -249,10 +249,6 @@ LoadDrivers () {
 
   NumLoad = ScanDriverDir (DIR_DRIVERS, &DriversToConnect, &DriversToConnectNum);
 
-  if (!NumLoad) {
-    NumLoad = ScanDriverDir (DIR_DRIVERS64, &DriversToConnect, &DriversToConnectNum);
-  }
-
   if (DriversToConnectNum > 0) {
     DBG ("%d drivers needs connecting ...\n", DriversToConnectNum);
 

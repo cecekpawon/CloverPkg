@@ -212,11 +212,10 @@ RefitMain (
   DbgHeader ("LoadSettings");
   SyncDefaultSettings ();
 
-  gSettings.ConfigName = /*gSettings.MainConfigName =*/ PoolPrint (CONFIG_FILENAME);
-  SetOEMPath (gSettings.ConfigName);
+  gSettings.ConfigName = EfiStrDuplicate (CONFIG_FILENAME);
 
   Status = LoadUserSettings (SelfRootDir, gSettings.ConfigName, &gConfigDict);
-  MsgLog ("Load Settings: %s.plist: %r\n", CONFIG_FILENAME, Status);
+  MsgLog ("Load Settings: %s.plist: %r\n", gSettings.ConfigName, Status);
 
   if (!GlobalConfig.FastBoot) {
     GetListOfConfigs ();

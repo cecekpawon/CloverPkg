@@ -1129,31 +1129,18 @@ LoadVbiosFile (
 ) {
   EFI_STATUS    Status = EFI_NOT_FOUND;
   UINTN         BufferLen = 0;
-  CHAR16        FileName[64], *RomPath = Basename (PoolPrint (DIR_ROM, L""));
+  CHAR16        FileName[64];
   UINT8         *Buffer = 0;
 
   //if we are here then TRUE
   //  if (!gSettings.LoadVBios)
   //    return FALSE;
 
-  UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s\\%04x_%04x.rom", RomPath, VendorId, DeviceId);
-  if (FileExists (OEMDir, FileName)){
+  UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s\\%04x_%04x.rom", DIR_ROM, VendorId, DeviceId);
+  if (FileExists (SelfRootDir, FileName)){
     DBG ("Found generic VBIOS ROM file (%04x_%04x.rom)\n", VendorId, DeviceId);
-    Status = LoadFile (OEMDir, FileName, &Buffer, &BufferLen);
+    Status = LoadFile (SelfRootDir, FileName, &Buffer, &BufferLen);
   }
-
-  if (EFI_ERROR (Status)) {
-    FreePool (RomPath);
-    RomPath = PoolPrint (DIR_ROM, DIR_CLOVER);
-
-    UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s\\%04x_%04x.rom", RomPath, VendorId, DeviceId);
-    if (FileExists (SelfRootDir, FileName)){
-      DBG ("Found generic VBIOS ROM file (%04x_%04x.rom)\n", VendorId, DeviceId);
-      Status = LoadFile (SelfRootDir, FileName, &Buffer, &BufferLen);
-    }
-  }
-
-  FreePool (RomPath);
 
   if (EFI_ERROR (Status) || (BufferLen == 0)){
     DBG ("ATI ROM not found \n");

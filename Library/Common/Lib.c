@@ -2024,21 +2024,6 @@ BootArgsExists (
   return Found;
 }
 
-VOID
-SetOEMPath (
-  CHAR16  *ConfName
-) {
-  if (ConfName == NULL) {
-    OEMPath = PoolPrint (DIR_CLOVER);
-  } else if (FileExists (SelfRootDir, PoolPrint (L"%s\\%a\\%s.plist", DIR_OEM, gSettings.OEMProduct, ConfName))) {
-    OEMPath = PoolPrint (L"%s\\%a", DIR_OEM, gSettings.OEMProduct);
-  } else if (FileExists (SelfRootDir, PoolPrint (L"%s\\%a\\%s.plist", DIR_OEM, gSettings.OEMBoard, ConfName))) {
-    OEMPath = PoolPrint (L"%s\\%a", DIR_OEM, gSettings.OEMBoard);
-  } else {
-    OEMPath = PoolPrint (DIR_CLOVER);
-  }
-}
-
 //
 //  BmLib.c
 //
@@ -2585,7 +2570,7 @@ DestroyGeneratedACPI () {
   //DbgHeader ("DestroyGeneratedAML");
 
   for (PathIndex = 0; PathIndex < PathCount; PathIndex++) {
-    AcpiPath = PoolPrint (DIR_ACPI_PATCHED L"\\%s", OEMPath, SupportedOsType[PathIndex]);
+    AcpiPath = PoolPrint (DIR_ACPI_PATCHED L"\\%s", SupportedOsType[PathIndex]);
 
     DirIterOpen (SelfRootDir, AcpiPath, &DirIter);
 
