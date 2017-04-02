@@ -58,7 +58,7 @@ Headers collection for procedures
 
 #include <Protocol/FSInjectProtocol.h>
 #include <Protocol/MsgLog.h>
-#include <Protocol/efiConsoleControl.h>
+#include <Protocol/EfiConsoleControl.h>
 #include <Protocol/AptioFixProtocol.h>
 
 #include <Library/Platform/DeviceInject.h>

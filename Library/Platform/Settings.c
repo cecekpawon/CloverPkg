@@ -1809,7 +1809,7 @@ GetListOfConfigs () {
   REFIT_DIR_ITER    DirIter;
   EFI_FILE_INFO     *DirEntry;
   UINTN             i = 0, y = 0;
-  BOOLEAN           Found = FALSE;
+  BOOLEAN           Found = FALSE, DefFound = FALSE;
 
   DbgHeader ("GetListOfConfigs");
 
@@ -1829,8 +1829,9 @@ GetListOfConfigs () {
       aTmp->Index = y;
       Found = TRUE;
 
-      if (StrniCmp (TmpCfg, CONFIG_FILENAME, StrLen (CONFIG_FILENAME)) == 0) {
+      if (!DefFound && (StrniCmp (TmpCfg, CONFIG_FILENAME, StrSize (CONFIG_FILENAME)) == 0)) {
         OldChosenConfig = y;
+        DefFound = TRUE;
       }
 
       aTmp->FileName = PoolPrint (TmpCfg);
@@ -2004,7 +2005,7 @@ GetThemeTagSettings (
 
   FreeTheme ();
 
-  //fill default to have an ability change theme
+  // fill default to have an ability change theme
   GlobalConfig.BackgroundDark                   = DefaultConfig.BackgroundDark;
   GlobalConfig.BackgroundScale                  = Embedded ? DefaultConfig.BackgroundScale : Crop;
   GlobalConfig.BackgroundSharp                  = DefaultConfig.BackgroundSharp;
@@ -4387,12 +4388,11 @@ GetUserSettings (
     }
 
     if (gThemeChanged /* && GlobalConfig.Theme */) {
-      gTextOnly = FALSE;
       DictPointer = GetProperty (Dict, "GUI");
       if (DictPointer != NULL) {
-        gTextOnly = GetPropertyBool (GetProperty (DictPointer, "TextOnly"), FALSE);
+        GlobalConfig.TextOnly = GetPropertyBool (GetProperty (DictPointer, "TextOnly"), FALSE);
 
-        if (!gTextOnly) {
+        if (!GlobalConfig.TextOnly) {
           Prop = GetProperty (DictPointer, "Theme");
           if ((Prop != NULL) && (Prop->type == kTagTypeString) && Prop->string) {
             FreePool (GlobalConfig.Theme);

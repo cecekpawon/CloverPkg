@@ -815,7 +815,6 @@ extern GUI_ANIME            *GuiAnime;
 extern BOOLEAN              gThemeChanged;
 extern BOOLEAN              gBootChanged;
 extern BOOLEAN              gThemeOptionsChanged;
-extern BOOLEAN              gTextOnly;
 
 extern REFIT_MENU_SCREEN    OptionMenu;
 

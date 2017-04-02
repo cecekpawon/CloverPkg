@@ -1432,17 +1432,19 @@ CheckState (
 
   switch (ScanCode) {
     case SCAN_UP:
-      if (Screen->ID == SCREEN_MAIN) {
-        if (State->CurrentSelection >= State->InitialRow1) {
-          if (State->MaxIndex > State->InitialRow1) {
-            State->CurrentSelection = State->FirstVisible + (State->LastVisible - State->FirstVisible) *
-                                      (State->CurrentSelection - State->InitialRow1) /
-                                      (State->MaxIndex - State->InitialRow1);
-          }
-
-          State->PaintAll = TRUE;
-          break;
+      if (
+        (State->ScrollMode != SCROLL_MODE_LOOP) &&
+        (Screen->ID == SCREEN_MAIN) &&
+        (State->CurrentSelection >= State->InitialRow1)
+      ) {
+        if (State->MaxIndex > State->InitialRow1) {
+          State->CurrentSelection = State->FirstVisible + (State->LastVisible - State->FirstVisible) *
+                                    (State->CurrentSelection - State->InitialRow1) /
+                                    (State->MaxIndex - State->InitialRow1);
         }
+
+        State->PaintAll = TRUE;
+        break;
       }
     case SCAN_LEFT:
       Index = State->CurrentSelection - 1;
@@ -1451,17 +1453,19 @@ CheckState (
       break;
 
     case SCAN_DOWN:
-      if (Screen->ID == SCREEN_MAIN) {
-        if (State->CurrentSelection <= State->InitialRow1) {
-          if (State->LastVisible > State->FirstVisible) {
-            State->CurrentSelection = State->InitialRow1 + (State->MaxIndex - State->InitialRow1) *
-                                      (State->CurrentSelection - State->FirstVisible) /
-                                      (State->LastVisible - State->FirstVisible);
-          }
-
-          State->PaintAll = TRUE;
-          break;
+      if (
+        (State->ScrollMode != SCROLL_MODE_LOOP) &&
+        (Screen->ID == SCREEN_MAIN) &&
+        (State->CurrentSelection <= State->InitialRow1)
+      ) {
+        if (State->LastVisible > State->FirstVisible) {
+          State->CurrentSelection = State->InitialRow1 + (State->MaxIndex - State->InitialRow1) *
+                                    (State->CurrentSelection - State->FirstVisible) /
+                                    (State->LastVisible - State->FirstVisible);
         }
+
+        State->PaintAll = TRUE;
+        break;
       }
     case SCAN_RIGHT:
       Index = State->CurrentSelection + 1;
@@ -1906,7 +1910,7 @@ TextMenuStyle (
         }
       }
 
-      if (TextMenuWidth > ConWidth - 6) {
+      if (TextMenuWidth > (ConWidth - 6)) {
         TextMenuWidth = ConWidth - 6;
       }
       break;
@@ -3471,9 +3475,16 @@ OptionsMenu (
   while (!MenuExit) {
     MenuExit = RunGenericMenu (&OptionMenu, Style, &EntryIndex, ChosenEntry);
     if ((MenuExit == MENU_EXIT_ESCAPE ) || ((*ChosenEntry)->Tag == TAG_RETURN)) {
-      if (gBootChanged && gThemeChanged && (GlobalConfig.TextOnly != gTextOnly)) {
-        GlobalConfig.TextOnly = gTextOnly;
-        gTextOnly = FALSE;
+      BOOLEAN   OnGraphicsMode = IsGraphicsModeEnabled ();
+
+      if (
+        gBootChanged &&
+        gThemeChanged &&
+        (
+          (GlobalConfig.TextOnly && OnGraphicsMode) ||
+          (!GlobalConfig.TextOnly && !OnGraphicsMode)
+        )
+      ) {
         InitScreen (FALSE);
       }
       break;

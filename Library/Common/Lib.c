@@ -66,7 +66,6 @@ CHAR16                  *ThemePath;
 BOOLEAN                 gThemeChanged = FALSE;
 BOOLEAN                 gBootChanged = FALSE;
 BOOLEAN                 gThemeOptionsChanged = FALSE;
-BOOLEAN                 gTextOnly = FALSE; // Temporary hold GlobalConfig.TextOnly. Switch (Text <-> Graphic) style after ESC.
 
 EFI_FILE                *OEMDir;
 CHAR16                  *OEMPath = DIR_CLOVER;
