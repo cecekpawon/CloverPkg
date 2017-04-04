@@ -756,7 +756,7 @@ RenderText (
   IN INTN           PosX,
   IN INTN           PosY,
   IN INTN           Cursor,
-     BOOLEAN        Selected
+  IN BOOLEAN        Selected
 );
 
 // Image Format

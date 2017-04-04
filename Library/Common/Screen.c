@@ -292,7 +292,7 @@ SetScreenResolution (
   // parse Width and Height
   HeightP = WidthHeight;
 
-  while ((*HeightP != L'\0') && (*HeightP != L'x') && (*HeightP != L'X')) {
+  while ((*HeightP != L'\0') && (TO_UPPER (*HeightP) != L'X')) {
     HeightP++;
   }
 
@@ -305,7 +305,10 @@ SetScreenResolution (
   Height = (UINT32)StrDecimalToUintn (HeightP);
 
   // check if requested mode is equal to current mode
-  if ((GraphicsOutput->Mode->Info->HorizontalResolution == Width) && (GraphicsOutput->Mode->Info->VerticalResolution == Height)) {
+  if (
+    (GraphicsOutput->Mode->Info->HorizontalResolution == Width) &&
+    (GraphicsOutput->Mode->Info->VerticalResolution == Height)
+  ) {
     DBG (" - already set\n");
     egScreenWidth = GraphicsOutput->Mode->Info->HorizontalResolution;
     egScreenHeight = GraphicsOutput->Mode->Info->VerticalResolution;
@@ -317,20 +320,22 @@ SetScreenResolution (
   MaxMode = GraphicsOutput->Mode->MaxMode;
   for (Mode = 0; Mode < MaxMode; Mode++) {
     Status = GraphicsOutput->QueryMode (GraphicsOutput, Mode, &SizeOfInfo, &Info);
-    if (Status == EFI_SUCCESS) {
-      if ((Width == Info->HorizontalResolution) && (Height == Info->VerticalResolution)) {
-        DBG (" - setting Mode %d\n", Mode);
+    if (
+      (Status == EFI_SUCCESS) &&
+      (Width == Info->HorizontalResolution) &&
+      (Height == Info->VerticalResolution)
+    ) {
+      DBG (" - setting Mode %d\n", Mode);
 
-        //Status = GraphicsOutput->SetMode (GraphicsOutput, Mode);
-        Status = GopSetModeAndReconnectTextOut (Mode);
-        if (Status == EFI_SUCCESS) {
-          egScreenWidth = Width;
-          egScreenHeight = Height;
+      //Status = GraphicsOutput->SetMode (GraphicsOutput, Mode);
+      Status = GopSetModeAndReconnectTextOut (Mode);
+      if (Status == EFI_SUCCESS) {
+        egScreenWidth = Width;
+        egScreenHeight = Height;
 
-          SetColorDepth (Info);
+        SetColorDepth (Info);
 
-          return EFI_SUCCESS;
-        }
+        return EFI_SUCCESS;
       }
     }
   }
@@ -382,16 +387,17 @@ InternalInitScreen (
   egHasGraphics = FALSE;
 
   if (GraphicsOutput != NULL) {
-    if (GlobalConfig.ScreenResolution != NULL) {
-      if (EFI_ERROR (SetScreenResolution (GlobalConfig.ScreenResolution))) {
-        if (egSetMaxResolution) {
-          SetMaxResolution ();
-        }
-      }
-    } else {
-      if (egSetMaxResolution) {
-        SetMaxResolution ();
-      }
+    if (
+      egSetMaxResolution &&
+      (
+        (GlobalConfig.ScreenResolution == NULL) ||
+        (
+          (GlobalConfig.ScreenResolution != NULL) &&
+          EFI_ERROR (SetScreenResolution (GlobalConfig.ScreenResolution))
+        )
+      )
+    ) {
+      SetMaxResolution ();
     }
 
     egScreenWidth = GraphicsOutput->Mode->Info->HorizontalResolution;
@@ -423,9 +429,8 @@ ScreenDescription () {
   if (egHasGraphics) {
     if (GraphicsOutput != NULL) {
       return PoolPrint (L"Graphics Output (UEFI), %dx%d (%d / %d)", egScreenWidth, egScreenHeight, UGAColorDepth, UGABytesPerRow);
-    } else {
-      return L"Internal Error";
     }
+    return L"Internal Error";
   } else {
     return L"Text Console";
   }
@@ -442,7 +447,7 @@ IsGraphicsModeEnabled () {
 
   if (ConsoleControl != NULL) {
     ConsoleControl->GetMode (ConsoleControl, &CurrentMode, NULL, NULL);
-    return (CurrentMode == EfiConsoleControlScreenGraphics) ? TRUE : FALSE;
+    return (CurrentMode == EfiConsoleControlScreenGraphics);
   }
 
   return FALSE;
@@ -586,11 +591,11 @@ TakeImage (
   IN INTN         AreaWidth,
   IN INTN         AreaHeight
 ) {
-  if (ScreenPosX + AreaWidth > UGAWidth) {
+  if ((ScreenPosX + AreaWidth) > UGAWidth) {
     AreaWidth = UGAWidth - ScreenPosX;
   }
 
-  if (ScreenPosY + AreaHeight > UGAHeight) {
+  if ((ScreenPosY + AreaHeight) > UGAHeight) {
     AreaHeight = UGAHeight - ScreenPosY;
   }
 
@@ -904,7 +909,7 @@ SwitchToGraphics () {
 
 VOID
 SetupScreen () {
-  if (GlobalConfig.TextOnly) {
+  if (gSettings.TextOnly) {
     // switch to text mode if requested
     AllowGraphicsMode = FALSE;
     SwitchToText (FALSE);

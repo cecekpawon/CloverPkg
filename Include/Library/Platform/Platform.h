@@ -975,6 +975,12 @@ typedef struct {
   CHAR8                     BootArgs[256];
   CHAR16                    CustomUuid[40];
   CHAR16                    *DefaultVolume;
+  BOOLEAN                   NeverHibernate;
+  BOOLEAN                   FastBoot;
+  BOOLEAN                   NoEarlyProgress;
+  BOOLEAN                   TextOnly;
+  //BOOLEAN                   DebugLog;
+  INTN                      Timeout;
 
   BOOLEAN                   LastBootedVolume;
 
@@ -983,7 +989,6 @@ typedef struct {
   UINT16                    BacklightLevel;
   BOOLEAN                   BacklightLevelConfig;
   BOOLEAN                   IntelBacklight;
-  //BOOLEAN                   MemoryFix;
   BOOLEAN                   WithKexts;
   BOOLEAN                   NoCaches;
   BOOLEAN                   FakeSMCOverrides;
@@ -1063,11 +1068,8 @@ typedef struct {
 
   // SysVariables
   CHAR8                     *RtMLB;
-
   UINT8                     *RtROM;
-
   UINTN                     RtROMLen;
-
   UINT32                    CsrActiveConfig;
   UINT16                    BooterConfig;
 
@@ -1077,6 +1079,9 @@ typedef struct {
   //Drivers
   INTN                      BlackListCount;
   CHAR16                    **BlackList;
+
+  //BlackListed kexts
+  CHAR16                    BlockKexts[64];
 
   //SMC keys
   CHAR8                     RPlt[8];
@@ -1101,7 +1106,7 @@ typedef struct {
   UINT8                     KernelScan;
   BOOLEAN                   LinuxScan;
   BOOLEAN                   AndroidScan;
-  //UINT8                   pad84[3];
+
   CUSTOM_LOADER_ENTRY       *CustomEntries;
   CUSTOM_TOOL_ENTRY         *CustomTool;
 
@@ -1109,20 +1114,16 @@ typedef struct {
   INTN                      NrAddProperties;
   DEV_PROPERTY              *AddProperties;
 
-  //BlackListed kexts
-  CHAR16                    BlockKexts[64];
-
   //ACPI tables
   UINTN                     SortedACPICount;
-
   CHAR16                    **SortedACPI;
-
   // ACPI/PATCHED/AML
   UINT32                    DisabledAMLCount;
   CHAR16                    **DisabledAML;
 
   UINT32                    OptionsBits;
   UINT32                    FlagsBits;
+  BOOLEAN                   FakeSMCLoaded;
 
   CHAR16                    DarwinDiskTemplate[255];
   CHAR16                    DarwinRecoveryDiskTemplate[255];
@@ -1653,56 +1654,56 @@ XMLDecode (
 
 EFI_STATUS
 ParseXML (
-  CHAR8   *buffer,
-  TagPtr  *dict,
-  UINT32  bufSize
+  CHAR8   *Buffer,
+  UINT32  BufSize,
+  TagPtr  *Dict
 );
 
 TagPtr
 GetProperty (
-  TagPtr dict,
-  CHAR8  *key
+  TagPtr  Dict,
+  CHAR8   *Key
 );
 
 EFI_STATUS
 GetRefInteger (
-  IN  TagPtr  tag,
-  IN  INT32   id,
-  OUT CHAR8   **val,
-  OUT INTN    *decval,
-  OUT INTN    *size
+   IN TagPtr  Tag,
+   IN INT32   Id,
+  OUT CHAR8   **Val,
+  OUT INTN    *DecVal,
+  OUT INTN    *Size
 );
 
 EFI_STATUS
 GetRefString (
-  IN TagPtr   tag,
-  IN INT32    id,
-  OUT CHAR8   **val,
-  OUT INTN    *size
+  IN  TagPtr  Tag,
+  IN  INT32   Id,
+  OUT CHAR8   **Val,
+  OUT INTN    *Size
 );
 
 VOID
 DumpTag (
-  TagPtr  tag,
-  INT32   depth
+  TagPtr  Tag,
+  INT32   Depth
 );
 
 VOID
 FreeTag (
-  TagPtr tag
+  TagPtr Tag
 );
 
 INTN
 GetTagCount (
-  TagPtr dict
+  TagPtr Dict
 );
 
 EFI_STATUS
 GetElement (
-  TagPtr  dict,
-  INTN    id,
-  INTN    count,
-  TagPtr  *dict1
+  TagPtr    Dict,
+  INTN      Id,
+  INTN      Count,
+  TagPtr    *Dict1
 );
 
 BOOLEAN
@@ -1713,8 +1714,8 @@ GetPropertyBool (
 
 INTN
 GetPropertyInteger (
-  TagPtr Prop,
-  INTN Default
+  TagPtr  Prop,
+  INTN    Default
 );
 
 EFI_STATUS
@@ -1829,7 +1830,7 @@ CopyKernelAndKextPatches (
  *  (/private/var/vm/sleepimage exists and it's modification time is close to volume modification time).
  */
 BOOLEAN
-IsOsxHibernated (
+IsDarwinHibernated (
   IN REFIT_VOLUME *Volume
 );
 

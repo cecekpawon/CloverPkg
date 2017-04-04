@@ -71,6 +71,10 @@ DrawLoadMessage (
 ) {
   UINTN   i, Size, FontHeight = 20;
 
+  //if (gSettings.NoEarlyProgress) {
+  //  return;
+  //}
+
   MessageNow++;
 
   Size = MessageNow * sizeof (CHAR16 *);
@@ -87,10 +91,12 @@ DrawLoadMessage (
 
 VOID
 InitSplash () {
-  EG_IMAGE  *Banner = BuiltinIcon (BUILTIN_ICON_BANNER_BLACK);
+  //if (!gSettings.NoEarlyProgress) {
+    EG_IMAGE  *Banner = BuiltinIcon (BUILTIN_ICON_BANNER_BLACK);
 
-  MessageClearWidth = (UGAWidth - Banner->Width) >> 1;
-  DrawImageArea (Banner, 0, 0, 0, 0, MessageClearWidth, (UGAHeight - Banner->Height) >> 1);
+    MessageClearWidth = (UGAWidth - Banner->Width) >> 1;
+    DrawImageArea (Banner, 0, 0, 0, 0, MessageClearWidth, (UGAHeight - Banner->Height) >> 1);
+  //}
 }
 
 //
@@ -217,7 +223,7 @@ RefitMain (
   Status = LoadUserSettings (SelfRootDir, gSettings.ConfigName, &gConfigDict);
   MsgLog ("Load Settings: %s.plist: %r\n", gSettings.ConfigName, Status);
 
-  if (!GlobalConfig.FastBoot) {
+  if (!gSettings.FastBoot) {
     GetListOfConfigs ();
     GetListOfThemes ();
   }
@@ -227,7 +233,7 @@ RefitMain (
     DBG ("Load Settings: Early: %r\n", Status);
   }
 
-  MainMenu.TimeoutSeconds = (!GlobalConfig.FastBoot && (GlobalConfig.Timeout >= 0)) ? GlobalConfig.Timeout : 0;
+  MainMenu.TimeoutSeconds = (!gSettings.FastBoot && (gSettings.Timeout >= 0)) ? gSettings.Timeout : 0;
 
   LoadDrivers ();
 
@@ -235,7 +241,7 @@ RefitMain (
 
   //DbgHeader ("InitScreen");
 
-  if (!GlobalConfig.FastBoot) {
+  if (!gSettings.FastBoot) {
     InitScreen (TRUE);
     SetupScreen ();
   } else {
@@ -313,7 +319,7 @@ RefitMain (
 
   if (
     !HaveDefaultVolume &&
-    (GlobalConfig.Timeout == 0) &&
+    (gSettings.Timeout == 0) &&
     !ReadAllKeyStrokes ()
   ) {
     // UEFI boot: get gEfiBootDeviceGuid from NVRAM.
@@ -340,7 +346,7 @@ RefitMain (
     // get boot-args
     SetVariablesFromNvram ();
 
-    if (!GlobalConfig.FastBoot) {
+    if (!gSettings.FastBoot) {
       CHAR16  *TmpArgs;
 
       if (gThemeNeedInit) {
@@ -376,7 +382,7 @@ RefitMain (
       ScanLoader ();
     }
 
-    if (!GlobalConfig.FastBoot) {
+    if (!gSettings.FastBoot) {
       // fixed other menu entries
       if (!(GlobalConfig.DisableFlags & HIDEUI_FLAG_TOOLS)) {
         AddCustomTool ();
@@ -401,13 +407,13 @@ RefitMain (
       DefaultEntry = NULL;
     }
 
-    if (GlobalConfig.FastBoot && DefaultEntry) {
+    if (gSettings.FastBoot && DefaultEntry) {
       if (DefaultEntry->Tag == TAG_LOADER) {
         StartLoader ((LOADER_ENTRY *)DefaultEntry);
       }
 
       MainLoopRunning = FALSE;
-      GlobalConfig.FastBoot = FALSE; //Hmm... will never be here
+      gSettings.FastBoot = FALSE; //Hmm... will never be here
     }
 
     MainAnime = GetAnime (&MainMenu);
@@ -418,7 +424,7 @@ RefitMain (
 
     while (MainLoopRunning) {
       if (
-        (GlobalConfig.Timeout == 0) &&
+        (gSettings.Timeout == 0) &&
         (DefaultEntry != NULL) &&
         !ReadAllKeyStrokes ()
       ) {
@@ -430,7 +436,7 @@ RefitMain (
       }
 
       // disable default boot - have sense only in the first run
-      GlobalConfig.Timeout = -1;
+      gSettings.Timeout = -1;
 
       if ((DefaultEntry != NULL) && (MenuExit == MENU_EXIT_TIMEOUT)) {
         if (DefaultEntry->Tag == TAG_LOADER) {

@@ -389,7 +389,7 @@ BootVolumeDevicePathEqual (
       continue;
     }
 
-    if (Type1 != Type2 || SubType1 != SubType2 || Len1 != Len2) {
+    if ((Type1 != Type2) || (SubType1 != SubType2) || (Len1 != Len2)) {
       // Not equal
       DBG_DP (" - not equal\n");
       break;
@@ -428,9 +428,9 @@ BootVolumeDevicePathEqual (
       }
       DBG_DP (" - forcing equal nodes");
     } else if (CompareMem (DevicePath1, DevicePath2, DevicePathNodeLength (DevicePath1)) != 0) {
-        // Not equal
-        DBG_DP (" - not equal\n");
-        break;
+      // Not equal
+      DBG_DP (" - not equal\n");
+      break;
     }
 
     DBG_DP ("\n");
@@ -458,7 +458,7 @@ FindDevicePathNodeWithType (
   while (!IsDevicePathEnd (DevicePath)) {
     if (
       (DevicePathType (DevicePath) == Type) &&
-      (SubType == 0 || DevicePathSubType (DevicePath) == SubType)
+      ((SubType == 0) || (DevicePathSubType (DevicePath) == SubType))
     ) {
       return DevicePath;
     }
@@ -619,7 +619,7 @@ GetEfiBootDeviceFromNvram () {
  */
 INTN
 FindStartupDiskVolume (
-  REFIT_MENU_SCREEN *MainMenu
+  REFIT_MENU_SCREEN   *MainMenu
 ) {
   INTN              Index;
   //LEGACY_ENTRY    *LegacyEntry;
@@ -863,9 +863,9 @@ SetStartupDiskVolume (
   // let's save it without EFI_VARIABLE_NON_VOLATILE in CloverEFI like other vars so far
   //
   //if (!gFirmwareClover && !gDriversFlags.EmuVariableLoaded) {
-    Attributes = EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS;
+    Attributes = NVRAM_ATTR_RT_BS_NV;
   //} else {
-  //  Attributes = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS;
+  //  Attributes = NVRAM_ATTR_RT_BS;
   //}
 
   //
@@ -926,8 +926,8 @@ RemoveStartupDiskVolume () {
 
 VOID
 SetVariablesFromNvram () {
-  CHAR8   *tmpString, *arg = NULL, *lBootArgs;
-  UINTN   iNVRAM = 0, iBootArgs = 0, index = 0, index2, len, i;
+  CHAR8   *TmpString, *Arg = NULL, *LoBootArgs;
+  UINTN   iNVRAM = 0, iBootArgs = 0, Index = 0, Index2, Len, i;
 
   DbgHeader ("SetVariablesFromNvram");
 
@@ -937,70 +937,70 @@ SetVariablesFromNvram () {
     return;
   }
 
-  lBootArgs = AsciiStrToLower (gSettings.BootArgs);
+  LoBootArgs = AsciiStrToLower (gSettings.BootArgs);
 
-  tmpString = GetNvramVariable (L"boot-args", &gEfiAppleBootGuid, NULL, &iNVRAM);
-  iNVRAM = AsciiStrLen (tmpString);
+  TmpString = GetNvramVariable (L"boot-args", &gEfiAppleBootGuid, NULL, &iNVRAM);
+  iNVRAM = AsciiStrLen (TmpString);
 
-  if (!tmpString || !iNVRAM) {
+  if (!TmpString || !iNVRAM) {
     return;
   }
 
   DBG ("Setting BootArgs: %a\n", gSettings.BootArgs);
-  DBG ("Found boot-args in NVRAM: %a, size=%d\n", tmpString, iNVRAM);
+  DBG ("Found boot-args in NVRAM: %a, size=%d\n", TmpString, iNVRAM);
 
   CONSTRAIN_MAX (iNVRAM, AVALUE_MAX_SIZE - 1 - iBootArgs);
 
-  arg = AllocatePool (iNVRAM);
+  Arg = AllocatePool (iNVRAM);
 
-  while ((index < iNVRAM) && (tmpString[index] != 0x0)) {
-    ZeroMem (arg, iNVRAM + 1);
-    index2 = 0;
+  while ((Index < iNVRAM) && (TmpString[Index] != 0x0)) {
+    ZeroMem (Arg, iNVRAM + 1);
+    Index2 = 0;
 
-    if (tmpString[index] != 0x22) {
-      //DBG ("search space index=%d\n", index);
-      while ((index < iNVRAM) && (tmpString[index] != 0x20) && (tmpString[index] != 0x0)) {
-        arg[index2++] = tmpString[index++];
+    if (TmpString[Index] != 0x22) {
+      //DBG ("search space Index=%d\n", Index);
+      while ((Index < iNVRAM) && (TmpString[Index] != 0x20) && (TmpString[Index] != 0x0)) {
+        Arg[Index2++] = TmpString[Index++];
       }
 
-      DBG ("...found arg:%a\n", arg);
+      DBG ("...found arg:%a\n", Arg);
     } else {
-      index++;
-      //DBG ("search quote index=%d\n", index);
-      while ((index < iNVRAM) && (tmpString[index] != 0x22) && (tmpString[index] != 0x0)) {
-        arg[index2++] = tmpString[index++];
+      Index++;
+      //DBG ("search quote Index=%d\n", Index);
+      while ((Index < iNVRAM) && (TmpString[Index] != 0x22) && (TmpString[Index] != 0x0)) {
+        Arg[Index2++] = TmpString[Index++];
       }
 
-      if (tmpString[index] == 0x22) {
-        index++;
+      if (TmpString[Index] == 0x22) {
+        Index++;
       }
 
-      DBG ("...found quoted arg:\n", arg);
+      DBG ("...found quoted arg:\n", Arg);
     }
 
-    while (tmpString[index] == 0x20) {
-      index++;
+    while (TmpString[Index] == 0x20) {
+      Index++;
     }
 
     // For the moment only arg -s must be ignored
-    //if (AsciiStrCmp (arg, "-s") == 0) {
-    //  DBG ("...ignoring arg:%a\n", arg);
+    //if (AsciiStrCmp (Arg, "-s") == 0) {
+    //  DBG ("...ignoring arg:%a\n", Arg);
     //  continue;
     //}
 
-    if (AsciiStrStr (lBootArgs, AsciiStrToLower (arg)) == NULL) {
-      len = AsciiStrLen (gSettings.BootArgs);
-      CONSTRAIN_MAX (len, AVALUE_MAX_SIZE - 1);
+    if (AsciiStrStr (LoBootArgs, AsciiStrToLower (Arg)) == NULL) {
+      Len = AsciiStrLen (gSettings.BootArgs);
+      CONSTRAIN_MAX (Len, AVALUE_MAX_SIZE - 1);
 
-      if ((len + index2) >= AVALUE_MAX_SIZE) {
-        DBG ("boot-args overflow... bytes=%d+%d\n", len, index2);
+      if ((Len + Index2) >= AVALUE_MAX_SIZE) {
+        DBG ("boot-args overflow... bytes=%d+%d\n", Len, Index2);
         break;
       }
 
-      gSettings.BootArgs[len++] = 0x20;
+      gSettings.BootArgs[Len++] = 0x20;
 
-      for (i = 0; i < index2; i++) {
-        gSettings.BootArgs[len++] = arg[i];
+      for (i = 0; i < Index2; i++) {
+        gSettings.BootArgs[Len++] = Arg[i];
       }
 
       DBG (" - added\n");
@@ -1011,7 +1011,7 @@ SetVariablesFromNvram () {
 
   DBG ("Final BootArgs: %a\n", gSettings.BootArgs);
 
-  FreePool (tmpString);
-  FreePool (arg);
-  FreePool (lBootArgs);
+  FreePool (TmpString);
+  FreePool (Arg);
+  FreePool (LoBootArgs);
 }

@@ -48,15 +48,15 @@ GUI_ANIME                         *GuiAnime = NULL;
 
 // global configuration with default values
 REFIT_CONFIG   DefaultConfig = {
-  FALSE,              // BOOLEAN      TextOnly;
-  -1,                 // INTN         Timeout;
+  //FALSE,              // BOOLEAN      TextOnly;
+  //-1,                 // INTN         Timeout;
   0,                  // UINTN        DisableFlags;
   0,                  // UINTN        HideBadges;
   0,                  // UINTN        HideUIFlags;
-  TRUE,               // BOOLEAN      Quiet;
-  FALSE,              // BOOLEAN      DebugLog;
-  FALSE,              // BOOLEAN      FastBoot;
-  FALSE,              // BOOLEAN      NeverHibernate;
+  //TRUE,               // BOOLEAN      Quiet;
+  //FALSE,              // BOOLEAN      DebugLog;
+  //FALSE,              // BOOLEAN      FastBoot;
+  //FALSE,              // BOOLEAN      NeverHibernate;
   FONT_GRAY,          // FONT_TYPE    Font;
   9,                  // INTN         CharWidth;
   //13,               //INTN          CharHeight;
@@ -97,7 +97,7 @@ REFIT_CONFIG   DefaultConfig = {
   8,                  // INTN         TileXSpace;
   24,                 // INTN         TileYSpace;
   //FALSE,            // BOOLEAN      Proportional;
-  FALSE,              // BOOLEAN      NoEarlyProgress;
+  //FALSE,              // BOOLEAN      NoEarlyProgress;
   0,                  // INTN         PruneScrollRows;
   144,                // INTN         row0TileSize
   64,                 // INTN         row1TileSize
@@ -160,6 +160,7 @@ VOID
 GetDefaultConfig () {
   CopyMem (&GlobalConfig, &DefaultConfig, sizeof (REFIT_CONFIG));
 
+  gSettings.Timeout = -1;
   gSettings.AddProperties = NULL;
 
   gSettings.WithKexts = TRUE;
@@ -267,7 +268,7 @@ GetPropertyInteger (
   } else if (Prop->type == kTagTypeInteger) {
     return Prop->integer; //(INTN)Prop->string;
   } else if ((Prop->type == kTagTypeString) && Prop->string) {
-    if ((Prop->string[0] == '0') && (TO_UPPER (Prop->string[1]) == 'X')) {
+    if ((Prop->string[0] == '0') && (TO_AUPPER (Prop->string[1]) == 'X')) {
       return (INTN)AsciiStrHexToUintn (Prop->string);
     }
 
@@ -441,7 +442,7 @@ IsPatchEnabled (
   BOOLEAN     Ret = FALSE;
   MatchOSes   *MOS;
 
-  if (!MatchOSEntry || !CurrOS) {
+  if (!MatchOSEntry || !AsciiStrLen (MatchOSEntry) || !CurrOS || !AsciiStrLen (CurrOS)) {
     return TRUE; //undefined matched corresponds to old behavior
   }
 
@@ -1886,7 +1887,7 @@ LoadTheme (
       if (!EFI_ERROR (Status)) {
         Status = LoadFile (ThemeDir, PoolPrint (L"%s.plist", CONFIG_THEME_FILENAME), (UINT8 **)&ThemePtr, &Size);
         if (!EFI_ERROR (Status) && (ThemePtr != NULL) && (Size != 0)) {
-          Status = ParseXML (ThemePtr, &ThemeDict, 0);
+          Status = ParseXML (ThemePtr, 0, &ThemeDict);
 
           if (EFI_ERROR (Status)) {
             ThemeDict = NULL;
@@ -2484,7 +2485,7 @@ InitTheme (
 
   DbgHeader ("InitTheme");
 
-  if (GlobalConfig.TextOnly) {
+  if (gSettings.TextOnly) {
     if (GlobalConfig.Theme) {
       FreePool (GlobalConfig.Theme);
       GlobalConfig.Theme = NULL;
@@ -2784,13 +2785,13 @@ GetEarlyUserSettings (
 
       Prop = GetProperty (DictPointer, "Timeout");
       if (Prop != NULL) {
-        GlobalConfig.Timeout = (INT32)GetPropertyInteger (Prop, DefaultConfig.Timeout);
-        DBG ("Timeout set to %d\n", GlobalConfig.Timeout);
+        gSettings.Timeout = (INT32)GetPropertyInteger (Prop, -1);
+        DBG ("Timeout set to %d\n", gSettings.Timeout);
       }
 
-      GlobalConfig.FastBoot = GetPropertyBool (GetProperty (DictPointer, "Fast"), FALSE);
+      gSettings.FastBoot = GetPropertyBool (GetProperty (DictPointer, "Fast"), FALSE);
 
-      GlobalConfig.NoEarlyProgress = GetPropertyBool (GetProperty (DictPointer, "NoEarlyProgress"), TRUE);
+      gSettings.NoEarlyProgress = GetPropertyBool (GetProperty (DictPointer, "NoEarlyProgress"), TRUE);
 
       // defaults if "DefaultVolume" is not present or is empty
       gSettings.LastBootedVolume = FALSE;
@@ -2826,9 +2827,9 @@ GetEarlyUserSettings (
         AsciiStrToUnicodeStrS (Prop->string, gSettings.DefaultLoader, Len);
       }
 
-      GlobalConfig.DebugLog = GetPropertyBool (GetProperty (DictPointer, "Debug"), FALSE);
+      //gSettings.DebugLog = GetPropertyBool (GetProperty (DictPointer, "Debug"), FALSE);
 
-      GlobalConfig.NeverHibernate = GetPropertyBool (GetProperty (DictPointer, "NeverHibernate"), FALSE);
+      gSettings.NeverHibernate = GetPropertyBool (GetProperty (DictPointer, "NeverHibernate"), FALSE);
 
       // XMP memory profiles
       Prop = GetProperty (DictPointer, "XMPDetection");
@@ -2909,9 +2910,9 @@ GetEarlyUserSettings (
 
     DictPointer = GetProperty (Dict, "GUI");
     if (DictPointer != NULL) {
-      GlobalConfig.TextOnly = GetPropertyBool (GetProperty (DictPointer, "TextOnly"), FALSE);
+      gSettings.TextOnly = GetPropertyBool (GetProperty (DictPointer, "TextOnly"), FALSE);
 
-      if (!GlobalConfig.TextOnly) {
+      if (!gSettings.TextOnly) {
         Prop = GetProperty (DictPointer, "Theme");
         if (Prop != NULL) {
           if ((Prop->type == kTagTypeString) && Prop->string) {
@@ -4390,9 +4391,9 @@ GetUserSettings (
     if (gThemeChanged /* && GlobalConfig.Theme */) {
       DictPointer = GetProperty (Dict, "GUI");
       if (DictPointer != NULL) {
-        GlobalConfig.TextOnly = GetPropertyBool (GetProperty (DictPointer, "TextOnly"), FALSE);
+        gSettings.TextOnly = GetPropertyBool (GetProperty (DictPointer, "TextOnly"), FALSE);
 
-        if (!GlobalConfig.TextOnly) {
+        if (!gSettings.TextOnly) {
           Prop = GetProperty (DictPointer, "Theme");
           if ((Prop != NULL) && (Prop->type == kTagTypeString) && Prop->string) {
             FreePool (GlobalConfig.Theme);
@@ -4437,7 +4438,7 @@ LoadUserSettings (
   }
 
   if (!EFI_ERROR (Status) && (gConfigPtr != NULL)) {
-    Status = ParseXML (gConfigPtr, Dict, (UINT32)Size);
+    Status = ParseXML (gConfigPtr, (UINT32)Size, Dict);
 
     DBG ("Parsing plist: ... %r\n", Status);
   }
@@ -4482,7 +4483,7 @@ CheckDarwinVersion (
 
   Status = LoadFile (RootDir, Plist, (UINT8 **)&PlistBuffer, &PlistLen);
 
-  if (!EFI_ERROR (Status) && (PlistBuffer != NULL) && !EFI_ERROR (ParseXML (PlistBuffer, &Dict, 0))) {
+  if (!EFI_ERROR (Status) && (PlistBuffer != NULL) && !EFI_ERROR (ParseXML (PlistBuffer, 0, &Dict))) {
     Prop = GetProperty (Dict, "ProductVersion");
     if ((Prop != NULL) && (Prop->string != NULL) && (Prop->string[0] != '\0')) {
       *OSVersion = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
@@ -4614,7 +4615,7 @@ GetRootUUID (
 
   if (!EFI_ERROR (Status)) {
     Dict = NULL;
-    if (EFI_ERROR (ParseXML (PlistBuffer, &Dict, 0))) {
+    if (EFI_ERROR (ParseXML (PlistBuffer, 0, &Dict))) {
       FreePool (PlistBuffer);
       return EFI_NOT_FOUND;
     }

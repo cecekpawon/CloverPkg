@@ -161,7 +161,7 @@ typedef enum {
   // Debug
   mDebugKP,
   mDebugDSDT,
-  mDebugLog,
+  //mDebugLog,
 
   // OTHER
   mFlagsBits,
@@ -212,7 +212,7 @@ INTN    OptMenuTableNum = ARRAY_SIZE (OPT_MENU_TABLE);
 OPT_MENU_GEN OPT_MENU_DEBUG[] = {
   { mDebugKP,     L"Kext Patch" },
   { mDebugDSDT,   L"DSDT"       },
-  { mDebugLog,    L"Log"        },
+  //{ mDebugLog,    L"Log"        },
 };
 
 INTN    OptMenuDebugNum = ARRAY_SIZE (OPT_MENU_DEBUG);
@@ -276,17 +276,17 @@ GenMenu (
   UINTN                 Tag,
   UINTN                 Row
 ) {
-  REFIT_INPUT_DIALOG    *InputBootArgs = AllocateZeroPool (sizeof (REFIT_INPUT_DIALOG));
+  REFIT_INPUT_DIALOG    *Input = AllocateZeroPool (sizeof (REFIT_INPUT_DIALOG));
 
-  InputBootArgs->Entry.Title = PoolPrint (L"%s", Title);
-  InputBootArgs->Entry.Tag = Tag;
-  InputBootArgs->Entry.Row = Row;
-  InputBootArgs->Item = Item ? Item : &InputItems[ItemNum];
-  InputBootArgs->Item->ID = ItemNum;
+  Input->Entry.Title = PoolPrint (L"%s", Title);
+  Input->Entry.Tag = Tag;
+  Input->Entry.Row = Row;
+  Input->Item = Item ? Item : &InputItems[ItemNum];
+  Input->Item->ID = ItemNum;
 
-  AddMenuEntry (Screen, (REFIT_MENU_ENTRY *)InputBootArgs);
+  AddMenuEntry (Screen, (REFIT_MENU_ENTRY *)Input);
 
-  return (REFIT_MENU_ENTRY *)InputBootArgs;
+  return (REFIT_MENU_ENTRY *)Input;
 }
 
 REFIT_MENU_ENTRY *
@@ -398,13 +398,13 @@ AddMenuInfo (
   REFIT_MENU_SCREEN   *SubScreen,
   CHAR16              *Label
 ) {
-  REFIT_INPUT_DIALOG    *InputBootArgs = AllocateZeroPool (sizeof (REFIT_INPUT_DIALOG));
+  REFIT_INPUT_DIALOG    *Input = AllocateZeroPool (sizeof (REFIT_INPUT_DIALOG));
 
-  InputBootArgs->Entry.Title = PoolPrint (L"%s", Label);
-  InputBootArgs->Entry.Tag = TAG_INFO;
-  InputBootArgs->Item = NULL;
+  Input->Entry.Title = PoolPrint (L"%s", Label);
+  Input->Entry.Tag = TAG_INFO;
+  Input->Item = NULL;
 
-  AddMenuEntry (SubScreen, (REFIT_MENU_ENTRY *)InputBootArgs);
+  AddMenuEntry (SubScreen, (REFIT_MENU_ENTRY *)Input);
 }
 
 VOID
@@ -412,13 +412,13 @@ AddMenuLabel (
   REFIT_MENU_SCREEN   *SubScreen,
   CHAR16              *Label
 ) {
-  REFIT_INPUT_DIALOG    *InputBootArgs = AllocateZeroPool (sizeof (REFIT_INPUT_DIALOG));
+  REFIT_INPUT_DIALOG    *Input = AllocateZeroPool (sizeof (REFIT_INPUT_DIALOG));
 
-  InputBootArgs->Entry.Title = PoolPrint (L"%s", Label);
-  InputBootArgs->Entry.Tag = TAG_LABEL;
-  InputBootArgs->Item = NULL;
+  Input->Entry.Title = PoolPrint (L"%s", Label);
+  Input->Entry.Tag = TAG_LABEL;
+  Input->Item = NULL;
 
-  AddMenuEntry (SubScreen, (REFIT_MENU_ENTRY *)InputBootArgs);
+  AddMenuEntry (SubScreen, (REFIT_MENU_ENTRY *)Input);
 }
 
 VOID
@@ -456,7 +456,7 @@ FillInputs (
     InputItems = AllocateZeroPool (OptMenuItemsNum * sizeof (INPUT_ITEM));
   }
 
-  FillInputString (mBootArgs, PoolPrint (L"%a", gSettings.BootArgs), SVALUE_MAX_SIZE, ASString, New);
+  FillInputString (mBootArgs, PoolPrint (L"%a", gSettings.BootArgs), AVALUE_MAX_SIZE, ASString, New);
 
   FillInputRadio (mConfigs);
   FillInputRadio (mThemes);
@@ -465,7 +465,7 @@ FillInputs (
   FillInputBool (mDropOEM, gSettings.DropSSDT);
 
   // DSDT
-  FillInputString (mDSDTName, gSettings.DsdtName, 32, UNIString, New);
+  FillInputString (mDSDTName, gSettings.DsdtName, ARRAY_SIZE (gSettings.DsdtName), UNIString, New);
   FillInputBool (mDebugDSDT, gSettings.DebugDSDT);
   FillInputInt (mDSDTFix, gSettings.FixDsdt);
 
@@ -488,7 +488,7 @@ FillInputs (
   // Debug
   FillInputBool (mDebugKP, gSettings.DebugKP);
   FillInputBool (mDebugDSDT, gSettings.DebugDSDT);
-  FillInputBool (mDebugLog, GlobalConfig.DebugLog);
+  //FillInputBool (mDebugLog, gSettings.DebugLog);
 
   // OTHER
   FillInputInt (mOptionsBits, gSettings.OptionsBits);
@@ -656,9 +656,9 @@ ApplyInputs () {
         gSettings.DebugDSDT = ApplyInputBool (i);
         break;
 
-      case mDebugLog:
-        GlobalConfig.DebugLog = ApplyInputBool (i);
-        break;
+      //case mDebugLog:
+      //  gSettings.DebugLog = ApplyInputBool (i);
+      //  break;
 
       // OTHER
       case mOptionsBits:
@@ -721,7 +721,7 @@ DecodeOptions (
       continue;
     }
 
-    State = OSFLAG_ISSET(gSettings.OptionsBits, OPT_MENU_OPTBIT[i].Bit);
+    State = OSFLAG_ISSET (gSettings.OptionsBits, OPT_MENU_OPTBIT[i].Bit);
 
     Entry->LoadOptions = ToggleLoadOptions (
                             State,
@@ -746,7 +746,7 @@ AddMenuInfoLine (
   IN REFIT_MENU_SCREEN  *Screen,
   IN CHAR16             *InfoLine
 ) {
-  AddListElement ((VOID ***) &(Screen->InfoLines), (UINTN *)&(Screen->InfoLineCount), InfoLine);
+  AddListElement ((VOID ***)&(Screen->InfoLines), (UINTN *)&(Screen->InfoLineCount), InfoLine);
 }
 
 VOID
@@ -754,7 +754,7 @@ AddMenuEntry (
   IN REFIT_MENU_SCREEN  *Screen,
   IN REFIT_MENU_ENTRY   *Entry
 ) {
-  AddListElement ((VOID ***) &(Screen->Entries), (UINTN *)&(Screen->EntryCount), Entry);
+  AddListElement ((VOID ***)&(Screen->Entries), (UINTN *)&(Screen->EntryCount), Entry);
 }
 
 VOID
@@ -801,7 +801,7 @@ FreeMenu (
   INTN                i;
   REFIT_MENU_ENTRY    *Tentry = NULL;
 
-  //TODO - here we must FreePool for a list of Entries, Screens, InputBootArgs
+  //TODO - here we must FreePool for a list of Entries, Screens, Input
   if (Screen->EntryCount > 0) {
     for (i = 0; i < Screen->EntryCount; i++) {
       Tentry = Screen->Entries[i];
@@ -1564,7 +1564,7 @@ RunGenericMenu (
   //DBG ("RunGenericMenu CurrentSelection=%d MenuExit=%d\n",
   //    State.CurrentSelection, MenuExit);
 
-  State.ScrollMode = (GlobalConfig.TextOnly || (Screen->ID > SCREEN_MAIN)) ? SCROLL_MODE_LOOP : SCROLL_MODE_NONE;
+  State.ScrollMode = (gSettings.TextOnly || (Screen->ID > SCREEN_MAIN)) ? SCROLL_MODE_LOOP : SCROLL_MODE_NONE;
 
   if (State.ScrollMode == SCROLL_MODE_NONE) {
     IdentifyRows (&State, Screen);
@@ -1915,10 +1915,6 @@ TextMenuStyle (
       }
       break;
 
-    case MENU_FUNCTION_CLEANUP:
-      // release temporary memory
-      break;
-
     case MENU_FUNCTION_PAINT_ALL:
       // paint the whole screen (initially and after scrolling)
       gST->ConOut->SetAttribute (gST->ConOut, ATTR_CHOICE_BASIC);
@@ -2110,6 +2106,10 @@ TextMenuStyle (
         gST->ConOut->OutputString (gST->ConOut, TimeoutMessage);
         FreePool (TimeoutMessage);
       }
+      break;
+
+    case MENU_FUNCTION_CLEANUP:
+      // release temporary memory
       break;
   }
 
@@ -2398,10 +2398,6 @@ GraphicsMenuStyle (
       InitBar ();
       break;
 
-    case MENU_FUNCTION_CLEANUP:
-      //HidePointer ();
-      break;
-
     case MENU_FUNCTION_PAINT_ALL:
       DrawMenuText (NULL, 0, 0, 0, 0, NULL); //should clean every line to avoid artefacts
       //DBG ("PAINT_ALL: EntriesPosY=%d MaxVisible=%d\n", EntriesPosY, State->MaxVisible);
@@ -2414,14 +2410,15 @@ GraphicsMenuStyle (
       // blackosx swapped this around so drawing of selection comes before drawing scrollbar.
 
       for (i = State->FirstVisible, j = 0; i <= State->LastVisible; i++, j++) {
-        REFIT_MENU_ENTRY *Entry = Screen->Entries[i];
+        REFIT_MENU_ENTRY  *Entry = Screen->Entries[i];
 
         NeedMarginLeft = (
           (Entry->Tag == TAG_SWITCH) || (Entry->Tag == TAG_CHECKBIT) ||
           ((Entry->Tag == TAG_INPUT) && (((REFIT_INPUT_DIALOG *)Entry)->Item->ItemType == BoolValue))
         );
 
-        ResultString = PoolPrint (L"%a%s", NeedMarginLeft ? "   " : "", Entry->Title);
+        ZeroMem (ResultString, SVALUE_MAX_SIZE);
+        StrCatS (ResultString, SVALUE_MAX_SIZE, PoolPrint (L"%a%s", NeedMarginLeft ? "   " : "", Entry->Title));
 
         TitleLen = StrLen (ResultString) + (NeedMarginLeft ? 0 : 2);
 
@@ -2501,8 +2498,6 @@ GraphicsMenuStyle (
             );
             break;
         }
-
-        FreePool (ResultString);
       }
 
       ScrollingBar (State);
@@ -2518,7 +2513,8 @@ GraphicsMenuStyle (
         ((EntryL->Tag == TAG_INPUT) && (((REFIT_INPUT_DIALOG *)EntryL)->Item->ItemType == BoolValue))
       );
 
-      ResultString = PoolPrint (L"%a%s", NeedMarginLeft ? "   " : "", EntryL->Title);
+      ZeroMem (ResultString, SVALUE_MAX_SIZE);
+      StrCatS (ResultString, SVALUE_MAX_SIZE, PoolPrint (L"%a%s", NeedMarginLeft ? "   " : "", EntryL->Title));
 
       TitleLen = StrLen (ResultString) + (NeedMarginLeft ? 0 : 2);
 
@@ -2538,10 +2534,11 @@ GraphicsMenuStyle (
               ButtonsImg[((REFIT_INPUT_DIALOG *)EntryL)->Item->BValue ? kCheckboxCheckedImage : kCheckboxImage].Image
             );
           } else {
-            StrCatS (ResultString, SVALUE_MAX_SIZE, L": ");
-            StrCatS (ResultString, SVALUE_MAX_SIZE, ((REFIT_INPUT_DIALOG *)(EntryL))->Item->SValue +
-                   ((REFIT_INPUT_DIALOG *)(EntryL))->Item->LineShift);
-            StrCatS (ResultString, SVALUE_MAX_SIZE, L" ");
+            //StrCatS (ResultString, SVALUE_MAX_SIZE, L": ");
+            //StrCatS (ResultString, SVALUE_MAX_SIZE, ((REFIT_INPUT_DIALOG *)(EntryL))->Item->SValue +
+            //       ((REFIT_INPUT_DIALOG *)(EntryL))->Item->LineShift);
+            //StrCatS (ResultString, SVALUE_MAX_SIZE, L" ");
+            StrCatS (ResultString, SVALUE_MAX_SIZE, PoolPrint (L": %s ", ((REFIT_INPUT_DIALOG *)(EntryL))->Item->SValue));
             DrawMenuText (
               ResultString,
               0,
@@ -2597,8 +2594,6 @@ GraphicsMenuStyle (
           break;
       }
 
-      FreePool (ResultString);
-
       // Current selection ///////////////////
 
       NeedMarginLeft = (
@@ -2606,7 +2601,8 @@ GraphicsMenuStyle (
         ((EntryC->Tag == TAG_INPUT) && (((REFIT_INPUT_DIALOG *)EntryC)->Item->ItemType == BoolValue))
       );
 
-      ResultString = PoolPrint (L"%a%s", NeedMarginLeft ? "   " : "", EntryC->Title);
+      ZeroMem (ResultString, SVALUE_MAX_SIZE);
+      StrCatS (ResultString, SVALUE_MAX_SIZE, PoolPrint (L"%a%s", NeedMarginLeft ? "   " : "", EntryC->Title));
 
       TitleLen = StrLen (ResultString) + (NeedMarginLeft ? 0 : 2);
 
@@ -2622,10 +2618,11 @@ GraphicsMenuStyle (
               ButtonsImg[((REFIT_INPUT_DIALOG *)EntryC)->Item->BValue ? kCheckboxCheckedImage : kCheckboxImage].Image
             );
           } else {
-            StrCatS (ResultString, SVALUE_MAX_SIZE, L": ");
-            StrCatS (ResultString, SVALUE_MAX_SIZE, ((REFIT_INPUT_DIALOG *)EntryC)->Item->SValue +
-                                 ((REFIT_INPUT_DIALOG *)EntryC)->Item->LineShift);
-            StrCatS (ResultString, SVALUE_MAX_SIZE, L" ");
+            //StrCatS (ResultString, SVALUE_MAX_SIZE, L": ");
+            //StrCatS (ResultString, SVALUE_MAX_SIZE, ((REFIT_INPUT_DIALOG *)EntryC)->Item->SValue +
+            //                     ((REFIT_INPUT_DIALOG *)EntryC)->Item->LineShift);
+            //StrCatS (ResultString, SVALUE_MAX_SIZE, L" ");
+            StrCatS (ResultString, SVALUE_MAX_SIZE, PoolPrint (L": %s ", ((REFIT_INPUT_DIALOG *)(EntryC))->Item->SValue));
             DrawMenuText (
               ResultString,
               MenuWidth,
@@ -2681,8 +2678,6 @@ GraphicsMenuStyle (
           break;
       }
 
-      FreePool (ResultString);
-
       ScrollStart.YPos = ScrollbarBackground.YPos + ScrollbarBackground.Height * State->FirstVisible / (State->MaxIndex + 1);
       Scrollbar.YPos = ScrollStart.YPos + ScrollStart.Height;
       ScrollEnd.YPos = Scrollbar.YPos + Scrollbar.Height; // ScrollEnd.Height is already subtracted
@@ -2695,7 +2690,13 @@ GraphicsMenuStyle (
       X = (UGAWidth - StrLen (ParamText) * GlobalConfig.CharWidth) >> 1;
       DrawMenuText (ParamText, 0, X, TimeoutPosY, 0xFFFF, NULL);
       break;
+
+    case MENU_FUNCTION_CLEANUP:
+      //HidePointer ();
+      break;
   }
+
+  FreePool (ResultString);
 }
 
 STATIC
@@ -3284,10 +3285,10 @@ REFIT_MENU_ENTRY *
 SubMenuAcpi () {
   REFIT_MENU_ENTRY    *Entry = NULL;
   REFIT_MENU_SCREEN   *SubScreen = NULL;
-  CHAR8               sign[5], OTID[9];
+  CHAR8               Sign[5], OTID[9];
   INTN                i = 0;
 
-  sign[4] = 0;
+  Sign[4] = 0;
   OTID[8] = 0;
 
   CreateHeaderEntries (&Entry, &SubScreen, L"ACPI", SCREEN_TABLES, 'A');
@@ -3320,14 +3321,14 @@ SubMenuAcpi () {
     ACPI_DROP_TABLE   *DropTable = gSettings.ACPIDropTables;
 
     while (DropTable) {
-      CopyMem ((CHAR8 *)&sign, (CHAR8 *)&(DropTable->Signature), 4);
+      CopyMem ((CHAR8 *)&Sign, (CHAR8 *)&(DropTable->Signature), 4);
       CopyMem ((CHAR8 *)&OTID, (CHAR8 *)&(DropTable->TableId), 8);
 
       //MsgLog ("adding to menu %a (%x) %a (%lx) L=%d (0x%x)\n",
-      //       sign, DropTable->Signature,
+      //       Sign, DropTable->Signature,
       //       OTID, DropTable->TableId,
       //       DropTable->Length, DropTable->Length);
-      AddMenuBOOL (SubScreen, PoolPrint (L"Drop \"%4.4a\" \"%8.8a\" %d", sign, OTID, DropTable->Length), &(DropTable->MenuItem), 0);
+      AddMenuBOOL (SubScreen, PoolPrint (L"Drop \"%4.4a\" \"%8.8a\" %d", Sign, OTID, DropTable->Length), &(DropTable->MenuItem), 0);
       DropTable = DropTable->Next;
     }
   }
@@ -3481,8 +3482,8 @@ OptionsMenu (
         gBootChanged &&
         gThemeChanged &&
         (
-          (GlobalConfig.TextOnly && OnGraphicsMode) ||
-          (!GlobalConfig.TextOnly && !OnGraphicsMode)
+          (gSettings.TextOnly && OnGraphicsMode) ||
+          (!gSettings.TextOnly && !OnGraphicsMode)
         )
       ) {
         InitScreen (FALSE);
@@ -3670,7 +3671,7 @@ RunMainMenu (
   LOADER_ENTRY        *TempChosenEntryBkp = NULL;
   BOOLEAN             ESCLoader = FALSE;
 
-  if (AllowGraphicsMode && !GlobalConfig.TextOnly) {
+  if (AllowGraphicsMode && !gSettings.TextOnly) {
     Style = GraphicsMenuStyle;
     MainStyle = MainMenuStyle;
   } else {

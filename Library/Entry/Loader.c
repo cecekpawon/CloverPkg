@@ -174,7 +174,7 @@ GetOSTypeFromPath (
     return OSTYPE_DARWIN;
   } else if (IsBootExists (Path, WINEFIPaths)) {
     return OSTYPE_WINEFI;
-  } else if (StrniCmp (Path, LINUX_FULL_LOADER_PATH, StrLen (LINUX_FULL_LOADER_PATH)) == 0) {
+  } else if (StrniCmp (Path, LINUX_FULL_LOADER_PATH, StrSize (LINUX_FULL_LOADER_PATH)) == 0) {
     return OSTYPE_LINEFI;
   } else {
     UINTN   Index= 0;
@@ -208,7 +208,7 @@ LinuxIconNameFromPath (
 ) {
   UINTN   Index = 0;
 
-  if (GlobalConfig.TextOnly || IsEmbeddedTheme ()) {
+  if (gSettings.TextOnly || IsEmbeddedTheme ()) {
     goto Finish;
   }
 
@@ -230,7 +230,7 @@ LinuxIconNameFromPath (
   }
 
   // Try to open the linux issue
-  if ((RootDir != NULL) && (StrniCmp (Path, LINUX_FULL_LOADER_PATH, StrLen (LINUX_FULL_LOADER_PATH)) == 0)) {
+  if ((RootDir != NULL) && (StrniCmp (Path, LINUX_FULL_LOADER_PATH, StrSize (LINUX_FULL_LOADER_PATH)) == 0)) {
     CHAR8   *Issue = NULL;
     UINTN   IssueLen = 0;
 
@@ -319,7 +319,7 @@ IsFirstRootUUID (
 //Set Entry->VolName to .disk_label.contentDetails if it exists
 STATIC
 EFI_STATUS
-GetOSXVolumeName (
+GetDarwinVolumeName (
   LOADER_ENTRY    *Entry
 ) {
   EFI_STATUS    Status = EFI_NOT_FOUND;
@@ -740,14 +740,14 @@ CreateLoaderEntry (
       //OSIconName = GetOSIconName (Entry->OSVersion);// Sothor - Get OSIcon name using OSVersion
       OSIconName = GetOSIconName (DarwinOSVersion);
 
-      if ((OSType == OSTYPE_DARWIN) && IsOsxHibernated (Volume)) {
+      if ((OSType == OSTYPE_DARWIN) && IsDarwinHibernated (Volume)) {
         Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_HIBERNATED);
       }
 
       ShortcutLetter = 'M';
       if ((Entry->VolName == NULL) || (StrLen (Entry->VolName) == 0)) {
         // else no sense to override it with dubious name
-        GetOSXVolumeName (Entry);
+        GetDarwinVolumeName (Entry);
       }
       break;
 
@@ -826,7 +826,7 @@ CreateLoaderEntry (
 
   Entry->me.ShortcutLetter = (Hotkey == 0) ? ShortcutLetter : Hotkey;
 
-  if (!GlobalConfig.TextOnly) {
+  if (!gSettings.TextOnly) {
     // Load DriveImage
     Entry->me.DriveImage = (DriveImage != NULL) ? DriveImage : ScanVolumeDefaultIcon (Volume->DiskKind, Entry->LoaderType);
 

@@ -79,7 +79,7 @@ OnExitBootServices (
   /*
   if (DoHibernateWake) {
     gST->ConOut->OutputString (gST->ConOut, L"wake!!!");
-    gBS->Stall (5000000);     // 5 seconds delay
+    gBS->Stall (5 * 1000000);     // 5 seconds delay
     return;
   }
   */
@@ -88,6 +88,11 @@ OnExitBootServices (
 
   if (OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType)) {
     if (OSFLAG_ISUNSET (Entry->Flags, OPT_VERBOSE)) {
+
+      if (!gSettings.FakeSMCLoaded) {
+        gST->ConOut->OutputString (gST->ConOut, L"FakeSMC NOT loaded\n");
+        gBS->Stall (5 * 1000000);
+      }
 
   #if BOOT_GRAY
       hehe (); // Draw dark gray Apple logo.

@@ -236,6 +236,12 @@ KextPatcherRegisterKexts (
   LOADER_ENTRY            *Entry
 );
 
+VOID
+CheckForFakeSMC (
+  CHAR8         *InfoPlist,
+  LOADER_ENTRY  *Entry
+);
+
 //
 // Entry for all kext patches.
 // Will iterate through kext in prelinked kernel (kernelcache)

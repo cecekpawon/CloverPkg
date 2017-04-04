@@ -109,7 +109,7 @@ LoadKext (
     NoContents = TRUE;
   }
 
-  if (EFI_ERROR (ParseXML ((CHAR8 *)InfoDictBuffer, &Dict, 0))) {
+  if (EFI_ERROR (ParseXML ((CHAR8 *)InfoDictBuffer, 0, &Dict))) {
     FreePool (InfoDictBuffer);
     DBG ("Failed to load extra kext (failed to parse Info.plist): %s\n", FileName);
     return EFI_NOT_FOUND;
@@ -435,7 +435,7 @@ InjectKexts (
         InfoPlist[Drvinfo->infoDictLength] = '\0';
 
 #ifdef LAZY_PARSE_KEXT_PLIST
-        if (EFI_ERROR (ParseXML (InfoPlist, &KextsDict, 0))) {
+        if (EFI_ERROR (ParseXML (InfoPlist, 0, &KextsDict))) {
           continue;
         }
 
@@ -467,6 +467,8 @@ InjectKexts (
             }
           }
         }
+
+        CheckForFakeSMC (InfoPlist, Entry);
 
         InfoPlist[Drvinfo->infoDictLength] = SavedValue;
         FreePool (gKextBundleIdentifier);

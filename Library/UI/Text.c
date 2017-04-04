@@ -84,8 +84,7 @@ LoadFontImage (
   EG_IMAGE    *NewImage = NULL, *NewFontImage;
   INTN        ImageWidth, ImageHeight, x, y, Ypos, j;
   EG_PIXEL    *PixelPtr, FirstPixel;
-  //BOOLEAN     isKorean = (gLanguage == korean);
-  CHAR16      *fontFilePath, *commonFontDir = DIR_FONTS;
+  CHAR16      *FontPath, *CommonFontDir = DIR_FONTS;
 
   if (IsEmbeddedTheme ()) {
     DBG ("Using embedded font\n");
@@ -98,17 +97,17 @@ LoadFontImage (
   if (NewImage) {
     goto F_THEME;
   } else {
-    fontFilePath = PoolPrint (L"%s\\%s", commonFontDir, GlobalConfig.FontFileName);
-    NewImage = LoadImage (SelfRootDir, fontFilePath);
+    FontPath = PoolPrint (L"%s\\%s", CommonFontDir, GlobalConfig.FontFileName);
+    NewImage = LoadImage (SelfRootDir, FontPath);
 
     if (NewImage) {
-      DBG ("font %s loaded from common font dir %s\n", GlobalConfig.FontFileName, commonFontDir);
-      FreePool (fontFilePath);
+      DBG ("font %s loaded from common font dir %s\n", GlobalConfig.FontFileName, CommonFontDir);
+      FreePool (FontPath);
       goto F_THEME;
     }
 
-    DBG ("Font %s is not loaded, using embedded\n", fontFilePath);
-    FreePool (fontFilePath);
+    DBG ("Font %s is not loaded, using embedded\n", FontPath);
+    FreePool (FontPath);
     goto F_EMBEDDED;
   }
 
@@ -236,20 +235,18 @@ PrepareFont () {
 
 INTN
 RenderText (
-  IN     CHAR16       *Text,
-  IN OUT EG_IMAGE     *CompImage,
-  IN     INTN         PosX,
-  IN     INTN         PosY,
-  IN     INTN         Cursor,
-         BOOLEAN      Selected
+  IN CHAR16         *Text,
+  IN OUT EG_IMAGE   *CompImage,
+  IN INTN           PosX,
+  IN INTN           PosY,
+  IN INTN           Cursor,
+  IN BOOLEAN        Selected
 ) {
   EG_PIXEL        *BufferPtr, *FontPixelData, *FirstPixelBuf;
   INTN            BufferLineWidth, BufferLineOffset, FontLineOffset, i,
                   TextLength, RealWidth = 0/*, NewTextLength = 0 */;
   UINT16          c, c1;
-  UINTN           Shift = 0,
-                  //Cho = 0, Jong = 0, Joong = 0, c0,
-                  LeftSpace, RightSpace;
+  UINTN           Shift = 0, LeftSpace, RightSpace;
 
   // clip the text
   TextLength = StrLen (Text);

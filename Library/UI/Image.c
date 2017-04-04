@@ -1334,7 +1334,7 @@ UpdateAnime (
   UINT64      Now;
   INTN        x, y, MenuWidth = 50;
 
-  if (!Screen || !Screen->AnimeRun || !Screen->Film || GlobalConfig.TextOnly) {
+  if (!Screen || !Screen->AnimeRun || !Screen->Film || gSettings.TextOnly) {
    return;
   }
 
@@ -1422,7 +1422,7 @@ InitAnime (
   EG_IMAGE    *p = NULL, *Last = NULL;
   GUI_ANIME   *Anime;
 
-  if (!Screen || GlobalConfig.TextOnly){
+  if (!Screen || gSettings.TextOnly){
     return;
   }
 

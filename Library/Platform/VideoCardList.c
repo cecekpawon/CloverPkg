@@ -36,21 +36,21 @@
         <key>LoadVBios</key>
         <true/>
       </dict>
-    <dict>
-      <key>Model</key>
-      <string>YOUR_SECOND_CARD_NAME</string>
-      <key>IOPCIPrimaryMatch</key>
-      <string>YOUR_SECOND_CARD_ID</string>
-      <key>IOPCISubDevId</key>
-      <string>YOUR_SECOND_CARD_SUB_ID (if necessary)</string>
-      <key>VRAM</key>
-      <integer>YOUR_SECOND_CARD_VRAM_SIZE</integer>
-      <key>VideoPorts</key>
-      <integer>YOUR_SECOND_CARD_PORTS</integer>
-      <key>LoadVBios</key>
-      <true/><!--YOUR_SECOND_CARD_LOADVBIOS-->
-    </dict>
-  </array>
+      <dict>
+        <key>Model</key>
+        <string>YOUR_SECOND_CARD_NAME</string>
+        <key>IOPCIPrimaryMatch</key>
+        <string>YOUR_SECOND_CARD_ID</string>
+        <key>IOPCISubDevId</key>
+        <string>YOUR_SECOND_CARD_SUB_ID (if necessary)</string>
+        <key>VRAM</key>
+        <integer>YOUR_SECOND_CARD_VRAM_SIZE</integer>
+        <key>VideoPorts</key>
+        <integer>YOUR_SECOND_CARD_PORTS</integer>
+        <key>LoadVBios</key>
+        <true/><!--YOUR_SECOND_CARD_LOADVBIOS-->
+      </dict>
+    </array>
     <key>ATI</key>
     <array>
       <dict>

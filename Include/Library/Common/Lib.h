@@ -37,12 +37,9 @@
 #ifndef __REFITLIB_STANDARD_H__
 #define __REFITLIB_STANDARD_H__
 
-//#include <Protocol/BlockIo.h>
-//#include <Library/UI/Libeg.h>
-
 #define REFIT_DEBUG (2)
 
-#define Print if ((!GlobalConfig.Quiet) || (GlobalConfig.TextOnly)) Print
+//#define Print if ((!GlobalConfig.Quiet) || (GlobalConfig.TextOnly)) Print
 
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(array) (sizeof (array) / sizeof (array[0]))
@@ -185,7 +182,7 @@ typedef struct {
   LEGACY_OS             *LegacyOS;
   BOOLEAN               Hidden;
   UINT8                 BootType;
-  BOOLEAN               IsAppleLegacy;
+  //BOOLEAN               IsAppleLegacy;
   BOOLEAN               HasBootCode;
   BOOLEAN               IsMbrPartition;
   UINTN                 MbrPartitionIndex;
@@ -206,15 +203,15 @@ typedef struct {
 } REFIT_INPUT_DIALOG;
 
 typedef struct {
-  BOOLEAN     TextOnly;
-  INTN        Timeout;
+  //BOOLEAN     TextOnly;
+  //INTN        Timeout;
   UINTN       DisableFlags;
   UINTN       HideBadges;
   UINTN       HideUIFlags;
-  BOOLEAN     Quiet;
-  BOOLEAN     DebugLog;
-  BOOLEAN     FastBoot;
-  BOOLEAN     NeverHibernate;
+  //BOOLEAN     Quiet;
+  //BOOLEAN     DebugLog;
+  //BOOLEAN     FastBoot;
+  //BOOLEAN     NeverHibernate;
   FONT_TYPE   Font;
   INTN        CharWidth;
   //INTN        CharHeight;
@@ -257,7 +254,7 @@ typedef struct {
   INTN        TileXSpace;
   INTN        TileYSpace;
   //BOOLEAN     Proportional;
-  BOOLEAN     NoEarlyProgress;
+  //BOOLEAN     NoEarlyProgress;
   INTN        PruneScrollRows;
 
   INTN        row0TileSize;

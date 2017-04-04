@@ -119,7 +119,7 @@ GetSleepImageLocation (
   DBG ("    read prefs %s status=%r\n", PrefName, Status);
 
   if (!EFI_ERROR (Status)) {
-    Status = ParseXML ((CHAR8 *)PrefBuffer, &PrefDict, 0);
+    Status = ParseXML ((CHAR8 *)PrefBuffer, 0, &PrefDict);
     if (!EFI_ERROR (Status)) {
       dict = GetProperty (PrefDict, "Custom Profile");
       if (dict) {
@@ -382,7 +382,7 @@ IsSleepImageValidBySignature (
 
 /** Returns TRUE if given OSX on given volume is hibernated. */
 BOOLEAN
-IsOsxHibernated (
+IsDarwinHibernated (
   IN REFIT_VOLUME     *Volume
 ) {
   //BOOLEAN           IsHibernate = FALSE;
@@ -392,7 +392,7 @@ IsOsxHibernated (
 
   //if sleep image is good but OSX was not hibernated.
   //or we choose "cancel hibernate wake" then it must be canceled
-  if (GlobalConfig.NeverHibernate) {
+  if (gSettings.NeverHibernate) {
     DBG ("        hibernated: set as never\n");
     return FALSE;
   }

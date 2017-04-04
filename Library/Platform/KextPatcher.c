@@ -376,13 +376,8 @@ IsPatchNameMatch (
 // bcc9's patch: http://www.insanelymac.com/forum/index.php?showtopic=249642
 //
 
-// inited or not?
-BOOLEAN   ATIConnectorsPatchInited = FALSE;
-
-// ATIConnectorsController's bundle IDs for
-// 0: ATI version - Lion, SnowLeo 10.6.7 2011 MBP
-// 1: AMD version - ML
-CHAR8   ATIKextBundleId[4][64];
+// ATIConnectorsController's bundle IDs
+CHAR8   ATIKextBundleId[2][64];
 
 //
 // Inits patcher: prepares ATIKextBundleIds.
@@ -395,40 +390,25 @@ ATIConnectorsPatchInit (
   // prepare bundle ids
   //
 
-  // Lion, SnowLeo 10.6.7 2011 MBP
+  if (Entry->KernelAndKextPatches->KPATIConnectorsController == NULL) {
+    return;
+  }
+
   AsciiSPrint (
     ATIKextBundleId[0],
     sizeof (ATIKextBundleId[0]),
-    "com.apple.kext.ATI%sController",
-    Entry->KernelAndKextPatches->KPATIConnectorsController
-  );
-
-  // ML
-  AsciiSPrint (
-    ATIKextBundleId[1],
-    sizeof (ATIKextBundleId[1]),
     "com.apple.kext.AMD%sController",
     Entry->KernelAndKextPatches->KPATIConnectorsController
   );
 
   AsciiSPrint (
-    ATIKextBundleId[2],
-    sizeof (ATIKextBundleId[2]),
-    "com.apple.kext.ATIFramebuffer"
-  );
-
-  AsciiSPrint (
-    ATIKextBundleId[3],
-    sizeof (ATIKextBundleId[3]),
+    ATIKextBundleId[1],
+    sizeof (ATIKextBundleId[1]),
     "com.apple.kext.AMDFramebuffer"
   );
 
-  ATIConnectorsPatchInited = TRUE;
-
   //DBG ("Bundle1: %a\n", ATIKextBundleId[0]);
   //DBG ("Bundle2: %a\n", ATIKextBundleId[1]);
-  //DBG ("Bundle3: %a\n", ATIKextBundleId[2]);
-  //DBG ("Bundle4: %a\n", ATIKextBundleId[3]);
 }
 
 //
@@ -441,16 +421,11 @@ ATIConnectorsPatchRegisterKexts (
   LOADER_ENTRY          *Entry
 ) {
   CHAR16  *AtiForceLoadKexts[] = {
-            L"\\IOGraphicsFamily.kext\\Info.plist",
-            L"\\ATISupport.kext\\Contents\\Info.plist",
+            L"\\AMDFramebuffer.kext\\Contents\\Info.plist",
             L"\\AMDSupport.kext\\Contents\\Info.plist",
-            L"\\AppleGraphicsControl.kext\\Info.plist",
             L"\\AppleGraphicsControl.kext\\Contents\\PlugIns\\AppleGraphicsDeviceControl.kext\\Info.plist"
-            /*,
-            // SnowLeo
-            L"\\ATIFramebuffer.kext\\Contents\\Info.plist",
-            L"\\AMDFramebuffer.kext\\Contents\\Info.plist"
-            */
+            L"\\AppleGraphicsControl.kext\\Info.plist",
+            L"\\IOGraphicsFamily.kext\\Info.plist",
           };
   UINTN   i = 0, AtiForceLoadKextsCount = ARRAY_SIZE (AtiForceLoadKexts);
 
@@ -458,12 +433,6 @@ ATIConnectorsPatchRegisterKexts (
   FSInject->AddStringToList (
               ForceLoadKexts,
               PoolPrint (L"\\AMD%sController.kext\\Contents\\Info.plist", Entry->KernelAndKextPatches->KPATIConnectorsController)
-            );
-
-  // Lion, ML, SnowLeo 10.6.7 2011 MBP
-  FSInject->AddStringToList (
-              ForceLoadKexts,
-              PoolPrint (L"\\ATI%sController.kext\\Contents\\Info.plist", Entry->KernelAndKextPatches->KPATIConnectorsController)
             );
 
   // dependencies
@@ -507,12 +476,12 @@ ATIConnectorsPatch (
 }
 
 VOID
-GetText (
-  UINT8           *binary,
-  OUT UINT32      *Addr,
-  OUT UINT32      *Size,
-  OUT UINT32      *Off,
-  LOADER_ENTRY    *Entry
+GetTextSection (
+  IN  UINT8         *binary,
+  OUT UINT32        *Addr,
+  OUT UINT32        *Size,
+  OUT UINT32        *Off,
+  IN  LOADER_ENTRY  *Entry
 ) {
   struct  load_command        *LoadCommand;
   struct  segment_command_64  *SegCmd64;
@@ -590,7 +559,7 @@ AsusAICPUPMPatch (
   UINTN   Index1 = 0, Index2 = 0, Count = 0;
   UINT32  Addr, Size, Off;
 
-  GetText (Driver, &Addr, &Size, &Off, Entry);
+  GetTextSection (Driver, &Addr, &Size, &Off, Entry);
 
   DBG ("AsusAICPUPMPatch: driverAddr = %x, driverSize = %x\n", Driver, DriverSize);
 
@@ -614,8 +583,7 @@ AsusAICPUPMPatch (
           DBG (" %d. patched at 0x%x\n", Count, Index2);
           break;
         } else if (
-          ((Driver[Index2] == 0xC9) && (Driver[Index2 + 1] == 0xC3)) ||
-          ((Driver[Index2] == 0x5D) && (Driver[Index2 + 1] == 0xC3)) ||
+          (((Driver[Index2] == 0xC9) || (Driver[Index2] == 0x5D)) && (Driver[Index2 + 1] == 0xC3)) ||
           ((Driver[Index2] == 0xB9) && (Driver[Index2 + 3] == 0) && (Driver[Index2 + 4] == 0)) ||
           ((Driver[Index2] == 0x66) && (Driver[Index2 + 1] == 0xB9) && (Driver[Index2 + 3] == 0))
         ) {
@@ -635,8 +603,7 @@ AsusAICPUPMPatch (
           DBG (" %d. patched at 0x%x\n", Count, Index2);
           break;
         } else if (
-          ((Driver[Index2] == 0xC9) && (Driver[Index2 + 1] == 0xC3)) ||
-          ((Driver[Index2] == 0x5D) && (Driver[Index2 + 1] == 0xC3)) ||
+          (((Driver[Index2] == 0xC9) || (Driver[Index2] == 0x5D)) && (Driver[Index2 + 1] == 0xC3)) ||
           ((Driver[Index2] == 0xB9) && (Driver[Index2 + 3] == 0) && (Driver[Index2 + 4] == 0)) ||
           ((Driver[Index2] == 0x66) && (Driver[Index2 + 1] == 0xB9) && (Driver[Index2 + 3] == 0))
         ) {
@@ -693,7 +660,7 @@ AnyKextPatch (
   } else { // kext binary patch
     UINT32    Addr, Size, Off;
 
-    GetText (Driver, &Addr, &Size, &Off, Entry);
+    GetTextSection (Driver, &Addr, &Size, &Off, Entry);
 
     DBG (" | Binary patch");
 
@@ -774,15 +741,9 @@ PatchKext (
     (Entry->KernelAndKextPatches->KPATIConnectorsController != NULL) &&
     (
       IsPatchNameMatch (BundleIdentifier, ATIKextBundleId[0], NULL, &IsBundle) ||
-      IsPatchNameMatch (BundleIdentifier, ATIKextBundleId[1], NULL, &IsBundle) ||
-      IsPatchNameMatch (BundleIdentifier, ATIKextBundleId[2], NULL, &IsBundle) ||
-      IsPatchNameMatch (BundleIdentifier, ATIKextBundleId[3], NULL, &IsBundle)
+      IsPatchNameMatch (BundleIdentifier, ATIKextBundleId[1], NULL, &IsBundle)
     )
   ) {
-    if (!ATIConnectorsPatchInited) {
-      ATIConnectorsPatchInit (Entry);
-    }
-
     ATIConnectorsPatch (Driver, DriverSize, Entry);
 
     FreePool (Entry->KernelAndKextPatches->KPATIConnectorsController);
@@ -834,8 +795,7 @@ PatchKext (
 
 ///////////////////////////////////
 //
-// InjectKexts if no FakeSMC: Detect FakeSMC and if present then
-// disable kext injection InjectKexts ()
+// Detect FakeSMC (on prelinked / injected InfoPlist), warn users OnExitBootServices if not presented in verbose.
 //
 
 VOID
@@ -844,14 +804,16 @@ CheckForFakeSMC (
   LOADER_ENTRY  *Entry
 ) {
   if (
-    OSFLAG_ISSET (Entry->Flags, OSFLAG_CHECKFAKESMC) &&
-    OSFLAG_ISSET (Entry->Flags, OSFLAG_WITHKEXTS)
+    !gSettings.FakeSMCLoaded &&
+    OSFLAG_ISSET (Entry->Flags, OSFLAG_CHECKFAKESMC) /*&&
+    OSFLAG_ISSET (Entry->Flags, OSFLAG_WITHKEXTS)*/
   ) {
     if (
       (AsciiStrStr (InfoPlist, "<string>org.netkas.driver.FakeSMC</string>") != NULL) ||
       (AsciiStrStr (InfoPlist, "<string>org.netkas.FakeSMC</string>") != NULL)
     ) {
-      Entry->Flags = OSFLAG_UNSET (Entry->Flags, OSFLAG_WITHKEXTS);
+      //Entry->Flags = OSFLAG_UNSET (Entry->Flags, OSFLAG_WITHKEXTS);
+      gSettings.FakeSMCLoaded = TRUE;
       DBG ("FakeSMC found\n");
     }
   }
@@ -920,7 +882,7 @@ ParsePrelinkKexts (
   CHAR8           *WholePlist
 ) {
   TagPtr        KextsDict, DictPointer;
-  EFI_STATUS    Status = ParseXML (WholePlist, &KextsDict, 0);
+  EFI_STATUS    Status = ParseXML (WholePlist, 0, &KextsDict);
 
   //DBG ("Using LAZY_PARSE_KEXT_PLIST\n")
 
@@ -1061,7 +1023,7 @@ PatchPrelinkedKexts (
 ) {
   CHAR8   *WholePlist = (CHAR8 *)(UINTN)KernelInfo->PrelinkInfoAddr;
 
-  //CheckForFakeSMC (WholePlist, Entry);
+  CheckForFakeSMC (WholePlist, Entry);
 
   if (!EFI_ERROR (ParsePrelinkKexts (Entry, WholePlist))) {
     LIST_ENTRY    *Link;
@@ -1085,7 +1047,7 @@ PatchPrelinkedKexts (
             // and if KernelSlide is != 0 then KextAddr must be adjusted
             KernelInfo->Slide +
             // and adjust for AptioFixDrv's KernelRelocBase
-            (UINT32)KernelInfo->RelocBase/*kextBinAddress*/
+            (UINT32)KernelInfo->RelocBase /* kextBinAddress */
           ),
         (UINT32)sKext->Size,
         InfoPlist,
@@ -1216,7 +1178,7 @@ PatchPrelinkedKexts (
   // works and that's the reason why it is here.
   //
 
-  //CheckForFakeSMC (WholePlist, Entry);
+  CheckForFakeSMC (WholePlist, Entry);
 
   DictPtr = WholePlist;
 
@@ -1324,7 +1286,7 @@ PatchLoadedKexts (
 
 #ifdef LAZY_PARSE_KEXT_PLIST
         // TODO: Store into list first & process all later?
-        if (!EFI_ERROR (ParseXML (InfoPlist, &KextsDict, 0))) {
+        if (!EFI_ERROR (ParseXML (InfoPlist, 0, &KextsDict))) {
           Dict = GetProperty (KextsDict, kPropCFBundleIdentifier);
           if ((Dict != NULL) && Dict->string) {
             PatchKext (
@@ -1350,8 +1312,7 @@ PatchLoadedKexts (
         );
 #endif
 
-        // Check for FakeSMC here
-        //CheckForFakeSMC (InfoPlist, Entry);
+        CheckForFakeSMC (InfoPlist, Entry);
 
         InfoPlist[KextFileInfo->infoDictLength] = SavedValue;
       }
@@ -1369,6 +1330,8 @@ KextPatcher (
   LOADER_ENTRY    *Entry
 ) {
   DBG ("%a: Start\n", __FUNCTION__);
+
+  ATIConnectorsPatchInit (Entry);
 
   if (KernelInfo->Cached) {
     DBG ("Patching kernelcache ...\n");

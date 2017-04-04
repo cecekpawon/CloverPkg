@@ -146,7 +146,7 @@ LoadIcns (
   IN CHAR16             *FileName,
   IN UINTN              PixelSize
 ) {
-  if (GlobalConfig.TextOnly) {
+  if (gSettings.TextOnly) {
     return NULL;
   }
 
@@ -198,7 +198,7 @@ LoadIcnsFallback (
   IN EFI_FILE_HANDLE  BaseDir,
   IN CHAR16           *FileName
 ) {
-  if (GlobalConfig.TextOnly) {
+  if (gSettings.TextOnly) {
     return NULL;
   }
 
@@ -781,7 +781,7 @@ LoadOSIcon (
 
   *OSIconNameHover = NULL;
 
-  if (GlobalConfig.TextOnly || IsEmbeddedTheme ()) {
+  if (gSettings.TextOnly || IsEmbeddedTheme ()) {
     return NULL;
   }
 
@@ -849,7 +849,7 @@ EG_IMAGE *
 LoadHoverIcon (
   IN CHAR16   *OSIconName
 ) {
-  if (GlobalConfig.TextOnly || IsEmbeddedTheme ()) {
+  if (gSettings.TextOnly || IsEmbeddedTheme ()) {
     return NULL;
   }
 
