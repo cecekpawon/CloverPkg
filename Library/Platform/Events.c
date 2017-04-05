@@ -66,6 +66,22 @@ ClosingEventAndLog (
   }
 }
 
+STATIC
+VOID
+VerboseMessage (
+  IN CHAR16         *Message,
+  IN UINTN          Sec,
+  IN LOADER_ENTRY   *Entry
+) {
+  if (OSFLAG_ISSET (Entry->Flags, OPT_VERBOSE)) {
+    gST->ConOut->OutputString (gST->ConOut, Message);
+
+    if (Sec > 0) {
+      gBS->Stall (Sec * 1000000);
+    }
+  }
+}
+
 VOID
 EFIAPI
 OnExitBootServices (
@@ -84,16 +100,10 @@ OnExitBootServices (
   }
   */
 
-  gST->ConOut->OutputString (gST->ConOut, L"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+  VerboseMessage (L"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n", 0, Entry);
 
   if (OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType)) {
     if (OSFLAG_ISUNSET (Entry->Flags, OPT_VERBOSE)) {
-
-      if (!gSettings.FakeSMCLoaded) {
-        gST->ConOut->OutputString (gST->ConOut, L"FakeSMC NOT loaded\n");
-        gBS->Stall (5 * 1000000);
-      }
-
   #if BOOT_GRAY
       hehe (); // Draw dark gray Apple logo.
   #endif
@@ -104,6 +114,10 @@ OnExitBootServices (
     //
 
     KernelAndKextsPatcherStart (Entry);
+
+    if (!gSettings.FakeSMCLoaded) {
+      VerboseMessage (L"FakeSMC NOT loaded\n", 5, Entry);
+    }
 
     if (OSTYPE_IS_DARWIN (Entry->LoaderType)) {
       SaveDarwinLog ();

@@ -267,6 +267,7 @@ ReadNvidiaPROM (
   return EFI_SUCCESS;
 }
 
+#if 0
 STATIC
 INT32
 PatchNvidiaROM (
@@ -526,6 +527,7 @@ MemDetect (
   DBG ("MemDetected %ld\n", VRamSize);
   return VRamSize;
 }
+#endif
 
 VOID
 DevpropAddNvidiaTemplate (
@@ -576,14 +578,14 @@ SetupNvidiaDevprop (
   EFI_STATUS                Status = EFI_NOT_FOUND;
   DevPropDevice             *Dev = NULL;
   BOOLEAN                   LoadVBios = gSettings.LoadVBios, Injected = FALSE;
-  UINT8                     *Rom = NULL, *Buffer = NULL, ConnectorType1[] = { 0x00, 0x08, 0x00, 0x00 };
+  UINT8                     *Rom = NULL, *Buffer = NULL; //, ConnectorType1[] = { 0x00, 0x08, 0x00, 0x00 }
   UINT16                    CardType = 0;
   UINT32                    Bar[7], DeviceId, SubSysId,  BootDisplay = 1;
   UINT64                    VRam = 0;
   CHAR16                    FileName[64];
   UINTN                     BufferLen, j, PortsNum = 0;
-  INT32                     MaxBiosVersionLen = 32;
-  INT32                     i, VersionStart, CrlfCount = 0, Patch = 0;
+  INT32                     MaxBiosVersionLen = 32,
+                            i, VersionStart, CrlfCount = 0; //, Patch = 0
   OPTION_ROM_PCI_HEADER     *RomPciHeader;
   CHAR8                     *Model = NULL, *DevicePath,
                             *VersionStr = (CHAR8 *)AllocateZeroPool (MaxBiosVersionLen);
@@ -610,13 +612,15 @@ SetupNvidiaDevprop (
       PortsNum = NVCard->VideoPorts;
       LoadVBios = NVCard->LoadVBios;
     }
+  /*
   } else {
     // Amount of VRAM in kilobytes (?) no, it is already in bytes!!!
     if (gSettings.VRAM != 0) {
-      VRam = gSettings.VRAM/* << 20 */;
+      VRam = gSettings.VRAM;
     } else {
       VRam = MemDetect (CardType, NVDev);
     }
+  */
   }
 
   if (LoadVBios) {
@@ -626,9 +630,7 @@ SetupNvidiaDevprop (
     );
 
     if (FileExists (SelfRootDir, FileName)) {
-      DBG (" - Found specific VBIOS ROM file (10de_%04x_%04x_%04x.rom)\n",
-        NVDev->device_id, NVDev->subsys_id.subsys.vendor_id, NVDev->subsys_id.subsys.device_id
-      );
+      DBG (" - Found specific VBIOS ROM file (%s)\n", FileName);
 
       Status = LoadFile (SelfRootDir, FileName, &Buffer, &BufferLen);
     }
@@ -681,13 +683,15 @@ SetupNvidiaDevprop (
   }
 
   if (!Rom || !Buffer) {
-    DBG (" - there are no ROM loaded / no VBIOS read from hardware\n");
+    DBG (" - there are no ROM loaded / VBIOS read from hardware\n");
   }
 
   if (Rom) {
+    /*
     if ((Patch = PatchNvidiaROM (Rom)) == PATCH_ROM_FAILED) {
       DBG (" - ERROR: ROM Patching Failed!\n");
     }
+    */
 
     RomPciHeader = (OPTION_ROM_PCI_HEADER *)(Rom + *(UINT16 *)&Rom[24]);
 
@@ -761,14 +765,14 @@ SetupNvidiaDevprop (
 
   DBG (" - VideoPorts:");
 
-  if (PortsNum > 0) {
-    DBG (" user defined (GUI-menu): %d\n", PortsNum);
-  } else if (gSettings.VideoPorts > 0) {
-    PortsNum = gSettings.VideoPorts;
-    DBG (" user defined from config.plist: %d\n", PortsNum);
-  } else {
-    PortsNum = 2; //default
-    DBG (" undefined, default to: %d\n", PortsNum);
+  if (!PortsNum) {
+    if (gSettings.VideoPorts > 0) {
+      PortsNum = gSettings.VideoPorts;
+      DBG (" user defined from config.plist: %d\n", PortsNum);
+    } else {
+      PortsNum = 2; //default
+      DBG (" undefined, default to: %d\n", PortsNum);
+    }
   }
 
   //There are custom properties, injected if set by user
@@ -857,14 +861,17 @@ SetupNvidiaDevprop (
     DevpropAddValue (Dev, "@0,AAPL,boot-display", (UINT8 *)&BootDisplay, 4);
   }
 
-  if (Patch == PATCH_ROM_SUCCESS_HAS_LVDS) {
-    UINT8 built_in = 0x01;
-    DevpropAddValue (Dev, "@0,built-in", &built_in, 1);
-    // HDMI is not LVDS
-    DevpropAddValue (Dev, "@1,connector-type", ConnectorType1, 4);
-  } else {
-    DevpropAddValue (Dev, "@0,connector-type", ConnectorType1, 4);
-  }
+  /*
+    if (Patch == PATCH_ROM_SUCCESS_HAS_LVDS) {
+      UINT8   BuiltIn = 0x01;
+
+      DevpropAddValue (Dev, "@0,built-in", &BuiltIn, 1);
+      // HDMI is not LVDS
+      DevpropAddValue (Dev, "@1,connector-type", ConnectorType1, 4);
+    } else {
+      DevpropAddValue (Dev, "@0,connector-type", ConnectorType1, 4);
+    }
+  */
 
   //DevpropAddValue (Dev, "NVPM", DefNVPM, NVPM_LEN);
 

@@ -339,7 +339,7 @@ GetStrArraySeparatedByChar (
   CHAR8   Sep
 ) {
   MatchOSes   *MOS;
-  INTN        Len = 0, i = 0, Inc = 1, NewLen = 0;
+  UINTN       Len = 0, i = 0;
   CHAR8       DoubleSep[2];
 
   MOS = AllocatePool (sizeof (MatchOSes));
@@ -349,7 +349,7 @@ GetStrArraySeparatedByChar (
 
   MOS->count = CountOccurrences (Str, Sep) + 1;
 
-  Len = (INTN)AsciiStrLen (Str);
+  Len = AsciiStrLen (Str);
   DoubleSep[0] = Sep; DoubleSep[1] = Sep;
 
   if (
@@ -364,44 +364,32 @@ GetStrArraySeparatedByChar (
   }
 
   if (MOS->count > 1) {
-    INTN    *Indexes = (INTN *)AllocatePool (MOS->count + 1);
+    UINTN    *Indexes = (UINTN *)AllocatePool (MOS->count), Inc = 0;
 
     for (i = 0; i < Len; ++i) {
       CHAR8 C = Str[i];
 
       if (C == Sep) {
-        Indexes[Inc] = i;
-        Inc++;
+        Indexes[++Inc] = i;
       }
     }
 
-    // manually add first index
     Indexes[0] = 0;
-    // manually add last index
     Indexes[MOS->count] = Len;
 
-    for (i = 0; i < MOS->count; ++i) {
-      INTN    StartLocation, EndLocation;
-
-      MOS->array[i] = 0;
-
-      if (i == 0) {
-        StartLocation = Indexes[0];
-        EndLocation = Indexes[1] - 1;
-      } else if (i == MOS->count - 1) { // never reach end of array
-        StartLocation = Indexes[i] + 1;
-        EndLocation = Len;
-      } else {
-        StartLocation = Indexes[i] + 1;
-        EndLocation = Indexes[i + 1] - 1;
-      }
+    for (i = 0; i < MOS->count; i++) {
+      UINTN   StartLocation = i ? Indexes[i] + 1 : Indexes[0],
+              EndLocation = (i == (MOS->count - 1)) ? Len : Indexes[i + 1],
+              NewLen = (EndLocation - StartLocation);
 
       //DBG ("start %d, end %d\n", StartLocation, EndLocation);
 
-      NewLen = (EndLocation - StartLocation) + 2;
-
       MOS->array[i] = AllocateCopyPool (NewLen, Str + StartLocation);
-      MOS->array[i][NewLen - 1] = '\0';
+      MOS->array[i][NewLen] = '\0';
+
+      if (EndLocation == Len) {
+        break;
+      }
     }
 
     FreePool (Indexes);

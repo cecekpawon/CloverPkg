@@ -1297,8 +1297,9 @@ ReadDisabledVbios () {
 
       // wait for SPLL_CHG_STATUS to change to 1
       CgSpllStatus = 0;
-      while (!(CgSpllStatus & R600_SPLL_CHG_STATUS))
+      while (!(CgSpllStatus & R600_SPLL_CHG_STATUS)) {
         CgSpllStatus = REG32 (Card->mmio, R600_CG_SPLL_STATUS);
+      }
     }
 
     WRITEREG32 (Card->mmio, RADEON_VIPH_CONTROL, ViphControl);
@@ -1401,8 +1402,10 @@ InitCard (
   }
 
   for (j = 0; j < NGFX; j++) {
-    if ((gGraphics[j].Vendor == Ati) &&
-        (gGraphics[j].DeviceID == Dev->device_id)) {
+    if (
+      (gGraphics[j].Vendor == Ati) &&
+      (gGraphics[j].DeviceID == Dev->device_id)
+    ) {
       //      model = gGraphics[j].Model;
       PortsNum = gGraphics[j].Ports;
       LoadVBios = gGraphics[j].LoadVBios;
