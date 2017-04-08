@@ -1,5 +1,4 @@
 /*
-
  cpu.c
  implementation for cpu
 
@@ -68,8 +67,8 @@ BOOLEAN           NeedPMfix = FALSE;
 
 VOID
 DoCpuid (
-  UINT32 Selector,
-  UINT32 *Data
+  UINT32  Selector,
+  UINT32  *Data
 ) {
   AsmCpuid (Selector, Data, Data + 1, Data + 2, Data + 3);
 }
@@ -98,6 +97,7 @@ GetCPUProperties () {
   if (!gCPUStructure.CurrentSpeed) {
     gCPUStructure.CurrentSpeed = (UINT32)DivU64x32 (gCPUStructure.TSCCalibr + (Mega >> 1), Mega);
   }
+
   if (!gCPUStructure.MaxSpeed) {
     gCPUStructure.MaxSpeed = gCPUStructure.CurrentSpeed;
   }
@@ -106,26 +106,30 @@ GetCPUProperties () {
   DoCpuid (0, gCPUStructure.CPUID[CPUID_0]);
   gCPUStructure.Vendor  = gCPUStructure.CPUID[CPUID_0][EBX];
 
+  if (gCPUStructure.Vendor != CPU_VENDOR_INTEL) {
+    DBG ("Unsupported CPU model\n");
+  }
+
   /*
    * Get processor signature and decode
    * and bracket this with the approved procedure for reading the
    * the microcode version number a.k.a. signature a.k.a. BIOS ID
    */
-  if (gCPUStructure.Vendor == CPU_VENDOR_INTEL) {
+  //if (gCPUStructure.Vendor == CPU_VENDOR_INTEL) {
     AsmWriteMsr64 (MSR_IA32_BIOS_SIGN_ID, 0);
-  }
+  //}
 
   DoCpuid (1, gCPUStructure.CPUID[CPUID_1]);
   gCPUStructure.Signature = gCPUStructure.CPUID[CPUID_1][EAX];
 
   DBG ("CPU Vendor = %x Model=%x\n", gCPUStructure.Vendor, gCPUStructure.Signature);
 
-  if (gCPUStructure.Vendor == CPU_VENDOR_INTEL) {
+  //if (gCPUStructure.Vendor == CPU_VENDOR_INTEL) {
     Msr = AsmReadMsr64 (MSR_IA32_BIOS_SIGN_ID);
     gCPUStructure.MicroCode = RShiftU64 (Msr, 32);
     /* Get "processor flag"; necessary for microcode update matching */
     gCPUStructure.ProcessorFlag = (RShiftU64 (AsmReadMsr64 (MSR_IA32_PLATFORM_ID), 50)) & 3;
-  }
+  //}
 
   //  DoCpuid (2, gCPUStructure.CPUID[2]);
 
@@ -147,16 +151,16 @@ GetCPUProperties () {
   if (gCPUStructure.Family == 0x0f) {
     gCPUStructure.Family += gCPUStructure.Extfamily;
   }
+
   gCPUStructure.Model += (gCPUStructure.Extmodel << 4);
 
   //Calculate Nr of Cores
+  gCPUStructure.LogicalPerPackage = 1;
   if (gCPUStructure.Features & CPUID_FEATURE_HTT) {
     gCPUStructure.LogicalPerPackage = (UINT32)bitfield (gCPUStructure.CPUID[CPUID_1][EBX], 23, 16); //Atom330 = 4
-  } else {
-    gCPUStructure.LogicalPerPackage = 1;
   }
 
-  if (gCPUStructure.Vendor == CPU_VENDOR_INTEL) {
+  //if (gCPUStructure.Vendor == CPU_VENDOR_INTEL) {
     DoCpuid (4, gCPUStructure.CPUID[CPUID_4]);
     if (gCPUStructure.CPUID[CPUID_4][EAX]) {
       gCPUStructure.CoresPerPackage =  (UINT32)bitfield (gCPUStructure.CPUID[CPUID_4][EAX], 31, 26) + 1; //Atom330 = 2
@@ -169,7 +173,7 @@ GetCPUProperties () {
       gCPUStructure.CoresPerPackage = (UINT32)bitfield (gCPUStructure.CPUID[CPUID_1][EBX], 18, 16);
       DBG ("got cores from CPUID_1 = %d\n", gCPUStructure.CoresPerPackage);
     }
-  }
+  //}
 
   if (gCPUStructure.CoresPerPackage == 0) {
     gCPUStructure.CoresPerPackage = 1;
@@ -178,8 +182,7 @@ GetCPUProperties () {
   /* Fold in the Invariant TSC feature bit, if present */
   if (gCPUStructure.CPUID[CPUID_80][EAX] >= 0x80000007){
     DoCpuid (0x80000007, gCPUStructure.CPUID[CPUID_87]);
-    gCPUStructure.ExtFeatures |=
-    gCPUStructure.CPUID[CPUID_87][EDX] & (UINT32)CPUID_EXTFEATURE_TSCI;
+    gCPUStructure.ExtFeatures |= gCPUStructure.CPUID[CPUID_87][EDX] & (UINT32)CPUID_EXTFEATURE_TSCI;
   }
 
   //if ((bit (9) & gCPUStructure.CPUID[CPUID_1][ECX]) != 0) {
@@ -187,7 +190,7 @@ GetCPUProperties () {
   //}
   gCPUStructure.Turbo = FALSE;
 
-  if (gCPUStructure.Vendor == CPU_VENDOR_INTEL) {
+  //if (gCPUStructure.Vendor == CPU_VENDOR_INTEL) {
     // Determine turbo boost support
     DoCpuid (6, gCPUStructure.CPUID[CPUID_6]);
     gCPUStructure.Turbo = ((gCPUStructure.CPUID[CPUID_6][EAX] & (1 << 1)) != 0);
@@ -201,7 +204,7 @@ GetCPUProperties () {
       gCPUStructure.Cores   = (UINT8)bitfield ((UINT32)Msr, 31, 16);
       gCPUStructure.Threads = (UINT8)bitfield ((UINT32)Msr, 15,  0);
     }
-  }
+  //}
 
   if (gCPUStructure.Cores == 0) {
     gCPUStructure.Cores   = (UINT8)(gCPUStructure.CoresPerPackage & 0xff);
@@ -276,11 +279,11 @@ GetCPUProperties () {
   }
 
   if (
-    (gCPUStructure.Vendor == CPU_VENDOR_INTEL) &&
-    (
+    //(gCPUStructure.Vendor == CPU_VENDOR_INTEL) &&
+    //(
       ((gCPUStructure.Family == 0x06) && (gCPUStructure.Model >= 0x0c)) ||
       ((gCPUStructure.Family == 0x0f) && (gCPUStructure.Model >= 0x03))
-    )
+    //)
   ) {
     if (gCPUStructure.Family == 0x06) {
       if (gCPUStructure.Model >= CPUID_MODEL_SANDYBRIDGE) {
@@ -454,8 +457,8 @@ GetStandardCpuType () {
 UINT16
 GetAdvancedCpuType () {
   if (
-    (gCPUStructure.Vendor == CPU_VENDOR_INTEL) &&
-    (gCPUStructure.Family == 0x06)
+    /*(gCPUStructure.Vendor == CPU_VENDOR_INTEL) &&
+    (*/ gCPUStructure.Family == 0x06 /*)*/
   ) {
     UINT8    CoreBridgeType = 0;
 
@@ -536,9 +539,9 @@ MACHINE_TYPES
 GetDefaultModel () {
   MACHINE_TYPES   DefaultType = MinMachineType + 1;
 
-  if (gCPUStructure.Vendor != CPU_VENDOR_INTEL) {
-    return DefaultType;
-  }
+  //if (gCPUStructure.Vendor != CPU_VENDOR_INTEL) {
+  //  return DefaultType;
+  //}
 
   if (gMobile) {
     switch (gCPUStructure.Model) {

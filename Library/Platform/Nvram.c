@@ -201,6 +201,7 @@ SetNvramVariable (
       //DBG (", diff. attr: deleting old (%r)", Status);
     }
   }
+
   //DBG (" -> writing new (%r)\n", Status);
   //return Status;
 

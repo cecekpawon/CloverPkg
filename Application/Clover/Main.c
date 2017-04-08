@@ -338,6 +338,8 @@ RefitMain (
 
   //gBS->Stall (5 * 1000000);
 
+  //InitDesktop:
+
   do {
     MainMenu.EntryCount = 0;
     OptionMenu.EntryCount = 0;
@@ -420,7 +422,7 @@ RefitMain (
     MainLoopRunning = TRUE;
 
     AfterTool = FALSE;
-    gEvent = 0; //clear to cancel loop
+    //gEvent = 0; //clear to cancel loop
 
     while (MainLoopRunning) {
       if (
@@ -499,12 +501,12 @@ RefitMain (
           gBootChanged = FALSE;
           OptionsMenu (&OptionEntry);
 
-          if (gBootChanged) {
-            AfterTool = TRUE;
-          }
-
           // If theme has changed reinit the desktop
           if (gBootChanged || gThemeChanged) {
+            if (gBootChanged) {
+              AfterTool = TRUE;
+            }
+
             MainLoopRunning = FALSE;
           }
           break;
@@ -538,8 +540,8 @@ RefitMain (
     if (ReinitDesktop) {
       DBG ("ReinitRefitLib after theme change\n");
       ReinitRefitLib ();
+      //goto InitDesktop;
     }
-
   } while (ReinitDesktop);
 
   return EFI_SUCCESS;

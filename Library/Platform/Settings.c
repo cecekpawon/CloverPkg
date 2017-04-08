@@ -39,7 +39,7 @@ UINT8                             gLanMac[4][6];    // their MAC addresses
 UINTN                             nLanPaths;        // number of LAN pathes
 BOOLEAN                           GetLegacyLanAddress;
 
-UINTN                             gEvent;
+//UINTN                             gEvent;
 
 extern MEM_STRUCTURE              gRAM;
 extern BOOLEAN                    NeedPMfix;
@@ -252,7 +252,7 @@ GetPropertyBool (
           (Prop->type == kTagTypeTrue) ||
           (
             (Prop->type == kTagTypeString) && Prop->string &&
-            ((Prop->string[0] == 'y') || (Prop->string[0] == 'Y'))
+            (TO_AUPPER (Prop->string[0]) == 'Y')
           )
         )
   );
@@ -3856,25 +3856,25 @@ ParseACPISettings (
           // Get the table signatures to drop
           Prop2 = GetProperty (Dict, "Signature");
           if (Prop2 && (Prop2->type == kTagTypeString) && Prop2->string) {
-            CHAR8     s1 = 0, s2 = 0, s3 = 0, s4 = 0, *str = Prop2->string;
+            CHAR8     s1 = 0, s2 = 0, s3 = 0, s4 = 0, *Str = Prop2->string;
 
             MsgLog (" signature=\"");
 
-            if (str) {
-              if (*str) {
-                s1 = *str++;
+            if (Str) {
+              if (*Str) {
+                s1 = *Str++;
                 MsgLog ("%c", s1);
               }
-              if (*str) {
-                s2 = *str++;
+              if (*Str) {
+                s2 = *Str++;
                 MsgLog ("%c", s2);
               }
-              if (*str) {
-                s3 = *str++;
+              if (*Str) {
+                s3 = *Str++;
                 MsgLog ("%c", s3);
               }
-              if (*str) {
-                s4 = *str++;
+              if (*Str) {
+                s4 = *Str++;
                 MsgLog ("%c", s4);
               }
             }
@@ -3998,11 +3998,11 @@ ParseACPISettings (
               PatchDsdt->Replace = GetDataSetting (Prop2, "Replace", &Size);
               PatchDsdt->LenToReplace = (UINT32)Size;
               PatchDsdt->Comment = NULL;
-              PatchDsdt->Wildcard   = (UINT8)GetPropertyInteger (GetProperty (Prop2, "Wildcard"), 0xFF);
+              PatchDsdt->Wildcard = (UINT8)GetPropertyInteger (GetProperty (Prop2, "Wildcard"), 0xFF);
 
               Prop3 = GetProperty (Prop2, "Comment");
               if ((Prop3 != NULL) && (Prop3->type == kTagTypeString) && Prop3->string) {
-                PatchDsdt->Comment = AllocateCopyPool(AsciiStrSize(Prop3->string), Prop3->string);
+                PatchDsdt->Comment = AllocateCopyPool (AsciiStrSize (Prop3->string), Prop3->string);
               }
 
               DBG (" (%a)", PatchDsdt->Comment ? PatchDsdt->Comment : "NoLabel");
@@ -4118,7 +4118,7 @@ ParseACPISettings (
 
     gSettings.DropMCFG = GetPropertyBool (GetProperty (DictPointer, "DropMCFG"), FALSE);
 
-    gSettings.smartUPS   = GetPropertyBool (GetProperty (DictPointer, "smartUPS"), FALSE);
+    gSettings.SmartUPS   = GetPropertyBool (GetProperty (DictPointer, "SmartUPS"), FALSE);
 
     Prop = GetProperty (DictPointer, "SortedOrder");
     if (Prop) {

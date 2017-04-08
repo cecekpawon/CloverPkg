@@ -84,11 +84,10 @@ OurPlatformGetDriver (
 EFI_STATUS
 EFIAPI
 OurPlatformGetDriverPath (
-  IN EFI_PLATFORM_DRIVER_OVERRIDE_PROTOCOL    *This,
-  IN     EFI_HANDLE                           ControllerHandle,
-  IN OUT EFI_DEVICE_PATH_PROTOCOL             **DriverImagePath
-  )
-{
+  IN      EFI_PLATFORM_DRIVER_OVERRIDE_PROTOCOL   *This,
+  IN      EFI_HANDLE                              ControllerHandle,
+  IN OUT  EFI_DEVICE_PATH_PROTOCOL                **DriverImagePath
+) {
   return EFI_UNSUPPORTED;
 }
 

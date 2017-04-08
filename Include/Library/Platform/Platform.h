@@ -1005,7 +1005,7 @@ typedef struct {
   BOOLEAN                   EnableC4;
   BOOLEAN                   EnableC6;
   UINT16                    C3Latency;
-  BOOLEAN                   smartUPS;
+  BOOLEAN                   SmartUPS;
   BOOLEAN                   EnableC7;
 
   CHAR16                    DsdtName[28];
@@ -1194,7 +1194,7 @@ extern EFI_EVENT                        OnReadyToBootEvent;
 extern EFI_EVENT                        mSimpleFileSystemChangeEvent;
 #endif
 extern EFI_EVENT                        ExitBootServiceEvent;
-extern UINTN                            gEvent;
+//extern UINTN                            gEvent;
 
 extern UINT32                           gDevicesNumber;
 extern INTN                             OldChosenTheme;

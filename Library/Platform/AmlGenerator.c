@@ -439,7 +439,7 @@ AmlAddByteBuffer (
   CHAR8       *data,
   UINT32      Size
 ) {
-  AML_CHUNK *Node = AmlCreateNode (Parent);
+  AML_CHUNK   *Node = AmlCreateNode (Parent);
 
   if (Node) {
     INTN    Offset = 0;
@@ -460,7 +460,7 @@ AmlAddStringBuffer (
   AML_CHUNK   *Parent,
   CHAR8       *StringBuf
 ) {
-  AML_CHUNK *Node = AmlCreateNode (Parent);
+  AML_CHUNK   *Node = AmlCreateNode (Parent);
 
   if (Node) {
     UINTN   Offset = 0, Len = AsciiStrLen (StringBuf);

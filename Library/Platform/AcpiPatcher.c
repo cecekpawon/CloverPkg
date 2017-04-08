@@ -1589,9 +1589,8 @@ PatchACPI (
     NewFadt->Header.Revision = EFI_ACPI_4_0_FIXED_ACPI_DESCRIPTION_TABLE_REVISION;
     NewFadt->Reserved0 = 0; // ACPIspec said it should be 0, while 1 is possible, but no more
 
-    if (gSettings.smartUPS == TRUE) {
-      NewFadt->PreferredPmProfile = 3;
-    } else {
+    NewFadt->PreferredPmProfile = 3;
+    if (!gSettings.SmartUPS) {
       NewFadt->PreferredPmProfile = gMobile ? 2 : 1; // as calculated before
     }
 
@@ -1949,10 +1948,10 @@ PatchACPI (
 
   DbgHeader ("CPU States");
 
-  if (gCPUStructure.Vendor != CPU_VENDOR_INTEL) {
-    MsgLog ("Not an Intel platform: P-States will not be generated !!!\n");
-    goto SkipGenStates;
-  }
+  //if (gCPUStructure.Vendor != CPU_VENDOR_INTEL) {
+  //  MsgLog ("Not an Intel platform: P-States will not be generated !!!\n");
+  //  goto SkipGenStates;
+  //}
 
   if (!(gCPUStructure.Features & CPUID_FEATURE_MSR)) {
     MsgLog ("Unsupported CPU: P-States will not be generated !!!\n");

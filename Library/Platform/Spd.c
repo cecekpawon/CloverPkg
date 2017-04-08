@@ -34,9 +34,10 @@
 
 extern MEM_STRUCTURE    gRAM;
 
-BOOLEAN     smbIntel;
-UINT8       smbPage;
+BOOLEAN     SmbIntel;
+UINT8       SmbPage;
 
+#if 0
 CHAR8 *spd_memory_types[] =
 {
   "RAM",                /* 00h  Undefined */
@@ -78,6 +79,7 @@ UINT8 spd_mem_to_smbios[] =
 //define rdtsc (low,high) UINT64=AsmReadTsc ()
 //define outb (port, val)   IoWrite8 (port, val)
 //define val=inb (port) val=IoRead (port)
+#endif
 
 // Intel SMB reg offsets
 #define SMBHSTSTS     0
@@ -121,22 +123,22 @@ UINT8 spd_mem_to_smbios[] =
 #define SPD_XMP20_PROF2_FINEADJUST  0x1DE
 /* 0x1E7 */
 
-UINT16 spd_indexes_ddr[] = {
+UINT16 SpdIndexesDDR[] = {
   /* 3 */   SPD_NUM_ROWS,  /* ModuleSize */
   /* 4 */   SPD_NUM_COLUMNS,
   /* 5 */   SPD_NUM_DIMM_BANKS,
   /* 17 */  SPD_NUM_BANKS_PER_SDRAM,
   9, /* Frequency */
   64, /* Manufacturer */
-  95,96,97,98, /* UIS */
+  95, 96, 97, 98, /* UIS */
   0
 };
 
-UINT16 spd_indexes_ddr3[] = {
-  4,7,8, /* ModuleSize */
-  10,11,12, /* Frequency */
+UINT16 SpdIndexesDDR3[] = {
+  4, 7, 8, /* ModuleSize */
+  10, 11, 12, /* Frequency */
   /* 0x75, 0x76 */ SPD_DDR3_MEMORY_BANK, SPD_DDR3_MEMORY_CODE, /* Manufacturer */
-  122,123,124,125, /* UIS */
+  122, 123, 124, 125, /* UIS */
   /* XMP */
   SPD_XMP_SIG1,
   SPD_XMP_SIG2,
@@ -151,11 +153,11 @@ UINT16 spd_indexes_ddr3[] = {
   0
 };
 
-UINT16 spd_indexes_ddr4[] = {
-  4,6,12,13, /* ModuleSize */
-  18,125, /* Frequency */
+UINT16 SpdIndexesDDR4[] = {
+  4, 6, 12, 13, /* ModuleSize */
+  18, 125, /* Frequency */
   SPD_DDR4_MANUFACTURER_ID_BANK, SPD_DDR4_MANUFACTURER_ID_CODE, /* Manufacturer */
-  325,326,327,328, /* UIS */
+  325, 326, 327, 328, /* UIS */
   /* XMP 2.0 */
   SPD_XMP20_SIG1,
   SPD_XMP20_SIG2,
@@ -172,22 +174,22 @@ UINT16 spd_indexes_ddr4[] = {
 
 UINT8
 SmbReadByte (
-  UINT32    base,
-  UINT8     adr,
-  UINT16    cmd
+  UINT32    Base,
+  UINT8     Adr,
+  UINT16    Cmd
 ) {
   //INTN    l1, h1, l2, h2;
   //UINT8   p;
   UINT64    t, t1, t2;
-  UINT8     page, c;
+  UINT8     Page, c;
 
-  if (smbIntel) {
-    IoWrite8 (base + SMBHSTSTS, 0x1f);       // reset SMBus Controller (set busy)
-    IoWrite8 (base + SMBHSTDAT, 0xff);
+  if (SmbIntel) {
+    IoWrite8 (Base + SMBHSTSTS, 0x1f);       // reset SMBus Controller (set busy)
+    IoWrite8 (Base + SMBHSTDAT, 0xff);
 
     t1 = AsmReadTsc (); //rdtsc (l1, h1);
 
-    while (IoRead8 (base + SMBHSTSTS) & 0x01) {   // wait until host is not busy
+    while (IoRead8 (Base + SMBHSTSTS) & 0x01) {   // wait until host is not busy
       t2 = AsmReadTsc (); //rdtsc (l2, h2);
       t = DivU64x64Remainder (
             (t2 - t1),
@@ -196,91 +198,91 @@ SmbReadByte (
           );
 
       if (t > 5) {
-        DBG ("host is busy for too long for byte %2X:%d!\n", adr, cmd);
+        DBG ("host is busy for too long for byte %2X:%d!\n", Adr, Cmd);
         return 0xFF;                  // break
       }
     }
 
-    page = (cmd >> 8) & 1;
-    if (page != smbPage) {
+    Page = (Cmd >> 8) & 1;
+    if (Page != SmbPage) {
       // p = 0xFF;
-      IoWrite8 (base + SMBHSTCMD, 0x00);
-      IoWrite8 (base + SMBHSTADD, 0x6C + (page << 1)); // Set SPD Page Address
+      IoWrite8 (Base + SMBHSTCMD, 0x00);
+      IoWrite8 (Base + SMBHSTADD, 0x6C + (Page << 1)); // Set SPD Page Address
       #if 0
-      IoWrite8 (base + SMBHSTCNT, 0x48); // Start + Byte Data Write
+      IoWrite8 (Base + SMBHSTCNT, 0x48); // Start + Byte Data Write
       // Don't use "Byte Data Write" because status goes from 0x41 (Busy) -> 0x44 (Error)
       #else
-      IoWrite8 (base + SMBHSTCNT, 0x40); // Start + Quick Write
+      IoWrite8 (Base + SMBHSTCNT, 0x40); // Start + Quick Write
       // status goes from 0x41 (Busy) -> 0x42 (Completed)
       #endif
 
-      smbPage = page;
+      SmbPage = Page;
 
       t1 = AsmReadTsc ();
 
-      while (!( (c=IoRead8 (base + SMBHSTSTS)) & 0x02)) {  // wait until command finished
+      while (!( (c=IoRead8 (Base + SMBHSTSTS)) & 0x02)) {  // wait until command finished
         t2 = AsmReadTsc ();
         t = DivU64x64Remainder ((t2 - t1), DivU64x32 (gCPUStructure.TSCFrequency, 1000), 0);
 
         /*
          if (c != p) {
-         DBG ("%02d %02X spd page change status %2X\n", t, cmd, c);
+         DBG ("%02d %02X spd page change status %2X\n", t, Cmd, c);
          p = c;
          }
         */
 
         if (c & 4) {
-          DBG ("spd page change error for byte %2X:%d!\n", adr, cmd);
+          DBG ("spd page change error for byte %2X:%d!\n", Adr, Cmd);
           break;
         }
 
         if (t > 5) {
-          DBG ("spd page change taking too long for byte %2X:%d!\n", adr, cmd);
+          DBG ("spd page change taking too long for byte %2X:%d!\n", Adr, Cmd);
           break;                  // break after 5ms
         }
       }
-      return SmbReadByte (base, adr, cmd);
+      return SmbReadByte (Base, Adr, Cmd);
     }
 
     // p = 0xFF;
-    IoWrite8 (base + SMBHSTCMD, (UINT8)(cmd & 0xFF)); // SMBus uses 8 bit commands
-    IoWrite8 (base + SMBHSTADD, (adr << 1) | 0x01 ); // read from spd
-    IoWrite8 (base + SMBHSTCNT, 0x48 ); // Start + Byte Data Read
+    IoWrite8 (Base + SMBHSTCMD, (UINT8)(Cmd & 0xFF)); // SMBus uses 8 bit commands
+    IoWrite8 (Base + SMBHSTADD, (Adr << 1) | 0x01 ); // read from spd
+    IoWrite8 (Base + SMBHSTCNT, 0x48 ); // Start + Byte Data Read
     // status goes from 0x41 (Busy) -> 0x42 (Completed) or 0x44 (Error)
 
     t1 = AsmReadTsc ();
 
-    while (!( (c=IoRead8 (base + SMBHSTSTS)) & 0x02)) {  // wait until command finished
+    while (!( (c=IoRead8 (Base + SMBHSTSTS)) & 0x02)) {  // wait until command finished
       t2 = AsmReadTsc ();
       t = DivU64x64Remainder ((t2 - t1), DivU64x32 (gCPUStructure.TSCFrequency, 1000), 0);
 
       /*
        if (c != p) {
-       DBG ("%02d %02X spd read status %2X\n", t, cmd, c);
+       DBG ("%02d %02X spd read status %2X\n", t, Cmd, c);
        p = c;
        }
       */
 
       if (c & 4) {
-        // This alway happens when trying to read the memory type (cmd 2) of an empty slot
-        // DBG ("spd byte read error for byte %2X:%d!\n", adr, cmd);
+        // This alway happens when trying to read the memory type (Cmd 2) of an empty Slot
+        // DBG ("spd byte read error for byte %2X:%d!\n", Adr, Cmd);
         break;
       }
 
       if (t > 5) {
-        // if (cmd != 2)
-        DBG ("spd byte read taking too long for byte %2X:%d!\n", adr, cmd);
+        // if (Cmd != 2)
+        DBG ("spd byte read taking too long for byte %2X:%d!\n", Adr, Cmd);
         break;                  // break after 5ms
       }
     }
 
-    return IoRead8 (base + SMBHSTDAT);
+    return IoRead8 (Base + SMBHSTDAT);
   } else {
-    IoWrite8 (base + SMBHSTSTS_NV, 0x1f);      // reset SMBus Controller
-    IoWrite8 (base + SMBHSTDAT_NV, 0xff);
+    IoWrite8 (Base + SMBHSTSTS_NV, 0x1f);      // reset SMBus Controller
+    IoWrite8 (Base + SMBHSTDAT_NV, 0xff);
 
     t1 = AsmReadTsc (); //rdtsc (l1, h1);
-    while ( IoRead8 (base + SMBHSTSTS_NV) & 0x01) {    // wait until read
+    while ( IoRead8 (Base + SMBHSTSTS_NV) & 0x01) {    // wait until read
       t2 = AsmReadTsc (); //rdtsc (l2, h2);
       t = DivU64x64Remainder (
             (t2 - t1),
@@ -293,14 +295,14 @@ SmbReadByte (
       }
     }
 
-    IoWrite8 (base + SMBHSTSTS_NV, 0x00); // clear status register
-    IoWrite16 (base + SMBHSTCMD_NV, cmd);
-    IoWrite8 (base + SMBHSTADD_NV, (adr << 1) | 0x01 );
-    IoWrite8 (base + SMBHPRTCL_NV, 0x07 );
+    IoWrite8 (Base + SMBHSTSTS_NV, 0x00); // clear status register
+    IoWrite16 (Base + SMBHSTCMD_NV, Cmd);
+    IoWrite8 (Base + SMBHSTADD_NV, (Adr << 1) | 0x01 );
+    IoWrite8 (Base + SMBHPRTCL_NV, 0x07 );
 
     t1 = AsmReadTsc ();
 
-    while (!( IoRead8 (base + SMBHSTSTS_NV) & 0x9F)) {   // wait till command finished
+    while (!( IoRead8 (Base + SMBHSTSTS_NV) & 0x9F)) {   // wait till command finished
       t2 = AsmReadTsc ();
       t = DivU64x64Remainder (
             (t2 - t1),
@@ -312,31 +314,32 @@ SmbReadByte (
         break; // break after 5ms
     }
 
-    return IoRead8 (base + SMBHSTDAT_NV);
+    return IoRead8 (Base + SMBHSTDAT_NV);
   }
 }
 
 /* SPD i2c read optimization: prefetch only what we need, read non prefetcheable bytes on the fly */
-#define READ_SPD(spd, base, slot, x) spd[x] = SmbReadByte (base, 0x50 + slot, x)
+#define READ_SPD(Spd, Base, Slot, x) Spd[x] = SmbReadByte (Base, 0x50 + Slot, x)
 #define LOG_INDENT "        "
 
 /** Read from spd * used * values only */
 VOID
 InitSPD (
-  UINT16    *spd_indexes,
-  UINT8     *spd, UINT32 base,
-  UINT8     slot
+  UINT16    *SpdIndexes,
+  UINT8     *Spd,
+  UINT32    Base,
+  UINT8     Slot
 ) {
   UINT16 i;
 
-  for (i=0; spd_indexes[i]; i++) {
-    READ_SPD (spd, base, slot, spd_indexes[i]);
+  for (i=0; SpdIndexes[i]; i++) {
+    READ_SPD (Spd, Base, Slot, SpdIndexes[i]);
   }
 
   #if 0
     DBG ("Reading entire spd data\n");
     for (i = 0; i < 512; i++) {
-      UINT8 b = SmbReadByte (base, 0x50 + slot, i);
+      UINT8 b = SmbReadByte (Base, 0x50 + Slot, i);
       DBG ("%02X", b);
     }
     DBG (".\n");
@@ -347,52 +350,52 @@ InitSPD (
 // have different formats, always return a valid ptr.
 CHAR8 *
 GetVendorName (
-  RAM_SLOT_INFO   *slot,
-  UINT8           *spd,
-  UINT32          base,
-  UINT8           slot_num
+  RAM_SLOT_INFO   *Slot,
+  UINT8           *Spd,
+  UINT32          Base,
+  UINT8           SlotNum
 ) {
   return "Generic RAM";
 }
 
 /** Get Default Memory Module Speed (no overclocking handled) */
 UINT16
-GetDDRspeedMhz (
-  UINT8     *spd
+GetDDRSpeedMhz (
+  UINT8     *Spd
 ) {
-  UINT16    frequency = 0, // default freq for unknown types //shit! DDR1 = 533
-            xmpFrequency1 = 0, xmpFrequency2 = 0;
-  UINT8     xmpVersion = 0, xmpProfiles = 0;
+  UINT16    Frequency = 0, // default freq for unknown types //shit! DDR1 = 533
+            XmpFrequency1 = 0, XmpFrequency2 = 0;
+  UINT8     XmpVersion = 0, XmpProfiles = 0;
 
-  switch (spd[SPD_MEMORY_TYPE]) {
+  switch (Spd[SPD_MEMORY_TYPE]) {
     case SPD_MEMORY_TYPE_SDRAM_DDR4: {
-        UINT16  mincycle = spd[18];
-        INT8    fineadjust = spd[125];
+        UINT16  MinCycle = Spd[18];
+        INT8    FineAdjust = Spd[125];
 
-        frequency = (UINT16)(2000000 / (mincycle * 125 + fineadjust));
+        Frequency = (UINT16)(2000000 / (MinCycle * 125 + FineAdjust));
 
         // Check if module supports XMP
         if (
-          (spd[SPD_XMP20_SIG1] == SPD_XMP_SIG1_VALUE) &&
-          (spd[SPD_XMP20_SIG2] == SPD_XMP_SIG2_VALUE)
+          (Spd[SPD_XMP20_SIG1] == SPD_XMP_SIG1_VALUE) &&
+          (Spd[SPD_XMP20_SIG2] == SPD_XMP_SIG2_VALUE)
         ) {
-          xmpVersion = spd[SPD_XMP20_VERSION];
-          xmpProfiles = spd[SPD_XMP20_PROFILES] & 3;
+          XmpVersion = Spd[SPD_XMP20_VERSION];
+          XmpProfiles = Spd[SPD_XMP20_PROFILES] & 3;
 
-          if ((xmpProfiles & 1) == 1) {
+          if ((XmpProfiles & 1) == 1) {
             // Check the first profile
-            mincycle = spd[SPD_XMP20_PROF1_MINCYCLE];
-            fineadjust = spd[SPD_XMP20_PROF1_FINEADJUST];
-            xmpFrequency1 = (UINT16)(2000000 / (mincycle * 125 + fineadjust));
-            DBG ("%a XMP Profile1: %d * 125 %d ns\n", LOG_INDENT, mincycle, fineadjust);
+            MinCycle = Spd[SPD_XMP20_PROF1_MINCYCLE];
+            FineAdjust = Spd[SPD_XMP20_PROF1_FINEADJUST];
+            XmpFrequency1 = (UINT16)(2000000 / (MinCycle * 125 + FineAdjust));
+            DBG ("%a XMP Profile1: %d * 125 %d ns\n", LOG_INDENT, MinCycle, FineAdjust);
           }
 
-          if ((xmpProfiles & 2) == 2) {
+          if ((XmpProfiles & 2) == 2) {
             // Check the second profile
-            mincycle = spd[SPD_XMP20_PROF2_MINCYCLE];
-            fineadjust = spd[SPD_XMP20_PROF2_FINEADJUST];
-            xmpFrequency2 = (UINT16)(2000000 / (mincycle * 125 + fineadjust));
-            DBG ("%a XMP Profile2: %d * 125 %d ns\n", LOG_INDENT, mincycle, fineadjust);
+            MinCycle = Spd[SPD_XMP20_PROF2_MINCYCLE];
+            FineAdjust = Spd[SPD_XMP20_PROF2_FINEADJUST];
+            XmpFrequency2 = (UINT16)(2000000 / (MinCycle * 125 + FineAdjust));
+            DBG ("%a XMP Profile2: %d * 125 %d ns\n", LOG_INDENT, MinCycle, FineAdjust);
           }
         }
       }
@@ -400,37 +403,37 @@ GetDDRspeedMhz (
 
     case SPD_MEMORY_TYPE_SDRAM_DDR3: {
         // This should be multiples of MTB converted to MHz- apianti
-        UINT16    divisor = spd[10],
-                  dividend = spd[11],
-                  ratio = spd[12];
+        UINT16    divisor = Spd[10],
+                  dividend = Spd[11],
+                  ratio = Spd[12];
 
-        frequency = (((dividend != 0) && (divisor != 0) && (ratio != 0)) ?
+        Frequency = (((dividend != 0) && (divisor != 0) && (ratio != 0)) ?
                      ((2000 * dividend) / (divisor * ratio)) : 0);
 
         // Check if module supports XMP
         if (
-          (spd[SPD_XMP_SIG1] == SPD_XMP_SIG1_VALUE) &&
-          (spd[SPD_XMP_SIG2] == SPD_XMP_SIG2_VALUE)
+          (Spd[SPD_XMP_SIG1] == SPD_XMP_SIG1_VALUE) &&
+          (Spd[SPD_XMP_SIG2] == SPD_XMP_SIG2_VALUE)
         ) {
-          xmpVersion = spd[SPD_XMP_VERSION];
-          xmpProfiles = spd[SPD_XMP_PROFILES] & 3;
+          XmpVersion = Spd[SPD_XMP_VERSION];
+          XmpProfiles = Spd[SPD_XMP_PROFILES] & 3;
 
-          if ((xmpProfiles & 1) == 1) {
+          if ((XmpProfiles & 1) == 1) {
             // Check the first profile
-            divisor = spd[SPD_XMP_PROF1_DIVISOR];
-            dividend = spd[SPD_XMP_PROF1_DIVIDEND];
-            ratio = spd[SPD_XMP_PROF1_RATIO];
-            xmpFrequency1 = (((dividend != 0) && (divisor != 0) && (ratio != 0)) ?
+            divisor = Spd[SPD_XMP_PROF1_DIVISOR];
+            dividend = Spd[SPD_XMP_PROF1_DIVIDEND];
+            ratio = Spd[SPD_XMP_PROF1_RATIO];
+            XmpFrequency1 = (((dividend != 0) && (divisor != 0) && (ratio != 0)) ?
                              ((2000 * dividend) / (divisor * ratio)) : 0);
             DBG ("%a XMP Profile1: %d * %d/%dns\n", LOG_INDENT, ratio, divisor, dividend);
           }
 
-          if ((xmpProfiles & 2) == 2) {
+          if ((XmpProfiles & 2) == 2) {
             // Check the second profile
-            divisor = spd[SPD_XMP_PROF2_DIVISOR];
-            dividend = spd[SPD_XMP_PROF2_DIVIDEND];
-            ratio = spd[SPD_XMP_PROF2_RATIO];
-            xmpFrequency2 = (((dividend != 0) && (divisor != 0) && (ratio != 0)) ?
+            divisor = Spd[SPD_XMP_PROF2_DIVISOR];
+            dividend = Spd[SPD_XMP_PROF2_DIVIDEND];
+            ratio = Spd[SPD_XMP_PROF2_RATIO];
+            XmpFrequency2 = (((dividend != 0) && (divisor != 0) && (ratio != 0)) ?
                              ((2000 * dividend) / (divisor * ratio)) : 0);
             DBG ("%a XMP Profile2: %d * %d/%dns\n", LOG_INDENT, ratio, divisor, dividend);
           }
@@ -440,7 +443,7 @@ GetDDRspeedMhz (
 
     case SPD_MEMORY_TYPE_SDRAM_DDR2:
     case SPD_MEMORY_TYPE_SDRAM_DDR:
-      switch (spd[9]) {
+      switch (Spd[9]) {
         case 0x50:
           return 400;
         case 0x3d:
@@ -459,28 +462,28 @@ GetDDRspeedMhz (
       break;
   }
 
-  if (xmpProfiles) {
-    MsgLog ("%a Found module with XMP version %d.%d\n", LOG_INDENT, (xmpVersion >> 4) & 0xF, xmpVersion & 0xF);
+  if (XmpProfiles) {
+    MsgLog ("%a Found module with XMP version %d.%d\n", LOG_INDENT, (XmpVersion >> 4) & 0xF, XmpVersion & 0xF);
 
     switch (gSettings.XMPDetection) {
       case 0:
         // Detect the better XMP profile
-        if (xmpFrequency1 >= xmpFrequency2) {
-          if (xmpFrequency1 >= frequency) {
-            DBG ("%a Using XMP Profile1 instead of standard frequency %dMHz\n", LOG_INDENT, frequency);
-            frequency = xmpFrequency1;
+        if (XmpFrequency1 >= XmpFrequency2) {
+          if (XmpFrequency1 >= Frequency) {
+            DBG ("%a Using XMP Profile1 instead of standard Frequency %dMHz\n", LOG_INDENT, Frequency);
+            Frequency = XmpFrequency1;
           }
-        } else if (xmpFrequency2 >= frequency) {
-          DBG ("%a Using XMP Profile2 instead of standard frequency %dMHz\n", LOG_INDENT, frequency);
-          frequency = xmpFrequency2;
+        } else if (XmpFrequency2 >= Frequency) {
+          DBG ("%a Using XMP Profile2 instead of standard Frequency %dMHz\n", LOG_INDENT, Frequency);
+          Frequency = XmpFrequency2;
         }
         break;
 
       case 1:
         // Use first profile if present
-        if ((xmpProfiles & 1) == 1) {
-          frequency = xmpFrequency1;
-          DBG ("%a Using XMP Profile1 instead of standard frequency %dMHz\n", LOG_INDENT, frequency);
+        if ((XmpProfiles & 1) == 1) {
+          Frequency = XmpFrequency1;
+          DBG ("%a Using XMP Profile1 instead of standard Frequency %dMHz\n", LOG_INDENT, Frequency);
         } else {
           DBG ("%a Not using XMP Profile1 because it is not present\n");
         }
@@ -488,9 +491,9 @@ GetDDRspeedMhz (
 
       case 2:
         // Use second profile
-        if ((xmpProfiles & 2) == 2) {
-          frequency = xmpFrequency2;
-          DBG ("%a Using XMP Profile2 instead of standard frequency %dMHz\n", LOG_INDENT, frequency);
+        if ((XmpProfiles & 2) == 2) {
+          Frequency = XmpFrequency2;
+          DBG ("%a Using XMP Profile2 instead of standard Frequency %dMHz\n", LOG_INDENT, Frequency);
         } else {
           DBG ("%a Not using XMP Profile2 because it is not present\n", LOG_INDENT);
         }
@@ -515,24 +518,25 @@ GetDDRspeedMhz (
         break;
     }
   }
-  return frequency;
+
+  return Frequency;
 }
 
-#define SMST(a) ((UINT8)((spd[a] & 0xf0) >> 4))
-#define SLST(a) ((UINT8)(spd[a] & 0x0f))
+#define SMST(a) ((UINT8)((Spd[a] & 0xf0) >> 4))
+#define SLST(a) ((UINT8)(Spd[a] & 0x0f))
 
 /** Get DDR3 or DDR2 serial number, 0 most of the times, always return a valid ptr */
 CHAR8 *
 GetDDRSerial (
-  UINT8  *spd
+  UINT8  *Spd
 ) {
   UINTN   Len = 17;
-  CHAR8   *asciiSerial = AllocateZeroPool (Len);
+  CHAR8   *AsciiSerial = AllocateZeroPool (Len);
 
-  switch (spd[SPD_MEMORY_TYPE]) {
+  switch (Spd[SPD_MEMORY_TYPE]) {
     case SPD_MEMORY_TYPE_SDRAM_DDR4:
       AsciiSPrint (
-        asciiSerial, Len, "%2X%2X%2X%2X%2X%2X%2X%2X",
+        AsciiSerial, Len, "%2X%2X%2X%2X%2X%2X%2X%2X",
         SMST (325) /* & 0x7 */,
         SLST (325),
         SMST (326),
@@ -546,7 +550,7 @@ GetDDRSerial (
 
     case SPD_MEMORY_TYPE_SDRAM_DDR3:
       AsciiSPrint (
-        asciiSerial, Len, "%2X%2X%2X%2X%2X%2X%2X%2X",
+        AsciiSerial, Len, "%2X%2X%2X%2X%2X%2X%2X%2X",
         SMST (122) /* & 0x7 */,
         SLST (122),
         SMST (123),
@@ -561,7 +565,7 @@ GetDDRSerial (
     case SPD_MEMORY_TYPE_SDRAM_DDR2:
     case SPD_MEMORY_TYPE_SDRAM_DDR:
       AsciiSPrint (
-        asciiSerial, Len, "%2X%2X%2X%2X%2X%2X%2X%2X",
+        AsciiSerial, Len, "%2X%2X%2X%2X%2X%2X%2X%2X",
         SMST (95) /* & 0x7 */,
         SLST (95),
         SMST (96),
@@ -574,56 +578,56 @@ GetDDRSerial (
       break;
 
     default:
-      AsciiStrCpyS (asciiSerial, Len, "0000000000000000");
+      AsciiStrCpyS (AsciiSerial, Len, "0000000000000000");
       break;
   }
 
-  return asciiSerial;
+  return AsciiSerial;
 }
 
 /** Get DDR2 or DDR3 or DDR4 Part Number, always return a valid ptr */
 CHAR8 *
 GetDDRPartNum (
-  UINT8   *spd,
-  UINT32  base,
-  UINT8   slot
+  UINT8   *Spd,
+  UINT32  Base,
+  UINT8   Slot
 ) {
-  UINT16  i, start=0, index = 0;
-  CHAR8   c, *asciiPartNo = AllocatePool (32); //[32];
+  UINT16  i, Start=0, Index = 0;
+  CHAR8   c, *AsciiPartNo = AllocatePool (32); //[32];
 
-  switch (spd[SPD_MEMORY_TYPE]) {
+  switch (Spd[SPD_MEMORY_TYPE]) {
     case SPD_MEMORY_TYPE_SDRAM_DDR4:
-      start = 329;
+      Start = 329;
       break;
 
     case SPD_MEMORY_TYPE_SDRAM_DDR3:
-      start = 128;
+      Start = 128;
       break;
 
     case SPD_MEMORY_TYPE_SDRAM_DDR2:
     case SPD_MEMORY_TYPE_SDRAM_DDR:
-      start = 73;
+      Start = 73;
       break;
 
     default:
       break;
   }
 
-  // Check that the spd part name is zero terminated and that it is ascii:
-  ZeroMem (asciiPartNo, 32);  //sizeof (asciiPartNo));
+  // Check that the Spd part name is zero terminated and that it is ascii:
+  ZeroMem (AsciiPartNo, 32);  //sizeof (AsciiPartNo));
 
-  for (i = start; i < start + 20; i++) {
-    READ_SPD (spd, base, slot, (UINT16)i); // only read once the corresponding model part (ddr3 or ddr2)
-    c = spd[i];
+  for (i = Start; i < Start + 20; i++) {
+    READ_SPD (Spd, Base, Slot, (UINT16)i); // only read once the corresponding model part (ddr3 or ddr2)
+    c = Spd[i];
 
     if (IS_ALFA (c) || IS_DIGIT (c) || IS_PUNCT (c)) { // It seems that System Profiler likes only letters and digits...
-      asciiPartNo[index++] = c;
+      AsciiPartNo[Index++] = c;
     } else if (c < 0x20) {
       break;
     }
   }
 
-  return asciiPartNo;
+  return AsciiPartNo;
 }
 
 //INTN mapping []= {0,2,1,3,4,6,5,7,8,10,9,11};
@@ -634,20 +638,20 @@ STATIC
 VOID
 ReadSmb (
   EFI_PCI_IO_PROTOCOL   *PciIo,
-  UINT16                vid,
-  UINT16                did
+  UINT16                Vid,
+  UINT16                Did
 ) {
   //EFI_STATUS  Status;
-  //RAM_SLOT_INFO  *slot;
+  //RAM_SLOT_INFO  *Slot;
   //BOOLEAN     fullBanks;
-  //UINT16      vid, did;
-  UINT16      speed, Command;
-  UINT32      base, mmio, hostc;
-  UINT8       *spdbuf, TotalSlotsCount, i, spd_type;// spd_size;
+  //UINT16      Vid, Did;
+  UINT16      Speed, Command;
+  UINT32      Base, Mmio, HostC;
+  UINT8       *SpdBuf, TotalSlotsCount, i, SpdType;// spd_size;
 
-  smbPage = 0; // valid pages are 0 and 1; assume the first page (page 0) is already selected
-  //vid = gPci->Hdr.VendorId;
-  //did = gPci->Hdr.DeviceId;
+  SmbPage = 0; // valid pages are 0 and 1; assume the first page (page 0) is already selected
+  //Vid = gPci->Hdr.VendorId;
+  //Did = gPci->Hdr.DeviceId;
 
   /*Status = */PciIo->Pci.Read (
                             PciIo,
@@ -673,29 +677,29 @@ ReadSmb (
                             EfiPciIoWidthUint32,
                             0x10,
                             1,
-                            &mmio
+                            &Mmio
                           );
-  if (vid == 0x8086) {
+  if (Vid == 0x8086) {
     /*Status = */PciIo->Pci.Read (
                               PciIo,
                               EfiPciIoWidthUint32,
                               0x20,
                               1,
-                              &base
+                              &Base
                             );
 
-    base &= 0xFFFE;
-    smbIntel = TRUE;
+    Base &= 0xFFFE;
+    SmbIntel = TRUE;
   } else {
     /*Status = */PciIo->Pci.Read (
                                   PciIo,
                                   EfiPciIoWidthUint32,
-                                  0x24, // iobase offset 0x24 on MCP
+                                  0x24, // ioBase offset 0x24 on MCP
                                   1,
-                                  &base
+                                  &Base
                                   );
-    base &= 0xFFFC;
-    smbIntel = FALSE;
+    Base &= 0xFFFC;
+    SmbIntel = FALSE;
   }
 
  /*Status = */PciIo->Pci.Read (
@@ -703,91 +707,91 @@ ReadSmb (
                                 EfiPciIoWidthUint32,
                                 0x40,
                                 1,
-                                &hostc
+                                &HostC
                                 );
 
-  MsgLog ("Scanning SMBus [%04x:%04x], mmio: 0x%x, ioport: 0x%x, hostc: 0x%x\n",
-         vid, did, mmio, base, hostc);
+  MsgLog ("Scanning SMBus [%04x:%04x], Mmio: 0x%x, ioport: 0x%x, HostC: 0x%x\n",
+         Vid, Did, Mmio, Base, HostC);
 
   // needed at least for laptops
   //fullBanks = (gDMI->MemoryModules == gDMI->CntMemorySlots);
 
-  spdbuf = AllocateZeroPool (MAX_SPD_SIZE);
+  SpdBuf = AllocateZeroPool (MAX_SPD_SIZE);
 
-  // Search MAX_RAM_SLOTS slots
+  // Search MAX_RAM_SLOTS Slots
   //==>
   /*  TotalSlotsCount = (UINT8)TotalCount;
    if (!TotalSlotsCount) {
    TotalSlotsCount = MAX_RAM_SLOTS;
    }
   */
-  TotalSlotsCount = 8; //MAX_RAM_SLOTS;  -- spd can read only 8 slots
+  TotalSlotsCount = 8; //MAX_RAM_SLOTS;  -- spd can read only 8 Slots
   MsgLog ("Slots to scan: %d ...\n", TotalSlotsCount);
 
   for (i = 0; i <  TotalSlotsCount; i++){
     //<==
-    ZeroMem (spdbuf, MAX_SPD_SIZE);
-    READ_SPD (spdbuf, base, i, SPD_MEMORY_TYPE);
+    ZeroMem (SpdBuf, MAX_SPD_SIZE);
+    READ_SPD (SpdBuf, Base, i, SPD_MEMORY_TYPE);
 
-    spd_type = spdbuf[SPD_MEMORY_TYPE];
+    SpdType = SpdBuf[SPD_MEMORY_TYPE];
 
-    //if (spd_type == 0xFF) {
-    if (spd_type >= SPD_MEMORY_TYPE_SDRAM_UNSUPPORTED) {
+    //if (SpdType == 0xFF) {
+    if (SpdType >= SPD_MEMORY_TYPE_SDRAM_UNSUPPORTED) {
       //DBG ("SPD[%d]: Empty\n", i);
       continue;
-    } else if (spd_type == 0) {
+    } else if (SpdType == 0) {
       // First 0x40 bytes of DDR4 spd second page is 0. Maybe we need to change page, so do that and retry.
-      //DBG (" - [%02d]: Got invalid type %d @0x%x. Will set page and retry.\n", i, spd_type, 0x50 + i);
-      smbPage = 0xFF; // force page to be set
-      READ_SPD (spdbuf, base, i, SPD_MEMORY_TYPE);
+      //DBG (" - [%02d]: Got invalid type %d @0x%x. Will set page and retry.\n", i, SpdType, 0x50 + i);
+      SmbPage = 0xFF; // force page to be set
+      READ_SPD (SpdBuf, Base, i, SPD_MEMORY_TYPE);
     }
 
     // Copy spd data into buffer
-    MsgLog (" - [%02d]: Type %d @0x%x\n", i, spd_type, 0x50 + i);
+    MsgLog (" - [%02d]: Type %d @0x%x\n", i, SpdType, 0x50 + i);
 
-    switch (spd_type)  {
+    switch (SpdType)  {
       case SPD_MEMORY_TYPE_SDRAM_DDR:
-        InitSPD (spd_indexes_ddr, spdbuf, base, i);
+        InitSPD (SpdIndexesDDR, SpdBuf, Base, i);
 
         gRAM.SPD[i].Type = MemoryTypeDdr;
         gRAM.SPD[i].ModuleSize =  (
                                     (
-                                     (1 << ((spdbuf[SPD_NUM_ROWS] & 0x0f) + (spdbuf[SPD_NUM_COLUMNS] & 0x0f) - 17)) *
-                                     ((spdbuf[SPD_NUM_DIMM_BANKS] & 0x7) + 1) * spdbuf[SPD_NUM_BANKS_PER_SDRAM]
+                                     (1 << ((SpdBuf[SPD_NUM_ROWS] & 0x0f) + (SpdBuf[SPD_NUM_COLUMNS] & 0x0f) - 17)) *
+                                     ((SpdBuf[SPD_NUM_DIMM_BANKS] & 0x7) + 1) * SpdBuf[SPD_NUM_BANKS_PER_SDRAM]
                                     ) / 3
                                   ) * 2;
         break;
 
       case SPD_MEMORY_TYPE_SDRAM_DDR2:
-        InitSPD (spd_indexes_ddr, spdbuf, base, i);
+        InitSPD (SpdIndexesDDR, SpdBuf, Base, i);
 
         gRAM.SPD[i].Type = MemoryTypeDdr2;
         gRAM.SPD[i].ModuleSize =  (
-                                    (1 << ((spdbuf[SPD_NUM_ROWS] & 0x0f) + (spdbuf[SPD_NUM_COLUMNS] & 0x0f) - 17)) *
-                                    ((spdbuf[SPD_NUM_DIMM_BANKS] & 0x7) + 1) * spdbuf[SPD_NUM_BANKS_PER_SDRAM]
+                                    (1 << ((SpdBuf[SPD_NUM_ROWS] & 0x0f) + (SpdBuf[SPD_NUM_COLUMNS] & 0x0f) - 17)) *
+                                    ((SpdBuf[SPD_NUM_DIMM_BANKS] & 0x7) + 1) * SpdBuf[SPD_NUM_BANKS_PER_SDRAM]
                                   );
         break;
 
       case SPD_MEMORY_TYPE_SDRAM_DDR3:
-        InitSPD (spd_indexes_ddr3, spdbuf, base, i);
+        InitSPD (SpdIndexesDDR3, SpdBuf, Base, i);
 
         gRAM.SPD[i].Type = MemoryTypeDdr3;
-        gRAM.SPD[i].ModuleSize = ((spdbuf[4] & 0x0f) + 28 ) + ((spdbuf[8] & 0x7)  + 3 );
-        gRAM.SPD[i].ModuleSize -= (spdbuf[7] & 0x7) + 25;
-        gRAM.SPD[i].ModuleSize = ((1 << gRAM.SPD[i].ModuleSize) * (((spdbuf[7] >> 3) & 0x1f) + 1));
+        gRAM.SPD[i].ModuleSize = ((SpdBuf[4] & 0x0f) + 28 ) + ((SpdBuf[8] & 0x7)  + 3 );
+        gRAM.SPD[i].ModuleSize -= (SpdBuf[7] & 0x7) + 25;
+        gRAM.SPD[i].ModuleSize = ((1 << gRAM.SPD[i].ModuleSize) * (((SpdBuf[7] >> 3) & 0x1f) + 1));
         break;
 
       case SPD_MEMORY_TYPE_SDRAM_DDR4:
-        InitSPD (spd_indexes_ddr4, spdbuf, base, i);
+        InitSPD (SpdIndexesDDR4, SpdBuf, Base, i);
 
         gRAM.SPD[i].Type = MemoryTypeDdr4;
 
         gRAM.SPD[i].ModuleSize =
-          (1 << ((spdbuf[4] & 0x0f) + 8 /* Mb */ - 3 /* MB */)) // SDRAM Capacity
-          * (1 << ((spdbuf[13] & 0x07) + 3)) // Primary Bus Width
-          / (1 << ((spdbuf[12] & 0x07) + 2)) // SDRAM Width
-          * (((spdbuf[12] >> 3) & 0x07) + 1) // Logical Ranks per DIMM
-          * (((spdbuf[6] & 0x03) == 2) ? (((spdbuf[6] >> 4) & 0x07) + 1) : 1);
+          (1 << ((SpdBuf[4] & 0x0f) + 8 /* Mb */ - 3 /* MB */)) // SDRAM Capacity
+          * (1 << ((SpdBuf[13] & 0x07) + 3)) // Primary Bus Width
+          / (1 << ((SpdBuf[12] & 0x07) + 2)) // SDRAM Width
+          * (((SpdBuf[12] >> 3) & 0x07) + 1) // Logical Ranks per DIMM
+          * (((SpdBuf[6] & 0x03) == 2) ? (((SpdBuf[6] >> 4) & 0x07) + 1) : 1);
 
         /*
          Total = SDRAM Capacity / 8 * Primary Bus Width / SDRAM Width * Logical Ranks per DIMM
@@ -853,19 +857,19 @@ ReadSmb (
       continue;
     }
 
-    //spd_type = (slot->spd[SPD_MEMORY_TYPE] < ((UINT8)12) ? slot->spd[SPD_MEMORY_TYPE] : 0);
-    //gRAM Type = spd_mem_to_smbios[spd_type];
-    gRAM.SPD[i].PartNo = GetDDRPartNum (spdbuf, base, i);
-    gRAM.SPD[i].Vendor = GetVendorName (&(gRAM.SPD[i]), spdbuf, base, i);
-    gRAM.SPD[i].SerialNo = GetDDRSerial (spdbuf);
+    //SpdType = (Slot->spd[SPD_MEMORY_TYPE] < ((UINT8)12) ? Slot->spd[SPD_MEMORY_TYPE] : 0);
+    //gRAM Type = spd_mem_to_smbios[SpdType];
+    gRAM.SPD[i].PartNo = GetDDRPartNum (SpdBuf, Base, i);
+    gRAM.SPD[i].Vendor = GetVendorName (&(gRAM.SPD[i]), SpdBuf, Base, i);
+    gRAM.SPD[i].SerialNo = GetDDRSerial (SpdBuf);
     //XXX - when we can FreePool allocated for these buffers?
-    // determine spd speed
-    speed = GetDDRspeedMhz (spdbuf);
+    // determine spd Speed
+    Speed = GetDDRSpeedMhz (SpdBuf);
 
-    DBG ("%a DDR speed %dMHz\n", LOG_INDENT, speed);
+    DBG ("%a DDR Speed %dMHz\n", LOG_INDENT, Speed);
 
-    if (gRAM.SPD[i].Frequency < speed) {
-      gRAM.SPD[i].Frequency = speed;
+    if (gRAM.SPD[i].Frequency < Speed) {
+      gRAM.SPD[i].Frequency = Speed;
     }
 
     // pci memory controller if available, is more reliable
@@ -882,7 +886,7 @@ ReadSmb (
       }
 
       gRAM.SPD[i].Frequency = freq;
-      DBG ("%a RAM speed %dMHz\n", LOG_INDENT, freq);
+      DBG ("%a RAM Speed %dMHz\n", LOG_INDENT, freq);
     }
 
     MsgLog (
@@ -900,8 +904,8 @@ ReadSmb (
     ++(gRAM.SPDInUse);
   } // for
 
-  if (smbPage != 0) {
-    READ_SPD (spdbuf, base, 0, 0); // force first page when we're done
+  if (SmbPage != 0) {
+    READ_SPD (SpdBuf, Base, 0, 0); // force first page when we're done
   }
 }
 

@@ -1599,14 +1599,14 @@ RunGenericMenu (
       StyleFunc (Screen, &State, MENU_FUNCTION_PAINT_TIMEOUT, TimeoutMessage);
       FreePool (TimeoutMessage);
     }
-
+    /*
     if (gEvent) { //for now used at CD eject.
       MenuExit = MENU_EXIT_ESCAPE;
       State.PaintAll = TRUE;
       gEvent = 0; //to prevent looping
       break;
     }
-
+    */
     if (!mGuiReady) {
       mGuiReady = TRUE;
       MsgLog ("GUI ready\n");
@@ -2302,7 +2302,7 @@ GraphicsMenuStyle (
   INTN        i, j = 0, ItemWidth = 0, X, t1, t2, VisibleHeight = 0; //assume vertical layout
   UINTN       TitleLen, iSwitch;
   BOOLEAN     NeedMarginLeft;
-  CHAR16      *ResultString = AllocateZeroPool (SVALUE_MAX_SIZE);
+  CHAR16      ResultString[SVALUE_MAX_SIZE];
 
   switch (Function) {
 
@@ -2695,8 +2695,6 @@ GraphicsMenuStyle (
       //HidePointer ();
       break;
   }
-
-  FreePool (ResultString);
 }
 
 STATIC

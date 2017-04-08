@@ -814,7 +814,7 @@ CheckForFakeSMC (
     ) {
       //Entry->Flags = OSFLAG_UNSET (Entry->Flags, OSFLAG_WITHKEXTS);
       gSettings.FakeSMCLoaded = TRUE;
-      DBG ("FakeSMC found\n");
+      //DBG ("FakeSMC found\n");
     }
   }
 }
