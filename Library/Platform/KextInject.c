@@ -471,7 +471,7 @@ InjectKexts (
         CheckForFakeSMC (InfoPlist, Entry);
 
         InfoPlist[Drvinfo->infoDictLength] = SavedValue;
-        FreePool (gKextBundleIdentifier);
+        //FreePool (gKextBundleIdentifier);
       }
 
       Index++;

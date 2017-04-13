@@ -2070,12 +2070,12 @@ PatchTableType134 () {
 }
 
 EFI_STATUS
-PrepatchSmbios () {
+PrePatchSmbios () {
   EFI_STATUS              Status = EFI_SUCCESS;
   UINTN                   BufferLen;
   EFI_PHYSICAL_ADDRESS    BufferPtr;
 
-  DbgHeader ("Get Smbios");
+  DbgHeader ("GetSmbios");
 
   // Get SMBIOS Tables
   Smbios = FindOemSMBIOSPtr ();

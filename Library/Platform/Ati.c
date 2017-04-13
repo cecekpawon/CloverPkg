@@ -584,54 +584,54 @@ CONST CHAR8   *ATIFamilyName[] = {
 };
 
 ATI_DEV_PROP  ATIDevPropList[] = {
-  {FLAGTRUE,    FALSE,  "@0,AAPL,boot-display",             GetBootDisplayVal,    NULVAL },
-  //{FLAGTRUE,  FALSE,  "@0,ATY,EFIDisplay",                NULL,                 STRVAL ("TMDSA") },
+  { FLAGTRUE,    FALSE,  "@0,AAPL,boot-display",             GetBootDisplayVal,    NULVAL },
+  //{ FLAGTRUE,  FALSE,  "@0,ATY,EFIDisplay",                NULL,                 STRVAL ("TMDSA") },
 
-  //{FLAGTRUE,  TRUE,   "@0,AAPL,vram-memory",              GetVramVal,           NULVAL },
-  {FLAGTRUE,    TRUE,   "AAPL00,override-no-connect",       GetEdidVal,           NULVAL },
-  {FLAGNOTFAKE, TRUE,   "@0,compatible",                    GetNameVal,           NULVAL },
-  {FLAGTRUE,    TRUE,   "@0,connector-type",                GetConnTypeVal,       NULVAL },
-  {FLAGTRUE,    TRUE,   "@0,device_type",                   NULL,                 STRVAL ("display") },
-  //{FLAGTRUE,  FALSE,  "@0,display-connect-flags",         NULL,                 DWRVAL (0) },
+  //{ FLAGTRUE,  TRUE,   "@0,AAPL,vram-memory",              GetVramVal,           NULVAL },
+  { FLAGTRUE,    TRUE,   "AAPL00,override-no-connect",       GetEdidVal,           NULVAL },
+  { FLAGNOTFAKE, TRUE,   "@0,compatible",                    GetNameVal,           NULVAL },
+  { FLAGTRUE,    TRUE,   "@0,connector-type",                GetConnTypeVal,       NULVAL },
+  { FLAGTRUE,    TRUE,   "@0,device_type",                   NULL,                 STRVAL ("display") },
+  //{ FLAGTRUE,  FALSE,  "@0,display-connect-flags",         NULL,                 DWRVAL (0) },
 
   //some set of properties for mobile radeons
-  {FLAGMOBILE,  FALSE,  "@0,display-link-component-bits",   NULL,                 DWRVAL (6) },
-  {FLAGMOBILE,  FALSE,  "@0,display-pixel-component-bits",  NULL,                 DWRVAL (6) },
-  {FLAGMOBILE,  FALSE,  "@0,display-dither-support",        NULL,                 DWRVAL (0) },
-  {FLAGMOBILE,  FALSE,  "@0,backlight-control",             NULL,                 DWRVAL (1) },
-  {FLAGTRUE,    FALSE,  "AAPL00,Dither",                    NULL,                 DWRVAL (0) },
+  { FLAGMOBILE,  FALSE,  "@0,display-link-component-bits",   NULL,                 DWRVAL (6) },
+  { FLAGMOBILE,  FALSE,  "@0,display-pixel-component-bits",  NULL,                 DWRVAL (6) },
+  { FLAGMOBILE,  FALSE,  "@0,display-dither-support",        NULL,                 DWRVAL (0) },
+  { FLAGMOBILE,  FALSE,  "@0,backlight-control",             NULL,                 DWRVAL (1) },
+  { FLAGTRUE,    FALSE,  "AAPL00,Dither",                    NULL,                 DWRVAL (0) },
 
-  //{FLAGTRUE,  TRUE,   "@0,display-type",                  NULL,                 STRVAL ("NONE") },
-  {FLAGTRUE,    TRUE,   "@0,name",                          GetNameVal,           NULVAL },
-  {FLAGTRUE,    TRUE,   "@0,VRAM,memsize",                  GetVramSizeVal,       NULVAL },
-  //{FLAGTRUE,  TRUE,   "@0,ATY,memsize",                   GetVramSizeVal,       NULVAL },
+  //{ FLAGTRUE,  TRUE,   "@0,display-type",                  NULL,                 STRVAL ("NONE") },
+  { FLAGTRUE,    TRUE,   "@0,name",                          GetNameVal,           NULVAL },
+  { FLAGTRUE,    TRUE,   "@0,VRAM,memsize",                  GetVramSizeVal,       NULVAL },
+  //{ FLAGTRUE,  TRUE,   "@0,ATY,memsize",                   GetVramSizeVal,       NULVAL },
 
-  {FLAGTRUE,    FALSE,  "AAPL,aux-power-connected",         NULL,                 DWRVAL (1) },
-  {FLAGTRUE,    FALSE,  "AAPL00,DualLink",                  GetDualLinkVal,       NULVAL  },
-  {FLAGMOBILE,  FALSE,  "AAPL,HasPanel",                    NULL,                 DWRVAL (1) },
-  {FLAGMOBILE,  FALSE,  "AAPL,HasLid",                      NULL,                 DWRVAL (1) },
-  {FLAGMOBILE,  FALSE,  "AAPL,backlight-control",           NULL,                 DWRVAL (1) },
-  {FLAGTRUE,    FALSE,  "AAPL,overwrite_binimage",          GetBinImageOwr,       NULVAL },
-  {FLAGTRUE,    FALSE,  "ATY,bin_image",                    GetBinImageVal,       NULVAL },
-  {FLAGTRUE,    FALSE,  "ATY,Copyright",                    NULL,                 STRVAL ("Copyright AMD Inc. All Rights Reserved. 2005-2011") },
-  {FLAGTRUE,    FALSE,  "ATY,EFIVersion",                   NULL,                 STRVAL ("01.00.3180") },
-  {FLAGTRUE,    FALSE,  "ATY,Card#",                        GetRomRevisionVal,    NULVAL },
-  //{FLAGTRUE,  FALSE,  "ATY,Rom#",                         NULL,                 STRVAL ("www.amd.com") },
-  {FLAGNOTFAKE, FALSE,  "ATY,VendorID",                     NULL,                 WRDVAL (0x1002) },
-  {FLAGNOTFAKE, FALSE,  "ATY,DeviceID",                     GetDeviceIdVal,       NULVAL },
+  { FLAGTRUE,    FALSE,  "AAPL,aux-power-connected",         NULL,                 DWRVAL (1) },
+  { FLAGTRUE,    FALSE,  "AAPL00,DualLink",                  GetDualLinkVal,       NULVAL  },
+  { FLAGMOBILE,  FALSE,  "AAPL,HasPanel",                    NULL,                 DWRVAL (1) },
+  { FLAGMOBILE,  FALSE,  "AAPL,HasLid",                      NULL,                 DWRVAL (1) },
+  { FLAGMOBILE,  FALSE,  "AAPL,backlight-control",           NULL,                 DWRVAL (1) },
+  { FLAGTRUE,    FALSE,  "AAPL,overwrite_binimage",          GetBinImageOwr,       NULVAL },
+  { FLAGTRUE,    FALSE,  "ATY,bin_image",                    GetBinImageVal,       NULVAL },
+  { FLAGTRUE,    FALSE,  "ATY,Copyright",                    NULL,                 STRVAL ("Copyright AMD Inc. All Rights Reserved. 2005-2011") },
+  { FLAGTRUE,    FALSE,  "ATY,EFIVersion",                   NULL,                 STRVAL ("01.00.3180") },
+  { FLAGTRUE,    FALSE,  "ATY,Card#",                        GetRomRevisionVal,    NULVAL },
+  //{ FLAGTRUE,  FALSE,  "ATY,Rom#",                         NULL,                 STRVAL ("www.amd.com") },
+  { FLAGNOTFAKE, FALSE,  "ATY,VendorID",                     NULL,                 WRDVAL (0x1002) },
+  { FLAGNOTFAKE, FALSE,  "ATY,DeviceID",                     GetDeviceIdVal,       NULVAL },
 
-  //{FLAGTRUE,  FALSE,  "ATY,MCLK",                         GetMclkVal,           NULVAL },
-  //{FLAGTRUE,  FALSE,  "ATY,SCLK",                         GetSclkVal,           NULVAL },
-  {FLAGTRUE,    FALSE,  "ATY,RefCLK",                       GetRefclkVal,         DWRVAL (0x0a8c) },
+  //{ FLAGTRUE,  FALSE,  "ATY,MCLK",                         GetMclkVal,           NULVAL },
+  //{ FLAGTRUE,  FALSE,  "ATY,SCLK",                         GetSclkVal,           NULVAL },
+  { FLAGTRUE,    FALSE,  "ATY,RefCLK",                       GetRefclkVal,         DWRVAL (0x0a8c) },
 
-  {FLAGTRUE,    FALSE,  "ATY,PlatformInfo",                 GetPlatformInfoVal,   NULVAL },
-  {FLAGOLD,     FALSE,  "compatible",                       GetNamePciVal,        NULVAL },
-  {FLAGTRUE,    FALSE,  "name",                             GetNameParentVal,     NULVAL },
-  {FLAGTRUE,    FALSE,  "device_type",                      GetNameParentVal,     NULVAL },
-  {FLAGTRUE,    FALSE,  "model",                            GetModelVal,          STRVAL ("ATI Radeon")},
-  //{FLAGTRUE,  FALSE,  "VRAM,totalsize",                   GetVramTotalSizeVal,  NULVAL },
+  { FLAGTRUE,    FALSE,  "ATY,PlatformInfo",                 GetPlatformInfoVal,   NULVAL },
+  { FLAGOLD,     FALSE,  "compatible",                       GetNamePciVal,        NULVAL },
+  { FLAGTRUE,    FALSE,  "name",                             GetNameParentVal,     NULVAL },
+  { FLAGTRUE,    FALSE,  "device_type",                      GetNameParentVal,     NULVAL },
+  { FLAGTRUE,    FALSE,  "model",                            GetModelVal,          STRVAL ("ATI Radeon")},
+  //{ FLAGTRUE,  FALSE,  "VRAM,totalsize",                   GetVramTotalSizeVal,  NULVAL },
 
-  {FLAGTRUE,    FALSE,  NULL,                               NULL,                 NULVAL }
+  { FLAGTRUE,    FALSE,  NULL,                               NULL,                 NULVAL }
 };
 
 VOID
@@ -660,13 +660,12 @@ GetBootDisplayVal (
   ATI_VAL   *Val,
   INTN      Index
 ) {
-  UINT32   v = 0;
+  UINT32   v = 1;
 
-  if (v || !Card->posted) {
+  if (!Card->posted) {
     return FALSE;
   }
 
-  v = 1;
   Val->type = kCst;
   Val->size = 4;
   Val->data = (UINT8 *)&v;
@@ -679,13 +678,8 @@ GetDualLinkVal (
   ATI_VAL   *Val,
   INTN      Index
 ) {
-  UINT32   v = 0;
+  UINT32   v = gSettings.DualLink;
 
-  if (v) {
-    return FALSE;
-  }
-
-  v = gSettings.DualLink;
   Val->type = kCst;
   Val->size = 4;
   Val->data = (UINT8 *)&v;
@@ -706,13 +700,10 @@ GetEdidVal (
   ATI_VAL   *Val,
   INTN      Index
 ) {
-  UINT32   v = 0;
-
   if (!gSettings.InjectEDID || !gSettings.CustomEDID) {
     return FALSE;
   }
 
-  v = 1;
   Val->type = kPtr;
   Val->size = 128;
   Val->data = AllocateCopyPool (Val->size, gSettings.CustomEDID);
@@ -720,7 +711,7 @@ GetEdidVal (
   return TRUE;
 }
 
-STATIC CONST CHAR8 *dtyp[] = {"LCD", "CRT", "DVI", "NONE"};
+STATIC CONST CHAR8 *dtyp[] = { "LCD", "CRT", "DVI", "NONE" };
 STATIC UINT32 dti = 0;
 
 BOOLEAN
@@ -892,13 +883,12 @@ GetBinImageOwr (
   ATI_VAL   *Val,
   INTN      Index
 ) {
-  UINT32   v = 0;
+  UINT32   v = 1;
 
   if (!gSettings.LoadVBios) {
     return FALSE;
   }
 
-  v = 1;
   Val->type = kCst;
   Val->size = 4;
   Val->data = (UINT8 *)&v;

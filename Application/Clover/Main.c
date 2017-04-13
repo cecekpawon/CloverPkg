@@ -53,7 +53,7 @@
 
 BOOLEAN                 gGuiIsReady = FALSE,
                         gThemeNeedInit = TRUE,
-                        DoHibernateWake = FALSE;
+                        gDoHibernateWake = FALSE;
 EFI_HANDLE              gImageHandle;
 EFI_SYSTEM_TABLE        *gST;
 EFI_BOOT_SERVICES       *gBS;
@@ -183,16 +183,16 @@ RefitMain (
   // disable EFI watchdog timer
   gBS->SetWatchdogTimer (0x0000, 0x0000, 0x0000, NULL);
 
-  ZeroMem ((VOID *)&gSettings, sizeof (SETTINGS_DATA));
-
   Status = InitializeUnicodeCollationProtocol ();
   if (EFI_ERROR (Status)) {
     DBG ("UnicodeCollation Status=%r\n", Status);
   }
 
-  GetDefaultConfig ();
+  GetDefaultConfig (); // Init gSettings
 
-  PrepatchSmbios ();
+  GetAcpiTablesList ();
+
+  PrePatchSmbios ();
 
   //replace / with _
   Size = AsciiTrimStrLen (gSettings.OEMProduct, 64);
@@ -213,67 +213,6 @@ RefitMain (
 
   GetCPUProperties ();
 
-  GetDevices ();
-
-  DbgHeader ("LoadSettings");
-  SyncDefaultSettings ();
-
-  gSettings.ConfigName = EfiStrDuplicate (CONFIG_FILENAME);
-
-  Status = LoadUserSettings (SelfRootDir, gSettings.ConfigName, &gConfigDict);
-  MsgLog ("Load Settings: %s.plist: %r\n", gSettings.ConfigName, Status);
-
-  if (!gSettings.FastBoot) {
-    GetListOfConfigs ();
-    GetListOfThemes ();
-  }
-
-  if (!EFI_ERROR (Status) && &gConfigDict[0]) {
-    Status = GetEarlyUserSettings (gConfigDict);
-    DBG ("Load Settings: Early: %r\n", Status);
-  }
-
-  MainMenu.TimeoutSeconds = (!gSettings.FastBoot && (gSettings.Timeout >= 0)) ? gSettings.Timeout : 0;
-
-  LoadDrivers ();
-
-  //GetSmcKeys (); // later we can get here SMC information
-
-  //DbgHeader ("InitScreen");
-
-  if (!gSettings.FastBoot) {
-    InitScreen (TRUE);
-    SetupScreen ();
-  } else {
-    InitScreen (FALSE);
-  }
-
-  InitSplash ();
-
-  DrawLoadMessage (PoolPrint (L"Starting %a", CLOVER_REVISION_STR));
-
-  // Now we have to reinit handles
-  Status = ReinitRefitLib ();
-
-  if (EFI_ERROR (Status)){
-    //DebugLog (2, " %r", Status);
-    return Status;
-  }
-
-  DrawLoadMessage (L"Init Hardware");
-
-  //GuiEventsInitialize ();
-
-  if (!gSettings.EnabledCores) {
-    gSettings.EnabledCores = gCPUStructure.Cores;
-  }
-
-  ScanSPD ();
-
-  SetPrivateVarProto ();
-
-  GetAcpiTablesList ();
-
   MsgLog ("Calibrated TSC frequency = %ld = %ldMHz\n", gCPUStructure.TSCCalibr, DivU64x32 (gCPUStructure.TSCCalibr, Mega));
 
   if (gCPUStructure.TSCCalibr > 200000000ULL) {  //200MHz
@@ -288,31 +227,60 @@ RefitMain (
   gCPUStructure.ExternalClock = (UINT32)DivU64x32 (gCPUStructure.FSBFrequency, kilo);
   gCPUStructure.MaxSpeed      = (UINT32)DivU64x32 (gCPUStructure.TSCFrequency + (Mega >> 1), Mega);
 
-  DrawLoadMessage (L"Load Settings");
-
-  if (gConfigDict) {
-    if (GetLegacyLanAddress) {
-      GetMacAddress ();
-    }
-
-    Status = GetUserSettings (SelfRootDir, gConfigDict);
-    DBG ("Load Settings: User: %r\n", Status);
+  if (!gSettings.EnabledCores) {
+    gSettings.EnabledCores = gCPUStructure.Cores;
   }
 
-  if (gSettings.QEMU) {
-    if (!gSettings.UserBusSpeed) {
-      gSettings.BusSpeed = 200000;
-    }
+  SyncDefaultSettings ();
 
-    gCPUStructure.MaxRatio = (UINT32)DivU64x32 (gCPUStructure.TSCCalibr, gSettings.BusSpeed * kilo);
-    DBG ("Set MaxRatio for QEMU: %d\n", gCPUStructure.MaxRatio);
-    gCPUStructure.MaxRatio     *= 10;
-    gCPUStructure.MinRatio      = 60;
-    gCPUStructure.FSBFrequency  = DivU64x32 (
-                                    MultU64x32 (gCPUStructure.CPUFrequency, 10),
-                                    (gCPUStructure.MaxRatio == 0) ? 1 : gCPUStructure.MaxRatio
-                                  );
-    gCPUStructure.ExternalClock = (UINT32)DivU64x32 (gCPUStructure.FSBFrequency, kilo);
+  DbgHeader ("LoadSettings");
+
+  gSettings.ConfigName = EfiStrDuplicate (CONFIG_FILENAME);
+
+  Status = LoadUserSettings (SelfRootDir, gSettings.ConfigName, &gConfigDict);
+  MsgLog ("Load Settings: %s.plist: %r\n", gSettings.ConfigName, Status);
+
+  if (!EFI_ERROR (Status) && &gConfigDict[0]) {
+    Status = GetUserSettings (gConfigDict);
+    DBG ("Load Settings: %r\n", Status);
+  }
+
+  if (!gSettings.FastBoot) {
+    InitScreen (TRUE);
+    SetupScreen ();
+  } else {
+    InitScreen (FALSE);
+  }
+
+  InitSplash ();
+
+  DrawLoadMessage (PoolPrint (L"Starting %a", CLOVER_REVISION_STR));
+
+  DrawLoadMessage (L"Init Hardware");
+
+  SetPrivateVarProto ();
+
+  InitializeEdidOverride ();
+
+  //GuiEventsInitialize ();
+
+  DrawLoadMessage (L"Scan SPD");
+  ScanSPD ();
+
+  DrawLoadMessage (L"Scan Devices");
+  GetDevices ();
+
+  DrawLoadMessage (L"Scan Drivers");
+  LoadDrivers ();
+
+  //GetSmcKeys (); // later we can get here SMC information
+
+  // Now we have to reinit handles
+  Status = ReinitRefitLib ();
+
+  if (EFI_ERROR (Status)){
+    //DebugLog (2, " %r", Status);
+    return Status;
   }
 
   HaveDefaultVolume = (gSettings.DefaultVolume != NULL);
@@ -329,20 +297,29 @@ RefitMain (
     GetEfiBootDeviceFromNvram ();
   }
 
-  DrawLoadMessage (L"Scan Entries");
+  DrawLoadMessage (L"Scan Assets");
 
-  GetListOfACPI ();
+  if (!gSettings.FastBoot) {
+    GetListOfConfigs ();
+    GetListOfThemes ();
+    GetListOfTools ();
+  }
+
+  GetListOfAcpi ();
 
   AfterTool = FALSE;
   gGuiIsReady = TRUE;
 
-  //gBS->Stall (5 * 1000000);
+  MainMenu.TimeoutSeconds = (!gSettings.FastBoot && (gSettings.Timeout >= 0)) ? gSettings.Timeout : 0;
+
+  DrawLoadMessage (L"Scan Entries");
 
   //InitDesktop:
 
   do {
     MainMenu.EntryCount = 0;
     OptionMenu.EntryCount = 0;
+
     ScanVolumes ();
 
     // get boot-args
@@ -416,10 +393,10 @@ RefitMain (
 
       MainLoopRunning = FALSE;
       gSettings.FastBoot = FALSE; //Hmm... will never be here
+    } else {
+      MainAnime = GetAnime (&MainMenu);
+      MainLoopRunning = TRUE;
     }
-
-    MainAnime = GetAnime (&MainMenu);
-    MainLoopRunning = TRUE;
 
     AfterTool = FALSE;
     //gEvent = 0; //clear to cancel loop
@@ -528,6 +505,11 @@ RefitMain (
           MainLoopRunning = FALSE;
           AfterTool = TRUE;
           break;
+      }
+
+      if (StartToolFromMenu ()) {
+        MainLoopRunning = FALSE;
+        AfterTool = TRUE;
       }
     } //MainLoopRunning
 

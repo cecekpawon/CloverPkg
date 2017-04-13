@@ -216,7 +216,7 @@ GetAcpiTablesList () {
   DbgHeader ("GetAcpiTablesList");
 
   GetFadt (); // this is a first call to acpi, we need it to make a pointer to Xsdt
-  gSettings.ACPIDropTables = NULL;
+  //gSettings.ACPIDropTables = NULL;
 
   Sign[4] = 0;
   OTID[8] = 0;

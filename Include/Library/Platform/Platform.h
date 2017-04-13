@@ -915,7 +915,7 @@ typedef struct {
 // Micky1979: Next five functions (+ needed struct) are to split a string like "10.10.5,10.7,10.11.6,10.8.x"
 // in their components separated by comma (in this case)
 typedef struct MatchOSes {
-  INTN    count;
+  UINTN   count;
   CHAR8   *array[100];
 } MatchOSes;
 
@@ -953,7 +953,6 @@ typedef struct {
   BOOLEAN                   Turbo;
   UINT8                     EnabledCores;
   BOOLEAN                   UserBusSpeed;
-  BOOLEAN                   QEMU;
   // SMBIOS TYPE17
   CHAR8                     MemoryManufacturer[64];
   CHAR8                     MemorySerialNumber[64];
@@ -1149,7 +1148,8 @@ extern APPLE_SMBIOS_STRUCTURE_POINTER   SmbiosTable;
 extern GFX_PROPERTIES                   gGraphics[];
 extern UINTN                            NGFX;
 extern BOOLEAN                          gMobile;
-extern BOOLEAN                          DoHibernateWake;
+extern BOOLEAN                          gDoHibernateWake;
+extern BOOLEAN                          gGuiIsReady;
 //extern UINT32                         gCpuSpeed;  //kHz
 //extern UINT16                         gCPUtype;
 extern UINT64                           TurboMsr;
@@ -1211,6 +1211,8 @@ extern ACPI_PATCHED_AML                 *ACPIPatchedAML;
 
 extern S_FILES                          *aConfigs;
 extern S_FILES                          *aThemes;
+extern S_FILES                          *aTools;
+extern CHAR16                           *gToolPath;
 
 extern UINTN                            ACPIDropTablesNum;
 extern UINTN                            ACPIPatchedAMLNum;
@@ -1251,11 +1253,15 @@ VOID AddCustomEntries ();
 // tool
 VOID ScanTool ();
 VOID AddCustomTool ();
+VOID GetListOfTools ();
 
 VOID
 StartTool (
   IN LOADER_ENTRY   *Entry
 );
+
+BOOLEAN
+StartToolFromMenu ();
 
 //-----------------------------------
 
@@ -1411,8 +1417,7 @@ GetEarlyUserSettings (
 
 EFI_STATUS
 GetUserSettings (
-  IN  EFI_FILE  *RootDir,
-      TagPtr    CfgDict
+  IN TagPtr     Dict
 );
 
 EFI_STATUS
@@ -1722,7 +1727,7 @@ EFI_STATUS
 SaveSettings ();
 
 EFI_STATUS
-PrepatchSmbios ();
+PrePatchSmbios ();
 
 VOID
 PatchSmbios ();
@@ -1845,7 +1850,7 @@ UINT8 GetOSTypeFromPath (
 );
 
 VOID  GetListOfThemes ();
-VOID  GetListOfACPI ();
+VOID  GetListOfAcpi ();
 VOID  GetListOfConfigs ();
 
 MatchOSes *
@@ -1856,7 +1861,7 @@ GetStrArraySeparatedByChar (
 
 VOID
 DeallocMatchOSes (
-  MatchOSes   *S
+  MatchOSes   *MOS
 );
 
 VOID

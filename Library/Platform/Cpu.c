@@ -134,7 +134,7 @@ GetCPUProperties () {
   //  DoCpuid (2, gCPUStructure.CPUID[2]);
 
   DoCpuid (0x80000000, gCPUStructure.CPUID[CPUID_80]);
-  if ((gCPUStructure.CPUID[CPUID_80][EAX] & 0x0000000f) >= 1){
+  if ((gCPUStructure.CPUID[CPUID_80][EAX] & 0x0000000f) >= 1) {
     DoCpuid (0x80000001, gCPUStructure.CPUID[CPUID_81]);
   }
 
@@ -180,7 +180,7 @@ GetCPUProperties () {
   }
 
   /* Fold in the Invariant TSC feature bit, if present */
-  if (gCPUStructure.CPUID[CPUID_80][EAX] >= 0x80000007){
+  if (gCPUStructure.CPUID[CPUID_80][EAX] >= 0x80000007) {
     DoCpuid (0x80000007, gCPUStructure.CPUID[CPUID_87]);
     gCPUStructure.ExtFeatures |= gCPUStructure.CPUID[CPUID_87][EDX] & (UINT32)CPUID_EXTFEATURE_TSCI;
   }
@@ -233,7 +233,7 @@ GetCPUProperties () {
     DoCpuid (0x80000004, Reg);
     CopyMem (&Str[32], (CHAR8 *)Reg,  16);
 
-    for (S = Str; *S != '\0'; S++){
+    for (S = Str; *S != '\0'; S++) {
       if (*S != ' ') break; //remove leading spaces
     }
 
@@ -254,13 +254,13 @@ GetCPUProperties () {
     MsgLog ("BrandString = %a\n", gCPUStructure.BrandString);
   }
 
-  //workaround for Quad
+  // workaround for Quad
   if (AsciiStrStr (gCPUStructure.BrandString, "Quad")) {
     gCPUStructure.Cores   = 4;
     gCPUStructure.Threads = 4;
   }
 
-  //New for SkyLake 0x4E, 0x5E
+  // New for SkyLake 0x4E, 0x5E
   if (gCPUStructure.CPUID[CPUID_0][EAX] >= 0x15) {
     UINT32    Num, Denom;
 
@@ -312,18 +312,19 @@ GetCPUProperties () {
 
         if ((RShiftU64 (Msr, 16) & 0x01) != 0) {
           // bcc9 patch
-          UINT8 flex_ratio = RShiftU64 (Msr, 8) & 0xff;
-          DBG ("non-usable FLEX_RATIO = %x\n", Msr);
+          UINT8   FlexRatio = RShiftU64 (Msr, 8) & 0xff;
 
-          if (flex_ratio == 0) {
+          DBG ("Non-usable FLEX_RATIO = %x\n", Msr);
+
+          if (FlexRatio == 0) {
             AsmWriteMsr64 (MSR_FLEX_RATIO, (Msr & 0xFFFFFFFFFFFEFFFFULL));
             gBS->Stall (10);
             Msr = AsmReadMsr64 (MSR_FLEX_RATIO);
-            DBG ("corrected FLEX_RATIO = %x\n", Msr);
+            MsgLog ("Corrected FLEX_RATIO = %x\n", Msr);
           }
           /*else {
-           if (gCPUStructure.BusRatioMax > flex_ratio)
-           gCPUStructure.BusRatioMax = (UINT8)flex_ratio;
+           if (gCPUStructure.BusRatioMax > FlexRatio)
+           gCPUStructure.BusRatioMax = (UINT8)FlexRatio;
            }*/
         }
 

@@ -805,7 +805,7 @@ CheckForFakeSMC (
 ) {
   if (
     !gSettings.FakeSMCLoaded &&
-    OSFLAG_ISSET (Entry->Flags, OSFLAG_CHECKFAKESMC) /*&&
+    OSFLAG_ISSET (Entry->Flags, OSFLAG_CHECKFAKESMC)/* &&
     OSFLAG_ISSET (Entry->Flags, OSFLAG_WITHKEXTS)*/
   ) {
     if (

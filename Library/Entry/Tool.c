@@ -111,8 +111,58 @@ AddToolEntry (
 }
 
 VOID
+GetListOfTools () {
+  REFIT_DIR_ITER    DirIter;
+  EFI_FILE_INFO     *DirEntry;
+  UINTN             i = 0, y = 0;
+
+  DbgHeader ("GetListOfTools");
+
+  DirIterOpen (SelfRootDir, DIR_TOOLS, &DirIter);
+
+  OldChosenConfig = 0;
+
+  while (DirIterNext (&DirIter, 2, L"*.efi", &DirEntry)) {
+    if (DirEntry->FileName[0] != L'.') {
+      S_FILES   *aTmp = AllocateZeroPool (sizeof (S_FILES));
+      CHAR16    *TmpCfg = EfiStrDuplicate (DirEntry->FileName);
+
+      MsgLog ("- [%02d]: %s\n", i++, DirEntry->FileName);
+
+      TmpCfg = ReplaceExtension (DirEntry->FileName, L"");
+
+      aTmp->Index = y;
+
+      aTmp->FileName = PoolPrint (TmpCfg);
+      aTmp->Next = aTools;
+      aTools = aTmp;
+
+      FreePool (TmpCfg);
+
+      y++;
+    }
+  }
+
+  DirIterClose (&DirIter);
+
+  if (y) {
+    S_FILES   *aTmp = aTools;
+
+    aTools = 0;
+
+    while (aTmp) {
+      S_FILES   *next = aTmp->Next;
+
+      aTmp->Next = aTools;
+      aTools = aTmp;
+      aTmp = next;
+    }
+  }
+}
+
+VOID
 ScanTool () {
-  INTN    i;
+  UINTN    i;
 
   //Print (L"Scanning for tools...\n");
 
@@ -297,4 +347,27 @@ StartTool (
 
   FinishExternalScreen ();
   //ReinitRefitLib ();
+}
+
+BOOLEAN
+StartToolFromMenu () {
+  BOOLEAN   Ret = FALSE;
+
+  if (gToolPath != NULL) {
+    LOADER_ENTRY   *Entry = AllocateZeroPool (sizeof (LOADER_ENTRY));
+
+    Entry->LoaderPath = EfiStrDuplicate (gToolPath);
+    Entry->DevicePath = FileDevicePath (SelfVolume->DeviceHandle, Entry->LoaderPath);
+
+    FreePool (gToolPath);
+    gToolPath = NULL;
+
+    StartTool (Entry);
+
+    FreePool (Entry);
+
+    Ret = TRUE;
+  }
+
+  return Ret;
 }

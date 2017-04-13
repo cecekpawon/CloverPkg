@@ -59,35 +59,34 @@ CHAR16  *SupportedOsType[3] = { OSTYPE_DARWIN_STR, OSTYPE_LINUX_STR, OSTYPE_WIND
 
 #define LINUX_ISSUE_PATH                  L"\\etc\\issue"
 #define LINUX_BOOT_PATH                   L"\\boot"
-#define LINUX_BOOT_ALT_PATH               L"\\boot"
 #define LINUX_LOADER_PATH                 L"vmlinuz"
 #define LINUX_FULL_LOADER_PATH            LINUX_BOOT_PATH L"\\" LINUX_LOADER_PATH
-#define LINUX_LOADER_SEARCH_PATH          L"vmlinuz*"
+#define LINUX_LOADER_SEARCH_PATH          LINUX_LOADER_PATH L"*"
 #define LINUX_DEFAULT_OPTIONS             L"ro add_efi_memmap quiet splash vt.handoff=7"
 
 // Linux loader path data
 typedef struct {
-  CHAR16 *Path;
-  CHAR16 *Title;
-  CHAR16 *Icon;
-  CHAR8  *Issue;
+  CHAR16  *Path;
+  CHAR16  *Title;
+  CHAR16  *Icon;
+  CHAR8   *Issue;
 } LINUX_PATH_DATA;
 
 STATIC LINUX_PATH_DATA LinuxEntryData[] = {
-  { L"\\EFI\\grub\\grubx64.efi",        L"Grub",          L"grub,linux" },
   { L"\\EFI\\Gentoo\\grubx64.efi",      L"Gentoo",        L"gentoo,linux",    "Gentoo" },
-  //{ L"\\EFI\\Gentoo\\kernelx64.efi",    L"Gentoo kernel", L"gentoo,linux" },
   { L"\\EFI\\RedHat\\grubx64.efi",      L"RedHat",        L"redhat,linux",    "Redhat" },
   { L"\\EFI\\ubuntu\\grubx64.efi",      L"Ubuntu",        L"ubuntu,linux",    "Ubuntu" },
-  { L"\\EFI\\kubuntu\\grubx64.efi",     L"kubuntu",       L"kubuntu,linux",   "kubuntu" },
   { L"\\EFI\\LinuxMint\\grubx64.efi",   L"Mint",          L"mint,linux",      "Linux Mint" },
   { L"\\EFI\\Fedora\\grubx64.efi",      L"Fedora",        L"fedora,linux",    "Fedora" },
   { L"\\EFI\\opensuse\\grubx64.efi",    L"OpenSuse",      L"suse,linux",      "openSUSE" },
   { L"\\EFI\\debian\\grubx64.efi",      L"Debian",        L"debian,linux",    "Debian" },
-  { L"\\EFI\\arch\\grubx64.efi",        L"Arch",          L"arch,linux" },
+  { L"\\EFI\\arch\\grubx64.efi",        L"Arch",          L"arch,linux",      NULL },
+
+  //{ L"\\EFI\\grub\\grubx64.efi",        L"Grub",          L"grub,linux" },
+  //{ L"\\EFI\\kubuntu\\grubx64.efi",     L"kubuntu",       L"kubuntu,linux",   "kubuntu" },
   //{ L"\\EFI\\arch_grub\\grubx64.efi",   L"Arch",          L"arch,linux" },
-  // --
-  { L"\\EFI\\SuSe\\elilo.efi",          L"OpenSuse",      L"suse,linux" },
+  //{ L"\\EFI\\Gentoo\\kernelx64.efi",    L"Gentoo kernel", L"gentoo,linux" },
+  //{ L"\\EFI\\SuSe\\elilo.efi",          L"OpenSuse",      L"suse,linux" },
 };
 
 STATIC CONST UINTN LinuxEntryDataCount = ARRAY_SIZE (LinuxEntryData);
@@ -113,11 +112,9 @@ typedef struct {
 } ANDX86_PATH_DATA;
 
 STATIC ANDX86_PATH_DATA AndroidEntryData[] = {
-  //{ L"\\EFI\\boot\\grubx64.efi", L"Grub", L"grub,linux" },
-  //{ L"\\EFI\\boot\\bootx64.efi", L"Grub", L"grub,linux" },
-  { L"\\EFI\\remixos\\grubx64.efi", L"Remix",   L"remix,grub,linux",    { L"\\isolinux\\isolinux.bin", L"\\initrd.img", L"\\kernel" } },
-  { L"\\EFI\\boot\\grubx64.efi",    L"Phoenix", L"phoenix,grub,linux",  { L"\\phoenix\\kernel", L"\\phoenix\\initrd.img", L"\\phoenix\\ramdisk.img" } },
-  { L"\\EFI\\boot\\bootx64.efi",    L"Chrome",  L"chrome,grub,linux",   { L"\\syslinux\\vmlinuz.A", L"\\syslinux\\vmlinuz.B", L"\\syslinux\\ldlinux.sys" } },
+  { L"\\EFI\\remixos\\grubx64.efi", L"Remix",   L"remix,grub,linux",    { L"\\isolinux\\isolinux.bin",  L"\\initrd.img",          L"\\kernel" } },
+  { L"\\EFI\\boot\\grubx64.efi",    L"Phoenix", L"phoenix,grub,linux",  { L"\\phoenix\\kernel",         L"\\phoenix\\initrd.img", L"\\phoenix\\ramdisk.img" } },
+  { L"\\EFI\\boot\\bootx64.efi",    L"Chrome",  L"chrome,grub,linux",   { L"\\syslinux\\vmlinuz.A",     L"\\syslinux\\vmlinuz.B", L"\\syslinux\\ldlinux.sys" } },
 };
 
 STATIC CONST UINTN AndroidEntryDataCount = ARRAY_SIZE (AndroidEntryData);
@@ -135,8 +132,7 @@ STATIC CONST UINTN OSXInstallerPathsCount = ARRAY_SIZE (OSXInstallerPaths);
 
 STATIC CHAR16   *WINEFIPaths[] = {
   L"\\EFI\\MICROSOFT\\BOOT\\bootmgfw.efi",
-  L"\\EFI\\MICROSOFT\\BOOT\\bootmgfw-orig.efi",
-  L"\\bootmgr.efi",
+  //L"\\EFI\\MICROSOFT\\BOOT\\bootmgfw-orig.efi",
   L"\\EFI\\MICROSOFT\\BOOT\\cdboot.efi"
 };
 
@@ -275,7 +271,7 @@ LinuxKernelOptions (
     if (InitRd != NULL) {
       if (FileExists (Dir, InitRd)) {
         CHAR16  *CustomOptions = PoolPrint (L"root=/dev/disk/by-partuuid/%s initrd=%s\\%s %s %s",
-                                   PartUUID, LINUX_BOOT_ALT_PATH, InitRd,
+                                   PartUUID, LINUX_BOOT_PATH, InitRd,
                                    LINUX_DEFAULT_OPTIONS, (Options == NULL) ? L"" : Options
                                  );
 
@@ -1786,7 +1782,7 @@ DuplicateLoaderEntry (
 
 INTN
 FindDefaultEntry () {
-  INTN                Index = -1;
+  INTN                Index;
   REFIT_VOLUME        *Volume;
   LOADER_ENTRY        *Entry;
   BOOLEAN             SearchForLoader;
@@ -1847,15 +1843,6 @@ FindDefaultEntry () {
   DBG ("Default boot entry not found\n");
 
   return -1;
-}
-
-CHAR16 *
-ToggleLoadOptions (
-  IN  BOOLEAN   State,
-  IN  CHAR16    *LoadOptions,
-  IN  CHAR16    *LoadOption
-) {
-  return State ? AddLoadOption (LoadOptions, LoadOption) : RemoveLoadOption (LoadOptions, LoadOption);
 }
 
 CHAR16 *
@@ -1960,6 +1947,15 @@ RemoveLoadOption (
   return NewLoadOptions;
 }
 
+CHAR16 *
+ToggleLoadOptions (
+  IN  BOOLEAN   State,
+  IN  CHAR16    *LoadOptions,
+  IN  CHAR16    *LoadOption
+) {
+  return State ? AddLoadOption (LoadOptions, LoadOption) : RemoveLoadOption (LoadOptions, LoadOption);
+}
+
 //
 // Null ConOut OutputString () implementation - for blocking
 // text output from boot.efi when booting in graphics mode
@@ -1982,7 +1978,7 @@ LoadEFIImageList (
   OUT UINTN             *ErrorInStep,
   OUT EFI_HANDLE        *NewImageHandle
 ) {
-  EFI_STATUS      Status, ReturnStatus;
+  EFI_STATUS      Status = EFI_NOT_FOUND;
   EFI_HANDLE      ChildImageHandle = 0;
   UINTN           DevicePathIndex;
   CHAR16          ErrorInfo[AVALUE_MAX_SIZE];
@@ -1997,22 +1993,19 @@ LoadEFIImageList (
     *NewImageHandle = NULL;
   }
 
-  // load the image into memory
-  ReturnStatus = Status = EFI_NOT_FOUND;  // in case the list is empty
-
   for (DevicePathIndex = 0; (DevicePaths[DevicePathIndex] != NULL); DevicePathIndex++) {
-    ReturnStatus = Status = gBS->LoadImage (
-                                    FALSE,
-                                    SelfImageHandle,
-                                    DevicePaths[DevicePathIndex],
-                                    NULL,
-                                    0,
-                                    &ChildImageHandle
-                                  );
+    Status = gBS->LoadImage (
+                    FALSE,
+                    SelfImageHandle,
+                    DevicePaths[DevicePathIndex],
+                    NULL,
+                    0,
+                    &ChildImageHandle
+                  );
 
     DBG (" ... %r", Status);
 
-    if (ReturnStatus != EFI_NOT_FOUND) {
+    if (!EFI_ERROR (Status)) {
       break;
     }
   }
@@ -2027,7 +2020,7 @@ LoadEFIImageList (
     goto bailout;
   }
 
-  if (!EFI_ERROR (ReturnStatus)) { //why unload driver?!
+  if (!EFI_ERROR (Status)) { //why unload driver?!
     if (NewImageHandle != NULL) {
       *NewImageHandle = ChildImageHandle;
     }
@@ -2036,13 +2029,13 @@ LoadEFIImageList (
   }
 
   // unload the image, we don't care if it works or not...
-  Status = gBS->UnloadImage (ChildImageHandle);
+  /* Status = */ gBS->UnloadImage (ChildImageHandle);
 
 bailout:
 
   DBG ("\n");
 
-  return ReturnStatus;
+  return Status;
 }
 
 EFI_STATUS
@@ -2053,7 +2046,7 @@ StartEFILoadedImage (
   IN  CHAR16        *ImageTitle,
   OUT UINTN         *ErrorInStep
 ) {
-  EFI_STATUS          Status, ReturnStatus;
+  EFI_STATUS          Status = EFI_NOT_FOUND;
   EFI_LOADED_IMAGE    *ChildLoadedImage;
   CHAR16              ErrorInfo[AVALUE_MAX_SIZE], *FullLoadOptions = NULL;
 
@@ -2062,8 +2055,6 @@ StartEFILoadedImage (
   if (ErrorInStep != NULL) {
     *ErrorInStep = 0;
   }
-
-  ReturnStatus = Status = EFI_NOT_FOUND;  // in case no image handle was specified
 
   if (ChildImageHandle == NULL) {
     if (ErrorInStep != NULL) {
@@ -2075,11 +2066,11 @@ StartEFILoadedImage (
 
   // set load options
   if (LoadOptions != NULL) {
-    ReturnStatus = Status = gBS->HandleProtocol (
-                                    ChildImageHandle,
-                                    &gEfiLoadedImageProtocolGuid,
-                                    (VOID **)&ChildLoadedImage
-                                  );
+    Status = gBS->HandleProtocol (
+                    ChildImageHandle,
+                    &gEfiLoadedImageProtocolGuid,
+                    (VOID **)&ChildLoadedImage
+                  );
 
     if (CheckError (Status, L"while getting a LoadedImageProtocol handle")) {
       if (ErrorInStep != NULL) {
@@ -2115,7 +2106,7 @@ StartEFILoadedImage (
   //
   //gBS->SetWatchdogTimer (5 * 60, 0x0000, 0x00, NULL);
 
-  ReturnStatus = Status = gBS->StartImage (ChildImageHandle, NULL, NULL);
+  Status = gBS->StartImage (ChildImageHandle, NULL, NULL);
 
   //
   // Clear the Watchdog Timer after the image returns
@@ -2133,7 +2124,7 @@ StartEFILoadedImage (
     }
   }
 
-  if (!EFI_ERROR (ReturnStatus)) { //why unload driver?!
+  if (!EFI_ERROR (Status)) { //why unload driver?!
     //gBS->CloseEvent (ExitBootServiceEvent);
     goto bailout;
   }
@@ -2144,7 +2135,7 @@ StartEFILoadedImage (
 bailout_unload:
 
   // unload the image, we don't care if it works or not...
-  Status = gBS->UnloadImage (ChildImageHandle);
+  /* Status = */ gBS->UnloadImage (ChildImageHandle);
 
   if (FullLoadOptions != NULL) {
     FreePool (FullLoadOptions);
@@ -2152,7 +2143,7 @@ bailout_unload:
 
 bailout:
 
-  return ReturnStatus;
+  return Status;
 }
 
 EFI_STATUS
@@ -2223,7 +2214,7 @@ StartLoader (
       DBG (" - found custom settings for this entry: %s\n", Entry->Settings);
       gBootChanged = TRUE;
 
-      Status = GetUserSettings (SelfRootDir, Dict);
+      Status = GetUserSettings (Dict);
       if (EFI_ERROR (Status)) {
         DBG (" - ... but: %r\n", Status);
       } else {
@@ -2431,12 +2422,12 @@ StartLoader (
     SetCPUProperties ();
 
     if (OSFLAG_ISSET (Entry->Flags, OSFLAG_HIBERNATED)) {
-      DoHibernateWake = PrepareHibernation (Entry->Volume);
+      gDoHibernateWake = PrepareHibernation (Entry->Volume);
     }
 
     if (
       gDriversFlags.AptioFixLoaded &&
-      !DoHibernateWake &&
+      !gDoHibernateWake &&
       !BootArgsExists (Entry->LoadOptions, L"slide=")
     ) {
       // Add slide=0 argument for ML+ if not present
@@ -2449,7 +2440,7 @@ StartLoader (
     //DBG ("LoadKexts\n");
     // LoadKexts writes to DataHub, where large writes can prevent hibernate wake
     // (happens when several kexts present in Clover's kexts dir)
-    if (!DoHibernateWake) {
+    if (!gDoHibernateWake) {
       LoadKexts (Entry);
     }
 

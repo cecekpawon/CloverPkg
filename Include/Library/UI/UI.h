@@ -89,6 +89,7 @@
 #define SCREEN_TABLES                           (9)
 #define SCREEN_DSDT                             (10)
 #define SCREEN_THEMES                           (11)
+#define SCREEN_TOOLS                            (12)
 
 //some unreal values
 #define SCREEN_EDGE_LEFT                        (50000)

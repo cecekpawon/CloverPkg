@@ -28,11 +28,7 @@ GetEdidImpl (
   *EdidSize = 128;
   *Attributes = 0;
 
-  if (*Edid) {
-    return EFI_SUCCESS;
-  }
-
-  return EFI_NOT_FOUND;
+  return *Edid ? EFI_SUCCESS : EFI_NOT_FOUND;
 }
 
 EFI_EDID_OVERRIDE_PROTOCOL gEdidOverride = { GetEdidImpl };
@@ -109,10 +105,10 @@ GetEdidDiscovered () {
     CopyMem (gEDID, EdidDiscovered->Edid, N);
 
     //if (!gSettings.DebugLog) {
-      for (i=0; i<N; i+=16) {
+      for (i = 0; i < N; i += 16) {
         DBG ("%03d | ", i);
-        for (j=0; j<16; j++) {
-          DBG ("%02x%a", EdidDiscovered->Edid[i + j], (j<15) ? " " : "");
+        for (j = 0; j < 16; j++) {
+          DBG ("%02x%a", EdidDiscovered->Edid[i + j], (j < 15) ? " " : "");
         }
         DBG ("\n");
       }

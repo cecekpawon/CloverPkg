@@ -32,7 +32,7 @@ ClosingEventAndLog (
   //MsgLog ("Closing Event & Log\n");
 
   if (OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType)) {
-    if (DoHibernateWake) {
+    if (gDoHibernateWake) {
       // When doing hibernate wake, save to DataHub only up to initial size of log
       SavePreBootLog = FALSE;
     } else {
@@ -47,7 +47,7 @@ ClosingEventAndLog (
     }
 
     if (OSTYPE_IS_DARWIN (Entry->LoaderType)) {
-      SetupBooterLog (/*!DoHibernateWake*/);
+      SetupBooterLog (/*!gDoHibernateWake*/);
     }
   }
 
@@ -69,12 +69,12 @@ ClosingEventAndLog (
 STATIC
 VOID
 VerboseMessage (
-  IN CHAR16         *Message,
+  IN CHAR8          *Message,
   IN UINTN          Sec,
   IN LOADER_ENTRY   *Entry
 ) {
   if (OSFLAG_ISSET (Entry->Flags, OPT_VERBOSE)) {
-    gST->ConOut->OutputString (gST->ConOut, Message);
+    AsciiPrint (Message);
 
     if (Sec > 0) {
       gBS->Stall (Sec * 1000000);
@@ -93,14 +93,14 @@ OnExitBootServices (
   //DBG ("ExitBootServices called\n");
 
   /*
-  if (DoHibernateWake) {
+  if (gDoHibernateWake) {
     gST->ConOut->OutputString (gST->ConOut, L"wake!!!");
     gBS->Stall (5 * 1000000);     // 5 seconds delay
     return;
   }
   */
 
-  VerboseMessage (L"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n", 0, Entry);
+  VerboseMessage ("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n", 0, Entry);
 
   if (OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType)) {
     if (OSFLAG_ISUNSET (Entry->Flags, OPT_VERBOSE)) {
@@ -116,7 +116,7 @@ OnExitBootServices (
     KernelAndKextsPatcherStart (Entry);
 
     if (!gSettings.FakeSMCLoaded) {
-      VerboseMessage (L"FakeSMC NOT loaded\n", 5, Entry);
+      VerboseMessage ("FakeSMC NOT loaded\n", 5, Entry);
     }
 
     if (OSTYPE_IS_DARWIN (Entry->LoaderType)) {

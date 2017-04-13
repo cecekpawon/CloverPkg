@@ -208,13 +208,8 @@ SmbReadByte (
       // p = 0xFF;
       IoWrite8 (Base + SMBHSTCMD, 0x00);
       IoWrite8 (Base + SMBHSTADD, 0x6C + (Page << 1)); // Set SPD Page Address
-      #if 0
-      IoWrite8 (Base + SMBHSTCNT, 0x48); // Start + Byte Data Write
-      // Don't use "Byte Data Write" because status goes from 0x41 (Busy) -> 0x44 (Error)
-      #else
       IoWrite8 (Base + SMBHSTCNT, 0x40); // Start + Quick Write
       // status goes from 0x41 (Busy) -> 0x42 (Completed)
-      #endif
 
       SmbPage = Page;
 
@@ -241,6 +236,7 @@ SmbReadByte (
           break;                  // break after 5ms
         }
       }
+
       return SmbReadByte (Base, Adr, Cmd);
     }
 

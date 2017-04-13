@@ -16,14 +16,6 @@
 // VirtualBox OSE distribution. VirtualBox OSE is distributed in the
 // hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
 
-//
-// CHANGELOG:
-//
-// 2014/11/20
-// Download-Fritz
-// Removed commented out code in rev 2963 and 2965
-//
-
 #ifndef DEBUG_ALL
 #ifndef DEBUG_DATAHUB
 #define DEBUG_DATAHUB -1
