@@ -54,26 +54,16 @@ OurBlockIoRead (
     (Status == EFI_SUCCESS) &&
     (BufferSize >= sizeof (IOHibernateImageHeader))
   ) { //sizeof (IOHibernateImageHeaderMin)==96
-    UINT32    BlockSize = 0;
+    UINT32    BlockSize = (This->Media != NULL) ? This->Media->BlockSize : 512;
 
-    IOHibernateImageHeader *Header;
-    //IOHibernateImageHeaderMinSnow *Header2;
+    DBG (" OurBlockIoRead: Lba=%lx, Offset=%lx (BlockSize=%d)\n", Lba, MultU64x32 (Lba, BlockSize), BlockSize);
+
+    IOHibernateImageHeader *Header = (IOHibernateImageHeader *)Buffer;
 
     // Mark that we are executing, to avoid entering above phrase again, and don't add DBGs outside this scope, to avoid recursion
     gSleepImageOffset = (UINT64)-1;
 
-    if (This->Media != NULL) {
-      BlockSize = This->Media->BlockSize;
-    } else {
-      BlockSize = 512;
-    }
-
-    DBG (" OurBlockIoRead: Lba=%lx, Offset=%lx (BlockSize=%d)\n", Lba, MultU64x32 (Lba, BlockSize), BlockSize);
-
-    Header = (IOHibernateImageHeader *)Buffer;
-
     //DBG (" sig lion: %x\n", Header->signature);
-    //DBG (" sig snow: %x\n", Header2->signature);
     // DBG (" sig swap: %x\n", SwapBytes32 (Header->signature));
 
     if (Header->signature == kIOHibernateHeaderSignature) {
@@ -82,11 +72,7 @@ OurBlockIoRead (
       DBG (" got sleep image offset\n");
 
       //save sleep time as lvs1974 suggested
-      if (Header->signature == kIOHibernateHeaderSignature) {
-        gSleepTime = Header->sleepTime;
-      } else {
-        gSleepTime = 0;
-      }
+      gSleepTime = (Header->signature == kIOHibernateHeaderSignature) ? Header->sleepTime : 0;
 
       // return invalid parameter in case of success in order to prevent driver from caching our buffer
       return EFI_INVALID_PARAMETER;
@@ -106,13 +92,13 @@ GetSleepImageLocation (
   REFIT_VOLUME      **SleepImageVolume,
   CHAR16            **SleepImageName
 ) {
-  EFI_STATUS          Status;
-  UINT8               *PrefBuffer = NULL;
-  UINTN               PrefBufferLen = 0;
-  TagPtr              PrefDict, dict, dict2, prop;
-  CHAR16              *PrefName = L"\\Library\\Preferences\\SystemConfiguration\\com.apple.PowerManagement.plist",
-                      *ImageName = NULL;
-  REFIT_VOLUME        *ImageVolume = Volume;
+  EFI_STATUS      Status;
+  UINT8           *PrefBuffer = NULL;
+  UINTN           PrefBufferLen = 0;
+  TagPtr          PrefDict, Dict, Dict2, Prop;
+  CHAR16          *PrefName = L"\\Library\\Preferences\\SystemConfiguration\\com.apple.PowerManagement.plist",
+                  *ImageName = NULL;
+  REFIT_VOLUME    *ImageVolume = Volume;
 
   // find sleep image entry from plist
   Status = LoadFile (Volume->RootDir, PrefName, &PrefBuffer, &PrefBufferLen);
@@ -121,21 +107,21 @@ GetSleepImageLocation (
   if (!EFI_ERROR (Status)) {
     Status = ParseXML ((CHAR8 *)PrefBuffer, 0, &PrefDict);
     if (!EFI_ERROR (Status)) {
-      dict = GetProperty (PrefDict, "Custom Profile");
-      if (dict) {
-        dict2 = GetProperty (dict, "AC Power");
-        if (dict2) {
-          prop = GetProperty (dict2, "Hibernate File");
-          if (prop && (prop->type == kTagTypeString)) {
+      Dict = GetProperty (PrefDict, "Custom Profile");
+      if (Dict) {
+        Dict2 = GetProperty (Dict, "AC Power");
+        if (Dict2) {
+          Prop = GetProperty (Dict2, "Hibernate File");
+          if ((Prop != NULL) && (Prop->type == kTagTypeString)) {
             CHAR16    *p;
 
-            if (AsciiStrStr (prop->string, "/Volumes/")) {
+            if (AsciiStrStr (Prop->string, "/Volumes/")) {
               CHAR8     *VolNameStart = NULL, *VolNameEnd = NULL;
               CHAR16    *VolName = NULL;
               UINTN     VolNameSize = 0;
 
               // Extract Volumes Name
-              VolNameStart = AsciiStrStr (prop->string + 1, "/") + 1;
+              VolNameStart = AsciiStrStr (Prop->string + 1, "/") + 1;
               if (VolNameStart) {
                 VolNameEnd = AsciiStrStr (VolNameStart, "/");
                 if (VolNameEnd) {
@@ -147,7 +133,7 @@ GetSleepImageLocation (
               }
 
               if (VolName) {
-                UnicodeSPrint (VolName, VolNameSize, L"%a", VolNameStart);
+                AsciiStrToUnicodeStrS (VolNameStart, VolName, VolNameSize);
                 ImageVolume = FindVolumeByName (VolName);
 
                 if (ImageVolume) {
@@ -158,10 +144,10 @@ GetSleepImageLocation (
 
                 FreePool (VolName);
               }
-            } else if (AsciiStrStr (prop->string, "/var") && !AsciiStrStr (prop->string, "private")) {
-              ImageName = PoolPrint (L"\\private%a", prop->string);
+            } else if (AsciiStrStr (Prop->string, "/var") && !AsciiStrStr (Prop->string, "private")) {
+              ImageName = PoolPrint (L"\\private%a", Prop->string);
             } else {
-              ImageName = PoolPrint (L"%a", prop->string);
+              ImageName = PoolPrint (L"%a", Prop->string);
             }
 
             p = ImageName;
@@ -208,7 +194,7 @@ GetSleepImagePosition (
   EFI_STATUS          Status;
   EFI_FILE            *File;
   VOID                *Buffer;
-  UINTN               BufferSize;
+  UINTN               BufferSize = 512;
   CHAR16              *ImageName;
   REFIT_VOLUME        *ImageVolume;
 
@@ -226,7 +212,7 @@ GetSleepImagePosition (
   if (Volume->SleepImageOffset != 0) {
     if (SleepImageVolume != NULL) {
       // Update caller's SleepImageVolume when requested
-      GetSleepImageLocation (Volume,SleepImageVolume,&ImageName);
+      GetSleepImageLocation (Volume, SleepImageVolume, &ImageName);
     }
 
     DBG ("    returning previously calculated offset: %lx\n", Volume->SleepImageOffset);
@@ -244,7 +230,6 @@ GetSleepImagePosition (
   }
 
   // We want to read the first 512 bytes from sleepimage
-  BufferSize = 512;
   Buffer = AllocatePool (BufferSize);
   if (Buffer == NULL) {
     DBG ("    could not allocate buffer for sleepimage\n");
@@ -385,7 +370,6 @@ BOOLEAN
 IsDarwinHibernated (
   IN REFIT_VOLUME     *Volume
 ) {
-  //BOOLEAN           IsHibernate = FALSE;
   EFI_STATUS          Status;
   UINTN               Size = 0;
   UINT8               *Data = NULL;
@@ -407,26 +391,20 @@ IsDarwinHibernated (
       DBG ("        hibernated: no - time\n");
       return FALSE;
     }
-    //IsHibernate = TRUE;
   } else {
     DBG ("        hibernated: no - sign\n");
     return FALSE;
   }
 
-  //if (!gFirmwareClover &&
-  //    !gDriversFlags.EmuVariableLoaded) {
-    DBG ("        UEFI with NVRAM: ");
-    Status = gRT->GetVariable (L"Boot0082", &gEfiGlobalVariableGuid, NULL, &Size, Data);
-    if (Status == EFI_BUFFER_TOO_SMALL) {
-      DBG ("yes\n");
-      //return TRUE;
-    } else {
-      DBG ("Boot0082 no\n");
-      return FALSE;
-    }
-  //}
+  DBG ("        UEFI with NVRAM: ");
+  Status = gRT->GetVariable (L"Boot0082", &gEfiGlobalVariableGuid, NULL, &Size, Data);
+  if (Status == EFI_BUFFER_TOO_SMALL) {
+    DBG ("yes\n");
+    return TRUE;
+  }
 
-  return TRUE;
+  DBG ("Boot0082 no\n");
+  return FALSE;
 }
 
 /** Prepares nvram vars needed for boot.efi to wake from hibernation:
@@ -456,7 +434,6 @@ PrepareHibernation (
   EFI_DEVICE_PATH_PROTOCOL    *BootImageDevPath;
   UINTN                       Size;
   VOID                        *Value;
-  //AppleRTCHibernateVars       RtcVars;
   UINT8                       *VarData = NULL;
   REFIT_VOLUME                *SleepImageVolume;
 
@@ -488,7 +465,7 @@ PrepareHibernation (
 
   Status = gRT->SetVariable (
                   L"boot-image", &gEfiAppleBootGuid,
-                  EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS,
+                  NVRAM_ATTR_RT_BS_NV,
                   Size , BootImageDevPath
                 );
 
@@ -519,32 +496,24 @@ PrepareHibernation (
     // delete IOHibernateRTCVariables
     Status = gRT->SetVariable (
                     L"IOHibernateRTCVariables", &gEfiAppleBootGuid,
-                    EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS,
+                    NVRAM_ATTR_RT_BS_NV,
                     0, NULL
                   );
-  } /*else {
-    // no NVRAM
-    DBG (" setting dummy boot-switch-vars\n");
-    Size = sizeof (RtcVars);
-    Value = &RtcVars;
-    SetMem (&RtcVars, Size, 0);
-    RtcVars.signature[0] = 'A';
-    RtcVars.signature[1] = 'A';
-    RtcVars.signature[2] = 'P';
-    RtcVars.signature[3] = 'L';
-    RtcVars.revision     = 1;
-  }*/
 
-  Status = gRT->SetVariable (
-                  L"boot-switch-vars", &gEfiAppleBootGuid,
-                  EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS,
-                  Size, Value
-                );
+    if (!EFI_ERROR (Status)) {
+      Status = gRT->SetVariable (
+                      L"boot-switch-vars", &gEfiAppleBootGuid,
+                      NVRAM_ATTR_RT_BS_NV,
+                      Size, Value
+                    );
 
-  if (EFI_ERROR (Status)) {
-    DBG (" can not write boot-switch-vars -> %r\n", Status);
-    return FALSE;
+      if (EFI_ERROR (Status)) {
+        DBG (" can not write boot-switch-vars -> %r\n", Status);
+      }
+    } else {
+      DBG (" can not write IOHibernateRTCVariables -> %r\n", Status);
+    }
   }
 
-  return TRUE;
+  return !EFI_ERROR (Status);
 }

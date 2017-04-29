@@ -52,8 +52,6 @@
 // scrolling definitions
 STATIC INTN   MaxItemOnScreen = -1;
 
-BOOLEAN   SavePreBootLog = FALSE;
-
 #define SCROLL_LINE_UP                  (0)
 #define SCROLL_LINE_DOWN                (1)
 #define SCROLL_PAGE_UP                  (2)
@@ -111,7 +109,7 @@ BOOLEAN             MainAnime = FALSE, mGuiReady = FALSE;
 
 CHAR16              *gToolPath = NULL;
 
-INTN                OldChosenTheme, OldChosenConfig, OldChosenTool;
+INTN                OldChosenTheme, OldChosenConfig, OldChosenTool, OldChosenDSDT;
 
 REFIT_MENU_ENTRY    MenuEntryOptions  = { MENU_ENTRY_ID_GEN, L"Options", TAG_OPTIONS, 1, 0, 'O', NULL, NULL, NULL, NULL, {0, 0, 0, 0}, NULL },
                     MenuEntryAbout    = { MENU_ENTRY_ID_GEN, L"About Clover", TAG_ABOUT, 1, 0, 'I', NULL, NULL, NULL, NULL, {0, 0, 0, 0},  NULL },
@@ -129,8 +127,6 @@ REFIT_MENU_SCREEN   MainMenu          = { SCREEN_MAIN, L"Main Menu", NULL, 0, NU
                     OptionMenu        = { SCREEN_OPTIONS, L"Options", NULL, 0, NULL, 0, NULL, 0, NULL,
                                           NULL, FALSE, FALSE, 0, 0, 0, 0, {0, 0, 0, 0}, NULL };
 
-#define SUBMENU_COUNT  6 // MainMenu with SUB total
-
 typedef enum {
   mBootArgs,
   mConfigs,
@@ -138,8 +134,7 @@ typedef enum {
   mTools,
 
   // DSDT
-  mDSDTName,
-  //mDebugDSDT,
+  mDSDTs,
   mDSDTFix,
 
   // Tables
@@ -164,7 +159,7 @@ typedef enum {
   // Debug
   mDebugKP,
   mDebugDSDT,
-  //mDebugLog,
+  mDebugLog,
 
   // OTHER
   mFlagsBits,
@@ -177,45 +172,41 @@ typedef struct {
 } OPT_MENU_GEN;
 
 OPT_MENU_GEN OPT_MENU_DEVICES[] = {
-  { mInjectNVidia,          L"Inject NVidia"       },
-  { mInjectATI,             L"Inject ATI"          },
-  { mInjectIntel,           L"Inject Intel"        },
-  { mInjectEDID,            L"Inject EDID"         },
-  { mInjectEFIStrings,      L"Inject EFIString"    },
-  { mNoDefaultProperties,   L"NoDefaultProperties" },
-  { mLoadVBios,             L"LoadVBios"           },
+  { mInjectNVidia,          L"Inject NVidia"        },
+  { mInjectATI,             L"Inject ATI"           },
+  { mInjectIntel,           L"Inject Intel"         },
+  { mInjectEDID,            L"Inject EDID"          },
+  { mInjectEFIStrings,      L"Inject EFIString"     },
+  { mNoDefaultProperties,   L"NoDefaultProperties"  },
+  { mLoadVBios,             L"LoadVBios"            }
 };
 
 INTN    OptMenuDevicesNum = ARRAY_SIZE (OPT_MENU_DEVICES);
 
 OPT_MENU_GEN OPT_MENU_PATCHES[] = {
-  //{ mKextPatchesAllowed,    L"Allow Kext Patches"   },
-  //{ mKernelPatchesAllowed,  L"Allow Kernel Patches" },
-  //{ mBooterPatchesAllowed,  L"Allow Booter Patches" },
   { mKPKernelPm,            L"KernelPM Patch"       },
-  { mKPAsusAICPUPM,         L"AsusAICPUPM Patch"    },
+  { mKPAsusAICPUPM,         L"AsusAICPUPM Patch"    }
 };
 
 INTN    OptMenuPatchesNum = ARRAY_SIZE (OPT_MENU_PATCHES);
 
 OPT_MENU_GEN OPT_MENU_DSDT[] = {
-  { mDSDTName,              L"DSDT name"  },
-  //{ mDebugDSDT,             L"Debug DSDT" },
-  { mDSDTFix,               NULL          },
+  { mDSDTs,                 NULL                    },
+  { mDSDTFix,               NULL                    }
 };
 
 INTN    OptMenuDSDTFixesNum = ARRAY_SIZE (OPT_MENU_DSDT);
 
 OPT_MENU_GEN OPT_MENU_TABLE[] = {
-  { mDropOEM,               L"Drop all OEM SSDT" },
+  { mDropOEM,               L"Drop all OEM SSDT"    }
 };
 
 INTN    OptMenuTableNum = ARRAY_SIZE (OPT_MENU_TABLE);
 
 OPT_MENU_GEN OPT_MENU_DEBUG[] = {
-  { mDebugKP,     L"Kext Patch" },
-  { mDebugDSDT,   L"DSDT"       },
-  //{ mDebugLog,    L"Log"        },
+  { mDebugKP,               L"Kext Patch"           },
+  { mDebugDSDT,             L"DSDT"                 },
+  { mDebugLog,              L"Log"                  }
 };
 
 INTN    OptMenuDebugNum = ARRAY_SIZE (OPT_MENU_DEBUG);
@@ -247,7 +238,7 @@ OPT_MENU_OPTBIT_K OPT_MENU_FLAGBIT[] = {
   { 0,                      L"Hibernate wake",        NULL,   OSFLAG_HIBERNATED,            OSTYPE_DARWIN },
   { 0,                      L"Without caches",        NULL,   OSFLAG_NOCACHES,              OSTYPE_DARWIN },
   { 0,                      L"With injected kexts",   NULL,   OSFLAG_WITHKEXTS,             OSTYPE_DARWIN },
-  { 0,                      L"No SIP",                NULL,   OSFLAG_NOSIP,                 OSTYPE_DARWIN },
+  { 0,                      L"Disable SIP",           NULL,   OSFLAG_NOSIP,                 OSTYPE_DARWIN },
   { 0,                      L"Debug Patches",         NULL,   OSFLAG_DBGPATCHES,            OSTYPE_DARWIN },
   { mKextPatchesAllowed,    L"Allow Kext Patches",    NULL,   OSFLAG_ALLOW_KEXT_PATCHES,    OSTYPE_DARWIN },
   { mKernelPatchesAllowed,  L"Allow Kernel Patches",  NULL,   OSFLAG_ALLOW_KERNEL_PATCHES,  OSTYPE_DARWIN },
@@ -264,10 +255,10 @@ BOOLEAN     SubInjectNVidia = FALSE,
 INTN          OptMenuItemsNum = 0;
 INPUT_ITEM    *InputItems = NULL;
 
-INTN
-GetSubMenuCount () {
-  return SUBMENU_COUNT;
-}
+//INTN
+//GetSubMenuCount () {
+//  return SUBMENU_COUNT;
+//}
 
 REFIT_MENU_ENTRY *
 GenMenu (
@@ -280,7 +271,7 @@ GenMenu (
 ) {
   REFIT_INPUT_DIALOG    *Input = AllocateZeroPool (sizeof (REFIT_INPUT_DIALOG));
 
-  Input->Entry.Title = PoolPrint (L"%s", Title);
+  Input->Entry.Title = EfiStrDuplicate (Title);
   Input->Entry.Tag = Tag;
   Input->Entry.Row = Row;
   Input->Item = Item ? Item : &InputItems[ItemNum];
@@ -386,14 +377,14 @@ FillInputString (
   UnicodeSPrint (InputItems[Index].SValue, Len, L"%s", Item);
 }
 
-VOID
-ApplyInputString (
-  UINTN     Index,
-  CHAR16    *Item,
-  UINTN     Len
-) {
-  UnicodeSPrint (Item, sizeof (Item), L"%s", InputItems[Index].SValue);
-}
+//VOID
+//ApplyInputString (
+//  UINTN     Index,
+//  CHAR16    *Item,
+//  UINTN     Len
+//) {
+//  UnicodeSPrint (Item, sizeof (Item), L"%s", InputItems[Index].SValue);
+//}
 
 VOID
 AddMenuInfo (
@@ -416,7 +407,7 @@ AddMenuLabel (
 ) {
   REFIT_INPUT_DIALOG    *Input = AllocateZeroPool (sizeof (REFIT_INPUT_DIALOG));
 
-  Input->Entry.Title = PoolPrint (L"%s", Label);
+  Input->Entry.Title = EfiStrDuplicate (Label);
   Input->Entry.Tag = TAG_LABEL;
   Input->Item = NULL;
 
@@ -463,14 +454,15 @@ FillInputs (
 
   FillInputRadio (mConfigs);
   FillInputRadio (mThemes);
+  FillInputRadio (mDSDTs);
+
+  // Tools
   FillInputRadio (mTools);
 
   // Tables
   FillInputBool (mDropOEM, gSettings.DropSSDT);
 
   // DSDT
-  FillInputString (mDSDTName, gSettings.DsdtName, ARRAY_SIZE (gSettings.DsdtName), UNIString, New);
-  FillInputBool (mDebugDSDT, gSettings.DebugDSDT);
   FillInputInt (mDSDTFix, gSettings.FixDsdt);
 
   // Devices
@@ -492,7 +484,7 @@ FillInputs (
   // Debug
   FillInputBool (mDebugKP, gSettings.DebugKP);
   FillInputBool (mDebugDSDT, gSettings.DebugDSDT);
-  //FillInputBool (mDebugLog, gSettings.DebugLog);
+  FillInputBool (mDebugLog, gSettings.DebugLog);
 
   // OTHER
   FillInputInt (mOptionsBits, gSettings.OptionsBits);
@@ -523,7 +515,7 @@ ApplyInputs () {
           }
         } while (*(++ch));
 
-        AsciiSPrint (gSettings.BootArgs, AVALUE_MAX_SIZE - 1, "%s ", InputItems[i].SValue);
+        AsciiSPrint (gSettings.BootArgs, ARRAY_SIZE (gSettings.BootArgs), "%s ", InputItems[i].SValue);
         break;
 
       case mConfigs:
@@ -577,6 +569,10 @@ ApplyInputs () {
 
           while (aTmp) {
             if (aTmp->Index == OldChosenTheme) {
+              if (GlobalConfig.Theme) {
+                FreePool (GlobalConfig.Theme);
+              }
+
               GlobalConfig.Theme = PoolPrint (aTmp->FileName);
               gThemeChanged = TRUE;
               break;
@@ -593,6 +589,10 @@ ApplyInputs () {
 
           while (aTmp) {
             if (aTmp->Index == OldChosenTool) {
+              if (gToolPath) {
+                FreePool (gToolPath);
+              }
+
               gToolPath = PoolPrint (L"%s\\%s.efi", DIR_TOOLS, aTmp->FileName);
               break;
             }
@@ -608,9 +608,19 @@ ApplyInputs () {
         gSettings.DropSSDT = ApplyInputBool (i);
         break;
 
-      // DSDT
-      case mDSDTName:
-        ApplyInputString (mDSDTName, gSettings.DsdtName, sizeof (gSettings.DsdtName));
+      case mDSDTs:
+        if (aDSDTs) {
+          S_FILES    *aTmp = aDSDTs;
+
+          while (aTmp) {
+            if (aTmp->Index == OldChosenDSDT) {
+              StrCpyS (gSettings.DsdtName, sizeof (gSettings.DsdtName), aTmp->FileName);
+              break;
+            }
+
+            aTmp = aTmp->Next;
+          }
+        }
         break;
 
       case mDSDTFix:
@@ -647,19 +657,6 @@ ApplyInputs () {
         break;
 
       // Patch
-/*
-     case mKextPatchesAllowed:
-        gSettings.KextPatchesAllowed = ApplyInputBool (i);
-        break;
-
-      case mKernelPatchesAllowed:
-        gSettings.KernelPatchesAllowed = ApplyInputBool (i);
-        break;
-
-      case mBooterPatchesAllowed:
-        gSettings.BooterPatchesAllowed = ApplyInputBool (i);
-        break;
-*/
       case mKPKernelPm:
         gSettings.KernelAndKextPatches.KPKernelPm = ApplyInputBool (i);
         break;
@@ -677,9 +674,9 @@ ApplyInputs () {
         gSettings.DebugDSDT = ApplyInputBool (i);
         break;
 
-      //case mDebugLog:
-      //  gSettings.DebugLog = ApplyInputBool (i);
-      //  break;
+      case mDebugLog:
+        gSettings.DebugLog = ApplyInputBool (i);
+        break;
 
       // OTHER
       case mOptionsBits:
@@ -751,7 +748,7 @@ DecodeOptions (
                           );
   }
 
-  AsciiSPrint (gSettings.BootArgs, AVALUE_MAX_SIZE - 1, "%s", Entry->LoadOptions);
+  AsciiSPrint (gSettings.BootArgs, ARRAY_SIZE (gSettings.BootArgs) - 1, "%s", Entry->LoadOptions);
 }
 
 VOID
@@ -785,19 +782,19 @@ SplitMenuInfo (
   IN ADD_MENU_INFO      MenuInfo
 ) {
   CHAR16    *TmpStr;
-  UINTN     currentLen = 0,
-            stringLen = StrLen (Str),
-            maxWidth = LAYOUT_TEXT_WIDTH/*(UGAWidth >> 1)*/ / GlobalConfig.CharWidth;
-            //maxWidth = (644 - (TEXT_XMARGIN * 2)) / GlobalConfig.CharWidth;
-            //maxWidth = (UGAWidth - TITLEICON_SPACING -
+  UINTN     CurrentLen = 0,
+            StringLen = StrLen (Str),
+            MaxWidth = LAYOUT_TEXT_WIDTH/*(UGAWidth >> 1)*/ / GlobalConfig.CharWidth;
+            //MaxWidth = (644 - (TEXT_XMARGIN * 2)) / GlobalConfig.CharWidth;
+            //MaxWidth = (UGAWidth - TITLEICON_SPACING -
               //(SubScreen->TitleImage ? SubScreen->TitleImage->Width : 0) - 2) / GlobalConfig.CharWidth;
 
-  //DBG ("### CharWidth: %d | maxWidth: %d | %s\n", GlobalConfig.CharWidth, maxWidth, Str);
+  //DBG ("### CharWidth: %d | MaxWidth: %d | %s\n", GlobalConfig.CharWidth, MaxWidth, Str);
 
-  while (stringLen > currentLen) {
-    UINTN    TmpLen = maxWidth, TmpStrLen;
+  while (StringLen > CurrentLen) {
+    UINTN    TmpLen = MaxWidth, TmpStrLen;
 
-    CONSTRAIN_MAX (TmpLen, (stringLen - currentLen));
+    CONSTRAIN_MAX (TmpLen, (StringLen - CurrentLen));
 
     if (!TmpLen) {
       break;
@@ -805,13 +802,13 @@ SplitMenuInfo (
 
     TmpStrLen = TmpLen + 1;
     TmpStr = AllocateZeroPool (TmpStrLen);
-    StrnCpyS (TmpStr, TmpStrLen, Str + currentLen, TmpLen);
-    //DBG ("### %s | Start -> %d | End -> %d\n", TmpStr, currentLen, TmpLen);
-    MenuInfo (SubScreen, PoolPrint (L"%a%s", currentLen ? "  " : "", TmpStr));
+    StrnCpyS (TmpStr, TmpStrLen, Str + CurrentLen, TmpLen);
+    //DBG ("### %s | Start -> %d | End -> %d\n", TmpStr, CurrentLen, TmpLen);
+    MenuInfo (SubScreen, PoolPrint (L"%a%s", CurrentLen ? "  " : "", TmpStr));
 
     FreePool (TmpStr);
 
-    currentLen += TmpLen;
+    CurrentLen += TmpLen;
   }
 }
 
@@ -832,8 +829,6 @@ FreeMenu (
           Tentry->SubScreen->Title = NULL;
         }
 
-        // don't free image because of reusing them
-        //egFreeImage (Tentry->SubScreen->Image);
         FreeMenu (Tentry->SubScreen);
         Tentry->SubScreen = NULL;
       }
@@ -871,11 +866,7 @@ FindMenuShortcutEntry (
   IN REFIT_MENU_SCREEN    *Screen,
   IN CHAR16               Shortcut
 ) {
-  INTN i;
-
-  //if (Shortcut >= 'a' && Shortcut <= 'z') {
-  //  Shortcut -= ('a' - 'A');
-  //}
+  INTN  i;
 
   if (IS_DIGIT (Shortcut) || IS_ALFA (Shortcut)) {
     for (i = 0; i < Screen->EntryCount; i++) {
@@ -980,10 +971,10 @@ STATIC
 VOID
 InitScroll (
   OUT SCROLL_STATE    *State,
-  IN INTN             ItemCount,
-  IN UINTN            MaxCount,
-  IN UINTN            VisibleSpace,
-  IN INTN             Selected // 0xFFFF -> 0: Label, 1: Current
+  IN  INTN            ItemCount,
+  IN  UINTN           MaxCount,
+  IN  UINTN           VisibleSpace,
+  IN  INTN            Selected // 0xFFFF -> 0: Label, 1: Current
 ) {
   //ItemCount - a number to scroll (Row0)
   //MaxCount - total number (Row0 + Row1)
@@ -996,11 +987,7 @@ InitScroll (
   State->MaxIndex = (INTN)MaxCount - 1;
   State->MaxScroll = ItemCount - 1;
 
-  if (VisibleSpace == 0) {
-    State->MaxVisible = State->MaxScroll;
-  } else {
-    State->MaxVisible = (INTN)VisibleSpace - 1;
-  }
+  State->MaxVisible = (VisibleSpace == 0) ? State->MaxScroll : (INTN)VisibleSpace - 1;
 
   if (State->MaxVisible >= ItemCount) {
     State->MaxVisible = ItemCount - 1;
@@ -1137,7 +1124,7 @@ UpdateScroll (
           (State->CurrentSelection <= State->MaxScroll)
         ) {
           State->PaintAll = TRUE;
-          State->FirstVisible+= State->MaxVisible;
+          State->FirstVisible += State->MaxVisible;
           CONSTRAIN_MAX (State->FirstVisible, State->MaxFirstVisible);
         }
       }
@@ -1202,8 +1189,8 @@ InputDialog (
   IN SCROLL_STATE         *State
 ) {
   EFI_STATUS        Status;
-  EFI_INPUT_KEY     key;
-  UINTN             ind = 0, i = 0, MenuExit = 0,
+  EFI_INPUT_KEY     Key;
+  UINTN             Ind = 0, i = 0, MenuExit = 0,
                     Pos = (Screen->Entries[State->CurrentSelection])->Row,
                     BackupPos, BackupShift;
   INPUT_ITEM        *Item = ((REFIT_INPUT_DIALOG *)(Screen->Entries[State->CurrentSelection]))->Item;
@@ -1260,6 +1247,10 @@ InputDialog (
         case mTools:
           OldChosenTool = Pos;
           break;
+
+        case mDSDTs:
+          OldChosenDSDT = Pos;
+          break;
       }
 
       MenuExit = MENU_EXIT_ENTER;
@@ -1267,7 +1258,7 @@ InputDialog (
       Item->IValue ^= Pos;
       MenuExit = MENU_EXIT_ENTER;
     } else {
-      Status = gST->ConIn->ReadKeyStroke (gST->ConIn, &key);
+      Status = gST->ConIn->ReadKeyStroke (gST->ConIn, &Key);
 
 #if 0
 \#if DBG_INPUTDIALOG
@@ -1275,17 +1266,17 @@ InputDialog (
       PrintAt (0, 0, L"%5d: Buffer:%x MaxSize:%d Line:%3d", Iteration, Buffer, SVALUE_MAX_SIZE, LineSize);
       PrintAt (0, 1, L"%5d: Size:%3d Len:%3d", Iteration, StrSize (Buffer), StrLen (Buffer));
       PrintAt (0, 2, L"%5d: Pos:%3d Shift:%3d AbsPos:%3d", Iteration, Pos, Item->LineShift, Pos + Item->LineShift);
-      PrintAt (0, 3, L"%5d: KeyCode:%4d KeyChar:%4d", Iteration, key.ScanCode, (UINTN)key.UnicodeChar);
+      PrintAt (0, 3, L"%5d: KeyCode:%4d KeyChar:%4d", Iteration, Key.ScanCode, (UINTN)Key.UnicodeChar);
       PrintAt (0, 4, L"%5d: Title:\"%s\"", Iteration, Screen->Entries[State->CurrentSelection]->Title);
       Iteration++;
 #endif
 
       if (Status == EFI_NOT_READY) {
-        gBS->WaitForEvent (1, &gST->ConIn->WaitForKey, &ind);
+        gBS->WaitForEvent (1, &gST->ConIn->WaitForKey, &Ind);
         continue;
       }
 
-      switch (key.ScanCode) {
+      switch (Key.ScanCode) {
         case SCAN_RIGHT:
           if (Pos + Item->LineShift < StrLen (Buffer)) {
             if (Pos < LineSize) {
@@ -1324,27 +1315,11 @@ InputDialog (
           break;
 
         case SCAN_F2:
-          SavePreBootLog = TRUE;
-          /*
-            Status = SaveBooterLog (SelfRootDir, PREBOOT_LOG);
-            if (EFI_ERROR (Status)) {
-              Status = SaveBooterLog (NULL, PREBOOT_LOG);
-            }
-          */
-          /*
-            LogSize = msgCursor - msgbuf;
-            Status = SaveFile (SelfRootDir, PREBOOT_LOG, (UINT8 *)msgbuf, LogSize);
-            if (EFI_ERROR (Status)) {
-              Status = SaveFile (NULL, PREBOOT_LOG, (UINT8 *)msgbuf, LogSize);
-            }
-          */
+          SaveBooterLog (SelfRootDir, PREBOOT_LOG);
           break;
 
         case SCAN_F6:
-          Status = SaveFile (SelfRootDir, VBIOS_BIN, (UINT8 *)(UINTN)0xc0000, 0x20000);
-          if (EFI_ERROR (Status)) {
-            Status = SaveFile (NULL, VBIOS_BIN, (UINT8 *)(UINTN)0xc0000, 0x20000);
-          }
+          /* Status = */ SaveFile (SelfRootDir, VBIOS_BIN, (UINT8 *)(UINTN)0xc0000, 0x20000);
           break;
 
         case SCAN_F10:
@@ -1355,7 +1330,7 @@ InputDialog (
           // forward delete
           if (Pos + Item->LineShift < StrLen (Buffer)) {
             for (i = Pos + Item->LineShift; i < StrLen (Buffer); i++) {
-               Buffer[i] = Buffer[i + 1];
+              Buffer[i] = Buffer[i + 1];
             }
             /*
             // Commented this out because it looks weird - Forward Delete should not
@@ -1370,12 +1345,13 @@ InputDialog (
           break;
       }
 
-      switch (key.UnicodeChar) {
+      switch (Key.UnicodeChar) {
         case CHAR_BACKSPACE:
-          if (Buffer[0] != CHAR_NULL && Pos != 0) {
+          if ((Buffer[0] != CHAR_NULL) && (Pos != 0)) {
             for (i = Pos + Item->LineShift; i <= StrLen (Buffer); i++) {
                Buffer[i - 1] = Buffer[i];
             }
+
             Item->LineShift > 0 ? Item->LineShift-- : Pos--;
           }
           break;
@@ -1389,15 +1365,17 @@ InputDialog (
 
         default:
           if (
-            (key.UnicodeChar >= 0x20) &&
-            (key.UnicodeChar < 0x80)
-          ){
+            (Key.UnicodeChar >= 0x20) &&
+            (Key.UnicodeChar < 0x80)
+          ) {
             if (StrSize (Buffer) < SVALUE_MAX_SIZE) {
-              for (i = StrLen (Buffer) + 1; i > Pos + Item->LineShift; i--) {
+              UINTN   Len = StrLen (Buffer);
+
+              for (i = Len + 1; i > (Pos + Item->LineShift); i--) {
                  Buffer[i] = Buffer[i - 1];
               }
 
-              Buffer[i] = key.UnicodeChar;
+              Buffer[i] = Key.UnicodeChar;
               Pos < LineSize ? Pos++ : Item->LineShift++;
             }
           }
@@ -1407,6 +1385,7 @@ InputDialog (
 
     // Redraw the field
     (Screen->Entries[State->CurrentSelection])->Row = Pos;
+
     StyleFunc (Screen, State, MENU_FUNCTION_PAINT_SELECTION, NULL);
   } while (!MenuExit);
 
@@ -1497,7 +1476,13 @@ CheckState (
       return;
   }
 
-  if (((State->CurrentSelection == State->MaxIndex) && (Screen->Entries[0])->Tag == TAG_LABEL) && Down) {
+  if (
+    Down &&
+    (
+      (State->CurrentSelection == State->MaxIndex) &&
+      ((Screen->Entries[0])->Tag == TAG_LABEL)
+    )
+  ) {
     State->CurrentSelection = State->FirstVisible = 0;
     State->PaintAll = TRUE;
   } else if (((Screen->Entries[Index])->Tag == TAG_LABEL) && Allow) {
@@ -1718,12 +1703,7 @@ RunGenericMenu (
           break;
 
         case SCAN_F2:
-          SavePreBootLog = TRUE;
-          //let it be twice
-          Status = SaveBooterLog (SelfRootDir, PREBOOT_LOG);
-          if (EFI_ERROR (Status)) {
-            Status = SaveBooterLog (NULL, PREBOOT_LOG);
-          }
+          /* Status = */ SaveBooterLog (SelfRootDir, PREBOOT_LOG);
           break;
 
         case SCAN_F3:
@@ -1742,10 +1722,10 @@ RunGenericMenu (
           break;
 
         case SCAN_F6:
-          Status = SaveFile (SelfRootDir, VBIOS_BIN, (UINT8 *)(UINTN)0xc0000, 0x20000);
-          if (EFI_ERROR (Status)) {
-            Status = SaveFile (NULL, VBIOS_BIN, (UINT8 *)(UINTN)0xc0000, 0x20000);
-          }
+          /* Status = */ SaveFile (SelfRootDir, VBIOS_BIN, (UINT8 *)(UINTN)0xc0000, 0x20000);
+          //if (EFI_ERROR (Status)) {
+          //  Status = SaveFile (NULL, VBIOS_BIN, (UINT8 *)(UINTN)0xc0000, 0x20000);
+          //}
           break;
 
         /* just a sample code
@@ -1876,22 +1856,22 @@ TextMenuStyle (
   IN UINTN                Function,
   IN CHAR16               *ParamText
 ) {
-  INTN                i = 0, j = 0;
-  STATIC UINTN        MenuPosY = 0;
-  UINTN               TextMenuWidth = 0, ItemWidth = 0, MenuHeight = 0, iSwitch;
-  CHAR16              *TimeoutMessage,
-                      *ResultString = AllocateZeroPool (SVALUE_MAX_SIZE);
+  INTN      i = 0, j = 0;
+  UINTN     ThisMenuPosY = 0;
+  UINTN     TextMenuWidth = 0, ItemWidth = 0, MenuHeight = 0, iSwitch;
+  CHAR16    *TimeoutMessage,
+            *ResultString = AllocateZeroPool (SVALUE_MAX_SIZE);
 
   switch (Function) {
     case MENU_FUNCTION_INIT:
       // vertical layout
-      MenuPosY = 4;
+      ThisMenuPosY = 4;
 
       if (Screen->InfoLineCount > 0) {
-        MenuPosY += Screen->InfoLineCount + 1;
+        ThisMenuPosY += Screen->InfoLineCount + 1;
       }
 
-      MenuHeight = ConHeight - MenuPosY;
+      MenuHeight = ConHeight - ThisMenuPosY;
 
       if (Screen->TimeoutSeconds > 0) {
         MenuHeight -= 2;
@@ -1910,6 +1890,10 @@ TextMenuStyle (
 
             case mTools:
               j = OldChosenTool;
+              break;
+
+            case mDSDTs:
+              j = OldChosenDSDT;
               break;
           }
           break;
@@ -1960,7 +1944,7 @@ TextMenuStyle (
       for (i = State->FirstVisible; i <= State->LastVisible && i <= State->MaxIndex; i++) {
         REFIT_MENU_ENTRY    *Entry = Screen->Entries[i];
 
-        gST->ConOut->SetCursorPosition (gST->ConOut, 2, MenuPosY + (i - State->FirstVisible));
+        gST->ConOut->SetCursorPosition (gST->ConOut, 2, ThisMenuPosY + (i - State->FirstVisible));
         if (i == State->CurrentSelection) {
           gST->ConOut->SetAttribute (gST->ConOut, ATTR_CHOICE_CURRENT);
         } else {
@@ -1989,6 +1973,10 @@ TextMenuStyle (
               case mTools:
                 iSwitch = (UINTN)OldChosenTool;
                 break;
+
+              case mDSDTs:
+                iSwitch = (UINTN)OldChosenDSDT;
+                break;
             }
 
             ResultString = PoolPrint (L"%s %s", (Entry->Row == iSwitch) ? L"(*)" : L"( )", Entry->Title);
@@ -2015,7 +2003,7 @@ TextMenuStyle (
 
       // scrolling indicators
       gST->ConOut->SetAttribute (gST->ConOut, ATTR_SCROLLARROW);
-      gST->ConOut->SetCursorPosition (gST->ConOut, 0, MenuPosY);
+      gST->ConOut->SetCursorPosition (gST->ConOut, 0, ThisMenuPosY);
 
       if (State->FirstVisible > 0) {
         gST->ConOut->OutputString (gST->ConOut, ArrowUp);
@@ -2023,7 +2011,7 @@ TextMenuStyle (
         gST->ConOut->OutputString (gST->ConOut, L" ");
       }
 
-      gST->ConOut->SetCursorPosition (gST->ConOut, 0, MenuPosY + State->MaxVisible);
+      gST->ConOut->SetCursorPosition (gST->ConOut, 0, ThisMenuPosY + State->MaxVisible);
 
       if (State->LastVisible < State->MaxIndex) {
         gST->ConOut->OutputString (gST->ConOut, ArrowDown);
@@ -2037,7 +2025,7 @@ TextMenuStyle (
                           *EntryC = Screen->Entries[State->CurrentSelection];
 
       // redraw selection cursor
-      gST->ConOut->SetCursorPosition (gST->ConOut, 2, MenuPosY + (State->LastSelection - State->FirstVisible));
+      gST->ConOut->SetCursorPosition (gST->ConOut, 2, ThisMenuPosY + (State->LastSelection - State->FirstVisible));
       gST->ConOut->SetAttribute (gST->ConOut, ATTR_CHOICE_BASIC);
 
       switch (EntryL->Tag) {
@@ -2061,6 +2049,10 @@ TextMenuStyle (
 
             case mTools:
               iSwitch = (UINTN)OldChosenTool;
+              break;
+
+            case mDSDTs:
+              iSwitch = (UINTN)OldChosenDSDT;
               break;
           }
 
@@ -2087,7 +2079,7 @@ TextMenuStyle (
 
       // Current selection ///////////////////
 
-      gST->ConOut->SetCursorPosition (gST->ConOut, 2, MenuPosY + (State->CurrentSelection - State->FirstVisible));
+      gST->ConOut->SetCursorPosition (gST->ConOut, 2, ThisMenuPosY + (State->CurrentSelection - State->FirstVisible));
       gST->ConOut->SetAttribute (gST->ConOut, ATTR_CHOICE_CURRENT);
 
       switch (EntryC->Tag) {
@@ -2111,6 +2103,10 @@ TextMenuStyle (
 
             case mTools:
               iSwitch = (UINTN)OldChosenTool;
+              break;
+
+            case mDSDTs:
+              iSwitch = (UINTN)OldChosenDSDT;
               break;
           }
 
@@ -2218,19 +2214,19 @@ DrawBCSText (
 
   if (GlobalConfig.TileXSpace >= 25 && GlobalConfig.TileXSpace < 30) {
     ChrsNum = 13;
-  } else if (GlobalConfig.TileXSpace >= 30 && GlobalConfig.TileXSpace < 35) {
+  } else if ((GlobalConfig.TileXSpace >= 30) && (GlobalConfig.TileXSpace < 35)) {
     ChrsNum = 14;
-  } else if (GlobalConfig.TileXSpace >= 35 && GlobalConfig.TileXSpace < 40) {
+  } else if ((GlobalConfig.TileXSpace >= 35) && (GlobalConfig.TileXSpace < 40)) {
     ChrsNum = 15;
-  } else if (GlobalConfig.TileXSpace >= 40 && GlobalConfig.TileXSpace < 45) {
+  } else if ((GlobalConfig.TileXSpace >= 40) && (GlobalConfig.TileXSpace < 45)) {
     ChrsNum = 16;
-  } else if (GlobalConfig.TileXSpace >= 45 && GlobalConfig.TileXSpace < 50) {
+  } else if ((GlobalConfig.TileXSpace >= 45) && (GlobalConfig.TileXSpace < 50)) {
     ChrsNum = 17;
-  } else if (GlobalConfig.TileXSpace >= 50 && GlobalConfig.TileXSpace < 55) {
+  } else if ((GlobalConfig.TileXSpace >= 50) && (GlobalConfig.TileXSpace < 55)) {
     ChrsNum = 18;
   }
 
-  TextWidth = (((INTN) StrLen (Text) <= ChrsNum - Ellipsis) ? (INTN) StrLen (Text) : ChrsNum) *
+  TextWidth = (((INTN) StrLen (Text) <= (ChrsNum - Ellipsis)) ? (INTN) StrLen (Text) : ChrsNum) *
               ((FontWidth > GlobalConfig.CharWidth) ? FontWidth : GlobalConfig.CharWidth);
 
   // render the text
@@ -2246,11 +2242,7 @@ DrawBCSText (
     BCSText = AllocatePool (sizeof (CHAR16) * ChrsNum);
 
     for (i = 0; i < ChrsNum; i++) {
-      if (i < ChrsNum - Ellipsis) {
-        BCSText[i] = Text[i];
-      } else {
-        BCSText[i] = L'.';
-      }
+      BCSText[i] = (i < (ChrsNum - Ellipsis)) ? Text[i] : L'.';
     }
 
     BCSText[ChrsNum] = '\0';
@@ -2349,7 +2341,6 @@ GraphicsMenuStyle (
   CHAR16      ResultString[SVALUE_MAX_SIZE];
 
   switch (Function) {
-
     case MENU_FUNCTION_INIT:
       GetScreenSize (&UGAWidth, &UGAHeight);
       InitAnime (Screen);
@@ -2380,6 +2371,10 @@ GraphicsMenuStyle (
 
             case mTools:
               j = OldChosenTool;
+              break;
+
+            case mDSDTs:
+              j = OldChosenDSDT;
               break;
           }
           break;
@@ -2515,6 +2510,10 @@ GraphicsMenuStyle (
               case mTools:
                 iSwitch = (UINTN)OldChosenTool;
                 break;
+
+              case mDSDTs:
+                iSwitch = (UINTN)OldChosenDSDT;
+                break;
             }
 
             DrawMenuText (
@@ -2610,6 +2609,10 @@ GraphicsMenuStyle (
             case mTools:
               iSwitch = (UINTN)OldChosenTool;
               break;
+
+            case mDSDTs:
+              iSwitch = (UINTN)OldChosenDSDT;
+              break;
           }
 
           DrawMenuText (
@@ -2694,6 +2697,10 @@ GraphicsMenuStyle (
             case mTools:
               iSwitch = (UINTN)OldChosenTool;
               break;
+
+            case mDSDTs:
+              iSwitch = (UINTN)OldChosenDSDT;
+              break;
           }
 
           DrawMenuText (
@@ -2773,7 +2780,7 @@ DrawMainMenuEntry (
     }
   }
 
-  //  DBG ("Entry title=%s; Width=%d\n", Entry->Title, MainImage->Width);
+  //DBG ("Entry title=%s; Width=%d\n", Entry->Title, MainImage->Width);
   Scale = ((Entry->Row == 0) ? (Scale * (Selected ? 1 : -1)): 16) ;
   if (GlobalConfig.SelectionOnTop) {
     BltImageCompositeBadge (
@@ -3007,29 +3014,19 @@ MainMenuStyle (
 
       row1PosX = (UGAWidth + 8 - (GlobalConfig.row1TileSize + TILE_XSPACING) * row1Count) >> 1;
 
-      if (GlobalConfig.BootCampStyle) {
-        row1PosY = row0PosY + GlobalConfig.row0TileSize +
-                   GlobalConfig.LayoutButtonOffset + GlobalConfig.TileYSpace + INDICATOR_SIZE +
-                   ((GlobalConfig.HideUIFlags & HIDEUI_FLAG_LABEL) ? 15 : (FontHeight + 30));
-      } else {
-        row1PosY = row0PosY + EntriesHeight + GlobalConfig.TileYSpace + GlobalConfig.LayoutButtonOffset;
-      }
+      row1PosY = GlobalConfig.BootCampStyle
+        ? row0PosY + GlobalConfig.row0TileSize +
+            GlobalConfig.LayoutButtonOffset + GlobalConfig.TileYSpace + INDICATOR_SIZE +
+            ((GlobalConfig.HideUIFlags & HIDEUI_FLAG_LABEL) ? 15 : (FontHeight + 30))
+        : row0PosY + EntriesHeight + GlobalConfig.TileYSpace + GlobalConfig.LayoutButtonOffset;
 
       FunctextPosY = row1PosY + GlobalConfig.row1TileSize + GlobalConfig.TileYSpace + GlobalConfig.LayoutTextOffset;
 
-      if (row1Count > 0) {
-        if (GlobalConfig.BootCampStyle) {
-          textPosY = row0PosY + GlobalConfig.row0TileSize + 10;
-        } else {
-          textPosY = FunctextPosY;
-        }
-      } else {
-        if (GlobalConfig.BootCampStyle) {
-          textPosY = row0PosY + GlobalConfig.row0TileSize + 10;
-        } else {
-          textPosY = row1PosY;
-        }
-      }
+      textPosY = GlobalConfig.BootCampStyle
+        ? row0PosY + GlobalConfig.row0TileSize + 10
+        : (row1Count > 0)
+            ? FunctextPosY
+            : row1PosY;
 
       if (!itemPosX) {
         itemPosX = AllocatePool (sizeof (UINT64) * Screen->EntryCount);
@@ -3180,7 +3177,7 @@ MainMenuStyle (
       }
 
       // create dynamic text for all the entries
-      if ((!(GlobalConfig.BootCampStyle)) && (!(GlobalConfig.HideUIFlags & HIDEUI_FLAG_LABEL))) {
+      if (!GlobalConfig.BootCampStyle && !(GlobalConfig.HideUIFlags & HIDEUI_FLAG_LABEL)) {
         DrawMainMenuLabel (
           Screen->Entries[State->CurrentSelection]->Title,
           (UGAWidth >> 1), textPosY, Screen, State
@@ -3199,6 +3196,7 @@ MainMenuStyle (
           (UGAWidth >> 1), FunctextPosY + TextHeight * i,
           OldTimeoutTextWidth, TextHeight, &TransparentBackgroundPixel, X_IS_CENTER
         );
+
         OldTimeoutTextWidth = DrawTextXY (ParamText, (UGAWidth >> 1), FunctextPosY + TextHeight * i, X_IS_CENTER, 0);
       }
 
@@ -3249,7 +3247,6 @@ SubMenuDevices () {
 
   for (i = 0; i < OptMenuDevicesNum; i++) {
     AddMenuBOOL (SubScreen, OPT_MENU_DEVICES[i].Title, NULL, OPT_MENU_DEVICES[i].ID);
-    i++;
   }
 
   AddMenuEntry (SubScreen, &MenuEntryReturn);
@@ -3311,23 +3308,26 @@ SubMenuAcpi () {
   REFIT_MENU_SCREEN   *SubScreen = NULL;
   CHAR8               Sign[5], OTID[9];
   INTN                i = 0;
+  S_FILES             *aTmp = aDSDTs;
 
   Sign[4] = 0;
   OTID[8] = 0;
 
   CreateHeaderEntries (&Entry, &SubScreen, L"ACPI", SCREEN_TABLES, 'A');
 
-  for (i = 0; i < OptMenuDSDTFixesNum; i++) {
-    UINTN   ID = OPT_MENU_DSDT[i].ID;
+  if (aDSDTs) {
+    AddSeparator (SubScreen, "Available DSDT");
 
-    switch (ID) {
-      case mDSDTName:
-        AddMenuString (SubScreen, OPT_MENU_DSDT[i].Title, ID);
-        break;
+    while (aTmp) {
+      AddMenuRadio (
+        SubScreen,
+        PoolPrint (L"%s: %s", aTmp->Description, aTmp->FileName), //StrToTitle (aTmp->FileName)
+        NULL,
+        mDSDTs,
+        aTmp->Index
+      );
 
-      //case mDebugDSDT:
-      //  AddMenuBOOL (SubScreen, OPT_MENU_DSDT[i].Title, NULL, ID);
-      //  break;
+      aTmp = aTmp->Next;
     }
   }
 
@@ -3371,6 +3371,8 @@ SubMenuAcpi () {
         OsSubdir = OSTYPE_LINUX_STR;
       } else if (OSTYPE_IS_WINDOWS_GLOB (ACPIPatchedAMLTmp->OSType)) {
         OsSubdir = OSTYPE_WINDOWS_STR;
+      } else {
+        continue;
       }
 
       AddMenuBOOL (SubScreen, PoolPrint (L"Drop \"%s: %s\"", OsSubdir, ACPIPatchedAMLTmp->FileName), &(ACPIPatchedAMLTmp->MenuItem), 0);
@@ -3485,13 +3487,12 @@ OptionsMenu (
   }
 
   // remember, if you extended this menu then change procedures
+
   // FillInputs and ApplyInputs
 
-  if (!(GlobalConfig.HideUIFlags & HIDEUI_FLAG_MENU_TITLE_IMAGE)) {
-    OptionMenu.TitleImage = BuiltinIcon (BUILTIN_ICON_FUNC_OPTIONS);
-  } else {
-    OptionMenu.TitleImage = NULL;
-  }
+  OptionMenu.TitleImage = (!(GlobalConfig.HideUIFlags & HIDEUI_FLAG_MENU_TITLE_IMAGE))
+    ? BuiltinIcon (BUILTIN_ICON_FUNC_OPTIONS)
+    : NULL;
 
   gThemeOptionsChanged = FALSE;
 

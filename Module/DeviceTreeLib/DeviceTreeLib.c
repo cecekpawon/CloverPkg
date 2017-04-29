@@ -46,106 +46,107 @@ RealDTEntry   DTRootNode;
 */
 RealDTEntry
 SkipProperties (
-  RealDTEntry   entry
+  RealDTEntry   Entry
 ) {
-  DeviceTreeNodeProperty    *prop;
+  DeviceTreeNodeProperty    *Prop;
   UINTN                     k;
 
-  if ((entry == NULL) || (entry->nProperties == 0)) {
+  if ((Entry == NULL) || (Entry->nProperties == 0)) {
     return NULL;
   } else {
-    prop = (DeviceTreeNodeProperty *)(entry + 1);
-    for (k = 0; k < entry->nProperties; k++) {
-      prop = NextProp (prop);
+    Prop = (DeviceTreeNodeProperty *)(Entry + 1);
+    for (k = 0; k < Entry->nProperties; k++) {
+      Prop = NextProp (Prop);
     }
   }
 
-  return ((RealDTEntry) prop);
+  return ((RealDTEntry) Prop);
 }
 
 RealDTEntry
 SkipTree (
-  RealDTEntry   root
+  RealDTEntry   Root
 ) {
-  RealDTEntry   entry;
+  RealDTEntry   Entry;
   UINTN         k;
 
-  entry = SkipProperties (root);
-  if (entry == NULL) {
+  Entry = SkipProperties (Root);
+  if (Entry == NULL) {
     return NULL;
   }
 
-  for (k = 0; k < root->nChildren; k++) {
-    entry = SkipTree (entry);
+  for (k = 0; k < Root->nChildren; k++) {
+    Entry = SkipTree (Entry);
   }
 
-  return entry;
+  return Entry;
 }
 
 RealDTEntry
 GetFirstChild (
-  RealDTEntry   parent
+  RealDTEntry   Parent
 ) {
-  return SkipProperties (parent);
+  return SkipProperties (Parent);
 }
 
 RealDTEntry
 GetNextChild (
-  RealDTEntry   sibling
+  RealDTEntry   Sibling
 ) {
-  return SkipTree (sibling);
+  return SkipTree (Sibling);
 }
 
 CONST
 CHAR8 *
 GetNextComponent (
-  CONST CHAR8   *cp,
-        CHAR8   *bp
+  CONST CHAR8   *Cp,
+        CHAR8   *Bp
 ) {
-  while (*cp != 0) {
-    if (*cp == kDTPathNameSeparator) {
-      cp++;
+  while (*Cp != 0) {
+    if (*Cp == kDTPathNameSeparator) {
+      Cp++;
       break;
     }
-    *bp++ = *cp++;
+    *Bp++ = *Cp++;
   }
 
-  *bp = 0;
-  return cp;
+  *Bp = 0;
+
+  return Cp;
 }
 
 RealDTEntry
 FindChild (
-  RealDTEntry   cur,
-  CHAR8         *buf
+  RealDTEntry   Cur,
+  CHAR8         *Buf
 ) {
-  RealDTEntry   child;
-  UINT32        index;
-  CHAR8         *str;
-  UINT32        dummy;
+  RealDTEntry   Child;
+  UINT32        Index;
+  CHAR8         *Str;
+  UINT32        Dummy;
 
-  if (cur->nChildren == 0) {
+  if (Cur->nChildren == 0) {
     return NULL;
   }
 
-  index = 1;
-  child = GetFirstChild (cur);
+  Index = 1;
+  Child = GetFirstChild (Cur);
 
   while (1) {
-    if (DTGetProperty (child, "name", (VOID **)&str, &dummy) != kSuccess) {
+    if (DTGetProperty (Child, "name", (VOID **)&Str, &Dummy) != kSuccess) {
       break;
     }
 
-    if (AsciiStrCmp ((CHAR8 *)str, (CHAR8 *)buf) == 0) {
-      return child;
+    if (AsciiStrCmp ((CHAR8 *)Str, (CHAR8 *)Buf) == 0) {
+      return Child;
     }
 
-    if (index >= cur->nChildren) {
+    if (Index >= Cur->nChildren) {
       break;
     }
 
-    child = GetNextChild (child);
-    index++;
+    Child = GetNextChild (Child);
+    Index++;
   }
 
   return NULL;
@@ -157,60 +158,60 @@ FindChild (
 VOID
 EFIAPI
 DTInit (
-  VOID    *base
+  VOID    *Base
 ) {
-  DTRootNode = (RealDTEntry) base;
+  DTRootNode = (RealDTEntry) Base;
   DTInitialized = (DTRootNode != 0);
 }
 
 INTN
 DTEntryIsEqual (
-  CONST DTEntry   ref1,
-  CONST DTEntry   ref2
+  CONST DTEntry   Ref1,
+  CONST DTEntry   Ref2
 ) {
   /* equality of pointers */
-  return (ref1 == ref2);
+  return (Ref1 == Ref2);
 }
 
 // APTIO
 CHAR8   *startingP;   // needed for FindEntry
-//INTN    FindEntry (CONST CHAR8 *propName, CONST CHAR8 *propValue, DTEntry *entryH);
+//INTN    FindEntry (CONST CHAR8 *propName, CONST CHAR8 *propValue, DTEntry *EntryH);
 
 INTN
 FindEntry (
-  CONST CHAR8       *propName,
-  CONST CHAR8       *propValue,
-        DTEntry     *entryH
+  CONST CHAR8       *PropName,
+  CONST CHAR8       *PropValue,
+        DTEntry     *EntryH
 ) {
-  DeviceTreeNode  *nodeP = (DeviceTreeNode *)(VOID *)startingP;
+  DeviceTreeNode  *NodeP = (DeviceTreeNode *)(VOID *)startingP;
   UINTN           k;
 
-  if (nodeP->nProperties == 0) {
+  if (NodeP->nProperties == 0) {
     return (kError);  // End of the list of nodes
   }
 
-  startingP = (CHAR8 *)(nodeP + 1);
+  startingP = (CHAR8 *)(NodeP + 1);
 
   // Search current entry
-  for (k = 0; k < nodeP->nProperties; ++k) {
-    DeviceTreeNodeProperty    *propP = (DeviceTreeNodeProperty *)(VOID *)startingP;
+  for (k = 0; k < NodeP->nProperties; ++k) {
+    DeviceTreeNodeProperty    *PropP = (DeviceTreeNodeProperty *)(VOID *)startingP;
 
-    startingP += sizeof (*propP) + ((propP->length + 3) & -4);
+    startingP += sizeof (*PropP) + ((PropP->length + 3) & -4);
 
-    if (AsciiStrCmp ((CHAR8 *)propP->name, (CHAR8 *)propName) == 0) {
+    if (AsciiStrCmp ((CHAR8 *)PropP->name, (CHAR8 *)PropName) == 0) {
       if (
-        (propValue == NULL) ||
-        (AsciiStrCmp ( (CHAR8 *)(propP + 1), (CHAR8 *)propValue) == 0)
+        (PropValue == NULL) ||
+        (AsciiStrCmp ( (CHAR8 *)(PropP + 1), (CHAR8 *)PropValue) == 0)
       ) {
-        *entryH = (DTEntry)nodeP;
+        *EntryH = (DTEntry)NodeP;
         return (kSuccess);
       }
     }
   }
 
-  // Search child nodes
-  for (k = 0; k < nodeP->nChildren; ++k) {
-    if (FindEntry (propName, propValue, entryH) == kSuccess) {
+  // Search Child nodes
+  for (k = 0; k < NodeP->nChildren; ++k) {
+    if (FindEntry (PropName, PropValue, EntryH) == kSuccess) {
       return (kSuccess);
     }
   }
@@ -220,182 +221,181 @@ FindEntry (
 
 INTN
 DTFindEntry (
-  CONST CHAR8     *propName,
-  CONST CHAR8     *propValue,
-        DTEntry   *entryH
+  CONST CHAR8     *PropName,
+  CONST CHAR8     *PropValue,
+        DTEntry   *EntryH
 ) {
   if (!DTInitialized) {
     return kError;
   }
 
   startingP = (CHAR8 *)DTRootNode;
-  return (FindEntry (propName, propValue, entryH));
+  return (FindEntry (PropName, PropValue, EntryH));
 }
 
 INTN
 EFIAPI
 DTLookupEntry (
-  CONST DTEntry   searchPoint,
-  CONST CHAR8     *pathName,
-        DTEntry   *foundEntry
+  CONST DTEntry   SearchPoint,
+  CONST CHAR8     *PathName,
+        DTEntry   *FoundEntry
 ) {
-        DTEntryNameBuf  buf;
-        RealDTEntry     cur;
-  CONST CHAR8           *cp;
+        DTEntryNameBuf  Buf;
+        RealDTEntry     Cur;
+  CONST CHAR8           *Cp;
 
   if (!DTInitialized) {
     return kError;
   }
 
-  if (searchPoint == NULL)   {
-    cur = DTRootNode;
+  if (SearchPoint == NULL)   {
+    Cur = DTRootNode;
   } else {
-    cur = searchPoint;
+    Cur = SearchPoint;
   }
 
-  cp = pathName;
-  if (*cp == kDTPathNameSeparator) {
-    cp++;
-    if (*cp == 0) {
-      *foundEntry = cur;
+  Cp = PathName;
+  if (*Cp == kDTPathNameSeparator) {
+    Cp++;
+    if (*Cp == 0) {
+      *FoundEntry = Cur;
       return kSuccess;
     }
   }
 
   do {
-    cp = GetNextComponent (cp, buf);
+    Cp = GetNextComponent (Cp, Buf);
 
     /* Check for done */
-    if (*buf == 0) {
-      if (*cp == 0) {
-        *foundEntry = cur;
+    if (*Buf == 0) {
+      if (*Cp == 0) {
+        *FoundEntry = Cur;
         return kSuccess;
       }
       break;
     }
 
-    cur = FindChild (cur, buf);
+    Cur = FindChild (Cur, Buf);
 
-  } while (cur != NULL);
+  } while (Cur != NULL);
 
   return kError;
 }
 
 INTN
 DTCreateEntryIterator (
-  CONST DTEntry           startEntry,
-        DTEntryIterator   *iterator
+  CONST DTEntry           StartEntry,
+        DTEntryIterator   *Iterator
 ) {
-  RealDTEntryIterator   iter;
+  RealDTEntryIterator   Iter;
 
   if (!DTInitialized) {
     return kError;
   }
 
-  iter = (RealDTEntryIterator) AllocatePool (sizeof (struct OpaqueDTEntryIterator));
-  if (startEntry != NULL) {
-    iter->outerScope = (RealDTEntry) startEntry;
-    iter->currentScope = (RealDTEntry) startEntry;
+  Iter = (RealDTEntryIterator) AllocatePool (sizeof (struct OpaqueDTEntryIterator));
+  if (StartEntry != NULL) {
+    Iter->outerScope = (RealDTEntry)StartEntry;
+    Iter->currentScope = (RealDTEntry)StartEntry;
   } else {
-    iter->outerScope = DTRootNode;
-    iter->currentScope = DTRootNode;
+    Iter->outerScope = DTRootNode;
+    Iter->currentScope = DTRootNode;
   }
 
-  iter->currentEntry = NULL;
-  iter->savedScope = NULL;
-  iter->currentIndex = 0;
+  Iter->currentEntry = NULL;
+  Iter->savedScope = NULL;
+  Iter->currentIndex = 0;
 
-  *iterator = iter;
+  *Iterator = Iter;
 
   return kSuccess;
 }
 
 INTN
 DTDisposeEntryIterator (
-  DTEntryIterator   iterator
+  DTEntryIterator   Iterator
 ) {
-  RealDTEntryIterator   iter = iterator;
-  DTSavedScopePtr       scope;
+  RealDTEntryIterator   Iter = Iterator;
+  DTSavedScopePtr       Scope;
 
-  while ((scope = iter->savedScope) != NULL) {
-    iter->savedScope = scope->nextScope;
-    FreePool (scope);
+  while ((Scope = Iter->savedScope) != NULL) {
+    Iter->savedScope = Scope->nextScope;
+    FreePool (Scope);
   }
 
-  FreePool (iterator);
+  FreePool (Iterator);
 
   return kSuccess;
 }
 
 INTN
 DTEnterEntry (
-  DTEntryIterator   iterator,
-  DTEntry           childEntry
+  DTEntryIterator   Iterator,
+  DTEntry           ChildEntry
 ) {
-  RealDTEntryIterator   iter = iterator;
-  DTSavedScopePtr       newScope;
+  RealDTEntryIterator   Iter = Iterator;
+  DTSavedScopePtr       NewScope;
 
-  if (childEntry == NULL) {
+  if (ChildEntry == NULL) {
     return kError;
   }
 
-  newScope = (DTSavedScopePtr) AllocatePool (sizeof (struct DTSavedScope));
-  newScope->nextScope = iter->savedScope;
-  newScope->scope = iter->currentScope;
-  newScope->entry = iter->currentEntry;
-  newScope->index = iter->currentIndex;
+  NewScope = (DTSavedScopePtr) AllocatePool (sizeof (struct DTSavedScope));
+  NewScope->nextScope = Iter->savedScope;
+  NewScope->scope = Iter->currentScope;
+  NewScope->entry = Iter->currentEntry;
+  NewScope->index = Iter->currentIndex;
 
-  iter->currentScope = childEntry;
-  iter->currentEntry = NULL;
-  iter->savedScope = newScope;
-  iter->currentIndex = 0;
+  Iter->currentScope = ChildEntry;
+  Iter->currentEntry = NULL;
+  Iter->savedScope = NewScope;
+  Iter->currentIndex = 0;
 
   return kSuccess;
 }
 
 INTN
 DTExitEntry (
-  DTEntryIterator   iterator,
-  DTEntry           *currentPosition
+  DTEntryIterator   Iterator,
+  DTEntry           *CurrentPosition
 ) {
-  RealDTEntryIterator   iter = iterator;
-  DTSavedScopePtr       newScope;
+  RealDTEntryIterator   Iter = Iterator;
+  DTSavedScopePtr       NewScope;
 
-  newScope = iter->savedScope;
-  if (newScope == NULL) {
+  NewScope = Iter->savedScope;
+  if (NewScope == NULL) {
     return kError;
   }
 
-  iter->savedScope = newScope->nextScope;
-  iter->currentScope = newScope->scope;
-  iter->currentEntry = newScope->entry;
-  iter->currentIndex = newScope->index;
-  *currentPosition = iter->currentEntry;
+  Iter->savedScope = NewScope->nextScope;
+  Iter->currentScope = NewScope->scope;
+  Iter->currentEntry = NewScope->entry;
+  Iter->currentIndex = NewScope->index;
+  *CurrentPosition = Iter->currentEntry;
 
-  FreePool (newScope);
+  FreePool (NewScope);
 
   return kSuccess;
 }
 
 INTN
 DTIterateEntries (
-  DTEntryIterator   iterator,
-  DTEntry           *nextEntry
+  DTEntryIterator   Iterator,
+  DTEntry           *NextEntry
 ) {
-  RealDTEntryIterator iter = iterator;
+  RealDTEntryIterator Iter = Iterator;
 
-  if (iter->currentIndex >= iter->currentScope->nChildren) {
-    *nextEntry = NULL;
+  if (Iter->currentIndex >= Iter->currentScope->nChildren) {
+    *NextEntry = NULL;
     return kIterationDone;
   } else {
-    iter->currentIndex++;
-    if (iter->currentIndex == 1) {
-      iter->currentEntry = GetFirstChild (iter->currentScope);
-    } else {
-      iter->currentEntry = GetNextChild (iter->currentEntry);
-    }
+    Iter->currentIndex++;
 
-    *nextEntry = iter->currentEntry;
+    Iter->currentEntry = (Iter->currentIndex == 1)
+      ? GetFirstChild (Iter->currentScope)
+      : GetNextChild (Iter->currentEntry);
+
+    *NextEntry = Iter->currentEntry;
 
     return kSuccess;
   }
@@ -403,9 +403,9 @@ DTIterateEntries (
 
 INTN
 DTRestartEntryIteration (
-  DTEntryIterator   iterator
+  DTEntryIterator   Iterator
 ) {
-  RealDTEntryIterator   iter = iterator;
+  RealDTEntryIterator   Iter = Iterator;
 
 #if 0
   // This commented out code allows a second argument (outer)
@@ -414,43 +414,44 @@ DTRestartEntryIteration (
   DTSavedScopePtr scope;
 
   if (outer) {
-    while ((scope = iter->savedScope) != NULL) {
-      iter->savedScope = scope->nextScope;
+    while ((scope = Iter->savedScope) != NULL) {
+      Iter->savedScope = scope->nextScope;
       FreePool (scope);
     }
-    iter->currentScope = iter->outerScope;
+    Iter->currentScope = Iter->outerScope;
   }
 #endif
 
-  iter->currentEntry = NULL;
-  iter->currentIndex = 0;
+  Iter->currentEntry = NULL;
+  Iter->currentIndex = 0;
+
   return kSuccess;
 }
 
 INTN
 EFIAPI
 DTGetProperty (
-  CONST DTEntry   entry,
-  CONST CHAR8     *propertyName,
-        VOID      **propertyValue,
-        UINT32    *propertySize
+  CONST DTEntry   Entry,
+  CONST CHAR8     *PropertyName,
+        VOID      **PropertyValue,
+        UINT32    *PropertySize
 ) {
-  DeviceTreeNodeProperty    *prop;
+  DeviceTreeNodeProperty    *Prop;
   UINTN                     k;
 
-  if ((entry == NULL) || (entry->nProperties == 0)) {
+  if ((Entry == NULL) || (Entry->nProperties == 0)) {
     return kError;
   } else {
-    prop = (DeviceTreeNodeProperty *)(entry + 1);
-    for (k = 0; k < entry->nProperties; k++) {
-      if (AsciiStrCmp ((CHAR8 *)prop->name, (CHAR8 *)propertyName) == 0) {
-        *propertyValue = (VOID *) (((UINT8 *)prop) + sizeof (DeviceTreeNodeProperty));
-        *propertySize = prop->length;
+    Prop = (DeviceTreeNodeProperty *)(Entry + 1);
+    for (k = 0; k < Entry->nProperties; k++) {
+      if (AsciiStrCmp ((CHAR8 *)Prop->name, (CHAR8 *)PropertyName) == 0) {
+        *PropertyValue = (VOID *) (((UINT8 *)Prop) + sizeof (DeviceTreeNodeProperty));
+        *PropertySize = Prop->length;
 
         return kSuccess;
       }
 
-      prop = NextProp (prop);
+      Prop = NextProp (Prop);
     }
   }
 
@@ -460,17 +461,17 @@ DTGetProperty (
 INTN
 EFIAPI
 DTCreatePropertyIterator (
-  CONST DTEntry             entry,
-        DTPropertyIterator  *iterator
+  CONST DTEntry             Entry,
+        DTPropertyIterator  *Iterator
 ) {
-  RealDTPropertyIterator    iter;
+  RealDTPropertyIterator    Iter;
 
-  iter = (RealDTPropertyIterator) AllocatePool (sizeof (struct OpaqueDTPropertyIterator));
-  iter->entry = entry;
-  iter->currentProperty = NULL;
-  iter->currentIndex = 0;
+  Iter = (RealDTPropertyIterator) AllocatePool (sizeof (struct OpaqueDTPropertyIterator));
+  Iter->entry = Entry;
+  Iter->currentProperty = NULL;
+  Iter->currentIndex = 0;
 
-  *iterator = iter;
+  *Iterator = Iter;
 
   return kSuccess;
 }
@@ -480,23 +481,23 @@ DTCreatePropertyIterator (
 INTN
 EFIAPI
 DTCreatePropertyIteratorNoAlloc (
-  CONST DTEntry             entry,
-        DTPropertyIterator  iterator
+  CONST DTEntry             Entry,
+        DTPropertyIterator  Iterator
 ) {
-  RealDTPropertyIterator iter = iterator;
+  RealDTPropertyIterator Iter = Iterator;
 
-  iter->entry = entry;
-  iter->currentProperty = NULL;
-  iter->currentIndex = 0;
+  Iter->entry = Entry;
+  Iter->currentProperty = NULL;
+  Iter->currentIndex = 0;
 
   return kSuccess;
 }
 
 INTN
 DTDisposePropertyIterator (
-  DTPropertyIterator    iterator
+  DTPropertyIterator    Iterator
 ) {
-  FreePool (iterator);
+  FreePool (Iterator);
 
   return kSuccess;
 }
@@ -504,23 +505,24 @@ DTDisposePropertyIterator (
 INTN
 EFIAPI
 DTIterateProperties (
-  DTPropertyIterator    iterator,
-  CHAR8                 **foundProperty
+  DTPropertyIterator    Iterator,
+  CHAR8                 **FoundProperty
 ) {
-  RealDTPropertyIterator    iter = iterator;
+  RealDTPropertyIterator    Iter = Iterator;
 
-  if (iter->currentIndex >= iter->entry->nProperties) {
-    *foundProperty = NULL;
+  if (Iter->currentIndex >= Iter->entry->nProperties) {
+    *FoundProperty = NULL;
     return kIterationDone;
   } else {
-    iter->currentIndex++;
-    if (iter->currentIndex == 1) {
-      iter->currentProperty = (DeviceTreeNodeProperty *)(iter->entry + 1);
+    Iter->currentIndex++;
+    if (Iter->currentIndex == 1) {
+      Iter->currentProperty = (DeviceTreeNodeProperty *)(Iter->entry + 1);
     } else {
-      iter->currentProperty = NextProp (iter->currentProperty);
+      Iter->currentProperty = NextProp (Iter->currentProperty);
     }
 
-    *foundProperty = iter->currentProperty->name;
+    *FoundProperty = Iter->currentProperty->name;
+
     return kSuccess;
   }
 }
@@ -528,12 +530,12 @@ DTIterateProperties (
 INTN
 EFIAPI
 DTRestartPropertyIteration (
-  DTPropertyIterator    iterator
+  DTPropertyIterator    Iterator
 ) {
-  RealDTPropertyIterator    iter = iterator;
+  RealDTPropertyIterator    Iter = Iterator;
 
-  iter->currentProperty = NULL;
-  iter->currentIndex = 0;
+  Iter->currentProperty = NULL;
+  Iter->currentIndex = 0;
 
   return kSuccess;
 }

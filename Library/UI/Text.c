@@ -111,7 +111,8 @@ LoadFontImage (
     goto F_EMBEDDED;
   }
 
-F_EMBEDDED:
+  F_EMBEDDED:
+
   NewImage = DEC_PNG_BUILTIN (emb_font_data);
   GlobalConfig.FontEmbedded = TRUE;
 
@@ -119,16 +120,18 @@ F_EMBEDDED:
   //  GlobalConfig.Font = DefaultConfig.Font;
   //}
 
-F_THEME:
+  F_THEME:
+
   if (GlobalConfig.FontEmbedded) {
     Rows = DefaultConfig.CharRows;
   } else {
     switch (Rows) {
       case 6:   // (32 - 127)
       case 8:   // (0 - 127)
+	    //
         break;
 
-      case 0:   // Invalid parse theme.plist
+      //case 0:   // Invalid parse theme.plist
       default:
         Rows = 16;
         break;
@@ -221,8 +224,9 @@ PrepareFont () {
         PaintFont (FontImageHover, TextPixel);
         break;
 
-      case FONT_RAW:
+      //case FONT_RAW:
       default:
+        //
         break;
     }
 
@@ -235,12 +239,12 @@ PrepareFont () {
 
 INTN
 RenderText (
-  IN CHAR16         *Text,
-  IN OUT EG_IMAGE   *CompImage,
-  IN INTN           PosX,
-  IN INTN           PosY,
-  IN INTN           Cursor,
-  IN BOOLEAN        Selected
+  IN      CHAR16     *Text,
+  IN OUT  EG_IMAGE   *CompImage,
+  IN      INTN       PosX,
+  IN      INTN       PosY,
+  IN      INTN       Cursor,
+  IN      BOOLEAN    Selected
 ) {
   EG_PIXEL        *BufferPtr, *FontPixelData, *FirstPixelBuf;
   INTN            BufferLineWidth, BufferLineOffset, FontLineOffset, i,
@@ -250,6 +254,7 @@ RenderText (
 
   // clip the text
   TextLength = StrLen (Text);
+
   if (!FontImage) {
     PrepareFont ();
   }
@@ -274,7 +279,7 @@ RenderText (
 
   for (i = 0; i < TextLength; i++) {
     c = Text[i];
-    c1 = (((c >=0x410) ? (c -= 0x350) : c) & 0xff); //Russian letters
+    c1 = (((c >=0x410) ? (c -= 0x350) : c) & 0xff); // Cyrillic letters
     c = c1;
 
     if (GlobalConfig.CharRows == 6) {
@@ -313,5 +318,3 @@ RenderText (
 
   return ((INTN)BufferPtr - (INTN)FirstPixelBuf) / sizeof (EG_PIXEL);
 }
-
-/* EOF */

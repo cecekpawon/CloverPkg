@@ -26,7 +26,7 @@ ScanDriverDir (
   EFI_FILE_INFO                   *DirEntry;
   EFI_HANDLE                      DriverHandle, *DriversArr = NULL;
   EFI_DRIVER_BINDING_PROTOCOL     *DriverBinding;
-  CHAR16                          FileName[AVALUE_MAX_SIZE];
+  CHAR16                          Str[AVALUE_MAX_SIZE];
   UINTN                           DriversArrSize = 0, DriversArrNum = 0, NumLoad = 0;
   INTN                            i = 0, y;
   BOOLEAN                         Skip;
@@ -51,7 +51,7 @@ ScanDriverDir (
       continue;
     }
 
-    UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s\\%s", Path, DirEntry->FileName);
+    UnicodeSPrint (Str, ARRAY_SIZE (Str), L"%s\\%s", Path, DirEntry->FileName);
 
     if (
       (
@@ -74,7 +74,7 @@ ScanDriverDir (
     }
 
     Status = StartEFIImage (
-                FileDevicePath (SelfLoadedImage->DeviceHandle, FileName),
+                FileDevicePath (SelfLoadedImage->DeviceHandle, Str),
                 L"",
                 DirEntry->FileName,
                 DirEntry->FileName,
@@ -93,7 +93,7 @@ ScanDriverDir (
     //  gDriversFlags.AptioFixLoaded = TRUE;
     //}
 
-    if (StriStr (FileName, L"HFS") != NULL) {
+    if (StriStr (Str, L"HFS") != NULL) {
       gDriversFlags.HFSLoaded = TRUE;
     }
 
@@ -140,9 +140,9 @@ ScanDriverDir (
 
   Status = DirIterClose (&DirIter);
 
-  if (Status != EFI_NOT_FOUND) {
-    UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"while scanning the %s directory", Path);
-    CheckError (Status, FileName);
+  if ((Status != EFI_NOT_FOUND) && (Status != EFI_INVALID_PARAMETER)) {
+    UnicodeSPrint (Str, ARRAY_SIZE (Str), L"while scanning the %s directory", Path);
+    CheckError (Status, Str);
   }
 
   if ((DriversToConnectNum != 0) && (DriversToConnect != NULL)) {
@@ -249,23 +249,25 @@ LoadDrivers () {
 
   NumLoad = ScanDriverDir (DIR_DRIVERS, &DriversToConnect, &DriversToConnectNum);
 
-  if (DriversToConnectNum > 0) {
-    DBG ("%d drivers needs connecting ...\n", DriversToConnectNum);
+  if (NumLoad) {
+    if (DriversToConnectNum > 0) {
+      DBG ("%d drivers needs connecting ...\n", DriversToConnectNum);
 
-    // note: our platform driver protocol
-    // will use DriversToConnect - do not release it
-    RegisterDriversToHighestPriority (DriversToConnect);
+      // note: our platform driver protocol
+      // will use DriversToConnect - do not release it
+      RegisterDriversToHighestPriority (DriversToConnect);
 
-    DisconnectSomeDevices ();
+      DisconnectSomeDevices ();
 
-    BdsLibConnectAllDriversToAllControllers ();
-  }
+      BdsLibConnectAllDriversToAllControllers ();
+    }
 
-  if (NumLoad && !gDriversFlags.AptioFixLoaded) {
-    Status = EfiLibLocateProtocol (&gAptioFixProtocolGuid, (VOID **)&AptioFix);
-    if (!EFI_ERROR (Status) && (AptioFix->Signature == APTIOFIX_SIGNATURE)) {
-      DBG ("- AptioFix driver loaded\n");
-      gDriversFlags.AptioFixLoaded = TRUE;
+    if (!gDriversFlags.AptioFixLoaded) {
+      Status = EfiLibLocateProtocol (&gAptioFixProtocolGuid, (VOID **)&AptioFix);
+      if (!EFI_ERROR (Status) && (AptioFix->Signature == APTIOFIX_SIGNATURE)) {
+        DBG ("- AptioFix driver loaded\n");
+        gDriversFlags.AptioFixLoaded = TRUE;
+      }
     }
   }
 }

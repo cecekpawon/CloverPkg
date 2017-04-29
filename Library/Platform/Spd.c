@@ -16,8 +16,6 @@
  */
 
 #include <Library/Platform/Platform.h>
-#include <Library/Platform/Spd.h>
-//#include "memvendors.h"
 
 #ifndef DEBUG_ALL
 #ifndef DEBUG_SPD
@@ -32,54 +30,34 @@
 
 #define DBG(...) DebugLog (DEBUG_SPD, __VA_ARGS__)
 
+typedef enum {
+  SPD_MEMORY_TYPE,
+  SPD_NUM_ROWS,
+  SPD_NUM_COLUMNS,
+  SPD_NUM_DIMM_BANKS,
+  SPD_NUM_BANKS_PER_SDRAM,
+  SPD_ARR_END
+} SPD_ARR;
+
+#define MAX_SPD_SIZE                          8 * (SPD_ARR_END - 1)
+
+#define SPD_DDR3_MEMORY_BANK                  0x75
+#define SPD_DDR3_MEMORY_CODE                  0x76
+
+#define SPD_DDR4_MANUFACTURER_ID_BANK         0x140 /* Manufacturer's JEDEC ID code (bytes 140-141) */
+#define SPD_DDR4_MANUFACTURER_ID_CODE         0x141 /* Manufacturer's JEDEC ID code (bytes 140-141) */
+
+/* SPD_MEMORY_TYPE values. */
+#define SPD_MEMORY_TYPE_SDRAM_UNSUPPORTED     0
+#define SPD_MEMORY_TYPE_SDRAM_DDR             1
+#define SPD_MEMORY_TYPE_SDRAM_DDR2            2
+#define SPD_MEMORY_TYPE_SDRAM_DDR3            3
+#define SPD_MEMORY_TYPE_SDRAM_DDR4            4
+
 extern MEM_STRUCTURE    gRAM;
 
 BOOLEAN     SmbIntel;
 UINT8       SmbPage;
-
-#if 0
-CHAR8 *spd_memory_types[] =
-{
-  "RAM",                /* 00h  Undefined */
-  "FPM",                /* 01h  FPM */
-  "EDO",                /* 02h  EDO */
-  "",                   /* 03h  PIPELINE NIBBLE */
-  "SDRAM",              /* 04h  SDRAM */
-  "",                   /* 05h  MULTIPLEXED ROM */
-  "DDR SGRAM",          /* 06h  SGRAM DDR */
-  "DDR SDRAM",          /* 07h  SDRAM DDR */
-  "DDR2 SDRAM",         /* 08h  SDRAM DDR 2 */
-  "",                   /* 09h  Undefined */
-  "",                   /* 0Ah  Undefined */
-  "DDR3 SDRAM",         /* 0Bh  SDRAM DDR 3 */
-  "DDR4 SDRAM"          /* 0Ch SDRAM DDR 4 */
-};
-
-#define UNKNOWN_MEM_TYPE 2
-
-UINT8 spd_mem_to_smbios[] =
-{
-  UNKNOWN_MEM_TYPE,     /* 00h  Undefined */
-  UNKNOWN_MEM_TYPE,     /* 01h  FPM */
-  UNKNOWN_MEM_TYPE,     /* 02h  EDO */
-  UNKNOWN_MEM_TYPE,     /* 03h  PIPELINE NIBBLE */
-  SMB_MEM_TYPE_SDRAM,   /* 04h  SDRAM */
-  SMB_MEM_TYPE_ROM,     /* 05h  MULTIPLEXED ROM */
-  SMB_MEM_TYPE_SGRAM,   /* 06h  SGRAM DDR */
-  SMB_MEM_TYPE_DDR,     /* 07h  SDRAM DDR */
-  SMB_MEM_TYPE_DDR2,    /* 08h  SDRAM DDR 2 */
-  UNKNOWN_MEM_TYPE,     /* 09h  Undefined */
-  UNKNOWN_MEM_TYPE,     /* 0Ah  Undefined */
-  SMB_MEM_TYPE_DDR3,    /* 0Bh  SDRAM DDR 3 */
-  SMB_MEM_TYPE_DDR4     /* 0Ch  SDRAM DDR 4 */
-};
-
-#define SPD_TO_SMBIOS_SIZE (sizeof (spd_mem_to_smbios)/sizeof (UINT8))
-
-//define rdtsc (low,high) UINT64=AsmReadTsc ()
-//define outb (port, val)   IoWrite8 (port, val)
-//define val=inb (port) val=IoRead (port)
-#endif
 
 // Intel SMB reg offsets
 #define SMBHSTSTS     0
@@ -688,23 +666,23 @@ ReadSmb (
     SmbIntel = TRUE;
   } else {
     /*Status = */PciIo->Pci.Read (
-                                  PciIo,
-                                  EfiPciIoWidthUint32,
-                                  0x24, // ioBase offset 0x24 on MCP
-                                  1,
-                                  &Base
-                                  );
+                              PciIo,
+                              EfiPciIoWidthUint32,
+                              0x24, // ioBase offset 0x24 on MCP
+                              1,
+                              &Base
+                            );
     Base &= 0xFFFC;
     SmbIntel = FALSE;
   }
 
  /*Status = */PciIo->Pci.Read (
-                                PciIo,
-                                EfiPciIoWidthUint32,
-                                0x40,
-                                1,
-                                &HostC
-                                );
+                            PciIo,
+                            EfiPciIoWidthUint32,
+                            0x40,
+                            1,
+                            &HostC
+                          );
 
   MsgLog ("Scanning SMBus [%04x:%04x], Mmio: 0x%x, ioport: 0x%x, HostC: 0x%x\n",
          Vid, Did, Mmio, Base, HostC);
@@ -724,7 +702,7 @@ ReadSmb (
   TotalSlotsCount = 8; //MAX_RAM_SLOTS;  -- spd can read only 8 Slots
   MsgLog ("Slots to scan: %d ...\n", TotalSlotsCount);
 
-  for (i = 0; i <  TotalSlotsCount; i++){
+  for (i = 0; i <  TotalSlotsCount; i++) {
     //<==
     ZeroMem (SpdBuf, MAX_SPD_SIZE);
     READ_SPD (SpdBuf, Base, i, SPD_MEMORY_TYPE);
@@ -911,7 +889,7 @@ ScanSPD () {
   EFI_HANDLE            *HandleBuffer = NULL;
   EFI_PCI_IO_PROTOCOL   *PciIo = NULL;
   UINTN                 HandleCount, Index;
-  PCI_TYPE00            gPci;
+  PCI_TYPE00            Pci;
 
   DbgHeader ("ScanSPD");
 
@@ -934,26 +912,26 @@ ScanSPD () {
                               PciIo,
                               EfiPciIoWidthUint32,
                               0,
-                              sizeof (gPci) / sizeof (UINT32),
-                              &gPci
+                              sizeof (Pci) / sizeof (UINT32),
+                              &Pci
                             );
         //SmBus controller has class = 0x0c0500
         if (
-          (gPci.Hdr.ClassCode[2] == 0x0c) &&
-          (gPci.Hdr.ClassCode[1] == 5) &&
-          (gPci.Hdr.ClassCode[0] == 0) &&
-          (gPci.Hdr.VendorId == 0x8086 || gPci.Hdr.VendorId == 0x10DE)
+          (Pci.Hdr.ClassCode[2] == 0x0c) &&
+          (Pci.Hdr.ClassCode[1] == 5) &&
+          (Pci.Hdr.ClassCode[0] == 0) &&
+          ((Pci.Hdr.VendorId == 0x8086) || (Pci.Hdr.VendorId == 0x10DE))
         ) {
           DBG ("SMBus device : %04x %04x class=%02x%02x%02x status=%r\n",
-               gPci.Hdr.VendorId,
-               gPci.Hdr.DeviceId,
-               gPci.Hdr.ClassCode[2],
-               gPci.Hdr.ClassCode[1],
-               gPci.Hdr.ClassCode[0],
+               Pci.Hdr.VendorId,
+               Pci.Hdr.DeviceId,
+               Pci.Hdr.ClassCode[2],
+               Pci.Hdr.ClassCode[1],
+               Pci.Hdr.ClassCode[0],
                Status
                );
 
-          ReadSmb (PciIo, gPci.Hdr.VendorId, gPci.Hdr.DeviceId);
+          ReadSmb (PciIo, Pci.Hdr.VendorId, Pci.Hdr.DeviceId);
         }
       }
     }

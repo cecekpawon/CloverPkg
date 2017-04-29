@@ -175,9 +175,7 @@ GetCPUProperties () {
     }
   //}
 
-  if (gCPUStructure.CoresPerPackage == 0) {
-    gCPUStructure.CoresPerPackage = 1;
-  }
+  CONSTRAIN_MIN (gCPUStructure.CoresPerPackage, 1);
 
   /* Fold in the Invariant TSC feature bit, if present */
   if (gCPUStructure.CPUID[CPUID_80][EAX] >= 0x80000007) {
@@ -210,9 +208,7 @@ GetCPUProperties () {
     gCPUStructure.Cores   = (UINT8)(gCPUStructure.CoresPerPackage & 0xff);
     gCPUStructure.Threads = (UINT8)(gCPUStructure.LogicalPerPackage & 0xff);
 
-    if (gCPUStructure.Cores > gCPUStructure.Threads) {
-      gCPUStructure.Threads = gCPUStructure.Cores;
-    }
+    CONSTRAIN_MIN (gCPUStructure.Threads, gCPUStructure.Cores);
   }
 
   /* get BrandString (if supported) */
@@ -359,7 +355,6 @@ GetCPUProperties () {
         // so there is a workaround
         if ((gCPUStructure.Turbo4 == 0x3B) || (gCPUStructure.Turbo4 == 0x39)) {
           gCPUStructure.Turbo4 = (UINT16)gCPUStructure.MaxRatio + (gCPUStructure.Turbo?1:0);
-          //this correspond to 2nd-gen-core-desktop-specification-update.pdf
         }
 
         gCPUStructure.MaxRatio *= 10;

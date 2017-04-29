@@ -191,6 +191,7 @@ OvrPlatformGetDriver (
         *DriverImageHandle = NULL;
         break;
       }
+
       *DriverImageHandle = *HandlePtr;
       return EFI_SUCCESS;
     }

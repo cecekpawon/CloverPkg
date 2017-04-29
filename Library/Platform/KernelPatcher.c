@@ -61,7 +61,7 @@ FilterKernelPatches (
     (Entry->KernelAndKextPatches->KernelPatches != NULL) &&
     Entry->KernelAndKextPatches->NrKernels
   ) {
-    INTN    i = 0;
+    UINTN    i = 0;
 
     MsgLog ("Filtering KernelPatches:\n");
 
@@ -427,8 +427,8 @@ STATIC UINT8 StrMsr8b[]       = { 0xb9, 0x8b, 0x00, 0x00, 0x00, 0x0f, 0x32 };
  and replaces to
   mov ecx, FakeModel  || mov ecx, FakeExt
  */
-STATIC UINT8 SearchModel107[]  = { 0x89, 0xc1, 0xc1, 0xe9, 0x04 };
-STATIC UINT8 SearchExt107[]    = { 0x89, 0xc1, 0xc1, 0xe9, 0x10 };
+//STATIC UINT8 SearchModel107[]  = { 0x89, 0xc1, 0xc1, 0xe9, 0x04 };
+//STATIC UINT8 SearchExt107[]    = { 0x89, 0xc1, 0xc1, 0xe9, 0x10 };
 STATIC UINT8 ReplaceModel107[] = { 0xb9, 0x07, 0x00, 0x00, 0x00 };
 
 /*
@@ -456,9 +456,9 @@ STATIC UINT8 SearchExt101[]     = { 0x89, 0xc1, 0xc1, 0xe9, 0x10 };
 BOOLEAN
 PatchCPUID (
   UINT8           *Ptr,
-  UINT8           *Search4,
-  UINT8           *Search10,
+  UINT8           *SearchModel,
   UINT8           *ReplaceModel,
+  UINT8           *SearchExt,
   UINT8           *ReplaceExt,
   INT32           Len,
   UINT32          Adr,
@@ -480,7 +480,7 @@ PatchCPUID (
     Adr += PatchLocation;
     DBG (" - found Pattern at %x, len: %d\n", Adr, LenPatt);
 
-    PatchLocation = FindBin (&Ptr[Adr], (End - Adr), Search4, Len);
+    PatchLocation = FindBin (&Ptr[Adr], (End - Adr), SearchModel, Len);
 
     if (PatchLocation > 0) {
       Adr += PatchLocation;
@@ -488,7 +488,7 @@ PatchCPUID (
       CopyMem (&Ptr[Adr], ReplaceModel, Len);
       Ptr[Adr + 1] = FakeModel;
 
-      PatchLocation = FindBin (&Ptr[Adr], (End - Adr), Search10, Len);
+      PatchLocation = FindBin (&Ptr[Adr], (End - Adr), SearchExt, Len);
 
       if (PatchLocation > 0) {
         Adr += PatchLocation;
@@ -538,9 +538,10 @@ KernelCPUIDPatch (
   //Yosemite
   if (
     PatchCPUID (
-      Ptr, /*&StrMsr8b[0], sizeof (StrMsr8b),*/ &SearchModel101[0],
-      &SearchExt101[0], &ReplaceModel107[0], &ReplaceModel107[0],
-      sizeof (SearchModel107), Adr, Size, End, Entry
+      Ptr,
+      &SearchModel101[0], &ReplaceModel107[0],
+      &SearchExt101[0], &ReplaceModel107[0],
+      sizeof (SearchModel101), Adr, Size, End, Entry
     )
   ) {
     DBG (" - Yosemite ...done!\n");
@@ -550,8 +551,9 @@ KernelCPUIDPatch (
   //Mavericks
   else if (
     PatchCPUID (
-      Ptr, /*&StrMsr8b[0], sizeof (StrMsr8b),*/ &SearchModel109[0],
-      &SearchExt109[0], &ReplaceModel109[0], &ReplaceExt109[0],
+      Ptr,
+      &SearchModel109[0], &ReplaceModel109[0],
+      &SearchExt109[0], &ReplaceExt109[0],
       sizeof (SearchModel109), Adr, Size, End, Entry
     )
   ) {
@@ -559,23 +561,11 @@ KernelCPUIDPatch (
     Ret = TRUE;
   }
 
-  //Lion patterns
-  else if (
-    PatchCPUID (
-      Ptr, /*&StrMsr8b[0], sizeof (StrMsr8b),*/ &SearchModel107[0],
-      &SearchExt107[0], &ReplaceModel107[0], &ReplaceModel107[0],
-      sizeof (SearchModel107), Adr, Size, End, Entry
-    )
-  ) {
-    DBG (" - Lion ...done!\n");
-    Ret = TRUE;
-  }
-
   if (!Ret) {
     DBG (" - error 0 matches\n");
   }
 
-Finish:
+  Finish:
 
   DBG ("%a: End\n", __FUNCTION__);
 
@@ -632,9 +622,8 @@ KernelPatchPm (
     if (Found) {
       DBG (" - found: 0x%lx\n", *((UINT64 *)Ptr));
       (*((UINT64 *)Ptr)) = KernelPatchPMNull;
-
       if (Ret) {
-        goto Finish;
+        break;
       }
     }
 
@@ -645,7 +634,7 @@ KernelPatchPm (
     DBG (" - error 0 matches\n");
   }
 
-Finish:
+  Finish:
 
   DBG ("%a: End\n", __FUNCTION__);
 
@@ -677,13 +666,13 @@ FindBootArgs (
       KernelInfo->Slide = gBootArgs->kslide;
 
       /*
-        DBG ("Found gBootArgs at 0x%08x, DevTree at %p\n", Ptr, dtRoot);
-        //DBG ("gBootArgs->kaddr = 0x%08x and gBootArgs->ksize =  0x%08x\n", gBootArgs->kaddr, gBootArgs->ksize);
-        //DBG ("gBootArgs->efiMode = 0x%02x\n", gBootArgs->efiMode);
-        DBG ("gBootArgs->CommandLine = %a\n", gBootArgs->CommandLine);
-        DBG ("gBootArgs->flags = 0x%x\n", gBootArgs->flags);
-        DBG ("gBootArgs->kslide = 0x%x\n", gBootArgs->kslide);
-        DBG ("gBootArgs->bootMemStart = 0x%x\n", gBootArgs->bootMemStart);
+      DBG ("Found gBootArgs at 0x%08x, DevTree at %p\n", Ptr, dtRoot);
+      //DBG ("gBootArgs->kaddr = 0x%08x and gBootArgs->ksize =  0x%08x\n", gBootArgs->kaddr, gBootArgs->ksize);
+      //DBG ("gBootArgs->efiMode = 0x%02x\n", gBootArgs->efiMode);
+      DBG ("gBootArgs->CommandLine = %a\n", gBootArgs->CommandLine);
+      DBG ("gBootArgs->flags = 0x%x\n", gBootArgs->flags);
+      DBG ("gBootArgs->kslide = 0x%x\n", gBootArgs->kslide);
+      DBG ("gBootArgs->bootMemStart = 0x%x\n", gBootArgs->bootMemStart);
       */
 
 #ifdef NO_NVRAM_SIP
@@ -737,12 +726,12 @@ BOOLEAN
 KernelUserPatch (
   LOADER_ENTRY  *Entry
 ) {
-  INTN    Num, i = 0, y = 0;
+  UINTN    Num, i = 0, y = 0;
 
   DBG ("%a: Start\n", __FUNCTION__);
 
   for (i = 0; i < Entry->KernelAndKextPatches->NrKernels; ++i) {
-    DBG ("Patch[%02d]: %a", i, Entry->KernelAndKextPatches->KernelPatches[i].Label);
+    DBG ("KernelUserPatch[%02d]: %a", i, Entry->KernelAndKextPatches->KernelPatches[i].Label);
 
     if (Entry->KernelAndKextPatches->KernelPatches[i].Disabled) {
       DBG (" | DISABLED!\n");
@@ -836,7 +825,7 @@ PatchStartupExt (
     DBG (" - error 0 matches\n");
   }
 
-Finish:
+  Finish:
 
   DBG ("%a: End\n", __FUNCTION__);
 
@@ -886,7 +875,7 @@ PatchLoadEXE (
       DBG (" - found at 0x%x\n", PatchLocation);
       PatchLocation += 4;
 
-      if (TRUE) { // Just NOP's it?
+      if (TRUE) { // Experimmental: Just NOP's it?
         while (PatchLocation < PatchEnd) {
           if (
             (Ptr[PatchLocation] == 0x49) &&
@@ -912,7 +901,7 @@ PatchLoadEXE (
     DBG (" - error 0 matches\n");
   }
 
-Finish:
+  Finish:
 
   DBG ("%a: End\n", __FUNCTION__);
 
@@ -996,7 +985,7 @@ PatchPrelinked (
     PatchLocation++;
   }
 
-Finish:
+  Finish:
 
   DBG ("%a: End\n", __FUNCTION__);
 
@@ -1253,7 +1242,7 @@ KernelAndKextPatcherInit (
   DBG ("Cached: %s\n", KernelInfo->Cached ? L"Yes" : L"No");
   DBG ("%a: End\n", __FUNCTION__);
 
-Finish:
+  Finish:
 
   return (KernelInfo->A64Bit && (KernelInfo->Bin != NULL));
 }
@@ -1374,7 +1363,7 @@ KernelAndKextsPatcherStart (
 
   return;
 
-NoKernelData:
+  NoKernelData:
 
   DBG ("==> ERROR: in KernelAndKextPatcherInit\n");
 }

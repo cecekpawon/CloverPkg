@@ -63,7 +63,7 @@ CreateImage (
 
   NewImage = (EG_IMAGE *)AllocatePool (sizeof (EG_IMAGE));
 
-  if (NewImage == NULL){
+  if (NewImage == NULL) {
     return NULL;
   }
 
@@ -201,15 +201,17 @@ BigDiff (
   UINT8   a,
   UINT8   b
 ) {
+  BOOLEAN   Ret = FALSE;
+
   if (a > b) {
     if (!GlobalConfig.BackgroundDark) {
-      return ((a - b) > (UINT8)(0xFF - GlobalConfig.BackgroundSharp));
+      Ret = (BOOLEAN)((a - b) > (UINT8)(0xFF - GlobalConfig.BackgroundSharp));
     }
   } else if (GlobalConfig.BackgroundDark) {
-    return ((b - a) > (UINT8)(0xFF - GlobalConfig.BackgroundSharp));
+    Ret = (BOOLEAN)((b - a) > (UINT8)(0xFF - GlobalConfig.BackgroundSharp));
   }
 
-  return 0;
+  return Ret;
 }
 
 //(c)Slice 2013
@@ -232,7 +234,7 @@ do { \
       } \
     } \
   } else if (BigDiff (a11.P, a21.P)) { \
-    if (!BigDiff (a11.P, a12.P)){ \
+    if (!BigDiff (a11.P, a12.P)) { \
       a21.P = a11.P; \
     } else { \
       if ((dx + dy) > cell) { \
@@ -242,7 +244,7 @@ do { \
       } \
     } \
   } else if (BigDiff (a11.P, a01.P)) { \
-    if (!BigDiff (a11.P, a12.P)){ \
+    if (!BigDiff (a11.P, a12.P)) { \
       a01.P = a11.P; \
     } else { \
       if (dx < dy) { \
@@ -276,7 +278,7 @@ do { \
 VOID
 ScaleImage (
   OUT EG_IMAGE    *NewImage,
-  IN EG_IMAGE     *OldImage
+  IN  EG_IMAGE    *OldImage
 ) {
   INTN        W1, W2, H1, H2, i, j, f, cell,
               x, dx, y, y1, dy; //, norm;
@@ -343,6 +345,7 @@ FreeImage (
       FreePool (Image->PixelData);
       Image->PixelData = NULL; //FreePool will not zero pointer
     }
+
     FreePool (Image);
   }
 }
@@ -358,7 +361,7 @@ LoadImage (
   UINTN         FileDataLength = 0;
   EG_IMAGE      *NewImage;
 
-  if (BaseDir == NULL || FileName == NULL) {
+  if ((BaseDir == NULL) || (FileName == NULL)) {
     return NULL;
   }
 
@@ -373,14 +376,12 @@ LoadImage (
   //DBG ("   extension = %s\n", FindExtension (FileName));
   // decode it
   NewImage = DecodePNG (FileData, FileDataLength);
-  //DBG ("decoded\n");
 
   if (!NewImage) {
     DBG ("%s not decoded\n", FileName);
   }
 
   FreePool (FileData);
-  //DBG ("FreePool OK\n");
 
   return NewImage;
 }
@@ -391,11 +392,11 @@ LoadImage (
 
 VOID
 RestrictImageArea (
-  IN EG_IMAGE     *Image,
-  IN INTN         AreaPosX,
-  IN INTN         AreaPosY,
-  IN OUT INTN     *AreaWidth,
-  IN OUT INTN     *AreaHeight
+  IN      EG_IMAGE    *Image,
+  IN      INTN        AreaPosX,
+  IN      INTN        AreaPosY,
+  IN OUT  INTN        *AreaWidth,
+  IN OUT  INTN        *AreaHeight
 ) {
   if (!Image || !AreaWidth || !AreaHeight) {
     return;
@@ -407,11 +408,11 @@ RestrictImageArea (
     *AreaHeight = 0;
   } else {
     // calculate affected area
-    if (*AreaWidth > Image->Width - AreaPosX) {
+    if (*AreaWidth > (Image->Width - AreaPosX)) {
       *AreaWidth = Image->Width - AreaPosX;
     }
 
-    if (*AreaHeight > Image->Height - AreaPosY) {
+    if (*AreaHeight > (Image->Height - AreaPosY)) {
       *AreaHeight = Image->Height - AreaPosY;
     }
   }
@@ -419,8 +420,8 @@ RestrictImageArea (
 
 VOID
 FillImage (
-  IN OUT EG_IMAGE     *CompImage,
-  IN EG_PIXEL         *Color
+  IN OUT  EG_IMAGE    *CompImage,
+  IN      EG_PIXEL    *Color
 ) {
   INTN        i;
   EG_PIXEL    FillColor, *PixelPtr;
@@ -443,12 +444,12 @@ FillImage (
 
 VOID
 FillImageArea (
-  IN OUT EG_IMAGE   *CompImage,
-  IN INTN           AreaPosX,
-  IN INTN           AreaPosY,
-  IN INTN           AreaWidth,
-  IN INTN           AreaHeight,
-  IN EG_PIXEL       *Color
+  IN OUT  EG_IMAGE   *CompImage,
+  IN      INTN       AreaPosX,
+  IN      INTN       AreaPosY,
+  IN      INTN       AreaWidth,
+  IN      INTN       AreaHeight,
+  IN      EG_PIXEL   *Color
 ) {
   INTN        x, y,
               xAreaWidth = AreaWidth,
@@ -483,12 +484,12 @@ FillImageArea (
 
 VOID
 RawCopy (
-  IN OUT EG_PIXEL   *CompBasePtr,
-  IN EG_PIXEL       *TopBasePtr,
-  IN INTN           Width,
-  IN INTN           Height,
-  IN INTN           CompLineOffset,
-  IN INTN           TopLineOffset
+  IN OUT  EG_PIXEL   *CompBasePtr,
+  IN      EG_PIXEL   *TopBasePtr,
+  IN      INTN       Width,
+  IN      INTN       Height,
+  IN      INTN       CompLineOffset,
+  IN      INTN       TopLineOffset
 ) {
   INTN    x, y;
 
@@ -512,24 +513,22 @@ RawCopy (
 
 VOID
 RawCompose (
-  IN OUT EG_PIXEL   *CompBasePtr,
-  IN EG_PIXEL       *TopBasePtr,
-  IN INTN           Width,
-  IN INTN           Height,
-  IN INTN           CompLineOffset,
-  IN INTN           TopLineOffset
+  IN OUT  EG_PIXEL   *CompBasePtr,
+  IN      EG_PIXEL   *TopBasePtr,
+  IN      INTN       Width,
+  IN      INTN       Height,
+  IN      INTN       CompLineOffset,
+  IN      INTN       TopLineOffset
 ) {
-  INT64       x, y;
+  INTN       x, y;
   EG_PIXEL    *TopPtr, *CompPtr;
   //To make native division we need INTN types
   INTN        TopAlpha, Alpha, CompAlpha, RevAlpha, Temp;
-  //EG_PIXEL    *CompUp;
 
   if (!CompBasePtr || !TopBasePtr) {
     return;
   }
 
-  //CompUp = CompBasePtr + Width * Height;
   //Slice - my opinion
   //if TopAlpha=255 then draw Top - non transparent
   //else if TopAlpha=0 then draw Comp - full transparent
@@ -576,14 +575,14 @@ RawCompose (
 //
 VOID
 RawComposeOnFlat (
-  IN OUT EG_PIXEL   *CompBasePtr,
-  IN EG_PIXEL       *TopBasePtr,
-  IN INTN           Width,
-  IN INTN           Height,
-  IN INTN           CompLineOffset,
-  IN INTN           TopLineOffset
+  IN OUT  EG_PIXEL   *CompBasePtr,
+  IN      EG_PIXEL   *TopBasePtr,
+  IN      INTN       Width,
+  IN      INTN       Height,
+  IN      INTN       CompLineOffset,
+  IN      INTN       TopLineOffset
 ) {
-  INT64       x, y;
+  INTN       x, y;
   EG_PIXEL    *TopPtr, *CompPtr;
   UINT32      TopAlpha, RevAlpha;
   UINTN       Temp;
@@ -620,10 +619,10 @@ RawComposeOnFlat (
 
 VOID
 ComposeImage (
-  IN OUT EG_IMAGE   *CompImage,
-  IN EG_IMAGE       *TopImage,
-  IN INTN           PosX,
-  IN INTN           PosY
+  IN OUT  EG_IMAGE   *CompImage,
+  IN      EG_IMAGE   *TopImage,
+  IN      INTN       PosX,
+  IN      INTN       PosY
 ) {
   INTN    CompWidth, CompHeight;
 
@@ -721,9 +720,9 @@ VOID
 SetPlane (
   IN UINT8    *DestPlanePtr,
   IN UINT8    Value,
-  IN UINT64   PixelCount
+  IN UINTN    PixelCount
 ) {
-  UINT64  i;
+  UINTN  i;
 
   if (!DestPlanePtr) {
     return;
@@ -763,7 +762,13 @@ DecodePNG (
   UINT32      PNG_error, Width, Height;
   INTN        i, ImageSize;
 
-  PNG_error = lodepng_decode32 ((UINT8 **)&PixelData, &Width, &Height, (CONST UINT8 *)FileData, FileDataLength);
+  PNG_error = lodepng_decode32 (
+                (UINT8 **)&PixelData,
+                &Width,
+                &Height,
+                (CONST UINT8 *)FileData,
+                FileDataLength
+              );
 
   if (PNG_error) {
     return NULL;
@@ -771,7 +776,11 @@ DecodePNG (
 
   // allocate image structure and buffer
   NewImage = CreateImage ((INTN)Width, (INTN)Height, TRUE);
-  if ((NewImage == NULL) || (NewImage->Width != (INTN)Width) || (NewImage->Height != (INTN)Height)) {
+  if (
+    (NewImage == NULL) ||
+    (NewImage->Width != (INTN)Width) ||
+    (NewImage->Height != (INTN)Height)
+  ) {
     return NULL;
   }
 
@@ -818,15 +827,20 @@ CalculateNudgePosition (
   INTN    ImageDimension,
   INTN    ScreenDimension
 ) {
-  INTN    value = Position;
+  INTN    Value = Position;
 
-  if ((NudgeValue != INITVALUE) && (NudgeValue != 0) && (NudgeValue >= -32) && (NudgeValue <= 32)) {
-    if ((value + NudgeValue >=0) && ((value + NudgeValue) <= (ScreenDimension - ImageDimension))) {
-     value += NudgeValue;
-    }
+  if (
+    (NudgeValue != INITVALUE) &&
+    (NudgeValue != 0) &&
+    (NudgeValue >= -32) &&
+    (NudgeValue <= 32) &&
+    ((Value + NudgeValue) >= 0) &&
+    ((Value + NudgeValue) <= (ScreenDimension - ImageDimension))
+  ) {
+    Value += NudgeValue;
   }
 
-  return value;
+  return Value;
 }
 
 STATIC
@@ -869,24 +883,24 @@ HybridRepositioning (
   INTN    ScreenDimension,
   INTN    DesignScreenDimension
 ) {
-  INTN    pos, posThemeDesign;
+  INTN    Pos, PosThemeDesign;
 
   if ((DesignScreenDimension == 0xFFFF) || (ScreenDimension == DesignScreenDimension)) {
     // Calculate the horizontal pixel to place the top left corner of the animation - by screen resolution
-    pos = ConvertEdgeAndPercentageToPixelPosition (Edge, Value, ImageDimension, ScreenDimension);
+    Pos = ConvertEdgeAndPercentageToPixelPosition (Edge, Value, ImageDimension, ScreenDimension);
   } else {
     // Calculate the horizontal pixel to place the top left corner of the animation - by theme design resolution
-    posThemeDesign = ConvertEdgeAndPercentageToPixelPosition (Edge, Value, ImageDimension, DesignScreenDimension);
+    PosThemeDesign = ConvertEdgeAndPercentageToPixelPosition (Edge, Value, ImageDimension, DesignScreenDimension);
     // Try repositioning by center first
-    pos = RepositionFixedByCenter (posThemeDesign, ScreenDimension, DesignScreenDimension);
+    Pos = RepositionFixedByCenter (PosThemeDesign, ScreenDimension, DesignScreenDimension);
 
     // If out of edges, try repositioning by gaps on edges
-    if (!IsImageWithinScreenLimits (pos, ImageDimension, ScreenDimension)) {
-      pos = RepositionRelativeByGapsOnEdges (posThemeDesign, ImageDimension, ScreenDimension, DesignScreenDimension);
+    if (!IsImageWithinScreenLimits (Pos, ImageDimension, ScreenDimension)) {
+      Pos = RepositionRelativeByGapsOnEdges (PosThemeDesign, ImageDimension, ScreenDimension, DesignScreenDimension);
     }
   }
 
-  return pos;
+  return Pos;
 }
 
 VOID
@@ -949,7 +963,8 @@ BltClearScreen (
   }
 
   if (
-    !Banner || (GlobalConfig.HideUIFlags & HIDEUI_FLAG_BANNER) ||
+    !Banner ||
+    (GlobalConfig.HideUIFlags & HIDEUI_FLAG_BANNER) ||
     !IsImageWithinScreenLimits (BannerPlace.XPos, BannerPlace.Width, UGAWidth) ||
     !IsImageWithinScreenLimits (BannerPlace.YPos, BannerPlace.Height, UGAHeight)
   ) {
@@ -1265,6 +1280,7 @@ BltImageCompositeBadge (
         GlobalConfig.BadgeOffsetX = CompWidth  - 8 - BadgeImage->Width;
         DBG ("   corrected to default %d\n", GlobalConfig.BadgeOffsetX);
       }
+
       OffsetX += GlobalConfig.BadgeOffsetX;
     } else {
       // Set default position
@@ -1279,6 +1295,7 @@ BltImageCompositeBadge (
         GlobalConfig.BadgeOffsetY = CompHeight - 8 - BadgeImage->Height;
         DBG ("   corrected to default %d\n", GlobalConfig.BadgeOffsetY);
       }
+
       OffsetY += GlobalConfig.BadgeOffsetY;
     } else {
       // Set default position
@@ -1342,7 +1359,7 @@ UpdateAnime (
     !AnimeImage ||
     (AnimeImage->Width != Screen->Film[0]->Width) ||
     (AnimeImage->Height != Screen->Film[0]->Height)
-  ){
+  ) {
     if (AnimeImage) {
       FreeImage (AnimeImage);
     }
@@ -1401,6 +1418,7 @@ UpdateAnime (
       AnimeImage->Width,
       Screen->Film[Screen->Frames]->Width
     );
+
     ComposeImage (AnimeImage, Screen->Film[Screen->CurrentFrame], 0, 0);
     BltImage (AnimeImage, x, y);
   }
@@ -1422,7 +1440,7 @@ InitAnime (
   EG_IMAGE    *p = NULL, *Last = NULL;
   GUI_ANIME   *Anime;
 
-  if (!Screen || gSettings.TextOnly){
+  if (!Screen || gSettings.TextOnly) {
     return;
   }
 
@@ -1476,7 +1494,9 @@ InitAnime (
         p = LoadImage (ThemeDir, FileName);
         if (!p) {
           p = Last;
-          if (!p) break;
+          if (!p) {
+            break;
+          }
         } else {
           Last = p;
         }
@@ -1498,8 +1518,8 @@ InitAnime (
   }
   // Check if a new style placement value has been specified
   if (
-    Anime && (Anime->FilmX >=0) && (Anime->FilmX <=100) &&
-    (Anime->FilmY >=0) && (Anime->FilmY <=100) &&
+    Anime && (Anime->FilmX >= 0) && (Anime->FilmX <= 100) &&
+    (Anime->FilmY >= 0) && (Anime->FilmY <= 100) &&
     (Screen->Film != NULL) && (Screen->Film[0] != NULL)
   ) {
     // Check if screen size being used is different from theme origination size.
@@ -1582,5 +1602,3 @@ ToPixel (
 
   return color;
 }
-
-/* EOF */

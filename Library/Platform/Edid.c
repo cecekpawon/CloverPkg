@@ -89,9 +89,8 @@ GetEdidDiscovered () {
 
   if (!EFI_ERROR (Status)) {
     N = EdidDiscovered->SizeOfEdid;
-    //if (!gSettings.DebugLog) {
-      DBG ("EdidDiscovered size=%d\n", N);
-    //}
+
+    DBG ("EdidDiscovered size=%d\n", N);
 
     if (N == 0) {
       return EFI_NOT_FOUND;
@@ -104,15 +103,15 @@ GetEdidDiscovered () {
 
     CopyMem (gEDID, EdidDiscovered->Edid, N);
 
-    //if (!gSettings.DebugLog) {
-      for (i = 0; i < N; i += 16) {
-        DBG ("%03d | ", i);
-        for (j = 0; j < 16; j++) {
-          DBG ("%02x%a", EdidDiscovered->Edid[i + j], (j < 15) ? " " : "");
-        }
-        DBG ("\n");
+    for (i = 0; i < N; i += 16) {
+      DBG ("%03d | ", i);
+
+      for (j = 0; j < 16; j++) {
+        DBG ("%02x%a", EdidDiscovered->Edid[i + j], (j < 15) ? " " : "");
       }
-    //}
+
+      DBG ("\n");
+    }
   }
 
   return Status;

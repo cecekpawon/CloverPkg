@@ -79,6 +79,8 @@ UINTN                   VolumesCount = 0;
 //
 EFI_UNICODE_COLLATION_PROTOCOL    *mUnicodeCollation = NULL;
 
+#define                 MAX_ELEMENT_COUNT 8
+
 BOOLEAN
 MetaiMatch (
   IN CHAR16   *String,
@@ -111,6 +113,7 @@ IsEmbeddedTheme () {
   return (ThemeDir == NULL);
 }
 
+/*
 VOID
 CreateList (
   OUT VOID    ***ListPtr,
@@ -120,14 +123,15 @@ CreateList (
   UINTN   AllocateCount;
   INTN    SubMenuCount = GetSubMenuCount ();
 
+  *ListPtr = NULL;
+
   *ElementCount = InitialElementCount;
   if (*ElementCount > 0) {
     AllocateCount = (*ElementCount + (SubMenuCount - 1)) & ~(SubMenuCount - 1);   // next multiple of 8
     *ListPtr = AllocatePool (sizeof (VOID *) * AllocateCount);
-  } else {
-    *ListPtr = NULL;
   }
 }
+*/
 
 VOID
 AddListElement (
@@ -136,10 +140,9 @@ AddListElement (
   IN      VOID    *NewElement
 ) {
   UINTN   AllocateCount;
-  INTN    SubMenuCount = GetSubMenuCount ();
 
-  if ((*ElementCount & (SubMenuCount - 1)) == 0) {
-    AllocateCount = *ElementCount + SubMenuCount;
+  if ((*ElementCount & MAX_ELEMENT_COUNT) == 0) {
+      AllocateCount = *ElementCount + MAX_ELEMENT_COUNT + 1;
     if (*ElementCount == 0) {
       *ListPtr = AllocatePool (sizeof (VOID *) * AllocateCount);
     } else {
@@ -151,24 +154,25 @@ AddListElement (
   (*ElementCount)++;
 }
 
-/*
+
 VOID
 FreeList (
-  IN OUT VOID     ***ListPtr,
-  IN OUT UINTN    *ElementCount
+  IN OUT VOID   ***ListPtr,
+  IN OUT INTN   *ElementCount
 ) {
-  UINTN i;
+  INTN i;
 
-  if (*ElementCount > 0) {
+  if ((*ElementCount > 0) && (**ListPtr != NULL)) {
     for (i = 0; i < *ElementCount; i++) {
       // TODO: call a user-provided routine for each element here
-      FreePool ((*ListPtr)[i]);
+      if ((*ListPtr)[i] != NULL) {
+        FreePool ((*ListPtr)[i]);
+      }
     }
 
     FreePool (*ListPtr);
   }
 }
-*/
 
 //
 // volume functions
@@ -176,7 +180,7 @@ FreeList (
 
 STATIC
 VOID
-ScanVolumeBootcode (
+ScanVolumeBootCode (
   IN OUT  REFIT_VOLUME  *Volume,
   OUT     BOOLEAN       *Bootable
 ) {
@@ -186,8 +190,8 @@ ScanVolumeBootcode (
   //MBR_PARTITION_INFO      *MbrTable;
   //BOOLEAN                 MbrTableFound;
   UINTN         BlockSize = 0;
-  CHAR16        volumeName[255];
-  CHAR8         tmp[64];
+  CHAR16        VolumeName[255];
+  CHAR8         Tmp[64];
   UINT32        VCrc32;
   //CHAR16      *kind = NULL;
 
@@ -203,7 +207,7 @@ ScanVolumeBootcode (
     return;
   }
 
-  ZeroMem ((CHAR8 *)&tmp[0], 64);
+  ZeroMem ((CHAR8 *)&Tmp[0], 64);
   BlockSize = Volume->BlockIO->Media->BlockSize;
 
   if (BlockSize > 2048) {
@@ -237,26 +241,26 @@ ScanVolumeBootcode (
         p++;
       }
 
-      for (i=0; i<30 && (*p >= 0x20) && (*p <= 'z'); i++, p++) {
-        tmp[i] = *p;
+      for (i = 0; i < 30 && (*p >= 0x20) && (*p <= 'z'); i++, p++) {
+        Tmp[i] = *p;
       }
 
-      tmp[i] = 0;
-      while ((i>0) && (tmp[--i] == 0x20)) {}
-      tmp[i + 1] = 0;
+      Tmp[i] = 0;
+      while ((i>0) && (Tmp[--i] == 0x20)) {}
+      Tmp[i + 1] = 0;
 
       //  if (*p != 0) {
-      AsciiStrToUnicodeStrS ((CHAR8 *)&tmp[0], volumeName, ARRAY_SIZE (volumeName));
+      AsciiStrToUnicodeStrS ((CHAR8 *)&Tmp[0], VolumeName, ARRAY_SIZE (VolumeName));
       //  }
 
-      DBG ("Detected name %s\n", volumeName);
+      DBG ("Detected name %s\n", VolumeName);
 
-      Volume->VolName = PoolPrint (L"%s", volumeName);
+      Volume->VolName = PoolPrint (L"%s", VolumeName);
 
-      for (i=8; i<2000; i++) { //vendor search
+      for (i = 8; i < 2000; i++) { //vendor search
         if (SectorBuffer[i] == 'A') {
           if (AsciiStrStr ((CHAR8 *)&SectorBuffer[i], "APPLE")) {
-            //StrCpy (Volume->VolName, volumeName);
+            //StrCpy (Volume->VolName, VolumeName);
 
             DBG ("        Found AppleDVD\n");
 
@@ -265,9 +269,10 @@ ScanVolumeBootcode (
             Volume->LegacyOS->IconName = L"mac";
             break;
           }
+
         } else if (SectorBuffer[i] == 'M') {
           if (AsciiStrStr ((CHAR8 *)&SectorBuffer[i], "MICROSOFT")) {
-            //StrCpy (Volume->VolName, volumeName);
+            //StrCpy (Volume->VolName, VolumeName);
 
             DBG ("        Found Windows DVD\n");
 
@@ -276,10 +281,11 @@ ScanVolumeBootcode (
             Volume->LegacyOS->IconName = L"win";
             break;
           }
+
         } else if (SectorBuffer[i] == 'L') {
           if (AsciiStrStr ((CHAR8 *)&SectorBuffer[i], "LINUX")) {
             //Volume->DevicePath = DuplicateDevicePath (DevicePath);
-            //StrCpy (Volume->VolName, volumeName);
+            //StrCpy (Volume->VolName, VolumeName);
 
             DBG ("        Found Linux DVD\n");
 
@@ -290,6 +296,7 @@ ScanVolumeBootcode (
           }
         }
       }
+
     } else { //HDD
       // detect specific boot codes
       if (
@@ -320,7 +327,7 @@ ScanVolumeBootcode (
         Volume->LegacyOS->Name = L"Clover";
         Volume->LegacyOS->Type = OSTYPE_VAR;
         Volume->BootType = BOOTING_BY_PBR;
-        //DBG ("Detected Clover FAT32 bootcode\n");
+        //DBG ("Detected Clover FAT32 bootCode\n");
       } else if (
           (
             (*((UINT32 *)(SectorBuffer + 502)) == 0) &&
@@ -380,7 +387,7 @@ ScanVolumeBootcode (
     //  need to fix AddLegacyEntry in main.c.
 
 #if REFIT_DEBUG > 0
-    DBG ("         Result of bootcode detection: %s %s (%s)\n",
+    DBG ("         Result of bootCode detection: %s %s (%s)\n",
         Volume->HasBootCode ? L"bootable" : L"non-bootable",
         Volume->LegacyOS->Name ? Volume->LegacyOS->Name: L"unknown",
         Volume->LegacyOS->IconName ? Volume->LegacyOS->IconName: L"legacy");
@@ -412,7 +419,7 @@ ScanVolume (
   EFI_FILE_INFO                 *RootInfo = NULL;
   BOOLEAN                       Bootable;
   //EFI_INPUT_KEY               Key;
-  CHAR16                        *tmpName;
+  CHAR16                        *TmpName;
 
   // get device path
   DiskDevicePath = DevicePathFromHandle (Volume->DeviceHandle);
@@ -452,18 +459,18 @@ ScanVolume (
   }
 
   Bootable = FALSE;
-  if (Volume->BlockIO->Media->BlockSize == 2048){
+  if (Volume->BlockIO->Media->BlockSize == 2048) {
     DBG ("         Found optical drive\n");
     Volume->DiskKind = DISK_KIND_OPTICAL;
     Volume->BlockIOOffset = 0x10; // offset already applied for FS but not for blockio
-    ScanVolumeBootcode (Volume, &Bootable);
+    ScanVolumeBootCode (Volume, &Bootable);
   } else {
     //DBG ("         Found HD drive\n");
     Volume->BlockIOOffset = 0;
-    // scan for bootcode and MBR table
-    ScanVolumeBootcode (Volume, &Bootable);
+    // scan for bootCode and MBR table
+    ScanVolumeBootCode (Volume, &Bootable);
 
-    //DBG ("         ScanVolumeBootcode success\n");
+    //DBG ("         ScanVolumeBootCode success\n");
 
     // detect device type
     DevicePath = DuplicateDevicePath (Volume->DevicePath);
@@ -621,7 +628,7 @@ ScanVolume (
 
   if (!Bootable) {
 #if REFIT_DEBUG > 0
-    if (Volume->HasBootCode){
+    if (Volume->HasBootCode) {
       DBG ("  Volume considered non-bootable, but boot code is present\n");
       //WaitForSingleEvent (gST->ConIn->WaitForKey, 0);
       //gST->ConIn->ReadKeyStroke (gST->ConIn, &Key);
@@ -642,10 +649,10 @@ ScanVolume (
     //DBG ("LegacyBoot volume\n");
 
     if (HdPath) {
-      tmpName = (CHAR16 *)AllocateZeroPool (60);
-      UnicodeSPrint (tmpName, 60, L"Legacy HD%d", HdPath->PartitionNumber);
-      Volume->VolName = EfiStrDuplicate (tmpName);
-      FreePool (tmpName);
+      TmpName = (CHAR16 *)AllocateZeroPool (60);
+      UnicodeSPrint (TmpName, 60, L"Legacy HD%d", HdPath->PartitionNumber);
+      Volume->VolName = EfiStrDuplicate (TmpName);
+      FreePool (TmpName);
     } else if (!Volume->VolName) {
       Volume->VolName =  L"Whole Disc Boot";
     }
@@ -709,10 +716,10 @@ ScanVolume (
     //gST->ConIn->ReadKeyStroke (gST->ConIn, &Key);
 
     if (HdPath) {
-      tmpName = (CHAR16 *)AllocateZeroPool (128);
-      UnicodeSPrint (tmpName, 128, L"Unknown HD%d", HdPath->PartitionNumber);
-      Volume->VolName = EfiStrDuplicate (tmpName);
-      FreePool (tmpName);
+      TmpName = (CHAR16 *)AllocateZeroPool (128);
+      UnicodeSPrint (TmpName, 128, L"Unknown HD%d", HdPath->PartitionNumber);
+      Volume->VolName = EfiStrDuplicate (TmpName);
+      FreePool (TmpName);
       // NOTE: this is normal for Apple's VenMedia device paths
     } else {
       Volume->VolName = L"Unknown HD";
@@ -789,7 +796,7 @@ ScanExtendedPartition (
         Volume->WholeDiskDeviceHandle = WholeDiskVolume->DeviceHandle;
 
         Bootable = FALSE;
-        ScanVolumeBootcode (Volume, &Bootable);
+        ScanVolumeBootCode (Volume, &Bootable);
 
         if (!Bootable) {
           Volume->HasBootCode = FALSE;
@@ -870,7 +877,7 @@ ScanVolumes () {
       }
 
       //DBG ("  Volume '%s', LegacyOS '%s', LegacyIcon (s) '%s', GUID = %g\n",
-      //Volume->VolName, Volume->LegacyOS->Name ? Volume->LegacyOS->Name : L"", Volume->LegacyOS->IconName, Guid);
+      //Volume->VolName, Volume->LegacyOS->Na -me ? Volume->LegacyOS->Name : L"", Volume->LegacyOS->IconName, Guid);
 
       if (SelfVolume == Volume) {
         MsgLog ("         This is SelfVolume !!\n");
@@ -1506,7 +1513,7 @@ LoadFile (
 
   Status = BaseDir->Open (BaseDir, &FileHandle, FileName, EFI_FILE_MODE_READ, 0);
 
-  if (EFI_ERROR (Status)){
+  if (EFI_ERROR (Status)) {
     return Status;
   }
 
@@ -1519,7 +1526,7 @@ LoadFile (
 
   ReadSize = FileInfo->FileSize;
 
-  if (ReadSize > MAX_FILE_SIZE){
+  if (ReadSize > MAX_FILE_SIZE) {
     ReadSize = MAX_FILE_SIZE;
   }
 
@@ -1561,7 +1568,7 @@ FindESP (
   if (!EFI_ERROR (Status) && (HandleCount > 0)) {
     *RootDir = EfiLibOpenRoot (Handles[0]);
 
-    if (*RootDir == NULL){
+    if (*RootDir == NULL) {
       Status = EFI_NOT_FOUND;
     }
 
@@ -1762,9 +1769,10 @@ ReplaceExtension (
   IN CHAR16    *Path,
   IN CHAR16    *Extension
 ) {
+  CHAR16  *NewExtension = Extension ? EfiStrDuplicate (Extension) : L"";
   UINTN   i,
           len = StrSize (Path),
-          slen = len + StrSize (Extension) + 1;
+          slen = len + StrSize (NewExtension) + 1;
 
   Path = ReallocatePool (StrSize (Path), slen, Path);
 
@@ -1774,11 +1782,12 @@ ReplaceExtension (
       break;
     }
 
-    if ((Path[i] == '\\') || (Path[i] == '/'))
+    if ((Path[i] == '\\') || (Path[i] == '/')) {
       break;
+    }
   }
 
-  StrCatS (Path, slen, Extension);
+  StrCatS (Path, slen, NewExtension);
 
   return Path;
 }
@@ -1800,6 +1809,13 @@ FindExtension (
   }
 
   return FileName;
+}
+
+CHAR16 *
+RemoveExtension (
+  IN CHAR16    *Path
+) {
+  return ReplaceExtension (Path, NULL);
 }
 
 //
@@ -1918,39 +1934,39 @@ FileDevicePathFileToStr (
 
 BOOLEAN
 DumpVariable (
-  CHAR16    *Name,
-  EFI_GUID  *Guid,
-  INTN      DevicePathAt
+  CHAR16      *Name,
+  EFI_GUID    *Guid,
+  INTN        DevicePathAt
 ) {
-  UINTN       dataSize = 0, i;
-  UINT8       *data = NULL;
+  UINTN       DataSize = 0, i;
+  UINT8       *Data = NULL;
   EFI_STATUS  Status;
 
-  Status = gRT->GetVariable (Name, Guid, NULL, &dataSize, data);
+  Status = gRT->GetVariable (Name, Guid, NULL, &DataSize, Data);
 
   if (Status == EFI_BUFFER_TOO_SMALL) {
-    data = AllocateZeroPool (dataSize);
-    Status = gRT->GetVariable (Name, Guid, NULL, &dataSize, data);
+    Data = AllocateZeroPool (DataSize);
+    Status = gRT->GetVariable (Name, Guid, NULL, &DataSize, Data);
     if (EFI_ERROR (Status)) {
-      DBG ("Can't get %s, size=%d\n", Name, dataSize);
-      FreePool (data);
-      data = NULL;
+      DBG ("Can't get %s, size=%d\n", Name, DataSize);
+      FreePool (Data);
+      Data = NULL;
     } else {
-      DBG ("%s var size=%d\n", Name, dataSize);
-      for (i = 0; i < dataSize; i++) {
-        DBG ("%02x ", data[i]);
+      DBG ("%s var size=%d\n", Name, DataSize);
+      for (i = 0; i < DataSize; i++) {
+        DBG ("%02x ", Data[i]);
       }
 
       DBG ("\n");
 
       if (DevicePathAt >= 0) {
-        DBG ("%s: %s\n", Name, FileDevicePathToStr ((EFI_DEVICE_PATH_PROTOCOL *)&data[DevicePathAt]));
+        DBG ("%s: %s\n", Name, FileDevicePathToStr ((EFI_DEVICE_PATH_PROTOCOL *)&Data[DevicePathAt]));
       }
     }
   }
 
-  if (data) {
-    FreePool (data);
+  if (Data) {
+    FreePool (Data);
     return TRUE;
   }
 
@@ -1985,26 +2001,26 @@ BootArgsExists (
   IN CHAR16   *LoadOption
 ) {
   CHAR16    *TmpOption = NULL;
-  UINTN     len = 0, i = 0, y = 0;
+  UINTN     Len = 0, i = 0, y = 0;
   BOOLEAN   Found = FALSE;
 
   if ((LoadOptions == NULL) || (LoadOption == NULL)) {
     return Found;
   }
 
-  len = StrLen (LoadOptions);
+  Len = StrLen (LoadOptions);
 
-  if (!len || !StrLen (LoadOption)) {
+  if (!Len || !StrLen (LoadOption)) {
     return Found;
   }
 
-  TmpOption = AllocatePool (len);
+  TmpOption = AllocatePool (Len);
 
-  while ((i < len) && (LoadOptions[i] != 0x0)) {
-    ZeroMem (TmpOption, len + 1);
+  while ((i < Len) && (LoadOptions[i] != 0x0)) {
+    ZeroMem (TmpOption, Len + 1);
     y = 0;
 
-    while ((i < len) && (LoadOptions[i] != 0x20) && (LoadOptions[i] != 0x0)) {
+    while ((i < Len) && (LoadOptions[i] != 0x20) && (LoadOptions[i] != 0x0)) {
       TmpOption[y++] = LoadOptions[i++];
     }
 
@@ -2265,8 +2281,7 @@ IsValidGuidAsciiString (
     } else {
       if (!(
             (*Str >= '0' && *Str <= '9') ||
-            (*Str >= 'a' && *Str <= 'f') ||
-            (*Str >= 'A' && *Str <= 'F')
+            (TO_UPPER (*Str) >= 'A' && TO_UPPER (*Str) <= 'F')
            )
       ) {
         return FALSE;
@@ -2277,169 +2292,9 @@ IsValidGuidAsciiString (
   return TRUE;
 }
 
-STATIC
-EFI_STATUS
-StrHToBuf (
-  OUT UINT8    *Buf,
-  IN  UINTN    BufferLength,
-  IN  CHAR16   *Str
-) {
-  UINTN   Index, StrLength;
-  UINT8   Digit, Byte;
-
-  Digit = 0;
-
-  //
-  // Two hex char make up one byte
-  //
-  StrLength = BufferLength * sizeof (CHAR16);
-
-  for (Index = 0; Index < StrLength; Index++, Str++) {
-    if ((*Str >= L'a') && (*Str <= L'f')) {
-      Digit = (UINT8) (*Str - L'a' + 0x0A);
-    } else if ((*Str >= L'A') && (*Str <= L'F')) {
-      Digit = (UINT8) (*Str - L'A' + 0x0A);
-    } else if ((*Str >= L'0') && (*Str <= L'9')) {
-      Digit = (UINT8) (*Str - L'0');
-    } else {
-      return EFI_INVALID_PARAMETER;
-    }
-
-    //
-    // For odd characters, write the upper nibble for each buffer byte,
-    // and for even characters, the lower nibble.
-    //
-    if ((Index & 1) == 0) {
-      Byte = (UINT8)(Digit << 4);
-    } else {
-      Byte = Buf[Index / 2];
-      Byte &= 0xF0;
-      Byte = (UINT8)(Byte | Digit);
-    }
-
-    Buf[Index / 2] = Byte;
-  }
-
-  return EFI_SUCCESS;
-}
-
-/**
- Converts a string to GUID value.
- Guid Format is xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-
- @param Str              The registry format GUID string that contains the GUID value.
- @param Guid             A pointer to the converted GUID value.
-
- @retval EFI_SUCCESS     The GUID string was successfully converted to the GUID value.
- @retval EFI_UNSUPPORTED The input string is not in registry format.
- @return others          Some error occurred when converting part of GUID value.
-
- **/
-
-EFI_STATUS
-StrToGuidLE (
-  IN  CHAR16      *Str,
-  OUT EFI_GUID    *Guid
-) {
-  UINT8   GuidLE[16];
-
-  StrHToBuf (&GuidLE[0], 4, Str);
-  while (!IS_HYPHEN (*Str) && !IS_NULL (*Str)) {
-    Str ++;
-  }
-
-  if (IS_HYPHEN (*Str)) {
-    Str++;
-  } else {
-    return EFI_UNSUPPORTED;
-  }
-
-  StrHToBuf (&GuidLE[4], 2, Str);
-  while (!IS_HYPHEN (*Str) && !IS_NULL (*Str)) {
-    Str ++;
-  }
-
-  if (IS_HYPHEN (*Str)) {
-    Str++;
-  } else {
-    return EFI_UNSUPPORTED;
-  }
-
-  StrHToBuf (&GuidLE[6], 2, Str);
-  while (!IS_HYPHEN (*Str) && !IS_NULL (*Str)) {
-    Str ++;
-  }
-
-  if (IS_HYPHEN (*Str)) {
-    Str++;
-  } else {
-    return EFI_UNSUPPORTED;
-  }
-
-  StrHToBuf (&GuidLE[8], 2, Str);
-  while (!IS_HYPHEN (*Str) && !IS_NULL (*Str)) {
-    Str ++;
-  }
-
-  if (IS_HYPHEN (*Str)) {
-    Str++;
-  } else {
-    return EFI_UNSUPPORTED;
-  }
-
-  StrHToBuf (&GuidLE[10], 6, Str);
-
-  CopyMem ((UINT8 *)Guid, &GuidLE[0], 16);
-  return EFI_SUCCESS;
-}
-
 //
 // IO
 //
-
-#if 0
-EFI_STATUS
-WaitForSingleEvent (
-  IN EFI_EVENT    Event,
-  IN UINT64       Timeout OPTIONAL
-) {
-  EFI_STATUS    Status;
-  UINTN         Index;
-
-  EFI_EVENT     WaitList[3], TimerEvent;
-
-  if (Timeout != 0) {
-    //
-    // Create a timer event
-    //
-    Status = gBS->CreateEvent (EVT_TIMER, 0, NULL, NULL, &TimerEvent);
-
-    if (!EFI_ERROR (Status)) {
-      //
-      // Set the timer event
-      //
-      gBS->SetTimer (TimerEvent, TimerRelative, Timeout);
-
-      //
-      // Wait for the original event or the timer
-      //
-      WaitList[0] = Event;
-      WaitList[1] = TimerEvent;
-
-      Status = gBS->WaitForEvent (2, WaitList, &Index);
-      gBS->CloseEvent (TimerEvent);
-      if (!EFI_ERROR (Status) && (Index == 1)) {
-        Status = EFI_TIMEOUT;
-      }
-    }
-  } else {
-    WaitList[0] = Event;
-    Status = gBS->WaitForEvent (1, WaitList, &Index);
-  }
-
-  return Status;
-}
-#endif
 
 // input - tsc
 // output - milliseconds

@@ -24,12 +24,10 @@
 
 // 0=>Display  1=>network  2=>firewire 3=>LPCB 4=>HDAAudio 5=>RTC 6=>TMR 7=>SBUS 8=>PIC 9=>Airport 10=>XHCI 11=>HDMI
 CHAR8  *DeviceName[12];
-//CHAR8  *UsbName[10];
 //CHAR8  *Netmodel;
 
-CHAR8 DataBuiltin[]  = { 0x00 };
-CHAR8 DataBuiltin1[] = { 0x01 };
-//UINT8 Slash[]        = { 0x5c, 0 };
+CHAR8 DataZero[]  = { 0x00 };
+CHAR8 DataOne[]   = { 0x01 };
 
 BOOLEAN     HDAFIX = TRUE;
 BOOLEAN     GFXHDAFIX = TRUE;
@@ -38,16 +36,20 @@ BOOLEAN     DisplayName1;
 BOOLEAN     DisplayName2;
 
 BOOLEAN     NetworkName;
-BOOLEAN     ArptBCM;
-BOOLEAN     ArptAtheros;
-UINT16      ArptDevID;
+//BOOLEAN     ArptBCM;
+//BOOLEAN     ArptAtheros;
+//UINT16      ArptDevID;
+UINT32      NetworkADR1;
+UINT32      NetworkADR2;
+BOOLEAN     ArptName;
+UINT32      ArptADR1;
+UINT32      ArptADR2;
 
 UINT32      IMEIADR1;
 UINT32      IMEIADR2;
 
 // for read computer data
 
-//UINT32    HDAcodecId = 0;
 UINT32      HDAlayoutId = 0;
 UINT32      HDAADR1;
 UINT32      HDMIADR1;
@@ -58,35 +60,28 @@ UINT32      DisplayADR2[4];
 UINT32      DisplayVendor[4];
 UINT16      DisplayID[4];
 UINT32      DisplaySubID[4];
-//UINT32    GfxcodecId[2] = {0, 1};
-UINT32      GfxlayoutId[2] = { 1, 12 };
+//UINT32      GfxlayoutId = 1;
 PCI_DT      Displaydevice[2];
 
 //UINT32 IMEIADR1;
 //UINT32 IMEIADR2;
 
-UINT32      NetworkADR1;
-UINT32      NetworkADR2;
-BOOLEAN     ArptName;
-UINT32      ArptADR1;
-UINT32      ArptADR2;
-
 CHAR8       ClassFix[] =  { 0x00, 0x00, 0x03, 0x00 };
 
 UINT8       Dtgp[] = {                                              // Method (DTGP, 5, NotSerialized) ......
-   0x14, 0x3F, 0x44, 0x54, 0x47, 0x50, 0x05, 0xA0,
-   0x30, 0x93, 0x68, 0x11, 0x13, 0x0A, 0x10, 0xC6,
-   0xB7, 0xB5, 0xA0, 0x18, 0x13, 0x1C, 0x44, 0xB0,
-   0xC9, 0xFE, 0x69, 0x5E, 0xAF, 0x94, 0x9B, 0xA0,
-   0x18, 0x93, 0x69, 0x01, 0xA0, 0x0C, 0x93, 0x6A,
-   0x00, 0x70, 0x11, 0x03, 0x01, 0x03, 0x6C, 0xA4,
-   0x01, 0xA0, 0x06, 0x93, 0x6A, 0x01, 0xA4, 0x01,
-   0x70, 0x11, 0x03, 0x01, 0x00, 0x6C, 0xA4, 0x00
+  0x14, 0x3F, 0x44, 0x54, 0x47, 0x50, 0x05, 0xA0,
+  0x30, 0x93, 0x68, 0x11, 0x13, 0x0A, 0x10, 0xC6,
+  0xB7, 0xB5, 0xA0, 0x18, 0x13, 0x1C, 0x44, 0xB0,
+  0xC9, 0xFE, 0x69, 0x5E, 0xAF, 0x94, 0x9B, 0xA0,
+  0x18, 0x93, 0x69, 0x01, 0xA0, 0x0C, 0x93, 0x6A,
+  0x00, 0x70, 0x11, 0x03, 0x01, 0x03, 0x6C, 0xA4,
+  0x01, 0xA0, 0x06, 0x93, 0x6A, 0x01, 0xA4, 0x01,
+  0x70, 0x11, 0x03, 0x01, 0x00, 0x6C, 0xA4, 0x00
 };
 
 CHAR8       Dtgp1[] = {
-   0x44, 0x54, 0x47, 0x50, 0x68, 0x69, 0x6A, 0x6B,                  // DTGP (Arg0, Arg1, Arg2, Arg3, RefOf (Local0))
-   0x71, 0x60, 0xA4, 0x60                                           // Return (Local0)
+  0x44, 0x54, 0x47, 0x50, 0x68, 0x69, 0x6A, 0x6B,                  // DTGP (Arg0, Arg1, Arg2, Arg3, RefOf (Local0))
+  0x71, 0x60, 0xA4, 0x60                                           // Return (Local0)
 };
 
 CHAR8       Pnlf[] = {
@@ -165,11 +160,11 @@ GetPciADR (
       PciNodeCount++;
       PciNode = (PCI_DEVICE_PATH *)TmpDevicePath;
 
-      if (PciNodeCount == 1 && Addr1 != NULL) {
+      if ((PciNodeCount == 1) && (Addr1 != NULL)) {
         *Addr1 = (PciNode->Device << 16) | PciNode->Function;
-      } else if (PciNodeCount == 2 && Addr2 != NULL) {
+      } else if ((PciNodeCount == 2) && (Addr2 != NULL)) {
         *Addr2 = (PciNode->Device << 16) | PciNode->Function;
-      } else if (PciNodeCount == 3 && Addr3 != NULL) {
+      } else if ((PciNodeCount == 3) && (Addr3 != NULL)) {
         *Addr3 = (PciNode->Device << 16) | PciNode->Function;
       } else {
         break;
@@ -178,8 +173,6 @@ GetPciADR (
 
     TmpDevicePath = NextDevicePathNode (TmpDevicePath);
   }
-
-  return;
 }
 
 STATIC
@@ -307,19 +300,15 @@ CheckHardware () {
             (Pci.Hdr.ClassCode[1] == PCI_CLASS_NETWORK_OTHER)
           ) {
             GetPciADR (DevicePath, &ArptADR1, &ArptADR2, NULL);
-            //DBG ("ArptADR1 = 0x%x, ArptADR2 = 0x%x\n", ArptADR1, ArptADR2);
-            //Netmodel = get_arpt_model (DeviceId);
-            ArptBCM = (Pci.Hdr.VendorId == 0x14e4);
 
-            if (ArptBCM) {
-              DBG ("Found Airport BCM at 0x%x, 0x%x\n", ArptADR1, ArptADR2);
-            }
+            switch (Pci.Hdr.VendorId) {
+              case 0x14e4:
+                DBG ("Found Airport BCM at 0x%x, 0x%x\n", ArptADR1, ArptADR2);
+                break;
 
-            ArptAtheros = (Pci.Hdr.VendorId == 0x168c);
-            ArptDevID = Pci.Hdr.DeviceId;
-
-            if (ArptAtheros) {
-              DBG ("Found Airport Atheros at 0x%x, 0x%x, DeviceID = 0x%04x\n", ArptADR1, ArptADR2, ArptDevID);
+              case 0x168c:
+                DBG ("Found Airport Atheros at 0x%x, 0x%x, DeviceID = 0x%04x\n", ArptADR1, ArptADR2, Pci.Hdr.DeviceId);
+                break;
             }
           }
 
@@ -337,7 +326,7 @@ CheckHardware () {
             ((Pci.Hdr.ClassCode[1] == PCI_CLASS_MEDIA_HDA) ||
             (Pci.Hdr.ClassCode[1] == PCI_CLASS_MEDIA_AUDIO))
           ) {
-            UINT32    /*codecId = 0,*/ layoutId = 0;
+            UINT32  layoutId = 0;
 
             if (!IsHDMIAudio (Handle)) {
               if (gSettings.HDALayoutId > 0) {
@@ -347,7 +336,6 @@ CheckHardware () {
               }
 
               HDAFIX = TRUE;
-              //HDAcodecId = codecId;
               HDAlayoutId = layoutId;
             } else { //HDMI
               GetPciADR (DevicePath, &HDMIADR1, &HDMIADR2, NULL);
@@ -355,7 +343,6 @@ CheckHardware () {
             }
           }
         }
-        // detected finish
       }
     }
   }
@@ -528,8 +515,7 @@ FindCPU (
               break;
             }
             j = k - 3;    //if found then search again from found
-          } //while j
-          //--------
+          }
         }
       }
 
@@ -548,7 +534,7 @@ FindCPU (
           C = Dsdt[Offset + j];
         }
 
-        if (!(IS_UPPER (C) || IS_DIGIT (C) || C == '_')) {
+        if (!(IS_UPPER (C) || IS_DIGIT (C) || (C == '_'))) {
           AddName = FALSE;
           DBG ("Invalid character found in ProcessorOP 0x%x!\n", C);
           break;
@@ -605,7 +591,7 @@ MoveData (
     for (i = Start; i < Len + Offset; i++) {
       Buffer[i] = Buffer[i - Offset];
     }
-  } else  if (Offset > 0) { // data move to back
+  } else { // data move to back
     for (i = Len - 1; i >= Start; i--) {
       Buffer[i + Offset] = Buffer[i];
     }
@@ -623,16 +609,16 @@ AcpiGetSize (
 
   Temp = Buffer[Adr] & 0xF0; //keep bits 0x30 to check if this is valid size field
 
-  if (Temp <= 0x30)  {       // 0
+  if (Temp <= 0x30)  {          // 0
     Temp = Buffer[Adr];
-  } else if (Temp == 0x40) {   // 4
-    Temp =  (Buffer[Adr]   - 0x40)    << 0 |
-             Buffer[Adr + 1]          << 4;
-  } else if (Temp == 0x80) {   // 8
+  } else if (Temp == 0x40) {    // 4
+    Temp =  (Buffer[Adr]   - 0x40)    <<  0 |
+             Buffer[Adr + 1]          <<  4;
+  } else if (Temp == 0x80) {    // 8
     Temp = (Buffer[Adr]   - 0x80)     <<  0 |
             Buffer[Adr + 1]           <<  4 |
             Buffer[Adr + 2]           << 12;
-  } else if (Temp == 0xC0) {   // C
+  } else if (Temp == 0xC0) {    // C
     Temp = (Buffer[Adr]   - 0xC0)     <<  0 |
             Buffer[Adr + 1]           <<  4 |
             Buffer[Adr + 2]           << 12 |
@@ -706,9 +692,9 @@ FindName (
 STATIC
 BOOLEAN
 GetName (
-      UINT8   *Dsdt,
-      INT32   Adr,
-      CHAR8   *Name,
+  IN  UINT8   *Dsdt,
+  IN  INT32   Adr,
+  IN  CHAR8   *Name,
   OUT INTN    *Shift
 ) {
   INT32 i, j = (Dsdt[Adr] == 0x5C) ? 1 : 0; //now we accept \NAME
@@ -725,6 +711,7 @@ GetName (
     ) {
       return FALSE;
     }
+
     Name[i - Adr - j] = Dsdt[i];
   }
 
@@ -838,7 +825,7 @@ CmpDev (
   ) {
     if (Dsdt[i - 5] == 0x5B) {
       return i - 3;
-    } else if (Dsdt[i - 4] == 0x5B){
+    } else if (Dsdt[i - 4] == 0x5B) {
       return i - 2;
     } else {
       return i - 1;
@@ -897,7 +884,7 @@ FindMethod (
       ((Dsdt[i] == 0x14) || (Dsdt[i + 1] == 0x14) || (Dsdt[i - 1] == 0x14)) &&
       (Dsdt[i + 3] == Name[0]) && (Dsdt[i + 4] == Name[1]) &&
       (Dsdt[i + 5] == Name[2]) && (Dsdt[i + 6] == Name[3])
-    ){
+    ) {
       if (Dsdt[i - 1] == 0x14) {
         return i;
       }
@@ -1020,7 +1007,7 @@ CorrectOuters (
           SBADR = i - j + 1;
           SBSIZE = AcpiGetSize (Dsdt, SBADR);
 
-            //DBG ("found Scope (\\_SB) address = 0x%08x Size = 0x%08x\n", SBADR, SBSIZE);
+          //DBG ("found Scope (\\_SB) address = 0x%08x Size = 0x%08x\n", SBADR, SBSIZE);
 
           if ((SBSIZE != 0) && (SBSIZE < Len)) {  //if zero or too large then search more
             //if found
@@ -1113,7 +1100,8 @@ DevFind (
 
   while (k > 30) {
     k--;
-    if (Dsdt[k] == 0x82 && Dsdt[k - 1] == 0x5B) {
+
+    if ((Dsdt[k] == 0x82) && (Dsdt[k - 1] == 0x5B)) {
       Size = AcpiGetSize (Dsdt, k + 1);
       if (!Size) {
         continue;
@@ -1389,8 +1377,8 @@ PatchBinACPI (
       );
 
       DBG (" (%a -> %a)",
-        Bytes2HexStr(PatchDsdt->Find, (UINTN)PatchDsdt->LenToFind),
-        Bytes2HexStr(PatchDsdt->Replace, (UINTN)PatchDsdt->LenToReplace)
+        Bytes2HexStr (PatchDsdt->Find, (UINTN)PatchDsdt->LenToFind),
+        Bytes2HexStr (PatchDsdt->Replace, (UINTN)PatchDsdt->LenToReplace)
       );
 
       Len = FixAny (
@@ -1431,7 +1419,7 @@ AddPNLF (
 
   if (!Adr) {
     //search battery
-    DBG ("not found PWRB, look BAT0\n");
+    DBG ("PWRB not found, look BAT0\n");
     for (i = 0x20; i < Len - 6; i++) {
       if (CmpPNP (Dsdt, i, 0x0C0A)) {
         Adr = DevFind (Dsdt, i);
@@ -1471,7 +1459,9 @@ FIXDisplay (
 
   DisplayName1 = FALSE;
 
-  if (!DisplayADR1[VCard]) return Len;
+  if (!DisplayADR1[VCard]) {
+    return Len;
+  }
 
   PCIADR = GetPciDevice (Dsdt, Len);
   if (PCIADR) {
@@ -1526,6 +1516,7 @@ FIXDisplay (
           if (!DevAdr1) {
             continue;
           }
+
           DevSize1 = AcpiGetSize (Dsdt, DevAdr1); //13
           if (DevSize1) {
             if (gSettings.ReuseFFFF) {
@@ -1816,7 +1807,7 @@ AddHDMI (
       }
 
       BridgeFound = TRUE;
-      if (HDMIADR2 != 0xFFFE){
+      if (HDMIADR2 != 0xFFFE) {
         for (k = DevAdr + 9; k < DevAdr + BridgeSize; k++) {
           if (CmpAdr (Dsdt, k, HDMIADR2)) {
             DevAdr1 = DevFind (Dsdt, k);
@@ -1826,10 +1817,12 @@ AddHDMI (
 
             DeviceName[11] = AllocateZeroPool (5);
             CopyMem (DeviceName[11], Dsdt + k, 4);
+
             DBG (
               "found HDMI device [0x%08x:%x] at %x and Name is %a\n",
               HDMIADR1, HDMIADR2, DevAdr1, DeviceName[11]
             );
+
             ReplaceName (Dsdt + DevAdr, BridgeSize, DeviceName[11], "HDAU");
             HdauFound = TRUE;
             break;
@@ -1930,7 +1923,7 @@ AddHDMI (
   if (!AddProperties (Pack, DEV_HDMI)) {
     DBG (" - with default properties\n");
     AmlAddString (Pack, "layout-id");
-    AmlAddByteBuffer (Pack, (CHAR8 *)&GfxlayoutId[0], 4);
+    AmlAddByteBuffer (Pack, (CHAR8*)&HDAlayoutId, 4);
 
     AmlAddString (Pack, "PinConfigurations");
     AmlAddByteBuffer (Pack, Data, sizeof (Data));
@@ -1947,11 +1940,7 @@ AddHDMI (
   AmlDestroyNode (Root);
 
   //insert HDAU
-  if (BridgeFound) { // bridge or lan
-    k = DevAdr1;
-  } else { //this is impossible
-    k = PCIADR;
-  }
+  k = BridgeFound ? DevAdr1 : PCIADR;
 
   Size = AcpiGetSize (Dsdt, k);
   if (Size > 0) {
@@ -2024,7 +2013,7 @@ FIXNetwork (
         continue;
       }
 
-      if (NetworkADR2 != 0xFFFE){  //0
+      if (NetworkADR2 != 0xFFFE) {  //0
         for (k = BrdADR + 9; k < BrdADR + BridgeSize; k++) {
           if (CmpAdr (Dsdt, k, NetworkADR2)) {
             NetworkADR = DevFind (Dsdt, k);
@@ -2092,7 +2081,7 @@ FIXNetwork (
     Dev = AmlAddDevice (Root, "GIGE");
     AmlAddName (Dev, "_ADR");
     if (NetworkADR2) {
-      if (NetworkADR2> 0x3F) {
+      if (NetworkADR2 > 0x3F) {
         AmlAddDword (Dev, NetworkADR2);
       } else {
         AmlAddByte (Dev, (UINT8)NetworkADR2);
@@ -2102,8 +2091,10 @@ FIXNetwork (
     }
   }
 
+  /*
   Size = AcpiGetSize (Dsdt, i);
   k = FindMethod (Dsdt + i, Size, "_SUN");
+
   if (k == 0) {
     k = FindName (Dsdt + i, Size, "_SUN");
     if (k == 0) {
@@ -2116,6 +2107,7 @@ FIXNetwork (
       }
     }
   }
+  */
 
   // add Method (_DSM,4,NotSerialized) for Network
   if (gSettings.FakeLAN || !gSettings.NoDefaultProperties) {
@@ -2124,7 +2116,7 @@ FIXNetwork (
     Pack = AmlAddPackage (Met2);
 
     AmlAddString (Pack, "built-in");
-    AmlAddByteBuffer (Pack, DataBuiltin, sizeof (DataBuiltin));
+    AmlAddByteBuffer (Pack, DataZero, sizeof (DataZero));
     AmlAddString (Pack, "model");
     //AmlAddStringBuffer (Pack, Netmodel);
     AmlAddStringBuffer (Pack, S_NETMODEL);
@@ -2132,8 +2124,8 @@ FIXNetwork (
     AmlAddStringBuffer (Pack, "Ethernet");
 
     if (gSettings.FakeLAN) {
-      //    AmlAddString (Pack, "model");
-      //    AmlAddStringBuffer (Pack, "Apple LAN card");
+      //AmlAddString (Pack, "model");
+      //AmlAddStringBuffer (Pack, "Apple LAN card");
       AmlAddString (Pack, "device-id");
       AmlAddByteBuffer (Pack, (CHAR8 *)&FakeID, 4);
       AmlAddString (Pack, "vendor-id");
@@ -2171,11 +2163,7 @@ FIXNetwork (
   AmlWriteNode (Root, Network, 0);
   AmlDestroyNode (Root);
 
-  if (NetworkADR) { // bridge or lan
-    i = NetworkADR;
-  } else { //this is impossible
-    i = PCIADR;
-  }
+  i = NetworkADR ? NetworkADR : PCIADR; // bridge or lan
 
   Size = AcpiGetSize (Dsdt, i);
   // move data to back for add patch
@@ -2249,7 +2237,7 @@ FIXAirport (
         continue;
       }
 
-      if (ArptADR2 != 0xFFFE){
+      if (ArptADR2 != 0xFFFE) {
         for (k = BrdADR + 9; k < BrdADR + BridgeSize; k++) {
           if (CmpAdr (Dsdt, k, ArptADR2)) {
             ArptADR = DevFind (Dsdt, k);
@@ -2313,7 +2301,7 @@ FIXAirport (
     Dev = AmlAddDevice (Root, "ARPT");
     AmlAddName (Dev, "_ADR");
     if (ArptADR2) {
-      if (ArptADR2> 0x3F) {
+      if (ArptADR2 > 0x3F) {
         AmlAddDword (Dev, ArptADR2);
       } else {
         AmlAddByte (Dev, (UINT8)ArptADR2);
@@ -2323,6 +2311,7 @@ FIXAirport (
     }
   }
 
+  /*
   Size = AcpiGetSize (Dsdt, i);
   k = FindMethod (Dsdt + i, Size, "_SUN");
 
@@ -2340,6 +2329,7 @@ FIXAirport (
   } else {
     DBG ("Warning: Method (_SUN) found for airport\n");
   }
+  */
 
   // add Method (_DSM,4,NotSerialized) for Network
   if (gSettings.FakeWIFI || !gSettings.NoDefaultProperties) {
@@ -2349,7 +2339,7 @@ FIXAirport (
 
     if (!gSettings.NoDefaultProperties) {
       AmlAddString (Pack, "built-in");
-      AmlAddByteBuffer (Pack, DataBuiltin, sizeof (DataBuiltin));
+      AmlAddByteBuffer (Pack, DataZero, sizeof (DataZero));
       AmlAddString (Pack, "model");
       AmlAddStringBuffer (Pack, "Apple WiFi card");
       AmlAddString (Pack, "subsystem-id");
@@ -2422,11 +2412,7 @@ FIXAirport (
 
   DBG ("AirportADR=%x add patch size=%x\n", ArptADR, SizeOffset);
 
-  if (ArptADR) { // bridge or WiFi
-    i = ArptADR;
-  } else { //this is impossible
-    i = PCIADR;
-  }
+  i = ArptADR ? ArptADR : PCIADR;
 
   Size = AcpiGetSize (Dsdt, i);
   DBG ("Adr %x size of arpt=%x\n", i, Size);
@@ -2534,7 +2520,6 @@ AddIMEI (
         k = DevFind (Dsdt, i);
         if (k) {
           DBG ("device (IMEI) found at %x, don't add!\n", k);
-          //break;
           return Len;
         }
       }
@@ -2581,6 +2566,7 @@ AddIMEI (
   // always add on PCIX back
   Len = MoveData (PCIADR + PCISIZE, Dsdt, Len, SizeOffset);
   CopyMem (Dsdt + PCIADR + PCISIZE, Imei, SizeOffset);
+
   // Fix PCIX size
   k = WriteSize (PCIADR, Dsdt, Len, SizeOffset);
   SizeOffset += k;
@@ -2616,10 +2602,10 @@ AddHDEF (
   //Len = DeleteDevice ("AZAL", Dsdt, Len);
 
   // HDA Address
-  for (i = 0x20; i < Len - 10; i++) {
+  for (i = 0x20; i < (Len - 10); i++) {
     if (
-      (HDAADR1 != 0x00000000) &&
       HDAFIX &&
+      (HDAADR1 != 0x00000000) &&
       CmpAdr (Dsdt, i, HDAADR1)
     ) {
       HDAADR = DevFind (Dsdt, i);
@@ -2666,7 +2652,6 @@ AddHDEF (
     Device = AmlAddDevice (Root, "HDEF");
     AmlAddName (Device, "_ADR");
     AmlAddDword (Device, HDAADR1);
-
     // add Method (_DSM,4,NotSerialized)
     Met = AmlAddMethod (Device, "_DSM", 4);
   } else {
@@ -2682,8 +2667,11 @@ AddHDEF (
   }
 
   if (!AddProperties (Pack, DEV_HDA)) {
+    AmlAddString (Pack, "layout-id");
+    AmlAddByteBuffer (Pack, (CHAR8*)&HDAlayoutId, 4);
+
     AmlAddString (Pack, "MaximumBootBeepVolume");
-    AmlAddByteBuffer (Pack, (CHAR8 *)&DataBuiltin1[0], 1);
+    AmlAddByteBuffer (Pack, DataOne, sizeof (DataOne));
 
     AmlAddString (Pack, "PinConfigurations");
     AmlAddByteBuffer (Pack, 0, 0);//data, sizeof (data));
@@ -2730,7 +2718,6 @@ FixBiosDsdt (
   //Reenter requires ZERO values
   HDAFIX = TRUE;
   GFXHDAFIX = TRUE;
-  //USBIDFIX = TRUE;
 
   DsdtLen = ((EFI_ACPI_DESCRIPTION_HEADER *)Temp)->Length;
   if ((DsdtLen < 20) || (DsdtLen > 400000)) { //fool proof (some ASUS dsdt > 300kb?)

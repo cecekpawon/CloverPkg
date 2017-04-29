@@ -88,7 +88,7 @@ UI_IMG ScrollbarImg[] = {
   { NULL, L"scrollbar\\scroll_start" },
   { NULL, L"scrollbar\\scroll_end" },
   { NULL, L"scrollbar\\up_button" },
-  { NULL, L"scrollbar\\down_button" },
+  { NULL, L"scrollbar\\down_button" }
 };
 
 CONST INTN    ScrollbarImgCount = ARRAY_SIZE (ScrollbarImg);
@@ -97,7 +97,7 @@ UI_IMG ButtonsImg[] = {
   { NULL, L"radio_button" },
   { NULL, L"radio_button_selected" },
   { NULL, L"checkbox" },
-  { NULL, L"checkbox_checked" },
+  { NULL, L"checkbox_checked" }
 };
 
 CONST INTN    ButtonsImgCount = ARRAY_SIZE (ButtonsImg);
@@ -108,7 +108,7 @@ UI_IMG SelectionImg[] = {
   { NULL, NULL },
   { NULL, NULL },
   { NULL, NULL },
-  { NULL, NULL },
+  { NULL, NULL }
 };
 
 CONST INTN      SelectionImgCount = ARRAY_SIZE (SelectionImg);
@@ -131,7 +131,7 @@ STATIC CHAR16 *BuiltinIconNames[] = {
   L"HFS",
   L"NTFS",
   L"EXT",
-  L"Recovery",
+  L"Recovery"
 };
 
 STATIC CONST UINTN BuiltinIconNamesCount = ARRAY_SIZE (BuiltinIconNames);
@@ -172,6 +172,7 @@ DummyImage (
   LineOffset = PixelSize * 4;
 
   YPtr = (CHAR8 *)Image->PixelData + ((PixelSize - 32) >> 1) * (LineOffset + 4);
+
   for (y = 0; y < 32; y++) {
     Ptr = YPtr;
     for (x = 0; x < 32; x++) {
@@ -417,14 +418,10 @@ VOID
 InitBar () {
   InitUIBar ();
 
-  UpButton.Width      = GlobalConfig.ScrollWidth;
-  UpButton.Height     = GlobalConfig.ScrollButtonsHeight;
-  DownButton.Width    = UpButton.Width;
-  DownButton.Height   = GlobalConfig.ScrollButtonsHeight;
-  BarStart.Height     = GlobalConfig.ScrollBarDecorationsHeight;
-  BarEnd.Height       = GlobalConfig.ScrollBarDecorationsHeight;
-  ScrollStart.Height  = GlobalConfig.ScrollScrollDecorationsHeight;
-  ScrollEnd.Height    = GlobalConfig.ScrollScrollDecorationsHeight;
+  UpButton.Width      = DownButton.Width = GlobalConfig.ScrollButtonWidth;
+  UpButton.Height     = DownButton.Height = GlobalConfig.ScrollButtonHeight;
+  BarStart.Height     = BarEnd.Height = GlobalConfig.ScrollBarDecorationsHeight;
+  ScrollStart.Height  = ScrollEnd.Height = GlobalConfig.ScrollBackDecorationsHeight;
 }
 
 VOID
@@ -546,7 +543,7 @@ ScrollingBar (
       ScrollEnd.YPos - ScrollTotal.YPos
     );
 
-    BltImageAlpha (Total, ScrollTotal.XPos, ScrollTotal.YPos, &TransparentBackgroundPixel, GlobalConfig.ScrollWidth);
+    BltImageAlpha (Total, ScrollTotal.XPos, ScrollTotal.YPos, &TransparentBackgroundPixel, GlobalConfig.ScrollButtonWidth);
     FreeImage (Total);
   }
 }
@@ -621,46 +618,83 @@ GET_EMBEDDED:
 
   switch (Id) {
     case BUILTIN_ICON_FUNC_ABOUT:
-      DEC_BUILTIN_ICON (Id, emb_func_about); break;
+      DEC_BUILTIN_ICON (Id, emb_func_about);
+      break;
+
     case BUILTIN_ICON_FUNC_OPTIONS:
-      DEC_BUILTIN_ICON (Id, emb_func_options); break;
+      DEC_BUILTIN_ICON (Id, emb_func_options);
+      break;
+
     //case BUILTIN_ICON_FUNC_CLOVER:
-    //  DEC_BUILTIN_ICON (Id, emb_func_clover); break;
+    //  DEC_BUILTIN_ICON (Id, emb_func_clover);
+      break;
+
     case BUILTIN_ICON_FUNC_RESET:
-      DEC_BUILTIN_ICON (Id, emb_func_reset); break;
+      DEC_BUILTIN_ICON (Id, emb_func_reset);
+      break;
+
     //case BUILTIN_ICON_FUNC_SHUTDOWN:
-    //  DEC_BUILTIN_ICON (Id, emb_func_shutdown); break;
+      //DEC_BUILTIN_ICON (Id, emb_func_shutdown);
+      //break;
+
     case BUILTIN_ICON_FUNC_EXIT:
-      DEC_BUILTIN_ICON (Id, emb_func_exit); break;
+      DEC_BUILTIN_ICON (Id, emb_func_exit);
+      break;
+
     case BUILTIN_ICON_FUNC_HELP:
-      DEC_BUILTIN_ICON (Id, emb_func_help); break;
+      DEC_BUILTIN_ICON (Id, emb_func_help);
+      break;
+
     case BUILTIN_ICON_TOOL_SHELL:
-      DEC_BUILTIN_ICON (Id, emb_func_shell); break;
+      DEC_BUILTIN_ICON (Id, emb_func_shell);
+      break;
+
     //case BUILTIN_ICON_POINTER:
-    //  DEC_BUILTIN_ICON (Id, emb_pointer); break;
+      //DEC_BUILTIN_ICON (Id, emb_pointer);
+      //break;
+
     case BUILTIN_ICON_VOL_INTERNAL:
     case BUILTIN_ICON_VOL_EXTERNAL:
     case BUILTIN_ICON_VOL_OPTICAL:
     case BUILTIN_ICON_VOL_FIREWIRE:
-      DEC_BUILTIN_ICON (Id, emb_vol_internal); break;
+      DEC_BUILTIN_ICON (Id, emb_vol_internal);
+      break;
+
     //case BUILTIN_ICON_VOL_BOOTER:
-    //  DEC_BUILTIN_ICON (Id, emb_vol_internal_booter); break;
+      //DEC_BUILTIN_ICON (Id, emb_vol_internal_booter);
+      //break;
+
     case BUILTIN_ICON_VOL_INTERNAL_HFS:
-      DEC_BUILTIN_ICON (Id, emb_vol_internal_hfs); break;
+      DEC_BUILTIN_ICON (Id, emb_vol_internal_hfs);
+      break;
+
     case BUILTIN_ICON_VOL_INTERNAL_NTFS:
-      DEC_BUILTIN_ICON (Id, emb_vol_internal_ntfs); break;
+      DEC_BUILTIN_ICON (Id, emb_vol_internal_ntfs);
+      break;
+
     case BUILTIN_ICON_VOL_INTERNAL_EXT3:
-      DEC_BUILTIN_ICON (Id, emb_vol_internal_ext); break;
+      DEC_BUILTIN_ICON (Id, emb_vol_internal_ext);
+      break;
+
     case BUILTIN_ICON_VOL_INTERNAL_REC:
-      DEC_BUILTIN_ICON (Id, emb_vol_internal_recovery); break;
+      DEC_BUILTIN_ICON (Id, emb_vol_internal_recovery);
+      break;
+
     case BUILTIN_ICON_BANNER:
-      DEC_BUILTIN_ICON (Id, emb_logo); break;
+      DEC_BUILTIN_ICON (Id, emb_logo);
+      break;
+
     case BUILTIN_ICON_BANNER_BLACK:
-      DEC_BUILTIN_ICON (Id, emb_logo_black); break;
+      DEC_BUILTIN_ICON (Id, emb_logo_black);
+      break;
+
     case BUILTIN_SELECTION_SMALL:
-      DEC_BUILTIN_ICON (Id, emb_selection_small); break;
+      DEC_BUILTIN_ICON (Id, emb_selection_small);
+      break;
+
     case BUILTIN_SELECTION_BIG:
-      DEC_BUILTIN_ICON (Id, emb_selection_big); break;
+      DEC_BUILTIN_ICON (Id, emb_selection_big);
+      break;
   }
 
   if (!BuiltinIconTable[Id].Image) {
@@ -682,7 +716,6 @@ GET_EMBEDDED:
     BuiltinIconTable[Id].Image = TextBuffer;
     DBG ("        [!] Icon %d: Text <%s> rendered\n", Id, Text);
     FreePool (Text);
-    //BuiltinIconTable[Id].Image = DummyImage (Size);
   }
 
   return BuiltinIconTable[Id].Image;
@@ -692,17 +725,14 @@ EG_IMAGE *
 LoadBuiltinIcon (
   IN CHAR16   *IconName
 ) {
-  UINTN   Index = 0;
+  UINTN   Index;
 
-  if (IconName == NULL) {
-    return NULL;
-  }
-
-  while (Index < BuiltinIconNamesCount) {
-    if (StriCmp (IconName, BuiltinIconNames[Index]) == 0) {
-      return BuiltinIcon (BUILTIN_ICON_VOL_INTERNAL + Index);
+  if (IconName != NULL) {
+    for (Index = 0; Index < BuiltinIconNamesCount; Index++) {
+      if (StriCmp (IconName, BuiltinIconNames[Index]) == 0) {
+        return BuiltinIcon (BUILTIN_ICON_VOL_INTERNAL + Index);
+      }
     }
-    ++Index;
   }
 
   return NULL;
@@ -769,11 +799,8 @@ ScanVolumeDefaultIcon (
 
 EG_IMAGE *
 LoadOSIcon (
-  IN  CHAR16    *OSIconName OPTIONAL,
-  OUT CHAR16    **OSIconNameHover,
-  IN  CHAR16    *FallbackIconName,
-  IN  BOOLEAN   BootLogo,
-  IN  BOOLEAN   WantDummy
+  IN  CHAR16    *OSIconName,
+  OUT CHAR16    **OSIconNameHover
 ) {
   EG_IMAGE    *Image;
   CHAR16      CutoutName[16], TmpName[64], FileName[AVALUE_MAX_SIZE];
@@ -809,8 +836,8 @@ LoadOSIcon (
 
     CopyMem (CutoutName, OSIconName + StartIndex, (Index - StartIndex) * sizeof (CHAR16));
     CutoutName[Index - StartIndex] = 0;
-    UnicodeSPrint (TmpName, 64, L"%s_%s", BootLogo ? L"boot" : L"os", CutoutName);
-    UnicodeSPrint (FileName, ARRAY_SIZE (FileName), PoolPrint (L"icons\\%s.png", TmpName));
+    UnicodeSPrint (TmpName, 64, L"os_%s", CutoutName);
+    UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"icons\\%s.png", TmpName);
 
     // try to load it
     Image = LoadImage (ThemeDir, FileName);
@@ -822,8 +849,8 @@ LoadOSIcon (
   }
 
   // try the fallback name
-  UnicodeSPrint (TmpName, ARRAY_SIZE (TmpName), L"%s_%s", BootLogo ? L"boot" : L"os", FallbackIconName);
-  UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s", PoolPrint (L"icons\\%s.png", TmpName));
+  StrCpyS (TmpName, ARRAY_SIZE (TmpName), L"os_unknown");
+  UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"icons\\%s.png", TmpName);
 
   Image = LoadImage (ThemeDir, FileName);
 
@@ -833,16 +860,7 @@ LoadOSIcon (
     return Image;
   }
 
-  // try the fallback name with os_ instead of boot_
-  if (BootLogo) {
-    Image = LoadOSIcon (NULL, NULL, FallbackIconName, FALSE, WantDummy);
-
-    if (Image != NULL) {
-      return Image;
-    }
-  }
-
-  return WantDummy ? DummyImage (VOL_DIMENSION) : NULL;
+  return DummyImage (VOL_DIMENSION);
 }
 
 EG_IMAGE *
@@ -854,4 +872,36 @@ LoadHoverIcon (
   }
 
   return LoadImage (ThemeDir, OSIconName);
+}
+
+CHAR16 *
+GetOSIconName (
+  IN  SVersion  *SDarwinVersion
+) {
+  CHAR16  *OSIconName = L"mac";
+
+  switch (SDarwinVersion->VersionMajor) {
+    case DARWIN_OS_VER_MAJOR_10:
+      switch (SDarwinVersion->VersionMinor) {
+        case DARWIN_OS_VER_MINOR_SIERRA:
+          OSIconName = L"sierra,mac";
+          break;
+        case DARWIN_OS_VER_MINOR_ELCAPITAN:
+          OSIconName = L"cap,mac";
+          break;
+        case DARWIN_OS_VER_MINOR_YOSEMITE:
+          OSIconName = L"yos,mac";
+          break;
+        case DARWIN_OS_VER_MINOR_MAVERICKS:
+          OSIconName = L"mav,mac";
+          break;
+      }
+      break;
+
+    default:
+      //
+      break;
+  }
+
+  return OSIconName;
 }

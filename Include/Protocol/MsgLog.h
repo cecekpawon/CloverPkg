@@ -10,8 +10,6 @@
 #ifndef __MESSAGE_LOG_H__
 #define __MESSAGE_LOG_H__
 
-#include <Uefi.h>
-
 #define BOOTER_LOG_SIZE (4 * 1024)
 
 #define BootLog(...) \

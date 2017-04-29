@@ -58,8 +58,8 @@ UINT32                        OrgRTCRC32 = 0;
 #endif
 
 // monitoring AlocatePages
-EFI_PHYSICAL_ADDRESS          gMinAllocatedAddr = 0;
-EFI_PHYSICAL_ADDRESS          gMaxAllocatedAddr = 0;
+EFI_PHYSICAL_ADDRESS          gMinAllocatedAddr = 0,
+                              gMaxAllocatedAddr = 0;
 
 // relocation base address
 EFI_PHYSICAL_ADDRESS          gRelocBase = 0;

@@ -45,6 +45,8 @@ typedef struct PCI_DT {
   UINT8           revision;
   UINT8           subclass;
   UINT16          class_id;
+  UINT8           class_code[3];
+  EFI_HANDLE      *handle;
 
   struct PCI_DT   *parent;
   struct PCI_DT   *children;
@@ -108,11 +110,8 @@ typedef struct DevPropDevice {
           PCIDevPath      pci_dev_path[MAX_PCI_DEV_PATHS];  // = 0x01010600 func dev
           DevicePathEnd   path_end;                         // = 0x7fff0400
           UINT8           *data;
-
-  // ------------------------
           UINT8           num_pci_devpaths;
   struct  DevPropString   *string;
-  // ------------------------
 } DevPropDevice;
 
 typedef struct DevPropString {

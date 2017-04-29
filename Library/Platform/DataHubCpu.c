@@ -131,12 +131,13 @@ SetVariablesForOSX () {
   //
 
   // As found on a real Mac, the system-id variable solely has the BS flag
+
   SetNvramVariable (
     NvramData[kSystemID].VariableName,
     NvramData[kSystemID].Guid,
     NvramData[kSystemID].Attribute,
-    sizeof (gUuid),
-    &gUuid
+    sizeof (gSettings.SmUUID),
+    &gSettings.SmUUID
   );
 
   SetOrDeleteNvramVariable (
@@ -215,14 +216,17 @@ SetVariablesForOSX () {
 
   // we should have two UUID: platform and system
   // NO! Only Platform is the best solution
+  /*
   SetOrDeleteNvramVariable (
     NvramData[kPlatformUUID].VariableName,
     NvramData[kPlatformUUID].Guid,
     NvramData[kPlatformUUID].Attribute,
     16,
-    &gUuid,
-    (!gSettings.InjectSystemID && gSettings.SmUUIDConfig)
+    &gSettings.SmUUID,
+    //(!gSettings.InjectSystemID && gSettings.SmUUIDConfig)
+    gSettings.SmUUIDConfig
   );
+  */
 
   SetOrDeleteNvramVariable (
     NvramData[kBacklightLevel].VariableName,
@@ -230,7 +234,7 @@ SetVariablesForOSX () {
     NvramData[kBacklightLevel].Attribute,
     sizeof (gSettings.BacklightLevel),
     &gSettings.BacklightLevel,
-    (gMobile && gSettings.BacklightLevelConfig)
+    (gMobile && (gSettings.BacklightLevel != 0xFFFF))
   );
 
 #ifndef NO_NVRAM_SIP
@@ -281,9 +285,9 @@ SetupDataForOSX () {
     LogDataHub (&gEfiMiscSubClassGuid,  L"Model",                 gSettings.ProductName,        ARRAY_SIZE (gSettings.ProductName));
     LogDataHub (&gEfiMiscSubClassGuid,  L"SystemSerialNumber",    gSettings.SerialNr,           ARRAY_SIZE (gSettings.SerialNr));
 
-    if (gSettings.InjectSystemID) {
-      LogDataHub (&gEfiMiscSubClassGuid,  L"system-id", &gUuid, sizeof (EFI_GUID));
-    }
+    //if (gSettings.SmUUIDConfig) {
+    //  LogDataHub (&gEfiMiscSubClassGuid,  L"system-id", &gSettings.SmUUID, sizeof (EFI_GUID));
+    //}
 
     //LogDataHub (&gEfiMiscSubClassGuid, L"clovergui-revision", &Revision, sizeof (UINT32));
 

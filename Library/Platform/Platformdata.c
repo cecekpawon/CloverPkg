@@ -111,7 +111,6 @@ SetDMISettingsForModel (
 ) {
   AsciiStrCpyS (gSettings.VendorName,           ARRAY_SIZE (gSettings.VendorName), BiosVendor);
   AsciiStrCpyS (gSettings.RomVersion,           ARRAY_SIZE (gSettings.RomVersion), MAC_MODELS[Model].AppleFirmwareVersion);
-  //AsciiStrCpyS (gSettings.ReleaseDate,          ARRAY_SIZE (gSettings.ReleaseDate), MAC_MODELS[Model].AppleReleaseDate);
   AsciiStrCpyS (gSettings.ReleaseDate,          ARRAY_SIZE (gSettings.ReleaseDate), GetAppleReleaseDate (MAC_MODELS[Model].AppleFirmwareVersion));
   AsciiStrCpyS (gSettings.ManufactureName,      ARRAY_SIZE (gSettings.ManufactureName), BiosVendor);
 
@@ -119,10 +118,8 @@ SetDMISettingsForModel (
     AsciiStrCpyS (gSettings.ProductName,        ARRAY_SIZE (gSettings.ProductName), MAC_MODELS[Model].AppleProductName);
   }
 
-  //AsciiStrCpyS (gSettings.VersionNr,            ARRAY_SIZE (gSettings.VersionNr), MAC_MODELS[Model].AppleSystemVersion);
   AsciiStrCpyS (gSettings.VersionNr,            ARRAY_SIZE (gSettings.VersionNr), APPLE_SYSTEM_VERSION);
   AsciiStrCpyS (gSettings.SerialNr,             ARRAY_SIZE (gSettings.SerialNr), MAC_MODELS[Model].AppleSerialNumber);
-  //AsciiStrCpyS (gSettings.FamilyName,           ARRAY_SIZE (gSettings.FamilyName), MAC_MODELS[Model].AppleFamilies);
   AsciiStrCpyS (gSettings.FamilyName,           ARRAY_SIZE (gSettings.FamilyName), GetAppleFamilies (MAC_MODELS[Model].AppleProductName));
   AsciiStrCpyS (gSettings.BoardManufactureName, ARRAY_SIZE (gSettings.BoardManufactureName), BiosVendor);
   AsciiStrCpyS (gSettings.BoardSerialNumber,    ARRAY_SIZE (gSettings.BoardSerialNumber), AppleBoardSN);
@@ -130,7 +127,6 @@ SetDMISettingsForModel (
   AsciiStrCpyS (gSettings.BoardVersion,         ARRAY_SIZE (gSettings.BoardVersion), MAC_MODELS[Model].AppleProductName);
   AsciiStrCpyS (gSettings.LocationInChassis,    ARRAY_SIZE (gSettings.LocationInChassis), AppleBoardLocation);
   AsciiStrCpyS (gSettings.ChassisManufacturer,  ARRAY_SIZE (gSettings.ChassisManufacturer), BiosVendor);
-  //AsciiStrCpyS (gSettings.ChassisAssetTag,      ARRAY_SIZE (gSettings.ChassisAssetTag), MAC_MODELS[Model].AppleChassisAsset);
   AsciiStrCpyS (gSettings.ChassisAssetTag,      ARRAY_SIZE (gSettings.ChassisAssetTag), GetAppleChassisAsset (gSettings.ProductName));
 
   gSettings.BoardType = BaseBoardTypeProcessorMemoryModule;

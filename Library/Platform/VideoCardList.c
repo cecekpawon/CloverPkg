@@ -128,22 +128,26 @@ FillCardList (
 
       if (Prop && (Prop->type == kTagTypeArray)) {
         INTN      i, Count = Prop->size;
-        TagPtr    Element = 0, Prop2 = 0;
 
         for (i = 0; i < Count; i++) {
-          CHAR8         *ModelName = NULL;
+          CHAR8         ModelName[64];
           UINT32        DevID = 0, SubDevID = 0;
           UINT64        VramSize  = 0;
           UINTN         VideoPorts  = 0;
           BOOLEAN       LoadVBios = FALSE;
+          TagPtr        Element = NULL, Prop2 = NULL;
           EFI_STATUS    Status = GetElement (Prop, i, Count, &Element);
 
           if (!EFI_ERROR (Status) && Element) {
-            if ((Prop2 = GetProperty (Element, "Model")) != 0) {
-              ModelName = Prop2->string;
-            } else {
-              ModelName = "VideoCard";
-            }
+            ZeroMem (ModelName, ARRAY_SIZE (ModelName));
+            Prop2 = GetProperty (Element, "Model");
+            AsciiStrCpyS (
+                ModelName,
+                ARRAY_SIZE (ModelName),
+                ((Prop2 != NULL) && (Prop2->type == kTagTypeString))
+                  ? Prop2->string
+                  : "VideoCard"
+              );
 
             Prop2 = GetProperty (Element, "IOPCIPrimaryMatch");
             DevID = (UINT32)GetPropertyInteger (Prop2, 0);
@@ -158,7 +162,6 @@ FillCardList (
             VideoPorts = (UINT16)GetPropertyInteger (Prop2, VideoPorts);
 
             Prop2 = GetProperty (Element, "LoadVBios");
-
             LoadVBios = GetPropertyBool (Prop2, FALSE);
 
             DBG ("FillCardList: %a | \"%a\" (%08x, %08x)\n", Key, ModelName, DevID, SubDevID);

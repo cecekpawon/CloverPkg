@@ -86,7 +86,7 @@ EFI_STATUS
 );
 
 typedef struct {
-  EFI_SCREEN_INFO_FUNCTION GetScreenInfo;
+  EFI_SCREEN_INFO_FUNCTION    GetScreenInfo;
 } EFI_INTERFACE_SCREEN_INFO;
 
 EFI_STATUS
@@ -240,7 +240,7 @@ PciConfigRead32 (
                   EFI_OPEN_PROTOCOL_GET_PROTOCOL
                 );
 
-  if (EFI_ERROR (Status)){
+  if (EFI_ERROR (Status)) {
     DBG ("PciConfigRead32 cant open protocol\n");
     return 0;
   }
@@ -599,7 +599,7 @@ SetupEthernetDevprop (
     DevpropAddValue (Device, "device-id", (UINT8 *)&FakeID, 4);
     AsciiSPrint (Compatible, Len, "pci%x,%x", (gSettings.FakeLAN & 0xFFFF), FakeID);
     AsciiStrCpyS (Compatible, Len, AsciiStrToLower (Compatible));
-    DevpropAddValue (Device, "compatCble", (UINT8 *)&Compatible[0], 12);
+    DevpropAddValue (Device, "compatible", (UINT8 *)&Compatible[0], 12);
     FakeID = gSettings.FakeLAN & 0xFFFF;
     DevpropAddValue (Device, "vendor-id", (UINT8 *)&FakeID, 4);
     MsgLog (" - With FakeLAN: %a\n", Compatible);
@@ -610,7 +610,7 @@ SetupEthernetDevprop (
 
 BOOLEAN
 IsHDMIAudio (
-  EFI_HANDLE PciDevHandle
+  EFI_HANDLE  PciDevHandle
 ) {
   EFI_STATUS            Status;
   EFI_PCI_IO_PROTOCOL   *PciIo;
@@ -639,18 +639,16 @@ IsHDMIAudio (
                     &Function
                   );
 
-  if (EFI_ERROR (Status)) {
-    return FALSE;
-  }
-
-  // iterate over all GFX devices and check for sibling
-  for (Index = 0; Index < NGFX; Index++) {
-    if (
-      (gGraphics[Index].Segment == Segment) &&
-      (gGraphics[Index].Bus == Bus) &&
-      (gGraphics[Index].Device == Device)
-    ) {
-      return TRUE;
+  if (!EFI_ERROR (Status)) {
+    // iterate over all GFX devices and check for sibling
+    for (Index = 0; Index < NGFX; Index++) {
+      if (
+        (gGraphics[Index].Segment == Segment) &&
+        (gGraphics[Index].Bus == Bus) &&
+        (gGraphics[Index].Device == Device)
+      ) {
+        return TRUE;
+      }
     }
   }
 
@@ -659,14 +657,12 @@ IsHDMIAudio (
 
 BOOLEAN
 SetupHdaDevprop (
-  EFI_PCI_IO_PROTOCOL   *PciIo,
-  PCI_DT                *Dev
+  PCI_DT    *Dev
 ) {
   CHAR8           *DevicePath;
   DevPropDevice   *Device;
-  UINT32          LayoutId = 0/*, codecId = 0 */;
+  UINT32          HdaVal = 0, i;
   BOOLEAN         Injected = FALSE;
-  INT32           i;
 
   if (!gSettings.HDALayoutId) {
     return FALSE;
@@ -712,8 +708,8 @@ SetupHdaDevprop (
     }
   } else {
     // HDA - determine layout-id
-    LayoutId = (UINT32)gSettings.HDALayoutId;
-    MsgLog (" - Layout-id: %d\n", LayoutId);
+    HdaVal = (UINT32)gSettings.HDALayoutId;
+    MsgLog (" - Layout-id: %d\n", HdaVal);
 
     if (gSettings.NrAddProperties != 0xFFFE) {
       for (i = 0; i < gSettings.NrAddProperties; i++) {
@@ -733,16 +729,16 @@ SetupHdaDevprop (
     }
 
     if (!Injected) {
-      DevpropAddValue (Device, "layout-id", (UINT8 *)&LayoutId, 4);
+      DevpropAddValue (Device, "layout-id", (UINT8 *)&HdaVal, 4);
 
-      LayoutId = 0; // reuse variable
+      HdaVal = 0; // reuse variable
 
       if (gSettings.UseIntelHDMI) {
         DevpropAddValue (Device, "hda-gfx", (UINT8 *)"onboard-1", 10);
       }
 
-      DevpropAddValue (Device, "MaximumBootBeepVolume", (UINT8 *)&LayoutId, 1);
-      //DevpropAddValue (Device, "PinConfigurations", (UINT8 *)&LayoutId, 1);
+      DevpropAddValue (Device, "MaximumBootBeepVolume", (UINT8 *)&HdaVal, 1);
+      //DevpropAddValue (Device, "PinConfigurations", (UINT8 *)&HdaVal, 1);
     }
 
   }

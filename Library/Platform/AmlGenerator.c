@@ -208,8 +208,7 @@ AmlFillSimpleName (
   CHAR8     *Name
 ) {
   if (AsciiStrLen (Name) < 4) {
-    //    MsgLog ("AmlFillSimpleName: simple Name %a has incorrect Length! Must
-    //    be 4.\n", Name);
+    //MsgLog ("AmlFillSimpleName: simple Name %a has incorrect Length! Must be 4.\n", Name);
     return 0;
   }
 
@@ -234,8 +233,7 @@ AmlFillName (
   Count = Len >> 2;
 
   if (((Len % 4) > 1) || (Count == 0)) {
-    //    MsgLog ("AmlFillName: pathName %a has incorrect Length! Must be 4, 8,
-    //    12, 16, etc...\n", Name);
+    //MsgLog ("AmlFillName: pathName %a has incorrect Length! Must be 4, 8, 12, 16, etc...\n", Name);
     return 0;
   }
 
@@ -317,8 +315,6 @@ AmlAddMethod (
     Node->Type = AML_CHUNK_METHOD;
     Node->Length++;
     Node->Buffer[Offset] = Args;
-    //AML_CHUNK *meth = AmlAddByte (Node, Args);
-    //return meth;
   }
 
   return Node;
@@ -489,8 +485,7 @@ AmlAddString (
 
     Node->Type = AML_CHUNK_STRING;
     Node->Length = (UINT8)(Len + 1);
-    Node->Buffer = AllocateZeroPool (Len + 1);
-    CopyMem (Node->Buffer, StringBuf, Len);
+    Node->Buffer = AllocateCopyPool (Node->Length, StringBuf);
     //Node->Buffer[Len] = '\0';
   }
 
@@ -505,7 +500,7 @@ AmlAddReturn (
 
   if (Node) {
     Node->Type = AML_CHUNK_RETURN;
-    // AmlAddByte (Node, Value);
+    //AmlAddByte (Node, Value);
   }
 
   return Node;

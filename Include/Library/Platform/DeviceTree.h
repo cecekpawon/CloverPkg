@@ -144,7 +144,11 @@ typedef struct BooterKextFileInfo {
 
 /* Used to initalize the device tree functions. */
 /* base is the base address of the flatened device tree */
-VOID EFIAPI DTInit (VOID *base);
+VOID
+EFIAPI
+DTInit (
+  VOID    *Base
+);
 
 /*
 -------------------------------------------------------------------------------
@@ -152,7 +156,12 @@ VOID EFIAPI DTInit (VOID *base);
 -------------------------------------------------------------------------------
 */
 /* Compare two Entry's for equality. */
-INTN DTEntryIsEqual (CONST DTEntry ref1, CONST DTEntry ref2);
+INTN
+EFIAPI
+DTEntryIsEqual (
+  CONST DTEntry   Ref1,
+  CONST DTEntry   Ref2
+);
 
 /*
 -------------------------------------------------------------------------------
@@ -167,7 +176,13 @@ INTN DTEntryIsEqual (CONST DTEntry ref1, CONST DTEntry ref2);
  Returns:    kSuccess = entry was found.  Entry is in entryH.
              kError   = entry was not found
 */
-INTN DTFindEntry (CONST CHAR8 *propName, CONST CHAR8 *propValue, DTEntry *entryH);
+INTN
+EFIAPI
+DTFindEntry (
+  CONST CHAR8     *PropName,
+  CONST CHAR8     *PropValue,
+        DTEntry   *EntryH
+);
 
 /*
  Lookup Entry
@@ -175,7 +190,13 @@ INTN DTFindEntry (CONST CHAR8 *propName, CONST CHAR8 *propValue, DTEntry *entryH
  searchPoint pointer is NULL, the path name is assumed to be an absolute path
  name rooted to the root of the device tree.
 */
-INTN EFIAPI DTLookupEntry (CONST DTEntry searchPoint, CONST CHAR8 *pathName, DTEntry *foundEntry);
+INTN
+EFIAPI
+DTLookupEntry (
+  CONST DTEntry   SearchPoint,
+  CONST CHAR8     *PathName,
+        DTEntry   *FoundEntry
+);
 
 /*
 -------------------------------------------------------------------------------
@@ -196,10 +217,19 @@ INTN EFIAPI DTLookupEntry (CONST DTEntry searchPoint, CONST CHAR8 *pathName, DTE
  currentScope are set to the root entry.  The currentPosition for the iterator is
  set to "nil".
 */
-INTN DTCreateEntryIterator (CONST DTEntry startEntry, DTEntryIterator *iterator);
+INTN
+EFIAPI
+DTCreateEntryIterator (
+  CONST DTEntry           StartEntry,
+        DTEntryIterator   *Iterator
+);
 
 /* Dispose Entry Iterator */
-INTN DTDisposeEntryIterator (DTEntryIterator iterator);
+INTN
+EFIAPI
+DTDisposeEntryIterator (
+  DTEntryIterator   Iterator
+);
 
 /*
  Enter Child Entry
@@ -208,7 +238,12 @@ INTN DTDisposeEntryIterator (DTEntryIterator iterator);
  "childEntry" is nil, the currentScope is set to the entry specified by the
  currentPosition of the iterator.
 */
-INTN DTEnterEntry (DTEntryIterator iterator, DTEntry childEntry);
+INTN
+EFIAPI
+DTEnterEntry (
+  DTEntryIterator   Iterator,
+  DTEntry           ChildEntry
+);
 
 /*
  Exit to Parent Entry
@@ -217,7 +252,12 @@ INTN DTEnterEntry (DTEntryIterator iterator, DTEntry childEntry);
  previous currentScope), so the next iteration call will continue where it left off.
  This position is returned in parameter "currentPosition".
 */
-INTN DTExitEntry (DTEntryIterator iterator, DTEntry *currentPosition);
+INTN
+EFIAPI
+DTExitEntry (
+  DTEntryIterator   Iterator,
+  DTEntry           *CurrentPosition
+);
 
 /*
  Iterate Entries
@@ -226,7 +266,12 @@ INTN DTExitEntry (DTEntryIterator iterator, DTEntry *currentPosition);
 INTN== kIterationDone, all entries have been exhausted, and the
  value of nextEntry will be Nil.
 */
-INTN DTIterateEntries (DTEntryIterator iterator, DTEntry *nextEntry);
+INTN
+EFIAPI
+DTIterateEntries (
+  DTEntryIterator   Iterator,
+  DTEntry           *NextEntry
+);
 
 /*
  Restart Entry Iteration
@@ -235,7 +280,11 @@ INTN DTIterateEntries (DTEntryIterator iterator, DTEntry *nextEntry);
  outermostScope and currentScope of the iterator are unchanged. The currentPosition
  for the iterator is set to "nil".
 */
-INTN DTRestartEntryIteration (DTEntryIterator iterator);
+INTN
+EFIAPI
+DTRestartEntryIteration (
+  DTEntryIterator   Iterator
+);
 
 /*
 -------------------------------------------------------------------------------
@@ -247,7 +296,14 @@ INTN DTRestartEntryIteration (DTEntryIterator iterator);
 
  Get Property
 */
-INTN EFIAPI DTGetProperty (CONST DTEntry entry, CONST CHAR8 *propertyName, void **propertyValue, UINT32 *propertySize);
+INTN
+EFIAPI
+DTGetProperty (
+  CONST DTEntry   Entry,
+  CONST CHAR8     *PropertyName,
+        VOID      **PropertyValue,
+        UINT32    *PropertySize
+);
 
 /*
 -------------------------------------------------------------------------------
@@ -259,16 +315,30 @@ INTN EFIAPI DTGetProperty (CONST DTEntry entry, CONST CHAR8 *propertyName, void 
  Create the property iterator structure. The target entry is defined by entry.
 */
 
-INTN EFIAPI DTCreatePropertyIterator (CONST DTEntry entry, DTPropertyIterator *iterator);
+INTN
+EFIAPI
+DTCreatePropertyIterator (
+  CONST DTEntry             Entry,
+        DTPropertyIterator  *Iterator
+);
 
 /*
  dmazar: version without mem alloc which can be used during or after ExitBootServices.
  caller should not call DTDisposePropertyIterator when using this version.
  */
-INTN EFIAPI DTCreatePropertyIteratorNoAlloc (CONST DTEntry entry, DTPropertyIterator iterator);
+INTN
+EFIAPI
+DTCreatePropertyIteratorNoAlloc (
+  CONST DTEntry             Entry,
+        DTPropertyIterator  Iterator
+);
 
 /* Dispose Property Iterator */
-INTN DTDisposePropertyIterator (DTPropertyIterator iterator);
+INTN
+EFIAPI
+DTDisposePropertyIterator (
+  DTPropertyIterator    Iterator
+);
 
 /*
  Iterate Properites
@@ -276,7 +346,12 @@ INTN DTDisposePropertyIterator (DTPropertyIterator iterator);
  WhenINTN== kIterationDone, all properties have been exhausted.
 */
 
-INTN EFIAPI DTIterateProperties (DTPropertyIterator iterator, CHAR8 **foundProperty);
+INTN
+EFIAPI
+DTIterateProperties (
+  DTPropertyIterator    Iterator,
+  CHAR8                 **FoundProperty
+);
 
 /*
  Restart Property Iteration
@@ -284,7 +359,11 @@ INTN EFIAPI DTIterateProperties (DTPropertyIterator iterator, CHAR8 **foundPrope
  reset to the beginning of the list of properties for an entry.
 */
 
-INTN EFIAPI DTRestartPropertyIteration (DTPropertyIterator iterator);
+INTN
+EFIAPI
+DTRestartPropertyIteration (
+  DTPropertyIterator    Iterator
+);
 
 /* DevTree may contain /chosen/memory-map
  * with properties with values = UINT32 address, UINT32 length:

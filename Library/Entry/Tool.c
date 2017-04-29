@@ -53,7 +53,7 @@ STATIC CHAR16 *ShellPath[] = {
   L"Shell.efi"
 };
 
-STATIC CONST INTN ShellPathCount = ARRAY_SIZE (ShellPath);
+STATIC CONST UINTN ShellPathCount = ARRAY_SIZE (ShellPath);
 
 STATIC
 BOOLEAN
@@ -86,12 +86,7 @@ AddToolEntry (
     return FALSE;
   }
 
-  if (FullTitle) {
-    Entry->me.Title = EfiStrDuplicate (FullTitle);
-  } else {
-    Entry->me.Title = PoolPrint (L"Start %s", LoaderTitle);
-  }
-
+  Entry->me.Title           = FullTitle ? EfiStrDuplicate (FullTitle) : PoolPrint (L"Start %s", LoaderTitle);
   Entry->me.Tag             = TAG_TOOL;
   Entry->me.Row             = 1;
   Entry->me.ShortcutLetter  = ShortcutLetter;
@@ -120,26 +115,22 @@ GetListOfTools () {
 
   DirIterOpen (SelfRootDir, DIR_TOOLS, &DirIter);
 
-  OldChosenConfig = 0;
+  OldChosenTool = 0;
 
   while (DirIterNext (&DirIter, 2, L"*.efi", &DirEntry)) {
     if (DirEntry->FileName[0] != L'.') {
       S_FILES   *aTmp = AllocateZeroPool (sizeof (S_FILES));
-      CHAR16    *TmpCfg = EfiStrDuplicate (DirEntry->FileName);
+      CHAR16    *TmpCfg = RemoveExtension (DirEntry->FileName);
 
       MsgLog ("- [%02d]: %s\n", i++, DirEntry->FileName);
 
-      TmpCfg = ReplaceExtension (DirEntry->FileName, L"");
-
-      aTmp->Index = y;
+      aTmp->Index = y++;
 
       aTmp->FileName = PoolPrint (TmpCfg);
       aTmp->Next = aTools;
       aTools = aTmp;
 
       FreePool (TmpCfg);
-
-      y++;
     }
   }
 
@@ -268,7 +259,7 @@ AddCustomTool () {
       if ((Image == NULL) && Custom->ImagePath) {
         ImageHoverPath = PoolPrint (
                             L"%s_hover.%s",
-                            ReplaceExtension (Custom->ImagePath, L""),
+                            RemoveExtension (Custom->ImagePath),
                             FindExtension (Custom->ImagePath)
                           );
 
@@ -331,10 +322,10 @@ StartTool (
   //BeginExternalScreen (OSFLAG_ISSET (Entry->Flags, OSFLAG_USEGRAPHICS), Entry->me.Title + 6);
 
   //
-  // Entry->Flags never set, title never used
+  // Entry->Flags never set
   //
 
-  BeginExternalScreen (TRUE, NULL);
+  BeginExternalScreen (TRUE, PoolPrint (L"StartTool: %s\n", Entry->LoaderPath));
 
   StartEFIImage (
     Entry->DevicePath,

@@ -108,7 +108,6 @@
 #define BUILTIN_ICON_FUNC_EXIT                  (3)
 #define BUILTIN_ICON_FUNC_HELP                  (4)
 #define BUILTIN_ICON_TOOL_SHELL                 (5)
-//#define BUILTIN_ICON_POINTER                  (8)
 #define BUILTIN_ICON_VOL_INTERNAL               (6)
 #define BUILTIN_ICON_VOL_EXTERNAL               (7)
 #define BUILTIN_ICON_VOL_OPTICAL                (8)
@@ -138,11 +137,6 @@
 #define TAG_CHECKBIT                            (12)
 #define TAG_EXIT                                (101)
 #define TAG_RETURN                              ((UINTN)(-1))
-
-//#define TAG_LEGACY                            (6)
-//#define TAG_SECURE_BOOT                       (13)
-//#define TAG_SECURE_BOOT_CONFIG                (14)
-//#define TAG_CLOVER                            (100)
 
 //
 // menu module
@@ -456,8 +450,8 @@ DrawBCSText (
 //  IN EG_IMAGE   *Button
 //);
 
-INTN
-GetSubMenuCount ();
+//INTN
+//GetSubMenuCount ();
 
 VOID
 SplitMenuInfo (
@@ -478,11 +472,8 @@ AboutRefit ();
 
 EG_IMAGE *
 LoadOSIcon (
-  IN  CHAR16    *OSIconName OPTIONAL,
-  OUT CHAR16    **OSIconNameHover,
-  IN  CHAR16    *FallbackIconName,
-  IN  BOOLEAN   BootLogo,
-  IN  BOOLEAN   WantDummy
+  IN  CHAR16    *OSIconName,
+  OUT CHAR16    **OSIconNameHover
 );
 
 EG_IMAGE *
@@ -639,7 +630,7 @@ FreeImage (
 VOID
 ScaleImage (
   OUT EG_IMAGE    *NewImage,
-  IN EG_IMAGE     *OldImage
+  IN  EG_IMAGE    *OldImage
 );
 
 EG_IMAGE *
@@ -648,73 +639,67 @@ LoadImage (
   IN CHAR16             *FileName
 );
 
-//EG_IMAGE *
-//PrepareEmbeddedImage (
-//  IN EG_EMBEDDED_IMAGE    *EmbeddedImage,
-//  IN BOOLEAN              WantAlpha
-//);
-
 VOID
 FillImage (
-  IN OUT EG_IMAGE     *CompImage,
-  IN EG_PIXEL         *Color
+  IN OUT  EG_IMAGE    *CompImage,
+  IN      EG_PIXEL    *Color
 );
 
 VOID
 FillImageArea (
-  IN OUT EG_IMAGE   *CompImage,
-  IN INTN           AreaPosX,
-  IN INTN           AreaPosY,
-  IN INTN           AreaWidth,
-  IN INTN           AreaHeight,
-  IN EG_PIXEL       *Color
+  IN OUT  EG_IMAGE   *CompImage,
+  IN      INTN       AreaPosX,
+  IN      INTN       AreaPosY,
+  IN      INTN       AreaWidth,
+  IN      INTN       AreaHeight,
+  IN      EG_PIXEL   *Color
 );
 
 VOID
 ComposeImage (
-  IN OUT EG_IMAGE   *CompImage,
-  IN EG_IMAGE       *TopImage,
-  IN INTN           PosX,
-  IN INTN           PosY
+  IN OUT  EG_IMAGE   *CompImage,
+  IN      EG_IMAGE   *TopImage,
+  IN      INTN       PosX,
+  IN      INTN       PosY
 );
 
 VOID
 RestrictImageArea (
-  IN EG_IMAGE   *Image,
-  IN INTN       AreaPosX,
-  IN INTN       AreaPosY,
-  IN OUT INTN   *AreaWidth,
-  IN OUT INTN   *AreaHeight
+  IN      EG_IMAGE    *Image,
+  IN      INTN        AreaPosX,
+  IN      INTN        AreaPosY,
+  IN OUT  INTN        *AreaWidth,
+  IN OUT  INTN        *AreaHeight
 );
 
 VOID
 RawCopy (
-  IN OUT EG_PIXEL   *CompBasePtr,
-  IN EG_PIXEL       *TopBasePtr,
-  IN INTN           Width,
-  IN INTN           Height,
-  IN INTN           CompLineOffset,
-  IN INTN           TopLineOffset
+  IN OUT  EG_PIXEL   *CompBasePtr,
+  IN      EG_PIXEL   *TopBasePtr,
+  IN      INTN       Width,
+  IN      INTN       Height,
+  IN      INTN       CompLineOffset,
+  IN      INTN       TopLineOffset
 );
 
 VOID
 RawCompose (
-  IN OUT EG_PIXEL   *CompBasePtr,
-  IN EG_PIXEL       *TopBasePtr,
-  IN INTN           Width,
-  IN INTN           Height,
-  IN INTN           CompLineOffset,
-  IN INTN           TopLineOffset
+  IN OUT  EG_PIXEL   *CompBasePtr,
+  IN      EG_PIXEL   *TopBasePtr,
+  IN      INTN       Width,
+  IN      INTN       Height,
+  IN      INTN       CompLineOffset,
+  IN      INTN       TopLineOffset
 );
 
 VOID
 RawComposeOnFlat (
-  IN OUT EG_PIXEL   *CompBasePtr,
-  IN EG_PIXEL       *TopBasePtr,
-  IN INTN           Width,
-  IN INTN           Height,
-  IN INTN           CompLineOffset,
-  IN INTN           TopLineOffset
+  IN OUT  EG_PIXEL   *CompBasePtr,
+  IN      EG_PIXEL   *TopBasePtr,
+  IN      INTN       Width,
+  IN      INTN       Height,
+  IN      INTN       CompLineOffset,
+  IN      INTN       TopLineOffset
 );
 
 VOID
@@ -728,7 +713,7 @@ VOID
 SetPlane (
   IN UINT8    *DestPlanePtr,
   IN UINT8    Value,
-  IN UINT64   PixelCount
+  IN UINTN    PixelCount
 );
 
 VOID
@@ -752,12 +737,12 @@ MeasureText (
 
 INTN
 RenderText (
-  IN CHAR16         *Text,
-  IN OUT EG_IMAGE   *CompImage,
-  IN INTN           PosX,
-  IN INTN           PosY,
-  IN INTN           Cursor,
-  IN BOOLEAN        Selected
+  IN      CHAR16     *Text,
+  IN OUT  EG_IMAGE   *CompImage,
+  IN      INTN       PosX,
+  IN      INTN       PosY,
+  IN      INTN       Cursor,
+  IN      BOOLEAN    Selected
 );
 
 // Image Format
@@ -772,7 +757,6 @@ DecodePNG (
 #define DEC_PNG_BUILTIN(ico) DecodePNG (ico, ARRAY_SIZE (ico))
 
 //typedef EG_IMAGE * (*EG_DECODE_FUNC)(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha);
-
 
 extern UI_IMG               ButtonsImg[];
 extern UI_IMG               SelectionImg[];

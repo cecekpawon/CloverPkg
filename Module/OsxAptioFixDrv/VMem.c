@@ -79,6 +79,7 @@ PrintPageTablePDE (
       PTE = (PAGE_TABLE_4K_ENTRY *)(PDE->Uint64 & PT_ADDR_MASK_4K);
       PrintPageTablePTE (PTE, VA);
     }
+
     PDE++;
   }
   //WaitForKeyPress (L"more ...");
@@ -110,6 +111,7 @@ PrintPageTablePDPE (
       PDE = (PAGE_MAP_AND_DIRECTORY_POINTER *)(PDPE->Uint64 & PT_ADDR_MASK_4K);
       PrintPageTablePDE (PDE, VA);
     }
+
     PDPE++;
   }
   //WaitForKeyPress (L"more ...");
@@ -169,12 +171,14 @@ GetPhysicalAddr (
   VAEnd.Uint64 = ~(UINT64)0;
   VAEnd.Pg4K.PML4Offset = VA.Pg4K.PML4Offset;
   VA_FIX_SIGN_EXTEND (VAEnd);
+
   // print it
   //DBG ("PML4[%03x] at %p = %lx Region: %lx - %lx\n", VA.Pg4K.PML4Offset, PML4, PML4->Uint64, VAStart.Uint64, VAEnd.Uint64);
   if (!PML4->Bits.Present) {
     //DBG ("-> Mapping not present!\n");
     return EFI_NO_MAPPING;
   }
+
   //DBG ("-> Nx:%x|A:%x|PCD:%x|PWT:%x|US:%x|RW:%x|P:%x -> %lx\n",
   //PML4->Bits.Nx, PML4->Bits.Accessed,
   //PML4->Bits.CacheDisabled, PML4->Bits.WriteThrough,
@@ -464,6 +468,7 @@ VmMapVirtualPage (
       //DBG ("No memory - exiting.\n");
       return EFI_NO_MAPPING;
     }
+
     ZeroMem (PTE4K, EFI_PAGE_SIZE);
 
     if (PDE->Bits.MustBeZero & 0x1) {
@@ -487,6 +492,7 @@ VmMapVirtualPage (
     //DBG ("added to PDE as %lx\n", PDE->Uint64);
     // and continue with mapping ...
   }
+
   //DBG ("-> Nx:%x|A:%x|PCD:%x|PWT:%x|US:%x|RW:%x|P:%x -> %lx\n",
   //PDE->Bits.Nx, PDE->Bits.Accessed,
   //PDE->Bits.CacheDisabled, PDE->Bits.WriteThrough,

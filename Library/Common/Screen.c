@@ -74,7 +74,7 @@ EG_PIXEL  BlackBackgroundPixel        = { 0x00, 0x00, 0x00, 0xFF },
 
 EG_IMAGE  *BackgroundImage = NULL, *Banner = NULL, *BigBack = NULL;
 
-STATIC    BOOLEAN haveError = FALSE;
+STATIC    BOOLEAN HaveError = FALSE;
 
 
 //
@@ -105,10 +105,10 @@ STATIC EFI_CONSOLE_CONTROL_PROTOCOL_GET_MODE ConsoleControlGetMode = NULL;
 EFI_STATUS
 EFIAPI
 NullConsoleControlGetModeText (
-  IN  struct _EFI_CONSOLE_CONTROL_PROTOCOL  *This,
-  OUT EFI_CONSOLE_CONTROL_SCREEN_MODE       *Mode,
-  OUT BOOLEAN                               *GopUgaExists, OPTIONAL
-  OUT BOOLEAN                               *StdInLocked OPTIONAL
+  IN  struct  _EFI_CONSOLE_CONTROL_PROTOCOL     *This,
+  OUT         EFI_CONSOLE_CONTROL_SCREEN_MODE   *Mode,
+  OUT         BOOLEAN                           *GopUgaExists, OPTIONAL
+  OUT         BOOLEAN                           *StdInLocked OPTIONAL
 ) {
   *Mode = EfiConsoleControlScreenText;
 
@@ -278,11 +278,7 @@ SetScreenResolution (
   CHAR16                                  *HeightP;
   UINTN                                   SizeOfInfo;
 
-  if (GraphicsOutput == NULL) {
-    return EFI_UNSUPPORTED;
-  }
-
-  if (WidthHeight == NULL) {
+  if ((GraphicsOutput == NULL) || (WidthHeight == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
 
@@ -321,7 +317,7 @@ SetScreenResolution (
   for (Mode = 0; Mode < MaxMode; Mode++) {
     Status = GraphicsOutput->QueryMode (GraphicsOutput, Mode, &SizeOfInfo, &Info);
     if (
-      (Status == EFI_SUCCESS) &&
+      !EFI_ERROR (Status) &&
       (Width == Info->HorizontalResolution) &&
       (Height == Info->VerticalResolution)
     ) {
@@ -406,8 +402,6 @@ InternalInitScreen (
 
     UGAFrameBufferBase = GraphicsOutput->Mode->FrameBufferBase;
   }
-
-  //egDumpSetConsoleVideoModes ();
 }
 
 VOID
@@ -457,23 +451,10 @@ VOID
 SetGraphicsModeEnabled (
   IN BOOLEAN    Enable
 ) {
-  EFI_CONSOLE_CONTROL_SCREEN_MODE     CurrentMode;
-  EFI_CONSOLE_CONTROL_SCREEN_MODE     NewMode;
+  EFI_CONSOLE_CONTROL_SCREEN_MODE     CurrentMode, NewMode;
 
   if (ConsoleControl != NULL) {
-    // Some UEFI bioses may cause resolution switch when switching to Text Mode via the ConsoleControl->SetMode command
-    // EFI applications wishing to use text, call the ConsoleControl->GetMode () command, and depending on its result may call ConsoleControl->SetMode ().
-    // To avoid the resolution switch, when we set text mode, we can make ConsoleControl->GetMode report that text mode is enabled.
-
-    // ConsoleControl->SetMode should not be needed on UEFI 2.x to switch to text, but some firmwares seem to block text out if it is not given.
-    // We know it blocks text out on HPQ UEFI (HP ProBook for example - reported by dmazar), Apple firmwares with UGA, and some VMs.
-    // So, it may be better considering to do this only with firmware vendors where the bug was observed (currently it is known to exist on some AMI firmwares).
-    //if (GraphicsOutput != NULL && StrCmp (gST->FirmwareVendor, L"American Megatrends") == 0) {
-    if (
-      (GraphicsOutput != NULL) &&
-      (StrCmp (gST->FirmwareVendor, L"HPQ") != 0) &&
-      (StrCmp (gST->FirmwareVendor, L"VMware, Inc.") != 0)
-    ) {
+    if (GraphicsOutput != NULL) {
       if (!Enable) {
         // Don't allow switching to text mode, but report that we are in text mode when queried
         ConsoleControl->GetMode = NullConsoleControlGetModeText;
@@ -620,12 +601,12 @@ ScreenShot () {
   EFI_STATUS                      Status = EFI_NOT_READY;
   EG_IMAGE                        *Image;
   UINT8                           *FileData;
-  UINTN                           FileDataLength, Index;
+  UINTN                           FileDataLength, Index = 0;
   CHAR16                          ScreenshotName[AVALUE_MAX_SIZE];
   EFI_GRAPHICS_OUTPUT_BLT_PIXEL   *ImagePNG;
   UINTN                           ImageSize, i;
 
-  if (!egHasGraphics) {
+  if (!egHasGraphics || !FileExists (SelfRootDir, DIR_MISC)) {
     return EFI_NOT_READY;
   }
 
@@ -668,35 +649,19 @@ ScreenShot () {
   FreeImage (Image);
 
   if (FileData == NULL) {
-    Print (L"Error ScreenShot: FileData returned NULL\n");
+    //DBG ("Error ScreenShot: FileData returned NULL\n");
     return EFI_NO_MEDIA;
   }
 
-  for (Index=0; Index < 60; Index++) {
-    UnicodeSPrint (ScreenshotName, ARRAY_SIZE (ScreenshotName), L"%s\\screenshot%d.png", DIR_MISC, Index);
+  while (TRUE) {
+    UnicodeSPrint (ScreenshotName, ARRAY_SIZE (ScreenshotName), L"%s\\Screenshot-%d.png", DIR_MISC, Index++);
 
-    if (!FileExists (SelfRootDir, ScreenshotName)){
+    if (!FileExists (SelfRootDir, ScreenshotName)) {
       Status = SaveFile (SelfRootDir, ScreenshotName, FileData, FileDataLength);
-      if (!EFI_ERROR (Status)) {
+      //if (!EFI_ERROR (Status)) {
         break;
-      }
-    }
-  }
-
-  // else save to file on the ESP
-  if (EFI_ERROR (Status)) {
-    for (Index=0; Index < 60; Index++) {
-      UnicodeSPrint (ScreenshotName, ARRAY_SIZE (ScreenshotName), L"%s\\screenshot%d.png", DIR_MISC, Index);
-
-      //if (!FileExists (NULL, ScreenshotName)){
-          Status = SaveFile (NULL, ScreenshotName, FileData, FileDataLength);
-          if (!EFI_ERROR (Status)) {
-            break;
-          }
       //}
     }
-
-    CheckError (Status, L"Error SaveFile\n");
   }
 
   FreePool (FileData);
@@ -761,7 +726,7 @@ DebugPause () {
   PauseForKey (L"");
 
   // reset error flag
-  haveError = FALSE;
+  HaveError = FALSE;
 }
 #endif
 
@@ -788,7 +753,7 @@ VOID StatusToString (OUT CHAR16 *Buffer, EFI_STATUS Status) {
 BOOLEAN
 CheckFatalError (
   IN EFI_STATUS   Status,
-  IN CHAR16       *where
+  IN CHAR16       *Where
 ) {
   if (!EFI_ERROR (Status)) {
     return FALSE;
@@ -796,9 +761,9 @@ CheckFatalError (
 
   //StatusToString (ErrorName, Status);
   gST->ConOut->SetAttribute (gST->ConOut, ATTR_ERROR);
-  Print (L"Fatal Error: %r %s\n", Status, where);
+  Print (L"Fatal Error: %r %s\n", Status, Where);
   gST->ConOut->SetAttribute (gST->ConOut, ATTR_BASIC);
-  haveError = TRUE;
+  HaveError = TRUE;
 
   //gBS->Exit (ImageHandle, ExitStatus, ExitDataSize, ExitData);
 
@@ -808,19 +773,16 @@ CheckFatalError (
 BOOLEAN
 CheckError (
   IN EFI_STATUS   Status,
-  IN CHAR16       *where
+  IN CHAR16       *Where
 ) {
-  //CHAR16 ErrorName[64];
-
   if (!EFI_ERROR (Status)) {
     return FALSE;
   }
 
-  //StatusToString (ErrorName, Status);
   gST->ConOut->SetAttribute (gST->ConOut, ATTR_ERROR);
-  Print (L"Error: %r %s\n", Status, where);
+  Print (L"Error: %r %s\n", Status, Where);
   gST->ConOut->SetAttribute (gST->ConOut, ATTR_BASIC);
-  haveError = TRUE;
+  HaveError = TRUE;
 
   return TRUE;
 }
@@ -850,7 +812,7 @@ UpdateConsoleVars () {
   // make a buffer for a whole text line
   BlankLine = AllocatePool ((ConWidth + 1) * sizeof (CHAR16));
 
-  for (i = 0; i < ConWidth; i++){
+  for (i = 0; i < ConWidth; i++) {
     BlankLine[i] = ' ';
   }
 
@@ -971,20 +933,20 @@ BeginTextScreen  (
   SwitchToText (FALSE);
 
   // reset error flag
-  haveError = FALSE;
+  HaveError = FALSE;
 }
 
 VOID
 FinishTextScreen (
   IN BOOLEAN    WaitAlways
 ) {
-  if (haveError || WaitAlways) {
+  if (HaveError || WaitAlways) {
     SwitchToText (FALSE);
     //PauseForKey (L"FinishTextScreen");
   }
 
   // reset error flag
-  haveError = FALSE;
+  HaveError = FALSE;
 }
 
 VOID
@@ -1003,13 +965,14 @@ BeginExternalScreen (
 
   // show the header
   //DrawScreenHeader (Title);
+  //Print (Title);
 
   if (!UseGraphicsMode) {
     SwitchToText (TRUE);
   }
 
   // reset error flag
-  haveError = FALSE;
+  HaveError = FALSE;
 }
 
 VOID
@@ -1017,7 +980,7 @@ FinishExternalScreen () {
   // make sure we clean up later
   GraphicsScreenDirty = TRUE;
 
-  if (haveError) {
+  if (HaveError) {
     // leave error messages on screen in case of error,
     // wait for a key press, and then switch
     //PauseForKey (L"was error, press any key\n");
@@ -1025,7 +988,7 @@ FinishExternalScreen () {
   }
 
   // reset error flag
-  haveError = FALSE;
+  HaveError = FALSE;
 }
 
 //

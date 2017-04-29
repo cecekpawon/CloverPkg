@@ -44,7 +44,7 @@ FilterKextPatches (
     (Entry->KernelAndKextPatches->KextPatches != NULL) &&
     Entry->KernelAndKextPatches->NrKexts
   ) {
-    INTN    i = 0;
+    UINTN    i = 0;
 
     MsgLog ("Filtering KextPatches:\n");
 
@@ -240,7 +240,7 @@ SearchAndReplace (
   INTN      MaxReplaces
 ) {
   UINTN     NumReplaces = 0;
-  BOOLEAN   NoReplacesRestriction = MaxReplaces <= 0;
+  BOOLEAN   NoReplacesRestriction = (MaxReplaces <= 0);
   UINT8     *End = Source + SourceSize;
 
   if (!Source || !Search || !Replace || !SearchSize) {
@@ -362,9 +362,10 @@ IsPatchNameMatch (
   CHAR8   *InfoPlist,
   INT32   *IsBundle
 ) {
+  // Full BundleIdentifier: com.apple.driver.AppleHDA
   *IsBundle = (CountOccurrences (Name, '.') < 2) ? 0 : 1;
   return
-    (InfoPlist != NULL) && !IsBundle // Full BundleIdentifier: com.apple.driver.AppleHDA
+    (InfoPlist != NULL) && !IsBundle
       ? (AsciiStrStr (InfoPlist, Name) != NULL)
       : (AsciiStrCmp (BundleIdentifier, Name) == 0);
 }
@@ -376,8 +377,8 @@ IsPatchNameMatch (
 // bcc9's patch: http://www.insanelymac.com/forum/index.php?showtopic=249642
 //
 
-// ATIConnectorsController's bundle IDs
-CHAR8   ATIKextBundleId[2][64];
+CHAR8   ATIKextBundleId[2][64]; // ATIConnectorsController's bundle IDs
+UINTN   ATIKextBundleIdCount = 0;
 
 //
 // Inits patcher: prepares ATIKextBundleIds.
@@ -401,14 +402,11 @@ ATIConnectorsPatchInit (
     Entry->KernelAndKextPatches->KPATIConnectorsController
   );
 
-  AsciiSPrint (
+  AsciiStrCpyS (
     ATIKextBundleId[1],
     sizeof (ATIKextBundleId[1]),
     "com.apple.kext.AMDFramebuffer"
   );
-
-  //DBG ("Bundle1: %a\n", ATIKextBundleId[0]);
-  //DBG ("Bundle2: %a\n", ATIKextBundleId[1]);
 }
 
 //
@@ -568,8 +566,6 @@ AsusAICPUPMPatch (
     DriverSize = (Off + Size);
   }
 
-  // TODO: we should scan only __text __TEXT
-  // DONE: https://github.com/cecekpawon/Clover/commit/6e5a49ab2125889f666cc810f267552ba0627f74#diff-749d163a7ade3d836e727afe79424a70L5
   for (; Index1 < DriverSize; Index1++) {
     // search for MovlE2ToEcx
     if (CompareMem (Driver + Index1, MovlE2ToEcx, sizeof (MovlE2ToEcx)) == 0) {
@@ -697,7 +693,7 @@ KextPatcherRegisterKexts (
   FSI_STRING_LIST         *ForceLoadKexts,
   LOADER_ENTRY            *Entry
 ) {
-  INTN i;
+  UINTN   i;
 
   if (Entry->KernelAndKextPatches->KPATIConnectorsController != NULL) {
     ATIConnectorsPatchRegisterKexts (FSInject, ForceLoadKexts, Entry);
@@ -731,7 +727,7 @@ PatchKext (
   CHAR8         *BundleIdentifier,
   LOADER_ENTRY  *Entry
 ) {
-  INT32  IsBundle;
+  INT32  i, IsBundle = 0;
 
   //
   // ATIConnectors
@@ -746,15 +742,17 @@ PatchKext (
   ) {
     ATIConnectorsPatch (Driver, DriverSize, Entry);
 
-    FreePool (Entry->KernelAndKextPatches->KPATIConnectorsController);
-    Entry->KernelAndKextPatches->KPATIConnectorsController = NULL;
+    if (++ATIKextBundleIdCount == ARRAY_SIZE (ATIKextBundleId)) {
+      FreePool (Entry->KernelAndKextPatches->KPATIConnectorsController);
+      Entry->KernelAndKextPatches->KPATIConnectorsController = NULL;
 
-    if (Entry->KernelAndKextPatches->KPATIConnectorsData != NULL) {
-      FreePool (Entry->KernelAndKextPatches->KPATIConnectorsData);
-    }
+      if (Entry->KernelAndKextPatches->KPATIConnectorsData != NULL) {
+        FreePool (Entry->KernelAndKextPatches->KPATIConnectorsData);
+      }
 
-    if (Entry->KernelAndKextPatches->KPATIConnectorsPatch != NULL) {
-      FreePool (Entry->KernelAndKextPatches->KPATIConnectorsPatch);
+      if (Entry->KernelAndKextPatches->KPATIConnectorsPatch != NULL) {
+        FreePool (Entry->KernelAndKextPatches->KPATIConnectorsPatch);
+      }
     }
 
   //
@@ -773,8 +771,6 @@ PatchKext (
   //
 
   } else {
-    INT32   i;
-
     for (i = 0; i < Entry->KernelAndKextPatches->NrKexts; i++) {
       if (
         Entry->KernelAndKextPatches->KextPatches[i].Patched ||
@@ -862,6 +858,7 @@ ExtractKextBundleIdentifier (
           break;
         }
       }
+
       Tag++;
     } else {
       Tag++;
@@ -964,7 +961,7 @@ ParsePrelinkKexts (
         }
 
         Prop = GetProperty (Dict, kPropCFBundleIdentifier);
-        if ((Prop != NULL) && Prop->string) {
+        if ((Prop != NULL) && (Prop->type == kTagTypeString)) {
           // To speed up process sure we can apply all patches here immediately.
           // By saving all kexts data into list could be useful for other purposes, I hope.
           PRELINKKEXTLIST   *nKext = AllocateZeroPool (sizeof (PRELINKKEXTLIST));
@@ -1288,7 +1285,7 @@ PatchLoadedKexts (
         // TODO: Store into list first & process all later?
         if (!EFI_ERROR (ParseXML (InfoPlist, 0, &KextsDict))) {
           Dict = GetProperty (KextsDict, kPropCFBundleIdentifier);
-          if ((Dict != NULL) && Dict->string) {
+          if ((Dict != NULL) && (Dict->type == kTagTypeString)) {
             PatchKext (
               (UINT8 *)(UINTN)KextFileInfo->executablePhysAddr,
               KextFileInfo->executableLength,

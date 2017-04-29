@@ -95,7 +95,7 @@ SetupGmaDevprop (
   DevPropDevice   *Device;
   INTN            i;
   UINT16          DevId = Dev->device_id;
-  BOOLEAN         Injected = FALSE, NeedIgPlatform = TRUE, NeedDualLink = TRUE;
+  BOOLEAN         Injected = FALSE, NeedIgPlatform = TRUE; // , NeedDualLink = TRUE
 
   Model = (CHAR8 *)AllocateCopyPool (AsciiStrSize (S_INTELMODEL), S_INTELMODEL);
 
@@ -163,12 +163,10 @@ SetupGmaDevprop (
     NeedIgPlatform = FALSE;
   }
 
-  if (gSettings.DualLink != 0) {
+  if (gSettings.DualLink) {
     DevpropAddValue (Device, "AAPL00,DualLink", (UINT8 *)&gSettings.DualLink, 1);
-    NeedDualLink = FALSE;
+    //NeedDualLink = FALSE;
   }
-
-  //MacModel = GetModelFromString (gSettings.ProductName);
 
   if (DevId >= 0x0102) {
     // Skylake

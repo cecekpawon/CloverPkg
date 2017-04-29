@@ -48,7 +48,7 @@
  */
 
 #include <Library/Platform/Platform.h>
-#include <Library/Platform/Nvidia.h>
+//#include <Library/Platform/Nvidia.h>
 
 #ifndef DEBUG_ALL
 #ifndef DEBUG_NVIDIA
@@ -62,6 +62,15 @@
 #endif
 
 #define DBG(...) DebugLog (DEBUG_NVIDIA, __VA_ARGS__)
+
+#define NV_PBUS_PCI_NV_20                         0x00001850
+#define NV_PBUS_PCI_NV_20_ROM_SHADOW_DISABLED     (0 << 0)
+#define NV_PBUS_PCI_NV_20_ROM_SHADOW_ENABLED      (1 << 0)
+#define NV_PDISPLAY_OFFSET                        0x610000
+#define NV_PMC_OFFSET                             0x000000
+#define NV_PRAMIN_OFFSET                          0x00700000
+#define NV_PROM_OFFSET                            0x300000
+#define NVIDIA_ROM_SIZE                           0x20000
 
 UINT8 DefNVCAP[] = {
   0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00,
@@ -267,268 +276,6 @@ ReadNvidiaPROM (
   return EFI_SUCCESS;
 }
 
-#if 0
-STATIC
-INT32
-PatchNvidiaROM (
-  UINT8   *Rom
-) {
-  UINT8   NumOut = 0, i = 0, DcbTableVer, HeaderLen = 0, NumEntries = 0,
-          RecordLen = 0, Channel1 = 0, Channel2 = 0, *DcbTable, *ToGroup;
-  INT32   HasLVDS = FALSE;
-  UINT16  DcbPtr;
-
-  struct dcbentry {
-    UINT8   Type;
-    UINT8   Index;
-    UINT8   *Heads;
-  } Entries[MAX_NUM_DCB_ENTRIES];
-
-  //DBG ("PatchNvidiaROM\n");
-  if (!Rom || ((Rom[0] != 0x55) && (Rom[1] != 0xaa))) {
-    DBG ("FALSE ROM Signature: 0x%02x%02x\n", Rom[0], Rom[1]);
-    return PATCH_ROM_FAILED;
-  }
-
-  //  DcbPtr = SwapBytes16 (read16 (Rom, 0x36)); //double swap !!!
-  DcbPtr = *(UINT16 *)&Rom[0x36];
-  if (!DcbPtr) {
-    DBG ("no dcb table found\n");
-    return PATCH_ROM_FAILED;
-  }
-  //  else
-  //    DBG ("dcb table at offset 0x%04x\n", DcbPtr);
-
-  DcbTable = &Rom[DcbPtr];
-  DcbTableVer  = DcbTable[0];
-
-  if (DcbTableVer >= 0x20) {
-    UINT32  Sig;
-
-    if (DcbTableVer >= 0x30) {
-      HeaderLen = DcbTable[1];
-      NumEntries   = DcbTable[2];
-      RecordLen = DcbTable[3];
-      Sig = *(UINT32 *)&DcbTable[6];
-    } else {
-      Sig = *(UINT32 *)&DcbTable[4];
-      HeaderLen = 8;
-    }
-
-    if (Sig != 0x4edcbdcb) {
-      DBG ("Bad display config block Signature (0x%8x)\n", Sig); //Azi: issue #48
-      return PATCH_ROM_FAILED;
-    }
-  } else if (DcbTableVer >= 0x14) { /* some NV15/16, and NV11+ */
-    CHAR8   Sig[8]; // = { 0 };
-
-    AsciiStrnCpyS (Sig, ARRAY_SIZE (Sig), (CHAR8 *)&DcbTable[-7], 7);
-    Sig[7] = 0;
-    RecordLen = 10;
-
-    if (AsciiStrCmp (Sig, "DEV_REC")) {
-      DBG ("Bad Display Configuration Block Signature (%a)\n", Sig);
-      return PATCH_ROM_FAILED;
-    }
-  } else {
-    DBG ("ERROR: DcbTableVer is 0x%X\n", DcbTableVer);
-    return PATCH_ROM_FAILED;
-  }
-
-  if (NumEntries >= MAX_NUM_DCB_ENTRIES) {
-    NumEntries = MAX_NUM_DCB_ENTRIES;
-  }
-
-  for (i = 0; i < NumEntries; i++) {
-    UINT32  Connection = *(UINT32 *)&DcbTable[HeaderLen + RecordLen * i];
-
-    /* Should we allow discontinuous DCBs? Certainly DCB I2C tables can be discontinuous */
-    if ((Connection & 0x0000000f) == 0x0000000f) { /* end of records */
-      continue;
-    }
-
-    if (Connection == 0x00000000) { /* seen on an NV11 with DCB v1.5 */
-      continue;
-    }
-
-    if ((Connection & 0xf) == 0x6) { /* we skip Type 6 as it doesnt appear on macbook nvcaps */
-      continue;
-    }
-
-    Entries[NumOut].Type = Connection & 0xf;
-    Entries[NumOut].Index = NumOut;
-    Entries[NumOut++].Heads = (UINT8 *)&(DcbTable[(HeaderLen + RecordLen * i) + 1]);
-  }
-
-  for (i = 0; i < NumOut; i++) {
-    if (Entries[i].Type == 3) {
-      HasLVDS =TRUE;
-      //DBG ("found LVDS\n");
-      Channel1 |= (0x1 << Entries[i].Index);
-      Entries[i].Type = TYPE_GROUPED;
-    }
-  }
-
-  // if we have a LVDS output, we group the rest to the second Channel
-  if (HasLVDS) {
-    for (i = 0; i < NumOut; i++) {
-      if (Entries[i].Type == TYPE_GROUPED) {
-        continue;
-      }
-
-      Channel2 |= (0x1 << Entries[i].Index);
-      Entries[i].Type = TYPE_GROUPED;
-    }
-  } else {
-    INT32 x;
-    // we loop twice as we need to generate two Channels
-    for (x = 0; x <= 1; x++) {
-      for (i = 0; i < NumOut; i++) {
-        if (Entries[i].Type == TYPE_GROUPED) {
-          continue;
-        }
-        // if Type is TMDS, the prior output is ANALOG
-        // we always group ANALOG and TMDS
-        // if there is a TV output after TMDS, we group it to that Channel as well
-        if (i && Entries[i].Type == 0x2) {
-          switch (x) {
-            case 0:
-              //DBG ("group Channel 1\n");
-              Channel1 |= (0x1 << Entries[i].Index);
-              Entries[i].Type = TYPE_GROUPED;
-
-              if (Entries[i - 1].Type == 0x0) {
-                Channel1 |= (0x1 << Entries[i - 1].Index);
-                Entries[i - 1].Type = TYPE_GROUPED;
-              }
-
-              // group TV as well if there is one
-              if (((i + 1) < NumOut) && (Entries[i + 1].Type == 0x1)) {
-                //  DBG ("group tv1\n");
-                Channel1 |= (0x1 << Entries[i + 1].Index);
-                Entries[i + 1].Type = TYPE_GROUPED;
-              }
-              break;
-
-            case 1:
-              //DBG ("group Channel 2 : %d\n", i);
-              Channel2 |= ( 0x1 << Entries[i].Index);
-              Entries[i].Type = TYPE_GROUPED;
-
-              if (Entries[i - 1].Type == 0x0) {
-                Channel2 |= (0x1 << Entries[i - 1].Index);
-                Entries[i - 1].Type = TYPE_GROUPED;
-              }
-              // group TV as well if there is one
-              if (((i + 1) < NumOut) && (Entries[i + 1].Type == 0x1)) {
-                //  DBG ("group tv2\n");
-                Channel2 |= ( 0x1 << Entries[i + 1].Index);
-                Entries[i + 1].Type = TYPE_GROUPED;
-              }
-              break;
-
-            default:
-              break;
-          }
-
-          break;
-        }
-      }
-    }
-  }
-
-  // if we have left ungrouped outputs merge them to the empty Channel
-  ToGroup = &Channel2; // = (Channel1 ? (Channel2 ? NULL : &Channel2) : &Channel1);
-
-  for (i = 0; i < NumOut; i++) {
-    if (Entries[i].Type != TYPE_GROUPED) {
-      //DBG ("%d not grouped\n", i);
-      if (ToGroup) {
-        *ToGroup |= (0x1 << Entries[i].Index);
-      }
-
-      Entries[i].Type = TYPE_GROUPED;
-    }
-  }
-
-  if (Channel1 > Channel2) {
-    UINT8   Buff = Channel1;
-
-    Channel1 = Channel2;
-    Channel2 = Buff;
-  }
-
-  DefNVCAP[6] = Channel1;
-  DefNVCAP[8] = Channel2;
-
-  // patching HEADS
-  for (i = 0; i < NumOut; i++) {
-    if (Channel1 & (1 << i)) {
-      *Entries[i].Heads = 1;
-    } else if (Channel2 & (1 << i)) {
-      *Entries[i].Heads = 2;
-    }
-  }
-
-  return (HasLVDS ? PATCH_ROM_SUCCESS_HAS_LVDS : PATCH_ROM_SUCCESS);
-}
-
-UINT64
-MemDetect (
-  UINT16    CardType,
-  PCI_DT    *Dev
-) {
-  UINT64    VRamSize = 0;
-
-  if (CardType < NV_ARCH_50) {
-    VRamSize  = (UINT64)(REG32 (Dev->regs, NV04_PFB_FIFO_DATA));
-    VRamSize &= NV10_PFB_FIFO_DATA_RAM_AMOUNT_MB_MASK;
-  } else if (CardType < NV_ARCH_C0) {
-    VRamSize = (UINT64)(REG32 (Dev->regs, NV04_PFB_FIFO_DATA));
-    VRamSize |= LShiftU64 (VRamSize & 0xff, 32);
-    VRamSize &= 0xffffffff00ll;
-  } else { // >= NV_ARCH_C0
-    VRamSize = LShiftU64 (REG32 (Dev->regs, NVC0_MEM_CTRLR_RAM_AMOUNT), 20);
-    //VRamSize *= REG32 (Dev->regs, NVC0_MEM_CTRLR_COUNT);
-    VRamSize = MultU64x32 (VRamSize, REG32 (Dev->regs, NVC0_MEM_CTRLR_COUNT));
-  }
-
-  // Then, Workaround for 9600M GT, GT 210/420/430/440/525M/540M & GTX 560M
-  switch (Dev->device_id) {
-    case 0x0647: // 9600M GT 0647
-      VRamSize = 512 * 1024 * 1024;
-      break;
-
-    case 0x0649:  // 9600M GT 0649
-      // 10DE06491043202D 1GB VRAM
-      if (((Dev->subsys_id.subsys.vendor_id << 16) | Dev->subsys_id.subsys.device_id) == 0x1043202D) {
-        VRamSize = 1024 * 1024 * 1024;
-      }
-      break;
-
-    case 0x0A65: // GT 210
-    case 0x0DE0: // GT 440
-    case 0x0DE1: // GT 430
-    case 0x0DE2: // GT 420
-    case 0x0DEC: // GT 525M 0DEC
-    case 0x0DF4: // GT 540M
-    case 0x0DF5: // GT 525M 0DF5
-      VRamSize = 1024 * 1024 * 1024;
-      break;
-
-    case 0x1251: // GTX 560M
-      VRamSize = 1536 * 1024 * 1024;
-      break;
-
-    default:
-      break;
-  }
-
-  DBG ("MemDetected %ld\n", VRamSize);
-  return VRamSize;
-}
-#endif
-
 VOID
 DevpropAddNvidiaTemplate (
   DevPropDevice   *Device,
@@ -573,10 +320,10 @@ DevpropAddNvidiaTemplate (
 
 BOOLEAN
 SetupNvidiaDevprop (
-  PCI_DT    *NVDev
+  PCI_DT    *Dev
 ) {
   EFI_STATUS                Status = EFI_NOT_FOUND;
-  DevPropDevice             *Dev = NULL;
+  DevPropDevice             *Device = NULL;
   BOOLEAN                   LoadVBios = gSettings.LoadVBios, Injected = FALSE;
   UINT8                     *Rom = NULL, *Buffer = NULL; //, ConnectorType1[] = { 0x00, 0x08, 0x00, 0x00 }
   UINT16                    CardType = 0;
@@ -591,14 +338,14 @@ SetupNvidiaDevprop (
                             *VersionStr = (CHAR8 *)AllocateZeroPool (MaxBiosVersionLen);
   CARDLIST                  *NVCard;
 
-  DevicePath = GetPciDevPath (NVDev);
-  Bar[0] = PciConfigRead32 (NVDev, PCI_BASE_ADDRESS_0);
-  NVDev->regs = (UINT8 *)(UINTN)(Bar[0] & ~0x0f);
-  DeviceId = ((NVDev->vendor_id << 16) | NVDev->device_id);
-  SubSysId = ((NVDev->subsys_id.subsys.vendor_id << 16) | NVDev->subsys_id.subsys.device_id);
+  DevicePath = GetPciDevPath (Dev);
+  Bar[0] = PciConfigRead32 (Dev, PCI_BASE_ADDRESS_0);
+  Dev->regs = (UINT8 *)(UINTN)(Bar[0] & ~0x0f);
+  DeviceId = ((Dev->vendor_id << 16) | Dev->device_id);
+  SubSysId = ((Dev->subsys_id.subsys.vendor_id << 16) | Dev->subsys_id.subsys.device_id);
 
   // get card type
-  CardType = (REG32 (NVDev->regs, 0) >> 20) & 0x1ff;
+  CardType = (REG32 (Dev->regs, 0) >> 20) & 0x1ff;
 
   // First check if any value exist in the plist
   NVCard = FindCardWithIds (DeviceId, SubSysId);
@@ -612,21 +359,12 @@ SetupNvidiaDevprop (
       PortsNum = NVCard->VideoPorts;
       LoadVBios = NVCard->LoadVBios;
     }
-  /*
-  } else {
-    // Amount of VRAM in kilobytes (?) no, it is already in bytes!!!
-    if (gSettings.VRAM != 0) {
-      VRam = gSettings.VRAM;
-    } else {
-      VRam = MemDetect (CardType, NVDev);
-    }
-  */
   }
 
   if (LoadVBios) {
     UnicodeSPrint (
       FileName, ARRAY_SIZE (FileName), L"%s\\10de_%04x_%04x_%04x.rom",
-      DIR_ROM, NVDev->device_id, NVDev->subsys_id.subsys.vendor_id, NVDev->subsys_id.subsys.device_id
+      DIR_ROM, Dev->device_id, Dev->subsys_id.subsys.vendor_id, Dev->subsys_id.subsys.device_id
     );
 
     if (FileExists (SelfRootDir, FileName)) {
@@ -639,13 +377,13 @@ SetupNvidiaDevprop (
   if (EFI_ERROR (Status)) {
     Rom = AllocateZeroPool (NVIDIA_ROM_SIZE + 1);
     // PRAMIN first
-    ReadNvidiaPRAMIN (NVDev, Rom, CardType);
+    ReadNvidiaPRAMIN (Dev, Rom, CardType);
 
     //DBG ("%x%x\n", Rom[0], Rom[1]);
     RomPciHeader = NULL;
 
     if ((Rom[0] != 0x55) || (Rom[1] != 0xaa)) {
-      ReadNvidiaPROM (NVDev, Rom);
+      ReadNvidiaPROM (Dev, Rom);
 
       if ((Rom[0] != 0x55) || (Rom[1] != 0xaa)) {
         DBG (" - ERROR: Unable to locate nVidia Video BIOS\n");
@@ -687,12 +425,6 @@ SetupNvidiaDevprop (
   }
 
   if (Rom) {
-    /*
-    if ((Patch = PatchNvidiaROM (Rom)) == PATCH_ROM_FAILED) {
-      DBG (" - ERROR: ROM Patching Failed!\n");
-    }
-    */
-
     RomPciHeader = (OPTION_ROM_PCI_HEADER *)(Rom + *(UINT16 *)&Rom[24]);
 
     // check for 'PCIR' sig
@@ -753,7 +485,7 @@ SetupNvidiaDevprop (
   MsgLog (
     " - %a | %dMB NV%02x [%04x:%04x] | %a => device #%d\n",
     Model, (UINT32)(RShiftU64 (VRam, 20)),
-    CardType, NVDev->vendor_id, NVDev->device_id,
+    CardType, Dev->vendor_id, Dev->device_id,
     DevicePath, gDevicesNumber
   );
 
@@ -761,7 +493,7 @@ SetupNvidiaDevprop (
     gDevPropString = DevpropCreateString ();
   }
 
-  Dev = DevpropAddDevicePci (gDevPropString, NVDev);
+  Device = DevpropAddDevicePci (gDevPropString, Dev);
 
   DBG (" - VideoPorts:");
 
@@ -777,7 +509,7 @@ SetupNvidiaDevprop (
 
   //There are custom properties, injected if set by user
   if (gSettings.NvidiaSingle && (gDevicesNumber >= 1)) {
-    DBG (" - NvidiaSingle: skip injecting other then first card\n");
+    DBG (" - NvidiaSingle: skip injecting the rest of cards\n");
     goto Finish;
   }
 
@@ -790,7 +522,7 @@ SetupNvidiaDevprop (
       Injected = TRUE;
 
       DevpropAddValue (
-        Dev,
+        Device,
         gSettings.AddProperties[i].Key,
         (UINT8 *)gSettings.AddProperties[i].Value,
         gSettings.AddProperties[i].ValueLen
@@ -806,13 +538,13 @@ SetupNvidiaDevprop (
     UINT32    FakeID = gSettings.FakeNVidia >> 16;
 
     MsgLog (" - With FakeID: %x:%x\n",gSettings.FakeNVidia & 0xFFFF, FakeID);
-    DevpropAddValue (Dev, "device-id", (UINT8 *)&FakeID, 4);
+    DevpropAddValue (Device, "device-id", (UINT8 *)&FakeID, 4);
     FakeID = gSettings.FakeNVidia & 0xFFFF;
-    DevpropAddValue (Dev, "vendor-id", (UINT8 *)&FakeID, 4);
+    DevpropAddValue (Device, "vendor-id", (UINT8 *)&FakeID, 4);
   }
 
   if (gSettings.InjectEDID && gSettings.CustomEDID) {
-    DevpropAddValue (Dev, "AAPL00,override-no-connect", gSettings.CustomEDID, 128);
+    DevpropAddValue (Device, "AAPL00,override-no-connect", gSettings.CustomEDID, 128);
   }
 
   if (
@@ -822,29 +554,29 @@ SetupNvidiaDevprop (
     CHAR8   NKey[24];
 
     AsciiSPrint (NKey, 24, "@%d,AAPL,boot-display", gSettings.BootDisplay);
-    DevpropAddValue (Dev, NKey, (UINT8 *)&BootDisplay, 4);
+    DevpropAddValue (Device, NKey, (UINT8 *)&BootDisplay, 4);
     DBG (" - BootDisplay: %d\n", gSettings.BootDisplay);
   }
 
-  DevpropAddValue (Dev, "model", (UINT8 *)Model, (UINT32)AsciiStrLen (Model));
-  DevpropAddValue (Dev, "rom-revision", (UINT8 *)VersionStr, (UINT32)AsciiStrLen (VersionStr));
+  DevpropAddValue (Device, "model", (UINT8 *)Model, (UINT32)AsciiStrLen (Model));
+  DevpropAddValue (Device, "rom-revision", (UINT8 *)VersionStr, (UINT32)AsciiStrLen (VersionStr));
 
   if (gSettings.NVCAP[0] != 0) {
-    DevpropAddValue (Dev, "NVCAP", &gSettings.NVCAP[0], NVCAP_LEN);
+    DevpropAddValue (Device, "NVCAP", &gSettings.NVCAP[0], NVCAP_LEN);
     DBG (" - NVCAP: %a\n", Bytes2HexStr (gSettings.NVCAP, sizeof (gSettings.NVCAP)));
   }
 
   if (gSettings.UseIntelHDMI) {
-    DevpropAddValue (Dev, "hda-gfx", (UINT8 *)"onboard-2", 10);
+    DevpropAddValue (Device, "hda-gfx", (UINT8 *)"onboard-2", 10);
   }
 
   if (VRam != 0) {
-    DevpropAddValue (Dev, "VRAM,totalsize", (UINT8 *)&VRam, 8);
+    DevpropAddValue (Device, "VRAM,totalsize", (UINT8 *)&VRam, 8);
   } else {
     DBG ("- [!] Warning: VideoRAM is not detected and not set\n");
   }
 
-  DevpropAddNvidiaTemplate (Dev, PortsNum);
+  DevpropAddNvidiaTemplate (Device, PortsNum);
 
   //there are default or calculated properties, can be skipped
   if (gSettings.NoDefaultProperties) {
@@ -853,30 +585,18 @@ SetupNvidiaDevprop (
   }
 
   if (!gSettings.UseIntelHDMI) {
-    DevpropAddValue (Dev, "hda-gfx", (UINT8 *)"onboard-1", 10);
+    DevpropAddValue (Device, "hda-gfx", (UINT8 *)"onboard-1", 10);
   }
 
   if (gSettings.BootDisplay < 0) {
     // if not set this is default property
-    DevpropAddValue (Dev, "@0,AAPL,boot-display", (UINT8 *)&BootDisplay, 4);
+    DevpropAddValue (Device, "@0,AAPL,boot-display", (UINT8 *)&BootDisplay, 4);
   }
 
-  /*
-    if (Patch == PATCH_ROM_SUCCESS_HAS_LVDS) {
-      UINT8   BuiltIn = 0x01;
-
-      DevpropAddValue (Dev, "@0,built-in", &BuiltIn, 1);
-      // HDMI is not LVDS
-      DevpropAddValue (Dev, "@1,connector-type", ConnectorType1, 4);
-    } else {
-      DevpropAddValue (Dev, "@0,connector-type", ConnectorType1, 4);
-    }
-  */
-
-  //DevpropAddValue (Dev, "NVPM", DefNVPM, NVPM_LEN);
+  //DevpropAddValue (Device, "NVPM", DefNVPM, NVPM_LEN);
 
   if (gSettings.NVCAP[0] == 0) {
-    DevpropAddValue (Dev, "NVCAP", DefNVCAP, NVCAP_LEN);
+    DevpropAddValue (Device, "NVCAP", DefNVCAP, NVCAP_LEN);
     DBG (" - NVCAP: %a\n", Bytes2HexStr (DefNVCAP, sizeof (DefNVCAP)));
   }
 

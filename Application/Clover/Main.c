@@ -120,6 +120,7 @@ RefitMain (
                       *DefaultEntry = NULL,
                       *OptionEntry = NULL;
   TagPtr              gConfigDict;
+  CHAR8               *NvramConfig = NULL;
 
   // get TSC freq and init MemLog if needed
   gCPUStructure.TSCCalibr = GetMemLogTscTicksPerSecond (); //ticks for 1second
@@ -144,18 +145,14 @@ RefitMain (
 
   gRS->GetTime (&Now, NULL);
 
-  //InitBooterLog ();
-
-  ZeroMem ((VOID *)&gGraphics[0], sizeof (GFX_PROPERTIES) * 4);
-
   //DbgHeader ("RefitMain");
 
   if ((Now.TimeZone < 0) || (Now.TimeZone > 24)) {
     MsgLog ("Now is %d.%d.%d, %d:%d:%d (GMT)\n",
-      Now.Day, Now.Month, Now.Year, Now.Hour, Now.Minute, Now.Second);
+      Now.Year, Now.Month, Now.Day, Now.Hour, Now.Minute, Now.Second);
   } else {
     MsgLog ("Now is %d.%d.%d, %d:%d:%d (GMT+%d)\n",
-      Now.Day, Now.Month, Now.Year, Now.Hour, Now.Minute, Now.Second, Now.TimeZone);
+      Now.Year, Now.Month, Now.Day, Now.Hour, Now.Minute, Now.Second, Now.TimeZone);
   }
 
   MsgLog ("Starting %a on %a\n", CLOVER_REVISION_STR, CLOVER_BUILDDATE);
@@ -235,10 +232,22 @@ RefitMain (
 
   DbgHeader ("LoadSettings");
 
-  gSettings.ConfigName = EfiStrDuplicate (CONFIG_FILENAME);
+  Status = EFI_LOAD_ERROR;
 
-  Status = LoadUserSettings (SelfRootDir, gSettings.ConfigName, &gConfigDict);
-  MsgLog ("Load Settings: %s.plist: %r\n", gSettings.ConfigName, Status);
+  NvramConfig = GetNvramVariable (NvramData[kCloverConfig].VariableName, NvramData[kCloverConfig].Guid, NULL, &Size);
+  if (NvramConfig != NULL) {
+    Size = AsciiStrSize (NvramConfig) * sizeof (CHAR16);
+    gSettings.ConfigName = AllocateZeroPool (Size);
+    AsciiStrToUnicodeStrS (NvramConfig, gSettings.ConfigName, Size);
+    Status = LoadUserSettings (SelfRootDir, gSettings.ConfigName, &gConfigDict);
+    MsgLog ("Load (Nvram) Settings: %s.plist: %r\n", gSettings.ConfigName, Status);
+  }
+
+  if ((NvramConfig == NULL) || EFI_ERROR (Status) || !gConfigDict) {
+    gSettings.ConfigName = EfiStrDuplicate (CONFIG_FILENAME);
+    Status = LoadUserSettings (SelfRootDir, gSettings.ConfigName, &gConfigDict);
+    MsgLog ("Load (Disk) Settings: %s.plist: %r\n", gSettings.ConfigName, Status);
+  }
 
   if (!EFI_ERROR (Status) && &gConfigDict[0]) {
     Status = GetUserSettings (gConfigDict);
@@ -278,7 +287,7 @@ RefitMain (
   // Now we have to reinit handles
   Status = ReinitRefitLib ();
 
-  if (EFI_ERROR (Status)){
+  if (EFI_ERROR (Status)) {
     //DebugLog (2, " %r", Status);
     return Status;
   }
@@ -317,6 +326,8 @@ RefitMain (
   //InitDesktop:
 
   do {
+    FreeList ((VOID ***)&MainMenu.Entries, &MainMenu.EntryCount);
+
     MainMenu.EntryCount = 0;
     OptionMenu.EntryCount = 0;
 
@@ -340,13 +351,8 @@ RefitMain (
       gThemeChanged = FALSE;
       MsgLog ("Choosing theme: %s\n", GlobalConfig.Theme);
 
-      //now it is a time to set RtVariables
-      //SetVariablesFromNvram ();
-
       TmpArgs = PoolPrint (L"%a ", gSettings.BootArgs);
-      //DBG ("after NVRAM boot-args=%a\n", gSettings.BootArgs);
       gSettings.OptionsBits = EncodeOptions (TmpArgs);
-      //DBG ("initial OptionsBits %x\n", gSettings.OptionsBits);
       FreePool (TmpArgs);
 
       FillInputs (TRUE);
@@ -380,11 +386,11 @@ RefitMain (
 
     DBG ("DefaultIndex=%d and MainMenu.EntryCount=%d\n", DefaultIndex, MainMenu.EntryCount);
 
-    if ((DefaultIndex >= 0) && (DefaultIndex < MainMenu.EntryCount)) {
-      DefaultEntry = MainMenu.Entries[DefaultIndex];
-    } else {
-      DefaultEntry = NULL;
-    }
+    DefaultEntry = ((DefaultIndex >= 0) && (DefaultIndex < MainMenu.EntryCount))
+      ? MainMenu.Entries[DefaultIndex]
+      : NULL;
+
+    MainLoopRunning = TRUE;
 
     if (gSettings.FastBoot && DefaultEntry) {
       if (DefaultEntry->Tag == TAG_LOADER) {
@@ -395,7 +401,6 @@ RefitMain (
       gSettings.FastBoot = FALSE; //Hmm... will never be here
     } else {
       MainAnime = GetAnime (&MainMenu);
-      MainLoopRunning = TRUE;
     }
 
     AfterTool = FALSE;
@@ -433,6 +438,7 @@ RefitMain (
           MainLoopRunning = FALSE;
           break;
         }
+
         continue;
       }
 

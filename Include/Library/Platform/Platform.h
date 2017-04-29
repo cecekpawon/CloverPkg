@@ -285,6 +285,8 @@ typedef enum {
   kBacklightLevel,
   kCsrActiveConfig,
   kBootercfg,
+  kCloverConfig,
+  kCloverTheme
 } NVRAM_KEY;
 
 typedef struct NVRAM_DATA {
@@ -667,6 +669,7 @@ typedef struct ACPI_DROP_TABLE {
 typedef struct ACPI_PATCHED_AML {
           UINT8               OSType;
           CHAR16              *FileName;
+          CHAR16              *Description;
           INPUT_ITEM          MenuItem;
   struct  ACPI_PATCHED_AML    *Next;
 } ACPI_PATCHED_AML;
@@ -752,6 +755,8 @@ typedef struct {
   UINT8             SlotID;
   UINT8             SlotType;
   CHAR8             SlotName[31];
+  BOOLEAN           ForceInject;
+  PCI_DT            PCIDevice;
 } SLOT_DEVICE;
 
 typedef struct DEV_PROPERTY {
@@ -771,10 +776,10 @@ typedef struct {
 } S_HAS_GRAPHICS;
 
 typedef enum {
-  Unknown,
-  Ati,
-  Intel,
-  Nvidia
+  GfxUnknown,
+  GfxAti,
+  GfxIntel,
+  GfxNvidia
 } GFX_MANUFACTURER;
 
 typedef struct {
@@ -871,6 +876,7 @@ typedef enum {
 
 typedef struct S_FILES {
           CHAR16    *FileName;
+          CHAR16    *Description;
           INTN      Index;
   struct  S_FILES   *Next;
 } S_FILES;
@@ -952,7 +958,7 @@ typedef struct {
   UINT32                    BusSpeed; //in kHz
   BOOLEAN                   Turbo;
   UINT8                     EnabledCores;
-  BOOLEAN                   UserBusSpeed;
+  //BOOLEAN                   UserBusSpeed;
   // SMBIOS TYPE17
   CHAR8                     MemoryManufacturer[64];
   CHAR8                     MemorySerialNumber[64];
@@ -972,13 +978,13 @@ typedef struct {
   // OS parameters
   //CHAR8                     Language[16];
   CHAR8                     BootArgs[256];
-  CHAR16                    CustomUuid[40];
+  //CHAR16                    CustomUuid[40];
   CHAR16                    *DefaultVolume;
   BOOLEAN                   NeverHibernate;
   BOOLEAN                   FastBoot;
   BOOLEAN                   NoEarlyProgress;
   BOOLEAN                   TextOnly;
-  //BOOLEAN                   DebugLog;
+  BOOLEAN                   DebugLog;
   INTN                      Timeout;
 
   BOOLEAN                   LastBootedVolume;
@@ -986,7 +992,6 @@ typedef struct {
   CHAR16                    *DefaultLoader;
 
   UINT16                    BacklightLevel;
-  BOOLEAN                   BacklightLevelConfig;
   BOOLEAN                   IntelBacklight;
   BOOLEAN                   WithKexts;
   BOOLEAN                   NoCaches;
@@ -1016,7 +1021,7 @@ typedef struct {
 
   //Injections
   BOOLEAN                   EFIStringInjector;
-  BOOLEAN                   InjectSystemID;
+  //BOOLEAN                   InjectSystemID;
   BOOLEAN                   NoDefaultProperties;
 
   BOOLEAN                   ReuseFFFF;
@@ -1052,7 +1057,7 @@ typedef struct {
   S_HAS_GRAPHICS            *HasGraphics;
 
   // HDA
-  INT32                     HDALayoutId;
+  UINT32                    HDALayoutId;
 
   //Volumes hiding
   CHAR16                    **HVHideStrings;
@@ -1167,8 +1172,8 @@ extern DRIVERS_FLAGS                    gDriversFlags;
 extern UINT32                           gFwFeatures;
 extern UINT32                           gFwFeaturesMask;
 extern CPU_STRUCTURE                    gCPUStructure;
-extern EFI_GUID                         gUuid;
-extern SLOT_DEVICE                      SlotDevices[];
+//extern EFI_GUID                         gUuid;
+extern SLOT_DEVICE                      SlotDevices[32];
 extern EFI_EDID_DISCOVERED_PROTOCOL     *EdidDiscovered;
 extern UINT8                            *gEDID;
 extern UINT32                           mPropSize;
@@ -1178,27 +1183,21 @@ extern UINT32                           cPropSize;
 extern UINT8                            *cProperties;
 extern CHAR8                            *cDeviceProperties;
 extern INPUT_ITEM                       *InputItems;
-extern BOOLEAN                          SavePreBootLog;
-//extern EFI_GRAPHICS_OUTPUT_PROTOCOL   *GraphicsOutput;
 extern CHAR16                           *InjectKextsDir[2];
 extern UINTN                            nLanCards;     // number of LAN cards
 extern UINTN                            nLanPaths;     // number of UEFI LAN
 extern UINT16                           gLanVendor[4]; // their vendors
 extern UINT8                            *gLanMmio[4];  // their MMIO regions
 extern UINT8                            gLanMac[4][6]; // their MAC addresses
-extern BOOLEAN                          GetLegacyLanAddress;
 
-#if 0
-extern EFI_EVENT                        mVirtualAddressChangeEvent;
-extern EFI_EVENT                        OnReadyToBootEvent;
-extern EFI_EVENT                        mSimpleFileSystemChangeEvent;
-#endif
 extern EFI_EVENT                        ExitBootServiceEvent;
 //extern UINTN                            gEvent;
 
 extern UINT32                           gDevicesNumber;
 extern INTN                             OldChosenTheme;
 extern INTN                             OldChosenConfig;
+extern INTN                             OldChosenDSDT;
+extern INTN                             OldChosenTool;
 
 //extern UINT64                           BiosDsdt;
 //extern UINT32                           BiosDsdtLen;
@@ -1211,6 +1210,7 @@ extern ACPI_PATCHED_AML                 *ACPIPatchedAML;
 
 extern S_FILES                          *aConfigs;
 extern S_FILES                          *aThemes;
+extern S_FILES                          *aDSDTs;
 extern S_FILES                          *aTools;
 extern CHAR16                           *gToolPath;
 
@@ -1290,9 +1290,6 @@ WaitForInputEventPoll (
   UINTN               TimeoutDefault
 );
 
-VOID
-InitBooterLog ();
-
 EFI_STATUS
 SetupBooterLog ();
 
@@ -1344,11 +1341,11 @@ IsValidGuidAsciiString (
   IN CHAR8  *Str
 );
 
-EFI_STATUS
-StrToGuidLE (
-  IN  CHAR16      *Str,
-  OUT EFI_GUID    *Guid
-);
+//EFI_STATUS
+//StrToGuidLE (
+//  IN  CHAR16      *Str,
+//  OUT EFI_GUID    *Guid
+//);
 
 //EFI_STATUS
 //InitBootScreen (
@@ -1410,10 +1407,10 @@ GetRootUUID (
   IN  REFIT_VOLUME  *Volume
 );
 
-EFI_STATUS
-GetEarlyUserSettings (
-  IN  TagPtr  Dict
-);
+//EFI_STATUS
+//GetEarlyUserSettings (
+//  IN  TagPtr  Dict
+//);
 
 EFI_STATUS
 GetUserSettings (
@@ -1434,11 +1431,11 @@ SetFSInjection (
 VOID
 ReadCsrCfg ();
 
-VOID
-ParseLoadOptions (
-  OUT  CHAR16   **Conf,
-  OUT  TagPtr   *Dict
-);
+//VOID
+//ParseLoadOptions (
+//  OUT  CHAR16   **Conf,
+//  OUT  TagPtr   *Dict
+//);
 
 //
 // Nvram.c
@@ -1561,11 +1558,11 @@ SetupAtiDevprop (
   PCI_DT        *Dev
 );
 
-VOID
-GetAtiModel (
-  OUT GFX_PROPERTIES  *gfx,
-  IN  UINT32          device_id
-);
+//VOID
+//GetAtiModel (
+//  OUT GFX_PROPERTIES  *gfx,
+//  IN  UINT32          device_id
+//);
 
 BOOLEAN
 SetupGmaDevprop (
@@ -1579,13 +1576,12 @@ SetupEthernetDevprop (
 
 BOOLEAN
 SetupHdaDevprop (
-  EFI_PCI_IO_PROTOCOL   *PciIo,
-  PCI_DT                *Dev
+  PCI_DT    *Dev
 );
 
 BOOLEAN
 SetupNvidiaDevprop (
-  PCI_DT    *NVDev
+  PCI_DT    *Dev
 );
 
 VOID
@@ -1607,20 +1603,19 @@ PatchBinACPI (
 
 EFI_STATUS
 PatchACPI (
-  //BOOLEAN     DropSSDT,
-  UINT8       OSType
+  UINT8   OSType
 );
 
 UINT8
 Checksum8 (
-  VOID    *startPtr,
-  UINT32  len
+  VOID      *StartPtr,
+  UINT32    Len
 );
 
 VOID
 SaveOemDsdt (
-  BOOLEAN     FullPatch,
-  UINT8       OSType
+  BOOLEAN   FullPatch,
+  UINT8     OSType
 );
 
 #if DUMP_TABLE
@@ -1822,7 +1817,7 @@ LoadUserSettings (
      TagPtr    *dict
 );
 
-BOOLEAN
+VOID
 CopyKernelAndKextPatches (
   IN OUT KERNEL_AND_KEXT_PATCHES   *Dst,
   IN     KERNEL_AND_KEXT_PATCHES   *Src

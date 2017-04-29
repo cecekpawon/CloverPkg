@@ -203,18 +203,11 @@ typedef struct {
 } REFIT_INPUT_DIALOG;
 
 typedef struct {
-  //BOOLEAN     TextOnly;
-  //INTN        Timeout;
   UINTN       DisableFlags;
   UINTN       HideBadges;
   UINTN       HideUIFlags;
-  //BOOLEAN     Quiet;
-  //BOOLEAN     DebugLog;
-  //BOOLEAN     FastBoot;
-  //BOOLEAN     NeverHibernate;
   FONT_TYPE   Font;
   INTN        CharWidth;
-  //INTN        CharHeight;
   INTN        CharRows;
   INTN        CharCols;
   UINTN       SelectionColor;
@@ -229,12 +222,10 @@ typedef struct {
   CHAR16      *SelectionIndicatorName;
   CHAR16      *DefaultSelection;
   CHAR16      *ScreenResolution;
-  //INTN        ConsoleMode;
   CHAR16      *BackgroundName;
   SCALING     BackgroundScale;
   INT32       BackgroundSharp;
   BOOLEAN     BackgroundDark;
-  //BOOLEAN     CustomIcons;
   BOOLEAN     SelectionOnTop;
   BOOLEAN     BootCampStyle;
   INTN        BadgeOffsetX;
@@ -248,13 +239,10 @@ typedef struct {
   INTN        BannerEdgeVertical;
   INTN        BannerNudgeX;
   INTN        BannerNudgeY;
-  //BOOLEAN     VerticalLayout;
   BOOLEAN     NonSelectedGrey;
   INTN        MainEntriesSize;
   INTN        TileXSpace;
   INTN        TileYSpace;
-  //BOOLEAN     Proportional;
-  //BOOLEAN     NoEarlyProgress;
   INTN        PruneScrollRows;
 
   INTN        row0TileSize;
@@ -264,10 +252,10 @@ typedef struct {
   INTN        LayoutTextOffset;
   INTN        LayoutAnimMoveForMenuX;
 
-  INTN        ScrollWidth;
-  INTN        ScrollButtonsHeight;
+  INTN        ScrollButtonWidth;
+  INTN        ScrollButtonHeight;
   INTN        ScrollBarDecorationsHeight;
-  INTN        ScrollScrollDecorationsHeight;
+  INTN        ScrollBackDecorationsHeight;
 } REFIT_CONFIG;
 
 extern REFIT_CONFIG   GlobalConfig;
@@ -330,16 +318,16 @@ typedef struct KERNEL_AND_KEXT_PATCHES {
   UINT8           *KPATIConnectorsPatch;
   UINT8           KPATIConnectorsWildcard;
 
-  INT32           NrKexts;
+  UINTN           NrKexts;
   KEXT_PATCH      *KextPatches;
 
-  INT32           NrForceKexts;
+  UINTN           NrForceKexts;
   CHAR16          **ForceKexts;
 
-  INT32           NrKernels;
+  UINTN           NrKernels;
   KERNEL_PATCH    *KernelPatches;
 
-  INT32           NrBooters;
+  UINTN           NrBooters;
   BOOTER_PATCH    *BooterPatches;
 } KERNEL_AND_KEXT_PATCHES;
 
@@ -434,12 +422,12 @@ ReinitRefitLib ();
 BOOLEAN
 IsEmbeddedTheme ();
 
-VOID
-CreateList (
-  OUT VOID    ***ListPtr,
-  OUT UINTN   *ElementCount,
-  IN  UINTN   InitialElementCount
-);
+//VOID
+//CreateList (
+//  OUT VOID    ***ListPtr,
+//  OUT UINTN   *ElementCount,
+//  IN  UINTN   InitialElementCount
+//);
 
 VOID
 AddListElement (
@@ -448,10 +436,11 @@ AddListElement (
   IN      VOID    *NewElement
 );
 
-//FreeList (
-//  IN OUT VOID     ***ListPtr,
-//  IN OUT UINTN    *ElementCount
-//);
+VOID
+FreeList (
+  IN OUT VOID     ***ListPtr,
+  IN OUT INTN     *ElementCount
+);
 
 VOID
 ScanVolumes ();
@@ -471,6 +460,12 @@ BOOLEAN
 DeleteFile (
   IN EFI_FILE   *Root,
   IN CHAR16     *RelativePath
+);
+
+EFI_STATUS
+MkDir (
+  IN EFI_FILE_HANDLE    BaseDir OPTIONAL,
+  IN CHAR16             *DirName
 );
 
 EFI_STATUS
@@ -521,6 +516,11 @@ FindExtension (
   IN CHAR16   *FileName
 );
 
+CHAR16 *
+RemoveExtension (
+  IN CHAR16    *Path
+);
+
 INTN
 FindMem (
   IN VOID   *Buffer,
@@ -561,13 +561,13 @@ VOID DebugPause ();
 BOOLEAN
 CheckFatalError (
   IN EFI_STATUS   Status,
-  IN CHAR16       *where
+  IN CHAR16       *Where
 );
 
 BOOLEAN
 CheckError (
   IN EFI_STATUS   Status,
-  IN CHAR16       *where
+  IN CHAR16       *Where
 );
 
 VOID
@@ -662,12 +662,6 @@ SaveFile (
   IN CHAR16           *FileName,
   IN UINT8            *FileData,
   IN UINTN            FileDataLength
-);
-
-EFI_STATUS
-MkDir (
-  IN EFI_FILE_HANDLE    BaseDir OPTIONAL,
-  IN CHAR16             *DirName
 );
 
 EFI_STATUS
@@ -797,7 +791,7 @@ TerminateScreen ();
 
 VOID
 SetNextScreenMode (
-  INT32 Next
+  INT32   Next
 );
 
 VOID
@@ -808,7 +802,7 @@ ReadAllKeyStrokes ();
 
 VOID
 ClearScreen (
-  IN EG_PIXEL     *Color
+  IN EG_PIXEL   *Color
 );
 
 VOID
@@ -824,11 +818,11 @@ DrawImageArea (
 
 VOID
 TakeImage (
-  IN EG_IMAGE     *Image,
-  IN INTN         ScreenPosX,
-  IN INTN         ScreenPosY,
-  IN INTN         AreaWidth,
-  IN INTN         AreaHeight
+  IN EG_IMAGE   *Image,
+  IN INTN       ScreenPosX,
+  IN INTN       ScreenPosY,
+  IN INTN       AreaWidth,
+  IN INTN       AreaHeight
 );
 
 EFI_STATUS

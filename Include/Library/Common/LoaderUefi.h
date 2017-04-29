@@ -106,7 +106,6 @@ struct symtab_command {
 //
 // From xnu/osfmk/mach/i386/_structs.h:
 //
-
 #define _STRUCT_X86_THREAD_STATE32  struct __darwin_i386_thread_state
 _STRUCT_X86_THREAD_STATE32
 {
@@ -155,13 +154,18 @@ _STRUCT_X86_THREAD_STATE64
   UINT64  gs;
 };
 
+//
+// From xnu/osfmk/mach/i386/thread_status.h:
+//
+typedef _STRUCT_X86_THREAD_STATE32    i386_thread_state_t;
+typedef _STRUCT_X86_THREAD_STATE64    x86_thread_state64_t;
+
 /*
  * What the booter leaves behind for the kernel.
  */
 
 /*
  * Types of boot driver that may be loaded by the booter.
- */
 enum {
   kBootDriverTypeInvalid        = 0,
   kBootDriverTypeKEXT           = 1,
@@ -185,10 +189,10 @@ enum {
   kEfiPalCode                   = 13,
   kEfiMaxMemoryType             = 14
 };
+ */
 
 /*
  * Memory range descriptor.
- */
 typedef struct EfiMemoryRange {
   UINT32  Type;
   UINT32  Pad;
@@ -197,6 +201,7 @@ typedef struct EfiMemoryRange {
   UINT64  NumberOfPages;
   UINT64  Attribute;
 } EfiMemoryRange;
+ */
 
 #define BOOT_LINE_LENGTH        1024
 #define BOOT_STRING_LEN         BOOT_LINE_LENGTH
@@ -239,7 +244,7 @@ typedef struct Boot_Video Boot_Video;
 #define kBootArgsRevision       0
 #define kBootArgsVersion        2
 
-#define kBootArgsVersion2       2
+//#define kBootArgsVersion2       2
 
 #define kBootArgsEfiMode64      64
 
@@ -343,12 +348,6 @@ typedef struct {
   UINT32  DataOffset;
   UINT32  DataSize;
 } BOOT_EFI_HEADER;
-
-//
-// From xnu/osfmk/mach/i386/thread_status.h:
-//
-typedef _STRUCT_X86_THREAD_STATE32    i386_thread_state_t;
-typedef _STRUCT_X86_THREAD_STATE64    x86_thread_state64_t;
 
 
 #define DARWIN_KERNEL_VER_MAJOR_MAVERICKS       13

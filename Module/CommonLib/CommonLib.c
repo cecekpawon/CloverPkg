@@ -678,6 +678,7 @@ StrnCatGrow (
       while (NewSize < (DestinationStartSize + (Count * sizeof (CHAR16)))) {
         NewSize += 2 * Count * sizeof (CHAR16);
       }
+
       *Destination = ReallocatePool (*CurrentSize, NewSize, *Destination);
       *CurrentSize = NewSize;
     }
@@ -808,9 +809,9 @@ EfiReallocatePool (
 UINT64
 EFIAPI
 AsciiStrVersionToUint64 (
-  CONST   CHAR8 *Version,
-  UINT8   MaxDigitByPart,
-  UINT8   MaxParts
+  CONST   CHAR8   *Version,
+          UINT8   MaxDigitByPart,
+          UINT8   MaxParts
 ) {
   UINT64    result = 0;
   UINT16    part_value = 0, part_mult  = 1, max_part_value;
@@ -833,6 +834,7 @@ AsciiStrVersionToUint64 (
         part_value = max_part_value;
       }
     }
+
     else if (*Version == '.') {
       result = MultU64x64 (result, part_mult) + part_value;
       part_value = 0;
@@ -1109,33 +1111,33 @@ AsciiStrnCatGrow (
 
 BOOLEAN
 IsHexDigit (
-  CHAR8   c
+  CHAR8   C
 ) {
-  return (IS_DIGIT (c) || (IS_HEX (c))) ? TRUE : FALSE;
+  return (IS_DIGIT (C) || (IS_HEX (C))) ? TRUE : FALSE;
 }
 
 UINT8
 EFIAPI
 HexStrToUint8 (
-  CHAR8   *buf
+  CHAR8   *Buf
 ) {
   INT8  i = 0;
 
-  if (IS_DIGIT (buf[0])) {
-    i = buf[0] - '0';
-  } else if (IS_HEX (buf[0])) {
-    i = (buf[0] | 0x20) - 'a' + 10;
+  if (IS_DIGIT (Buf[0])) {
+    i = Buf[0] - '0';
+  } else if (IS_HEX (Buf[0])) {
+    i = (Buf[0] | 0x20) - 'a' + 10;
   }
 
-  if (AsciiStrLen (buf) == 1) {
+  if (AsciiStrLen (Buf) == 1) {
     return i;
   }
 
   i <<= 4;
-  if (IS_DIGIT (buf[1])) {
-    i += buf[1] - '0';
-  } else if (IS_HEX (buf[1])) {
-    i += (buf[1] | 0x20) - 'a' + 10;
+  if (IS_DIGIT (Buf[1])) {
+    i += Buf[1] - '0';
+  } else if (IS_HEX (Buf[1])) {
+    i += (Buf[1] | 0x20) - 'a' + 10;
   }
 
   return i;
@@ -1146,26 +1148,26 @@ HexStrToUint8 (
 UINT32
 EFIAPI
 Hex2Bin (
-  IN  CHAR8   *hex,
-  OUT UINT8   *bin,
-  IN  UINT32  len
+  IN  CHAR8   *Hex,
+  OUT UINT8   *Bin,
+  IN  UINT32  Len
 ) {  //assume len = number of UINT8 values
-  CHAR8   *p, buf[3];
-  UINT32  i, outlen = 0;
+  CHAR8   *p, Buf[3];
+  UINT32  i, Outlen = 0;
 
-  if ((hex == NULL) || (bin == NULL) || (len <= 0 )|| (AsciiStrLen (hex) < len * 2)) {
+  if ((Hex == NULL) || (Bin == NULL) || (Len <= 0 )|| (AsciiStrLen (Hex) < Len * 2)) {
     //DBG ("[ERROR] bin2hex input error\n"); //this is not error, this is empty value
     return 0;
   }
 
-  buf[2] = '\0';
-  p = (CHAR8 *)hex;
+  Buf[2] = '\0';
+  p = (CHAR8 *)Hex;
 
   if ((p[0] == '0') && (TO_UPPER (p[1]) == 'X')) {
     p += 2;
   }
 
-  for (i = 0; i < len; i++) {
+  for (i = 0; i < Len; i++) {
     while ((*p == 0x20) || (*p == ',')) {
       p++; //skip spaces and commas
     }
@@ -1179,15 +1181,15 @@ Hex2Bin (
       return 0;
     }
 
-    buf[0] = *p++;
-    buf[1] = *p++;
-    bin[i] = HexStrToUint8 (buf);
-    outlen++;
+    Buf[0] = *p++;
+    Buf[1] = *p++;
+    Bin[i] = HexStrToUint8 (Buf);
+    Outlen++;
   }
 
-  //bin[outlen] = 0;
+  //Bin[Outlen] = 0;
 
-  return outlen;
+  return Outlen;
 }
 
 VOID *
@@ -1375,7 +1377,7 @@ FindCharDelimited (
     }
   }
 
-  return (FoundString);
+  return FoundString;
 }
 
 SVersion *
@@ -1442,5 +1444,3 @@ StrToMacAddress (
 
   return (y == 6) ? Ret : NULL;
 }
-
-

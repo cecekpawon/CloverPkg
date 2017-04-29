@@ -34,8 +34,8 @@
 #define IS_DIGIT(a)             (((a) >= '0') && ((a) <= '9'))
 #define IS_HEX(a)               ((((a) >= 'a') && ((a) <= 'f')) || (((a) >= 'A') && ((a) <= 'F')))
 #define IS_UPPER(a)             (((a) >= 'A') && ((a) <= 'Z'))
-#define IS_ALFA(x)              (((x >= 'a') && (x <='z')) || ((x >= 'A') && (x <='Z')))
-#define IS_ASCII(x)             ((x>=0x20) && (x<=0x7F))
+#define IS_ALFA(x)              (((x >= 'a') && (x <= 'z')) || ((x >= 'A') && (x <= 'Z')))
+#define IS_ASCII(x)             ((x >= 0x20) && ( x<= 0x7F))
 #define IS_PUNCT(x)             ((x == '.') || (x == '-'))
 
 // Allow for 255 unicode characters + 2 byte unicode null terminator.
@@ -141,12 +141,6 @@ StrnCatGrow (
   IN OUT  UINTN     *CurrentSize,
   IN      CHAR16    *Source,
   IN      UINTN     Count
-);
-
-VOID
-EFIAPI
-RemoveMultiSpaces (
-  IN OUT CHAR16   *Str
 );
 
 VOID

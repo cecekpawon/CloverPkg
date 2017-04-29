@@ -122,10 +122,7 @@ GeneratePssSsdt (
       // Sanity check
       if (Maximum.Control.Control < Minimum.Control.Control) {
         DBG ("Insane control values!");
-        PStatesCount = 0;
       } else {
-        PStatesCount = 0;
-
         for (i = Maximum.Control.Control; i >= Minimum.Control.Control; i--) {
           j = i << 8;
 
@@ -148,7 +145,10 @@ GeneratePssSsdt (
       MsgLog ("Unsupported CPU (0x%X): P-States not generated !!!\n", gCPUStructure.Family);
     }
 
+    //
     // Generating SSDT
+    //
+
     if (PStatesCount > 0) {
       SSDT_TABLE    *Ssdt;
       AML_CHUNK     *Scope, *Method, *Pack, *MetPSS, *MetPPC,
@@ -236,6 +236,7 @@ GeneratePssSsdt (
       AmlDestroyNode (Root);
 
       MsgLog ("SSDT with CPU P-States generated successfully\n");
+
       return Ssdt;
     }
   } else {
@@ -251,12 +252,8 @@ GenerateCstSsdt (
   UINT8                                       FirstID,
   UINTN                                       Number
 ) {
-  BOOLEAN       C2Enabled = gSettings.EnableC2,
-                C3Enabled,
-                C4Enabled = gSettings.EnableC4 /*,
-                //c6_enabled = gSettings.EnableC6,
-                cst_using_systemio = gSettings.EnableISS */;
-  UINT8         CStatesCount; // p_blk_lo, p_blk_hi,
+  BOOLEAN       C2Enabled, C3Enabled;
+  UINT8         CStatesCount;
   UINT32        AcpiCPUPBlk;
   CHAR8         Name2[31], Name0[31], Name1[31];
   AML_CHUNK     *Root, *Scope, *Name, *Pack, *Tmpl, *Met;
@@ -268,9 +265,9 @@ GenerateCstSsdt (
   }
 
   AcpiCPUPBlk = Fadt->Pm1aEvtBlk + 0x10;
-  C2Enabled = C2Enabled || (Fadt->PLvl2Lat < 100);
+  C2Enabled = gSettings.EnableC2 || (Fadt->PLvl2Lat < 100);
   C3Enabled = (Fadt->PLvl3Lat < 1000);
-  CStatesCount = 1 + (C2Enabled ? 1 : 0) + ((C3Enabled || C4Enabled)? 1 : 0)
+  CStatesCount = 1 + (C2Enabled ? 1 : 0) + ((C3Enabled || gSettings.EnableC4)? 1 : 0)
                   + (gSettings.EnableC6 ? 1 : 0) + (gSettings.EnableC7 ? 1 : 0);
 
   Root = AmlCreateNode (NULL);
@@ -309,7 +306,7 @@ GenerateCstSsdt (
     AmlAddDword (Tmpl, 0x000001f4);  // Power
   }
 
-  if (C4Enabled) {         // C4
+  if (gSettings.EnableC4) {         // C4
     Tmpl = AmlAddPackage (Pack);
     ResourceTemplateRegisterFixedHW[11] = 0x30; // C4
     AmlAddBuffer (Tmpl, ResourceTemplateRegisterFixedHW, ARRAY_SIZE (ResourceTemplateRegisterFixedHW));

@@ -34,33 +34,32 @@ ThinFatFile (
   FAT_ARCH      *FAP = (FAT_ARCH *)(*Binary + sizeof (FAT_HEADER));
   cpu_type_t    FAPcputype;
 
-  if (FHP->magic == FAT_MAGIC) {
-    Nfat = FHP->nfat_arch;
-  } else if (FHP->magic == FAT_CIGAM) {
-    Nfat = SwapBytes32 (FHP->nfat_arch);
-    Swapped = 1;
-    //already thin
-  } else if (FHP->magic == THIN_X64){
-    if (ArchCpuType == CPU_TYPE_X86_64) {
-      return EFI_SUCCESS;
-    }
+  switch (FHP->magic) {
+    case FAT_MAGIC:
+      Nfat = FHP->nfat_arch;
+      break;
 
-    return EFI_NOT_FOUND;
-  } else {
-    DBG ("Thinning fails\n");
-    return EFI_NOT_FOUND;
+    case FAT_CIGAM:
+      Nfat = SwapBytes32 (FHP->nfat_arch);
+      Swapped = 1;
+      //already thin
+      break;
+
+    case THIN_X64:
+      if (ArchCpuType == CPU_TYPE_X86_64) {
+        return EFI_SUCCESS;
+      }
+
+    default:
+      DBG ("Thinning fails\n");
+      return EFI_NOT_FOUND;
+      //break;
   }
 
   for (; Nfat > 0; Nfat--, FAP++) {
-    if (Swapped) {
-      FAPcputype = SwapBytes32 (FAP->cputype);
-      FAPOffset = SwapBytes32 (FAP->offset);
-      FAPSize = SwapBytes32 (FAP->size);
-    } else {
-      FAPcputype = FAP->cputype;
-      FAPOffset = FAP->offset;
-      FAPSize = FAP->size;
-    }
+    FAPcputype  = Swapped ? SwapBytes32 (FAP->cputype) : FAP->cputype;
+    FAPOffset   = Swapped ? SwapBytes32 (FAP->offset)  : FAP->offset;
+    FAPSize     = Swapped ? SwapBytes32 (FAP->size)    : FAP->size;
 
     if (FAPcputype == ArchCpuType) {
       *Binary = (*Binary + FAPOffset);
@@ -88,7 +87,7 @@ LoadKext (
   UINT8                 *InfoDictBuffer = NULL, *ExecutableFatBuffer = NULL, *ExecutableBuffer = NULL;
   UINTN                 InfoDictBufferLength = 0, ExecutableBufferLength = 0, BundlePathBufferLength = 0;
   CHAR8                 *BundlePathBuffer = NULL;
-  CHAR16                TempName[AVALUE_MAX_SIZE], Executable[AVALUE_MAX_SIZE];
+  CHAR16                TempName[AVALUE_MAX_SIZE];
   TagPtr                Dict = NULL, Prop = NULL;
   BOOLEAN               NoContents = FALSE;
   BooterKextFileInfo    *InfoAddr = NULL;
@@ -116,13 +115,8 @@ LoadKext (
   }
 
   Prop = GetProperty (Dict, kPropCFBundleExecutable);
-  if (Prop != 0) {
-    AsciiStrToUnicodeStrS (Prop->string, Executable, ARRAY_SIZE (Executable));
-    if (NoContents) {
-      UnicodeSPrint (TempName, SVALUE_MAX_SIZE, L"%s\\%s", FileName, Executable);
-    } else {
-      UnicodeSPrint (TempName, SVALUE_MAX_SIZE, L"%s\\%s\\%s", FileName, L"Contents\\MacOS", Executable);
-    }
+  if ((Prop != NULL) && (Prop->type == kTagTypeString)) {
+    UnicodeSPrint (TempName, SVALUE_MAX_SIZE, L"%s%s\\%a", FileName, NoContents ? L"" : L"\\Contents\\MacOS", Prop->string);
 
     Status = LoadFile (RootDir, TempName, &ExecutableFatBuffer, &ExecutableBufferLength);
     if (EFI_ERROR (Status)) {
@@ -316,9 +310,9 @@ LoadKexts (
 
 EFI_STATUS
 InjectKexts (
-  IN UINT32       deviceTreeP,
-  IN UINT32       *deviceTreeLength,
-  LOADER_ENTRY    *Entry
+  IN UINT32         deviceTreeP,
+  IN UINT32         *deviceTreeLength,
+  IN LOADER_ENTRY   *Entry
 ) {
           UINT8                     *gDTEntry = (UINT8 *)(UINTN) deviceTreeP, *InfoPtr = 0, *ExtraPtr = 0, *DrvPtr = 0;
           UINTN                     DtLength = (UINTN)*deviceTreeLength, Offset = 0, KextBase = 0, Index;
@@ -334,7 +328,7 @@ InjectKexts (
 
   DBG ("InjectKexts: ");
 
-  if (gKextCount == 0) {
+  if (!gKextCount) {
     DBG ("no kexts to inject ...\n");
     return EFI_NOT_FOUND;
   }
@@ -417,7 +411,7 @@ InjectKexts (
       DrvPtr += sizeof (DeviceTreeNodeProperty) + sizeof (DeviceTreeBuffer);
       KextBase = RoundPage (KextBase + KextEntry->Kext.length);
 
-      DBG (" - [%02d]: %a\n", Index, (CHAR8 *)(UINTN)Drvinfo->bundlePathPhysAddr);
+      DBG (" - [%02d]: %a\n", Index++, (CHAR8 *)(UINTN)Drvinfo->bundlePathPhysAddr);
 
       if (
         gSettings.KextPatchesAllowed &&
@@ -436,11 +430,12 @@ InjectKexts (
 
 #ifdef LAZY_PARSE_KEXT_PLIST
         if (EFI_ERROR (ParseXML (InfoPlist, 0, &KextsDict))) {
+          DBG ("  - Error reading plist.\n");
           continue;
         }
 
         DictPointer = GetProperty (KextsDict, kPropCFBundleIdentifier);
-        if ((DictPointer != NULL) && DictPointer->string) {
+        if ((DictPointer != NULL) && (DictPointer->type == kTagTypeString)) {
           AsciiStrCpyS (gKextBundleIdentifier, ARRAY_SIZE (gKextBundleIdentifier), DictPointer->string);
         }
 #else
@@ -471,10 +466,7 @@ InjectKexts (
         CheckForFakeSMC (InfoPlist, Entry);
 
         InfoPlist[Drvinfo->infoDictLength] = SavedValue;
-        //FreePool (gKextBundleIdentifier);
       }
-
-      Index++;
     }
   }
 

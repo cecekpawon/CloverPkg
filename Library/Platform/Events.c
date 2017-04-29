@@ -15,18 +15,13 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <Library/Platform/KernelPatcher.h>
 
 EFI_EVENT   ExitBootServiceEvent = NULL;
-#if 0
-EFI_EVENT   mVirtualAddressChangeEvent = NULL;
-EFI_EVENT   OnReadyToBootEvent = NULL;
-EFI_EVENT   mSimpleFileSystemChangeEvent = NULL;
-#endif
 
 VOID
 EFIAPI
 ClosingEventAndLog (
   IN LOADER_ENTRY   *Entry
 ) {
-  EFI_STATUS    Status;
+  //EFI_STATUS    Status;
   BOOLEAN       CloseBootServiceEvent = TRUE;
 
   //MsgLog ("Closing Event & Log\n");
@@ -34,7 +29,6 @@ ClosingEventAndLog (
   if (OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType)) {
     if (gDoHibernateWake) {
       // When doing hibernate wake, save to DataHub only up to initial size of log
-      SavePreBootLog = FALSE;
     } else {
       // delete boot-switch-vars if exists
       /*Status = */gRT->SetVariable (
@@ -52,17 +46,11 @@ ClosingEventAndLog (
   }
 
   if (CloseBootServiceEvent) {
-    //gBS->CloseEvent (OnReadyToBootEvent);
     gBS->CloseEvent (ExitBootServiceEvent);
-    //gBS->CloseEvent (mSimpleFileSystemChangeEvent);
-    //gBS->CloseEvent (mVirtualAddressChangeEvent);
   }
 
-  if (SavePreBootLog) {
-    Status = SaveBooterLog (SelfRootDir, PREBOOT_LOG);
-    if (EFI_ERROR (Status)) {
-      /*Status = */SaveBooterLog (NULL, PREBOOT_LOG);
-    }
+  if (gSettings.DebugLog) {
+    SaveBooterLog (SelfRootDir, DEBUG_LOG);
   }
 }
 
@@ -125,91 +113,12 @@ OnExitBootServices (
   }
 }
 
-#if 0
-VOID
-EFIAPI
-OnReadyToBoot (
-  IN EFI_EVENT    Event,
-  IN VOID         *Context
-) {
-//
-}
-
-VOID
-EFIAPI
-VirtualAddressChangeEvent (
-  IN EFI_EVENT    Event,
-  IN VOID         *Context
-) {
-//  EfiConvertPointer (0x0, (VOID **)&mProperty);
-//  EfiConvertPointer (0x0, (VOID **)&mSmmCommunication);
-}
-
-VOID
-EFIAPI
-OnSimpleFileSystem (
-  IN EFI_EVENT    Event,
-  IN VOID         *Context
-) {
-  EFI_TPL   OldTpl;
-
-  OldTpl = gBS->RaiseTPL (TPL_NOTIFY);
-  gEvent = 1;
-  //ReinitRefitLib ();
-  //ScanVolumes ();
-  //enter GUI
-  // DrawMenuText (L"OnSimpleFileSystem", 0, 0, UGAHeight-40, 1);
-  // MsgLog ("OnSimpleFileSystem occured\n");
-
-  gBS->RestoreTPL (OldTpl);
-}
-
-EFI_STATUS
-GuiEventsInitialize () {
-  EFI_STATUS      Status;
-  EFI_EVENT       Event;
-  VOID            *RegSimpleFileSystem = NULL;
-
-  gEvent = 0;
-  Status = gBS->CreateEvent (
-                 EVT_NOTIFY_SIGNAL,
-                 TPL_NOTIFY,
-                 OnSimpleFileSystem,
-                 NULL,
-                 &Event
-                );
-
-  if (!EFI_ERROR (Status)) {
-    Status = gBS->RegisterProtocolNotify (
-                    &gEfiSimpleFileSystemProtocolGuid,
-                    Event,
-                    &RegSimpleFileSystem
-                  );
-  }
-
-  return Status;
-}
-#endif
-
 EFI_STATUS
 EventsInitialize (
   IN LOADER_ENTRY   *Entry
 ) {
   EFI_STATUS    Status;
   VOID          *Registration = NULL;
-
-  //
-  // Register the event to reclaim variable for OS usage.
-  //
-  //EfiCreateEventReadyToBoot (&OnReadyToBootEvent);
-  /*
-  EfiCreateEventReadyToBootEx (
-   TPL_NOTIFY,
-   OnReadyToBoot,
-   NULL,
-   &OnReadyToBootEvent
-   );
-  */
 
   //
   // Register notify for exit boot services
@@ -224,25 +133,11 @@ EventsInitialize (
 
   if (!EFI_ERROR (Status)) {
     /*Status = */gBS->RegisterProtocolNotify (
-                       &gEfiStatusCodeRuntimeProtocolGuid,
-                       ExitBootServiceEvent,
-                       &Registration
-                     );
+                         &gEfiStatusCodeRuntimeProtocolGuid,
+                         ExitBootServiceEvent,
+                         &Registration
+                       );
   }
-
-  //
-  // Register the event to convert the pointer for runtime.
-  //
-  /*
-  gBS->CreateEventEx (
-        EVT_NOTIFY_SIGNAL,
-        TPL_NOTIFY,
-        VirtualAddressChangeEvent,
-        NULL,
-        &gEfiEventVirtualAddressChangeGuid,
-        &mVirtualAddressChangeEvent
-      );
-  */
 
   return EFI_SUCCESS;
 }

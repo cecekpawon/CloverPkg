@@ -67,9 +67,9 @@ LoadKexts (
 
 EFI_STATUS
 InjectKexts (
-  IN UINT32       deviceTreeP,
-  IN UINT32       *deviceTreeLength,
-  LOADER_ENTRY    *Entry
+  IN UINT32         deviceTreeP,
+  IN UINT32         *deviceTreeLength,
+  IN LOADER_ENTRY   *Entry
 );
 
 EFI_STATUS

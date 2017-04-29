@@ -95,7 +95,7 @@ PatchBooter (
     (Entry->KernelAndKextPatches->BooterPatches != NULL) &&
     Entry->KernelAndKextPatches->NrBooters
   ) {
-    INTN  i = 0, Num = 0;
+    UINTN  i = 0, Num = 0;
 
     MsgLog ("Start BooterPatches:\n");
 
@@ -117,7 +117,7 @@ PatchBooter (
         continue;
       }
 
-      Num = (INTN)SearchAndReplace (
+      Num = SearchAndReplace (
         (UINT8 *)LoadedImage->ImageBase,
         (UINT32)LoadedImage->ImageSize,
         Entry->KernelAndKextPatches->BooterPatches[i].Data,
