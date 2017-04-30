@@ -143,25 +143,35 @@ typedef union {
 #define VA_FIX_SIGN_EXTEND(VA)  VA.Pg4K.SignExtend = (VA.Pg4K.PML4Offset & 0x100) ? 0xFFFF : 0;
 
 // 64 bit
-#define CR3_ADDR_MASK 0x000FFFFFFFFFF000
-#define CR3_FLAG_PWT  0x0000000000000008
-#define CR3_FLAG_PCD  0x0000000000000010
+#define CR3_ADDR_MASK     0x000FFFFFFFFFF000
+#define CR3_FLAG_PWT      0x0000000000000008
+#define CR3_FLAG_PCD      0x0000000000000010
 
-#define PT_ADDR_MASK_4K 0x000FFFFFFFFFF000
-#define PT_ADDR_MASK_2M 0x000FFFFFFFE00000
-#define PT_ADDR_MASK_1G 0x000FFFFFC0000000
+#define PT_ADDR_MASK_4K   0x000FFFFFFFFFF000
+#define PT_ADDR_MASK_2M   0x000FFFFFFFE00000
+#define PT_ADDR_MASK_1G   0x000FFFFFC0000000
 
 /** Returns pointer to PML4 table in PageTable and PWT and PCD flags in Flags. */
 VOID
-GetCurrentPageTable (PAGE_MAP_AND_DIRECTORY_POINTER **PageTable, UINTN *Flags);
+GetCurrentPageTable (
+  PAGE_MAP_AND_DIRECTORY_POINTER  **PageTable,
+  UINTN                           *Flags
+);
 
 /** Prints given PageTable. */
 VOID
-PrintPageTable (PAGE_MAP_AND_DIRECTORY_POINTER *PageTable, UINTN Flags);
+PrintPageTable (
+  PAGE_MAP_AND_DIRECTORY_POINTER *PageTable,
+  UINTN Flags
+);
 
 /** Returns physical addr for given virtual addr. */
 EFI_STATUS
-GetPhysicalAddr (PAGE_MAP_AND_DIRECTORY_POINTER *PageTable, EFI_VIRTUAL_ADDRESS  VirtualAddr, EFI_PHYSICAL_ADDRESS *PhysicalAddr);
+GetPhysicalAddr (
+  PAGE_MAP_AND_DIRECTORY_POINTER  *PageTable,
+  EFI_VIRTUAL_ADDRESS             VirtualAddr,
+  EFI_PHYSICAL_ADDRESS            *PhysicalAddr
+);
 
 /** Inits vm memory pool. Should be called while boot services are still usable. */
 EFI_STATUS
@@ -169,11 +179,20 @@ VmAllocateMemoryPool ();
 
 /** Maps (remaps) 4K page given by VirtualAddr to PhysicalAddr page in PageTable. */
 EFI_STATUS
-VmMapVirtualPage (PAGE_MAP_AND_DIRECTORY_POINTER *PageTable, EFI_VIRTUAL_ADDRESS VirtualAddr, EFI_PHYSICAL_ADDRESS PhysicalAddr);
+VmMapVirtualPage (
+  PAGE_MAP_AND_DIRECTORY_POINTER *PageTable,
+  EFI_VIRTUAL_ADDRESS VirtualAddr,
+  EFI_PHYSICAL_ADDRESS PhysicalAddr
+);
 
 /** Maps (remaps) NumPages 4K pages given by VirtualAddr to PhysicalAddr pages in PageTable. */
 EFI_STATUS
-VmMapVirtualPages (PAGE_MAP_AND_DIRECTORY_POINTER *PageTable, EFI_VIRTUAL_ADDRESS VirtualAddr, UINTN NumPages, EFI_PHYSICAL_ADDRESS PhysicalAddr);
+VmMapVirtualPages (
+  PAGE_MAP_AND_DIRECTORY_POINTER  *PageTable,
+  EFI_VIRTUAL_ADDRESS             VirtualAddr,
+  UINTN                           NumPages,
+  EFI_PHYSICAL_ADDRESS            PhysicalAddr
+);
 
 /** Flashes TLB caches. */
 VOID

@@ -35,7 +35,6 @@
 
 [Guids]
   gEfiAppleBootGuid
-  gEfiGlobalVariableGuid
 
 [Protocols]
   gAptioFixProtocolGuid

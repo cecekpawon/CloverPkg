@@ -47,6 +47,7 @@ APPLE_SMBIOS_STRUCTURE_POINTER    SmbiosTable;
 APPLE_SMBIOS_STRUCTURE_POINTER    NewSmbiosTable;
 
 UINT16                            NumberOfRecords, MaxStructureSize, CoreCache = 0, TotalCount = 0,
+                                  Index, Size, NewSize, MaxSize, TableSize,
                                   L1, L2, L3,
                                   gSmHandle3, gSmHandle17[MAX_RAM_SLOTS], gSmHandle19,
                                   mMemory17[MAX_RAM_SLOTS];
@@ -59,17 +60,11 @@ UINT8                             *Current, //pointer to the current end of tabl
 EFI_SMBIOS_HANDLE                 Handle;
 //EFI_SMBIOS_TYPE                   Type;
 
-//UINTN                             stringNumber;
-//UINT32                            MaxMemory = 0;
 UINT32                            mTotalSystemMemory;
 UINT64                            gTotalMemory;
-//UINT64                            mInstalled[MAX_RAM_SLOTS];
-//UINT64                            mEnabled[MAX_RAM_SLOTS];
 BOOLEAN                           gMobile;
-//BOOLEAN                           Once;
 
 MEM_STRUCTURE                     gRAM;
-//DMI                             *gDMI;
 
 #define MAX_HANDLE                0xFEFF
 #define SMBIOS_PTR                SIGNATURE_32 ('_','S','M','_')
@@ -144,7 +139,6 @@ BOOLEAN
 IsEntryPointStructureValid (
   IN SMBIOS_TABLE_ENTRY_POINT   *EntryPointStructure
 ) {
-  UINTN     i;
   UINT8     Length, Checksum = 0, *BytePtr;
 
   if (!EntryPointStructure) {
@@ -154,8 +148,8 @@ IsEntryPointStructureValid (
   BytePtr = (UINT8 *)EntryPointStructure;
   Length = EntryPointStructure->EntryPointLength;
 
-  for (i = 0; i < Length; i++) {
-    Checksum = Checksum + (UINT8)BytePtr[i];
+  for (Index = 0; Index < Length; Index++) {
+    Checksum = Checksum + (UINT8)BytePtr[Index];
   }
 
   // a valid SMBIOS EPS must have checksum of 0
@@ -424,7 +418,6 @@ VOID
 PatchTableType0 () {
   // BIOS information
   //
-  UINTN   TableSize;
 
   SmbiosTable = GetSmbiosTableFromType (EntryPoint, EFI_SMBIOS_TYPE_BIOS_INFORMATION, 0);
   if (SmbiosTable.Raw == NULL) {
@@ -506,8 +499,6 @@ PatchTableType1 () {
   // System Information
   //
 
-  UINTN   Size, NewSize, TableSize;
-
   SmbiosTable = GetSmbiosTableFromType (EntryPoint, EFI_SMBIOS_TYPE_SYSTEM_INFORMATION, 0);
   if (SmbiosTable.Raw == NULL) {
     return;
@@ -580,8 +571,6 @@ VOID
 PatchTableType2 () {
   // BaseBoard Information
   //
-
-  UINTN   Size, NewSize, TableSize;
 
   NewSize = 0x10; //sizeof (SMBIOS_TABLE_TYPE2);
   ZeroMem ((VOID *)NewSmbiosTable.Type2, MAX_TABLE_SIZE);
@@ -678,8 +667,6 @@ PatchTableType3 () {
   // System Chassis Information
   //
 
-  UINTN   Size, NewSize, TableSize;
-
   SmbiosTable = GetSmbiosTableFromType (EntryPoint, EFI_SMBIOS_TYPE_SYSTEM_ENCLOSURE, 0);
   if (SmbiosTable.Raw == NULL) {
     //DBG ("SmbiosTable: Type 3 (System Chassis Information) not found!\n");
@@ -738,7 +725,7 @@ VOID
 GetTableType4 () {
   // Processor Information
   //
-  UINTN    Size = 0, Res = 0;
+  UINTN   Res = 0;
 
   SmbiosTable = GetSmbiosTableFromType (EntryPoint, EFI_SMBIOS_TYPE_PROCESSOR_INFORMATION, 0);
   if (SmbiosTable.Raw == NULL) {
@@ -748,6 +735,8 @@ GetTableType4 () {
 
   Res = (SmbiosTable.Type4->ExternalClock * 3 + 2) % 100;
   Res = (Res > 2) ? 0 : SmbiosTable.Type4->ExternalClock % 10;
+
+  Size = SmbiosTable.Type4->Hdr.Length;
 
   gCPUStructure.ExternalClock = (UINT32)((SmbiosTable.Type4->ExternalClock * 1000) + (Res * 110));//MHz->kHz
   //UnicodeSPrint (gSettings.BusSpeed, 10, L"%d", gCPUStructure.ExternalClock);
@@ -765,8 +754,7 @@ VOID
 PatchTableType4 () {
   // Processor Information
   //
-  UINTN     AddBrand = 0, CpuNumber, //Note. iMac11,2 has four tables for CPU i3
-            Size, NewSize, TableSize;
+  UINTN     AddBrand = 0, CpuNumber; //Note. iMac11,2 has four tables for CPU i3
   CHAR8     BrandStr[48], *SocketDesignationMac = "U2E1";
   UINT16    ProcChar = 0;
 
@@ -795,15 +783,16 @@ PatchTableType4 () {
     NewSmbiosTable.Type4->Hdr.Length = (UINT8)NewSize;
 
     NewSmbiosTable.Type4->MaxSpeed = (UINT16)gCPUStructure.MaxSpeed;
-    //old version has no such fields. Fill now
-    if (Size <= 0x20) {
-      //sanity check and clear
-      NewSmbiosTable.Type4->SerialNumber = 0;
-      //NewSmbiosTable.Type4->AssetTag = 0;
-      //NewSmbiosTable.Type4->PartNumber = 0;
-    }
 
     if (Size <= 0x23) {  //Smbios <=2.3
+      //old version has no such fields. Fill now
+      if (Size <= 0x20) {
+        //sanity check and clear
+        NewSmbiosTable.Type4->SerialNumber = 0;
+        //NewSmbiosTable.Type4->AssetTag = 0;
+        //NewSmbiosTable.Type4->PartNumber = 0;
+      }
+
       NewSmbiosTable.Type4->CoreCount = gCPUStructure.Cores;
       NewSmbiosTable.Type4->ThreadCount = gCPUStructure.Threads;
       NewSmbiosTable.Type4->ProcessorCharacteristics = (UINT16)gCPUStructure.Features;
@@ -938,7 +927,6 @@ PatchTableType7 () {
 
   CHAR8     *SSocketD;
   BOOLEAN   CorrectSD = FALSE;
-  UINTN     Index, TableSize;
 
   //according to spec for Smbios v2.0 max handle is 0xFFFE, for v>2.0 (we made 2.6) max handle=0xFEFF.
   // Value 0xFFFF means no cache
@@ -988,7 +976,7 @@ PatchTableType7 () {
 
 VOID
 PatchTableType9 () {
-  UINTN   Index, Count = ARRAY_SIZE (SlotDevices);
+  UINTN   Count = ARRAY_SIZE (SlotDevices);
   //
   // System Slots (Type 9)
   /*
@@ -1074,7 +1062,7 @@ VOID
 PatchTableTypeSome () {
   //some unused but interesting tables. Just log as is
   UINT8   TableTypes[] = { 8, 10, 13, 18, 21, 22, 27, 28, 32, 33, 129, 217, 219 };
-  UINTN   Index, IndexType, Count = ARRAY_SIZE (TableTypes);
+  UINTN   IndexType, Count = ARRAY_SIZE (TableTypes);
 
   // Different types
   for (IndexType = 0; IndexType < Count; IndexType++) {
@@ -1114,8 +1102,6 @@ PatchTableType16 () {
   // Physical Memory Array
   //
 
-  UINTN   TableSize;
-
   // Get Table Type16 and set Device Count
   SmbiosTable = GetSmbiosTableFromType (EntryPoint, EFI_SMBIOS_TYPE_PHYSICAL_MEMORY_ARRAY, 0);
   if (SmbiosTable.Raw == NULL) {
@@ -1142,7 +1128,7 @@ VOID
 GetTableType17 () {
   // Memory Device
   //
-  UINTN     Index, Index2;
+  UINTN     Index2;
   BOOLEAN   Found;
 
   // Get Table Type17 and count Size
@@ -1262,7 +1248,6 @@ VOID
 PatchTableType17 () {
   CHAR8     DeviceLocator[10], BankLocator[10];
   UINT8     ChannelMap[MAX_RAM_SLOTS], ExpectedCount = 0, Channels = 2;
-  UINTN     Index;
   BOOLEAN   InsertingEmpty = TRUE, TrustSMBIOS = ((gRAM.SPDInUse == 0) || gSettings.TrustSMBIOS),
             WrongSMBIOSBanks = FALSE, IsMacPro = (AsciiStriStr (gSettings.ProductName, "MacPro") != NULL);
 
@@ -1602,7 +1587,7 @@ PatchTableType17 () {
   gRAMCount = 0;
   for (Index = 0; Index < TotalCount; Index++) {
     UINTN   SMBIOSIndex = WrongSMBIOSBanks ? Index : ChannelMap[Index],
-            SPDIndex = ChannelMap[Index], TableSize;
+            SPDIndex = ChannelMap[Index];
     UINT8   Bank = (UINT8)Index / Channels;
 
     if (
@@ -1769,7 +1754,6 @@ PatchTableType19 () {
   //Slice - I created one table as a sum of all other. It is needed for SetupBrowser
   UINT32    TotalEnd = 0;
   UINT8     PartWidth = 1;
-  UINTN     Index;
   //UINT16    SomeHandle = 0x1300; //as a common rule handle=(type<<8 + index)
 
   for (Index = 0; Index < TotalCount; Index++) {
@@ -1804,7 +1788,7 @@ PatchTableType19 () {
 
 VOID
 PatchTableType20 () {
-  UINTN   j = 0, k = 0, m = 0, Index, TableSize;
+  UINTN   j = 0, k = 0, m = 0;
   //
   // Generate Memory Array Mapped Address info (TYPE 20)
   // not needed neither for Apple nor for EFI
@@ -1942,6 +1926,7 @@ PatchTableType130 () {
 VOID
 PatchTableType131 () {
   // Get Table Type131
+
   SmbiosTable = GetSmbiosTableFromType (EntryPoint, 131, 0);
   if (SmbiosTable.Raw != NULL) {
     MsgLog ("Table 131 is present, CPUType=%x\n", SmbiosTable.Type131->ProcessorType);
@@ -2155,9 +2140,11 @@ PrePatchSmbios () {
   Current = (UINT8 *)Smbios; //begin fill tables from here
   SmbiosEpsNew->TableAddress = (UINT32)(UINTN)Current;
   SmbiosEpsNew->EntryPointLength = sizeof (SMBIOS_TABLE_ENTRY_POINT); // no matter on other versions
-  SmbiosEpsNew->MajorVersion = 2;
-  SmbiosEpsNew->MinorVersion = 4;
-  SmbiosEpsNew->SmbiosBcdRevision = 0x24; //Slice - we want to have v2.6 but Apple still uses 2.4
+
+  // Force to 2.4
+  //SmbiosEpsNew->MajorVersion = 2;
+  //SmbiosEpsNew->MinorVersion = 4;
+  //SmbiosEpsNew->SmbiosBcdRevision = 0x24; //Slice - we want to have v2.6 but Apple still uses 2.4
 
   //Create space for SPD
   //gRAM = AllocateZeroPool (sizeof (MEM_STRUCTURE));
@@ -2219,7 +2206,6 @@ VOID
 FinalizeSmbios () {
   EFI_PEI_HOB_POINTERS    GuidHob, HobStart;
   EFI_PHYSICAL_ADDRESS    *Table = NULL;
-  UINTN                   Index, Size;
 
   // Get Hob List
   HobStart.Raw = GetHobList ();

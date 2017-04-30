@@ -108,12 +108,7 @@ MachOGetEntryAddress (
       //
       ThreadState = PTR_OFFSET (LCmd, sizeof (struct load_command) + 2 * sizeof (UINT32), i386_thread_state_t *);
       ThreadState64 = (x86_thread_state64_t *)ThreadState;
-
-      if (Is64Bit) {
-        Address = (UINTN)ThreadState64->rip;
-      } else {
-        Address = (UINTN)ThreadState->eip;
-      }
+      Address = (UINTN)(Is64Bit ? ThreadState64->rip : ThreadState->eip);
       break;
     }
 
@@ -233,72 +228,6 @@ KernelEntryPatchJump (
 
   return Status;
 }
-
-#if APTIOFIX_VER == 1
-/** Reads kernel entry from Mach-O load command and patches it with jump to MyAsmJumpFromKernel. */
-EFI_STATUS
-KernelEntryFromMachOPatchJump (
-  VOID    *MachOImage,
-  UINTN   SlideAddr
-) {
-  UINTN         KernelEntry;
-
-  //DBG ("KernelEntryFromMachOPatchJump: MachOImage = %p, SlideAddr = %x\n", MachOImage, SlideAddr);
-
-  KernelEntry = MachOGetEntryAddress (MachOImage);
-  //DBG ("KernelEntryFromMachOPatchJump: KernelEntry = %x\n", KernelEntry);
-
-  if (KernelEntry == 0) {
-    return EFI_NOT_FOUND;
-  }
-
-  if (SlideAddr > 0) {
-    KernelEntry += SlideAddr;
-    //DBG ("KernelEntryFromMachOPatchJump: Slided KernelEntry = %x\n", KernelEntry);
-  }
-
-  return KernelEntryPatchJump ((UINT32)KernelEntry);
-}
-#endif
-
-#if 0
-/** Patches kernel entry point with HLT - used for testing to cause system halt. */
-EFI_STATUS
-KernelEntryPatchHalt (
-  UINT32    KernelEntry
-) {
-  EFI_STATUS  Status = EFI_SUCCESS;
-  UINT8       *p;
-
-  //DBG ("KernelEntryPatchHalt KernelEntry (reloc): %lx (%lx)", KernelEntry, KernelEntry + gRelocBase);
-  p = (UINT8 *)(UINTN) KernelEntry;
-  *p= 0xf4; // HLT instruction
-  PrintSample2 (p, 4);
-  //DBG ("\n");
-
-  return Status;
-}
-
-/** Patches kernel entry point with zeros - used for testing to cause restart. */
-EFI_STATUS
-KernelEntryPatchZero (
-  UINT32    KernelEntry
-) {
-  EFI_STATUS  Status = EFI_SUCCESS;
-  UINT8       *p;
-
-  Status = EFI_SUCCESS;
-
-  //DBG ("KernelEntryPatchZero KernelEntry (reloc): %lx (%lx)", KernelEntry, KernelEntry + gRelocBase);
-  p = (UINT8 *)(UINTN) KernelEntry;
-  //*p= 0xf4;
-  p[0]= 0; p[1]= 0; p[2]= 0; p[3]= 0; // invalid instruction
-  PrintSample2 (p, 4);
-  //DBG ("\n");
-
-  return Status;
-}
-#endif
 
 //
 // Boot fixes
@@ -758,59 +687,6 @@ RemoveRTFlagMappings (
   }
 }
 
-#if APTIOFIX_VER == 1
-
-/** Fixes stuff when booting with relocation block. Called when boot.efi jumps to kernel. */
-UINTN
-FixBootingWithRelocBlock (
-  UINTN     bootArgs,
-  BOOLEAN   ModeX64
-) {
-  VOID                    *pBootArgs = (VOID *)bootArgs;
-  InternalBootArgs        *BA;
-  UINTN                   MemoryMapSize, DescriptorSize;
-  EFI_MEMORY_DESCRIPTOR   *MemoryMap;
-  UINT32                  DescriptorVersion;
-
-  BootArgsPrint (pBootArgs);
-
-  BA = GetBootArgs (pBootArgs);
-
-  MemoryMapSize = *BA->MemoryMapSize;
-  MemoryMap = (EFI_MEMORY_DESCRIPTOR *)(UINTN)(*BA->MemoryMap);
-  DescriptorSize = *BA->MemoryMapDescriptorSize;
-  DescriptorVersion = *BA->MemoryMapDescriptorVersion;
-
-  // make memmap smaller
-  ShrinkMemMap (&MemoryMapSize, MemoryMap, DescriptorSize, DescriptorVersion);
-
-  *BA->MemoryMapSize = (UINT32)MemoryMapSize;
-
-  // fix runtime stuff
-  RuntimeServicesFix (BA);
-
-  // fix some values in dev tree
-  DevTreeFix (BA);
-
-  // fix boot args
-  BootArgsFix (BA, gRelocBase);
-
-  BootArgsPrint (pBootArgs);
-
-  bootArgs = bootArgs - gRelocBase;
-  //pBootArgs = (VOID *)bootArgs;
-
-  // set vars for copying kernel
-  // note: *BA->kaddr is fixed in BootArgsFix () and points to real kaddr
-  AsmKernelImageStartReloc = *BA->kaddr + (UINT32)gRelocBase;
-  AsmKernelImageStart = *BA->kaddr;
-  AsmKernelImageSize = *BA->ksize;
-
-  return bootArgs;
-}
-
-#else
-
 /** Fixes stuff when booting without relocation block. Called when boot.efi jumps to kernel. */
 UINTN
 FixBootingWithoutRelocBlock (
@@ -854,7 +730,6 @@ FixBootingWithoutRelocBlock (
     // OSX maps RT_code as Read+Exec only while faulty frivers writes to their
     // static vars which are in RT_code
     RemoveRTFlagMappings (MemoryMapSize, DescriptorSize, DescriptorVersion, MemoryMap);
-
   */
 
   // Restore original kernel entry code
@@ -910,5 +785,3 @@ FixHibernateWakeWithoutRelocBlock (
 
   return imageHeaderPage;
 }
-
-#endif

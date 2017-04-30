@@ -134,10 +134,30 @@ AllocatePagesFromTop (
 );
 
 
-VOID                EFIAPI BootArgsPrint  (VOID *bootArgs);
-InternalBootArgs *  EFIAPI GetBootArgs    (VOID *bootArgs);
-VOID                EFIAPI BootArgsFix    (InternalBootArgs *BA, EFI_PHYSICAL_ADDRESS gRellocBase);
-//VOID *            EFIAPI BootArgsFind   (IN EFI_PHYSICAL_ADDRESS Start);
+VOID
+EFIAPI
+BootArgsPrint (
+  VOID    *bootArgs
+);
+
+InternalBootArgs *
+EFIAPI
+GetBootArgs (
+  VOID    *bootArgs
+);
+
+VOID
+EFIAPI
+BootArgsFix (
+  InternalBootArgs        *BA,
+  EFI_PHYSICAL_ADDRESS    gRellocBase
+);
+
+//VOID *
+//EFIAPI
+//BootArgsFind (
+//  IN EFI_PHYSICAL_ADDRESS   Start
+//);
 
 InternalBootArgs    gAptioBootArgs;
 

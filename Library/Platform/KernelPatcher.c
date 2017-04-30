@@ -102,18 +102,6 @@ FilterKernelPatches (
 }
 
 /*
-  KernelInfo->RelocBase will normally be 0
-  but if OsxAptioFixDrv is used, then it will be > 0
-*/
-VOID
-SetKernelRelocBase () {
-  UINTN   DataSize = sizeof (KernelInfo->RelocBase);
-
-  gRT->GetVariable (L"OsxAptioFixDrv-RelocBase", &gEfiGlobalVariableGuid, NULL, &DataSize, &KernelInfo->RelocBase);
-  DeleteNvramVariable (L"OsxAptioFixDrv-RelocBase", &gEfiGlobalVariableGuid); // clean up the temporary variable
-}
-
-/*
   bareBoot: https://github.com/SunnyKi/bareBoot
 */
 
@@ -203,7 +191,7 @@ InitKernel (
           SectionIndex += sizeof (struct section_64);
 
           if (Sect64->size > 0) {
-            Addr = (UINT32)(Sect64->addr ? Sect64->addr + KernelInfo->RelocBase : 0);
+            Addr = (UINT32)(Sect64->addr ? Sect64->addr : 0);
             Size = (UINT32)Sect64->size;
             Off = Sect64->offset;
 
@@ -302,8 +290,8 @@ InitKernel (
     UINT32    PatchLocation;
 
     Cnt = 0;
-    SymBin = (UINT8 *)(UINTN)(LinkeditAddr + (SymOff - LinkeditFileOff) + KernelInfo->RelocBase);
-    StrBin = (UINT8 *)(UINTN)(LinkeditAddr + (StrOff - LinkeditFileOff) + KernelInfo->RelocBase);
+    SymBin = (UINT8 *)(UINTN)(LinkeditAddr + (SymOff - LinkeditFileOff));
+    StrBin = (UINT8 *)(UINTN)(LinkeditAddr + (StrOff - LinkeditFileOff));
 
     //DBG ("%a: symaddr = 0x%x, straddr = 0x%x\n", __FUNCTION__, SymBin, StrBin);
 
@@ -313,7 +301,7 @@ InitKernel (
       if (SysTabEntry->n_value) {
         SymbolName = (CHAR8 *)(StrBin + SysTabEntry->n_un.n_strx);
         Addr = (UINT32)SysTabEntry->n_value;
-        PatchLocation = Addr - (UINT32)(UINTN)KernelInfo->Bin + (UINT32)KernelInfo->RelocBase;
+        PatchLocation = Addr - (UINT32)(UINTN)KernelInfo->Bin;
 
         if (SysTabEntry->n_sect == KernelInfo->TextIndex) {
           if (AsciiStrCmp (SymbolName, KernelPatchSymbolLookup[kLoadEXEStart].Name) == 0) {
@@ -1196,10 +1184,6 @@ KernelAndKextPatcherInit (
 
   KernelInfo->PatcherInited = TRUE;
 
-  SetKernelRelocBase ();
-
-  DBG ("RelocBase = %lx\n", KernelInfo->RelocBase);
-
   // Find bootArgs - we need then for proper detection of kernel Mach-O header
   FindBootArgs (Entry);
 
@@ -1211,8 +1195,8 @@ KernelAndKextPatcherInit (
   // Find kernel Mach-O header:
   // for ML: gBootArgs->kslide + 0x00200000
   // for older versions: just 0x200000
-  // for AptioFix booting - it's always at KernelInfo->RelocBase + 0x200000
-  KernelInfo->Bin = (VOID *)(UINTN)(KernelInfo->Slide + KernelInfo->RelocBase + 0x00200000);
+  // for AptioFix booting - it's always at 0x200000
+  KernelInfo->Bin = (VOID *)(UINTN)(KernelInfo->Slide + 0x00200000);
 
   // check that it is Mach-O header and detect architecture
   Magic = MACH_GET_MAGIC (KernelInfo->Bin);
