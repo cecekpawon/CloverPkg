@@ -326,16 +326,18 @@ FSI_FP_Open (
         Status = EFI_DEVICE_ERROR;
         DBG ("SrcFP->Open=%r ", Status);
       } else {
-        STATIC UINT8   KextsInjected = 0;
+        UINT8   KextsInjected = 1;
+        UINTN   DataSize = 0;
 
-        Status = EFI_SUCCESS;
         DBG ("Opened with SrcFP ");
 
         // ok - we are injecting kexts with FSInject driver because user requested
         // it with NoCaches or because boot.efi refused to load kernelcache for some reason.
         // let's inform Clover's kext injection that it does not have to do
         // in-memory kext injection.
-        if (KextsInjected == 0) {
+        //if (KextsInjected == 0) {
+        Status = gRT->GetVariable (L"FSInject.KextsInjected", &gEfiGlobalVariableGuid, NULL, &DataSize, NULL);
+        if (Status != EFI_BUFFER_TOO_SMALL) {
           gRT->SetVariable (
                   L"FSInject.KextsInjected",
                   &gEfiGlobalVariableGuid,
@@ -343,11 +345,13 @@ FSI_FP_Open (
                   sizeof (KextsInjected),
                   &KextsInjected
                 );
+
           //AsciiPrint ("\nFSInject.KextsInjected\n");
           //gBS->Stall (3000000);
         }
 
-        KextsInjected++;
+        //KextsInjected++;
+        Status = EFI_SUCCESS;
       }
     }
 

@@ -139,7 +139,7 @@ BOOLEAN
 IsEntryPointStructureValid (
   IN SMBIOS_TABLE_ENTRY_POINT   *EntryPointStructure
 ) {
-  UINT8     Length, Checksum = 0, *BytePtr;
+  UINT8   Length, Checksum = 0, *BytePtr;
 
   if (!EntryPointStructure) {
     return FALSE;
@@ -158,7 +158,7 @@ IsEntryPointStructureValid (
 
 VOID *
 FindOemSMBIOSPtr () {
-  UINTN      Address;
+  UINTN   Address;
 
   // Search 0x0f0000 - 0x0fffff for SMBIOS Ptr
   for (Address = 0xf0000; Address < 0xfffff; Address += 0x10) {
@@ -210,7 +210,7 @@ SmbiosTableLength (
 
   AChar = (CHAR8 *)(SmbiosTableN.Raw + SmbiosTableN.Hdr->Length);
   while ((*AChar != 0) || (*(AChar + 1) != 0)) {
-    AChar ++; //stop at 00 - first 0
+    AChar++; //stop at 00 - first 0
   }
 
   Length = (UINT16)((UINTN)AChar - (UINTN)SmbiosTableN.Raw + 2); //length includes 00
@@ -351,10 +351,10 @@ GetSmbiosString (
   AString = (CHAR8 *)(SmbiosTableN.Raw + SmbiosTableN.Hdr->Length); //first string
   while (Ind != StringN) {
     while (*AString != 0) {
-      AString ++;
+      AString++;
     }
 
-    AString ++; //skip zero ending
+    AString++; //skip zero ending
     if (*AString == 0) {
       return AString; //this is end of the table
     }
@@ -725,6 +725,7 @@ VOID
 GetTableType4 () {
   // Processor Information
   //
+
   UINTN   Res = 0;
 
   SmbiosTable = GetSmbiosTableFromType (EntryPoint, EFI_SMBIOS_TYPE_PROCESSOR_INFORMATION, 0);
@@ -754,6 +755,7 @@ VOID
 PatchTableType4 () {
   // Processor Information
   //
+
   UINTN     AddBrand = 0, CpuNumber; //Note. iMac11,2 has four tables for CPU i3
   CHAR8     BrandStr[48], *SocketDesignationMac = "U2E1";
   UINT16    ProcChar = 0;
@@ -1591,7 +1593,8 @@ PatchTableType17 () {
     UINT8   Bank = (UINT8)Index / Channels;
 
     if (
-      !InsertingEmpty && (gRAMCount > ExpectedCount) &&
+      !InsertingEmpty &&
+      (gRAMCount > ExpectedCount) &&
       !gRAM.SPD[SPDIndex].InUse &&
       (!TrustSMBIOS || !gRAM.SMBIOS[SMBIOSIndex].InUse)
     ) {
@@ -2146,6 +2149,8 @@ PrePatchSmbios () {
   //SmbiosEpsNew->MinorVersion = 4;
   //SmbiosEpsNew->SmbiosBcdRevision = 0x24; //Slice - we want to have v2.6 but Apple still uses 2.4
 
+  MsgLog ("SMBIOS %d.%d present\n", SmbiosEpsNew->MajorVersion, SmbiosEpsNew->MinorVersion);
+
   //Create space for SPD
   //gRAM = AllocateZeroPool (sizeof (MEM_STRUCTURE));
   //gDMI = AllocateZeroPool (sizeof (DMI));
@@ -2158,6 +2163,7 @@ PrePatchSmbios () {
   GetTableType16 ();
   GetTableType17 ();
   GetTableType32 (); //get BootStatus here to decide what to do
+
   DBG ("Boot status=%x\n", gBootStatus);
 
   //for example the bootloader may go to Recovery is BootStatus is Fail
@@ -2190,6 +2196,7 @@ PatchSmbios () {
   PatchTableType132 ();
   PatchTableType133 ();
   PatchTableType134 ();
+
   AddSmbiosEndOfTable ();
 
   //if (MaxStructureSize > MAX_TABLE_SIZE) {

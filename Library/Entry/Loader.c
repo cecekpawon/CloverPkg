@@ -2551,23 +2551,22 @@ SetFSInjection (
     goto Finish;
   }
 
-  // check if blocking of caches is needed
-  if (OSFLAG_ISSET (Entry->Flags, OSFLAG_NOCACHES)) {
-    MsgLog (" - Blocking kext caches\n");
-    // add caches to blacklist
-    Blacklist = FSInject->CreateStringList ();
-    if (Blacklist == NULL) {
-      MsgLog (" - ERROR: Not enough memory!\n");
-      return EFI_NOT_STARTED;
-    }
+  DeleteNvramVariable (L"FSInject.KextsInjected", &gEfiGlobalVariableGuid);
 
-    while (Index < OsxPathLCachesCount) {
-      FSInject->AddStringToList (Blacklist, OsxPathLCaches[Index++]);
-    }
+  MsgLog (" - Blocking kext caches\n");
+  // add caches to blacklist
+  Blacklist = FSInject->CreateStringList ();
+  if (Blacklist == NULL) {
+    MsgLog (" - ERROR: Not enough memory!\n");
+    return EFI_NOT_STARTED;
+  }
 
-    if (gSettings.BlockKexts[0] != L'\0') {
-      FSInject->AddStringToList (Blacklist, PoolPrint (L"%s\\%s", OSX_PATH_SLE, gSettings.BlockKexts));
-    }
+  while (Index < OsxPathLCachesCount) {
+    FSInject->AddStringToList (Blacklist, OsxPathLCaches[Index++]);
+  }
+
+  if (gSettings.BlockKexts[0] != L'\0') {
+    FSInject->AddStringToList (Blacklist, PoolPrint (L"%s\\%s", OSX_PATH_SLE, gSettings.BlockKexts));
   }
 
   // check if kext injection is needed

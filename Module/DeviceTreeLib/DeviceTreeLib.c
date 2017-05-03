@@ -165,6 +165,7 @@ DTInit (
 }
 
 INTN
+EFIAPI
 DTEntryIsEqual (
   CONST DTEntry   Ref1,
   CONST DTEntry   Ref2
@@ -220,6 +221,7 @@ FindEntry (
 }
 
 INTN
+EFIAPI
 DTFindEntry (
   CONST CHAR8     *PropName,
   CONST CHAR8     *PropValue,
@@ -283,6 +285,7 @@ DTLookupEntry (
 }
 
 INTN
+EFIAPI
 DTCreateEntryIterator (
   CONST DTEntry           StartEntry,
         DTEntryIterator   *Iterator
@@ -312,6 +315,7 @@ DTCreateEntryIterator (
 }
 
 INTN
+EFIAPI
 DTDisposeEntryIterator (
   DTEntryIterator   Iterator
 ) {
@@ -329,6 +333,7 @@ DTDisposeEntryIterator (
 }
 
 INTN
+EFIAPI
 DTEnterEntry (
   DTEntryIterator   Iterator,
   DTEntry           ChildEntry
@@ -355,6 +360,7 @@ DTEnterEntry (
 }
 
 INTN
+EFIAPI
 DTExitEntry (
   DTEntryIterator   Iterator,
   DTEntry           *CurrentPosition
@@ -379,6 +385,7 @@ DTExitEntry (
 }
 
 INTN
+EFIAPI
 DTIterateEntries (
   DTEntryIterator   Iterator,
   DTEntry           *NextEntry
@@ -402,6 +409,7 @@ DTIterateEntries (
 }
 
 INTN
+EFIAPI
 DTRestartEntryIteration (
   DTEntryIterator   Iterator
 ) {
@@ -494,6 +502,7 @@ DTCreatePropertyIteratorNoAlloc (
 }
 
 INTN
+EFIAPI
 DTDisposePropertyIterator (
   DTPropertyIterator    Iterator
 ) {

@@ -1318,16 +1318,14 @@ KernelAndKextsPatcherStart (
   if (OSFLAG_ISSET (Entry->Flags, OSFLAG_WITHKEXTS)) {
     UINT32        deviceTreeP, deviceTreeLength;
     EFI_STATUS    Status;
-    UINTN         DataSize;
+    UINTN         DataSize = 0;
 
     // check if FSInject already injected kexts
-    DataSize = 0;
     Status = gRT->GetVariable (L"FSInject.KextsInjected", &gEfiGlobalVariableGuid, NULL, &DataSize, NULL);
 
     if (Status == EFI_BUFFER_TOO_SMALL) {
       // var exists - just exit
       DBG ("InjectKexts: skip, FSInject already injected\n");
-
       return;
     }
 
