@@ -409,22 +409,22 @@ InitKernel (
 
 STATIC UINT8 StrMsr8b[]       = { 0xb9, 0x8b, 0x00, 0x00, 0x00, 0x0f, 0x32 };
 /*
- This patch searches
-  mov ecx, eax
-  shr ecx, 0x04   ||  shr ecx, 0x10
- and replaces to
-  mov ecx, FakeModel  || mov ecx, FakeExt
+  This patch searches
+    mov ecx, eax
+    shr ecx, 0x04   ||  shr ecx, 0x10
+  and replaces to
+    mov ecx, FakeModel  || mov ecx, FakeExt
  */
 //STATIC UINT8 SearchModel107[]  = { 0x89, 0xc1, 0xc1, 0xe9, 0x04 };
 //STATIC UINT8 SearchExt107[]    = { 0x89, 0xc1, 0xc1, 0xe9, 0x10 };
 STATIC UINT8 ReplaceModel107[] = { 0xb9, 0x07, 0x00, 0x00, 0x00 };
 
 /*
- This patch searches
-  mov bl, al     ||   shr eax, 0x10
-  shr bl, 0x04   ||   and al,0x0f
- and replaces to
-  mov ebx, FakeModel || mov eax, FakeExt
+  This patch searches
+    mov bl, al     ||   shr eax, 0x10
+    shr bl, 0x04   ||   and al,0x0f
+  and replaces to
+    mov ebx, FakeModel || mov eax, FakeExt
 */
 STATIC UINT8 SearchModel109[]   = { 0x88, 0xc3, 0xc0, 0xeb, 0x04 };
 STATIC UINT8 SearchExt109[]     = { 0xc1, 0xe8, 0x10, 0x24, 0x0f };
@@ -432,11 +432,11 @@ STATIC UINT8 ReplaceModel109[]  = { 0xbb, 0x0a, 0x00, 0x00, 0x00 };
 STATIC UINT8 ReplaceExt109[]    = { 0xb8, 0x02, 0x00, 0x00, 0x00 };
 
 /*
- This patch searches
-  mov cl, al     ||   mov ecx, eax
-  shr cl, 0x04   ||   shr ecx, 0x10
- and replaces to
-  mov ecx, FakeModel || mov ecx, FakeExt
+  This patch searches
+    mov cl, al     ||   mov ecx, eax
+    shr cl, 0x04   ||   shr ecx, 0x10
+  and replaces to
+    mov ecx, FakeModel || mov ecx, FakeExt
 */
 STATIC UINT8 SearchModel101[]   = { 0x88, 0xc1, 0xc0, 0xe9, 0x04 };
 STATIC UINT8 SearchExt101[]     = { 0x89, 0xc1, 0xc1, 0xe9, 0x10 };
