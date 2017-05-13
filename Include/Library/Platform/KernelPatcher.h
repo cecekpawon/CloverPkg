@@ -55,6 +55,7 @@
 #define kPrelinkLinkStateSizeKey            "_PrelinkLinkStateSize"
 
 #define kPropCFBundleIdentifier             "CFBundleIdentifier"
+#define kPropCFBundleVersion                "CFBundleVersion"
 #define kPropCFBundleExecutable             "CFBundleExecutable"
 #define kPropOSBundleRequired               "OSBundleRequired"
 #define kPropOSBundleLibraries              "OSBundleLibraries"
@@ -197,11 +198,13 @@ STATIC CONST UINTN KernelPatchSymbolLookupCount = ARRAY_SIZE (KernelPatchSymbolL
 #define KERNEL_MAX_SIZE 40000000
 #define FSearchReplace(Source, Size, Search, Replace) SearchAndReplace((UINT8 *)(UINTN)Source, Size, Search, sizeof(Search), Replace, 0)
 #define PropCFBundleIdentifierKey "<key>" kPropCFBundleIdentifier "</key>"
+#define PropCFBundleVersionKey "<key>" kPropCFBundleVersion "</key>"
 
 VOID
-ExtractKextBundleIdentifier (
+ExtractKextPropString (
   OUT CHAR8   *Res,
   IN  INTN    Len,
+  IN  CHAR8   *Key,
   IN  CHAR8   *Plist
 );
 

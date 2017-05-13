@@ -815,16 +815,17 @@ CheckForFakeSMC (
   }
 }
 
-/** Extracts kext BundleIdentifier from given Plist into gKextBundleIdentifier */
+/** Extracts kext BundleIdentifier from given Plist into KextBundleIdentifier */
 
 VOID
-ExtractKextBundleIdentifier (
+ExtractKextPropString (
   OUT CHAR8   *Res,
   IN  INTN    Len,
+  IN  CHAR8   *Key,
   IN  CHAR8   *Plist
 ) {
   CHAR8     *Tag, *BIStart, *BIEnd;
-  INTN      DictLevel = 0;
+  UINTN     DictLevel = 0, KeyLen = AsciiStrLen (Key);
 
   Res[0] = '\0';
 
@@ -846,9 +847,9 @@ ExtractKextBundleIdentifier (
       // closing dict
       DictLevel--;
       Tag += 7;
-    } else if ((DictLevel == 1) && (AsciiStrnCmp (Tag, PropCFBundleIdentifierKey, 29) == 0)) {
-      // BundleIdentifier is next <string>...</string>
-      BIStart = AsciiStrStr (Tag + 29, "<string>");
+    } else if ((DictLevel == 1) && (AsciiStrnCmp (Tag, Key, KeyLen) == 0)) {
+      // StringValue is next <string>...</string>
+      BIStart = AsciiStrStr (Tag + KeyLen, "<string>");
       if (BIStart != NULL) {
         BIStart += 8; // skip "<string>"
         BIEnd = AsciiStrStr (BIStart, "</string>");
@@ -1189,7 +1190,7 @@ PatchPrelinkedKexts (
     } else if ((DictPtr[-2] == '<') && (DictPtr[-1] == '/')) {
       // closing dict
       if ((DictLevel == 2) && (InfoPlistStart != NULL)) {
-        CHAR8   gKextBundleIdentifier[AVALUE_MAX_SIZE];
+        CHAR8   KextBundleIdentifier[AVALUE_MAX_SIZE];
 
         // kext end
         InfoPlistEnd = DictPtr + 5 /* "dict>" */;
@@ -1207,7 +1208,7 @@ PatchPrelinkedKexts (
 
         KextSize = (UINT32)GetPlistHexValue (InfoPlistStart, kPrelinkExecutableSizeKey, WholePlist);
 
-        ExtractKextBundleIdentifier (gKextBundleIdentifier, ARRAY_SIZE (gKextBundleIdentifier), InfoPlistStart);
+        ExtractKextPropString (KextBundleIdentifier, ARRAY_SIZE (KextBundleIdentifier), PropCFBundleIdentifierKey, InfoPlistStart);
 
         // patch it
         PatchKext (
@@ -1215,7 +1216,7 @@ PatchPrelinkedKexts (
           KextSize,
           InfoPlistStart,
           (UINT32)(InfoPlistEnd - InfoPlistStart),
-          gKextBundleIdentifier,
+          KextBundleIdentifier,
           Entry
         );
 
@@ -1263,7 +1264,7 @@ PatchLoadedKexts (
 #ifdef LAZY_PARSE_KEXT_PLIST
         TagPtr    KextsDict, Dict;
 #else
-        CHAR8   gKextBundleIdentifier[AVALUE_MAX_SIZE];
+        CHAR8   KextBundleIdentifier[AVALUE_MAX_SIZE];
 #endif
 
         // PropEntry DeviceTreeBuffer is the value of Driver-XXXXXX property
@@ -1293,14 +1294,15 @@ PatchLoadedKexts (
           }
         }
 #else
-        ExtractKextBundleIdentifier (gKextBundleIdentifier, ARRAY_SIZE (gKextBundleIdentifier), InfoPlist);
+
+        ExtractKextPropString (KextBundleIdentifier, ARRAY_SIZE (KextBundleIdentifier), PropCFBundleIdentifierKey, InfoPlist);
 
         PatchKext (
           (UINT8 *)(UINTN)KextFileInfo->executablePhysAddr,
           KextFileInfo->executableLength,
           InfoPlist,
           KextFileInfo->infoDictLength,
-          gKextBundleIdentifier,
+          KextBundleIdentifier,
           Entry
         );
 #endif

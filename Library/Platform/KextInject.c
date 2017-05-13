@@ -132,9 +132,9 @@ LoadKext (
       DBG ("Thinning failed: %s\n", FileName);
       return EFI_NOT_FOUND;
     }
-  } else {
+  } /*else {
     DBG ("Failed to read '%a' prop\n", kPropCFBundleExecutable);
-  }
+  }*/
 
   BundlePathBufferLength = StrLen (FileName) + 1;
   BundlePathBuffer = AllocateZeroPool (BundlePathBufferLength);
@@ -153,7 +153,9 @@ LoadKext (
   Kext->paddr = (UINT32)(UINTN)InfoAddr; // Note that we cannot free InfoAddr because of this
 
   CopyMem ((CHAR8 *)InfoAddr + sizeof (BooterKextFileInfo), InfoDictBuffer, InfoDictBufferLength);
-  CopyMem ((CHAR8 *)InfoAddr + sizeof (BooterKextFileInfo) + InfoDictBufferLength, ExecutableBuffer, ExecutableBufferLength);
+  if (ExecutableBuffer != NULL) {
+    CopyMem ((CHAR8 *)InfoAddr + sizeof (BooterKextFileInfo) + InfoDictBufferLength, ExecutableBuffer, ExecutableBufferLength);
+  }
   CopyMem ((CHAR8 *)InfoAddr + sizeof (BooterKextFileInfo) + InfoDictBufferLength + ExecutableBufferLength, BundlePathBuffer, BundlePathBufferLength);
 
   FreePool (InfoDictBuffer);
@@ -209,7 +211,7 @@ RecursiveLoadKexts (
 ) {
   REFIT_DIR_ITER    DirIter;
   EFI_FILE_INFO     *DirEntry;
-  CHAR16            FileName[AVALUE_MAX_SIZE], PlugIns[AVALUE_MAX_SIZE];
+  CHAR16            FileName[AVALUE_MAX_SIZE], PlugIns[AVALUE_MAX_SIZE], *Indent = L"         ";
   UINTN             i = 0;
 
   if ((Entry == NULL) || (RootDir == NULL) || (SrcDir == NULL)) {
@@ -224,11 +226,11 @@ RecursiveLoadKexts (
     }
 
     if (!i) {
-      MsgLog ("Load kexts (%s):\n", SrcDir);
+      MsgLog ("%sLoad kexts (%s):\n", PlugIn ? Indent : L"", SrcDir);
     }
 
     UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s\\%s", SrcDir, DirEntry->FileName);
-    MsgLog (" - [%02d]: %s\n", i++, DirEntry->FileName);
+    MsgLog ("%s - [%02d]: %s\n", PlugIn ? Indent : L"", i++, DirEntry->FileName);
     AddKext (Entry, RootDir, FileName);
 
     if (!PlugIn) {
@@ -411,7 +413,7 @@ InjectKexts (
       DrvPtr += sizeof (DeviceTreeNodeProperty) + sizeof (DeviceTreeBuffer);
       KextBase = RoundPage (KextBase + KextEntry->Kext.length);
 
-      DBG (" - [%02d]: %a\n", Index++, (CHAR8 *)(UINTN)Drvinfo->bundlePathPhysAddr);
+      DBG (" - [%02d]: %a", Index++, (CHAR8 *)(UINTN)Drvinfo->bundlePathPhysAddr);
 
       if (
         gSettings.KextPatchesAllowed &&
@@ -420,9 +422,11 @@ InjectKexts (
       ) {
         INT32       i, IsBundle;
         CHAR8       SavedValue, *InfoPlist = (CHAR8 *)(UINTN)Drvinfo->infoDictPhysAddr,
-                    gKextBundleIdentifier[AVALUE_MAX_SIZE];
+                    KextBundleIdentifier[AVALUE_MAX_SIZE];
 #ifdef LAZY_PARSE_KEXT_PLIST
         TagPtr      KextsDict, DictPointer;
+#else
+        CHAR8       KextBundleVersion[AVALUE_MAX_SIZE];
 #endif
 
         SavedValue = InfoPlist[Drvinfo->infoDictLength];
@@ -436,17 +440,30 @@ InjectKexts (
 
         DictPointer = GetProperty (KextsDict, kPropCFBundleIdentifier);
         if ((DictPointer != NULL) && (DictPointer->type == kTagTypeString)) {
-          AsciiStrCpyS (gKextBundleIdentifier, ARRAY_SIZE (gKextBundleIdentifier), DictPointer->string);
+          AsciiStrCpyS (KextBundleIdentifier, ARRAY_SIZE (KextBundleIdentifier), DictPointer->string);
+        }
+
+        DictPointer = GetProperty (KextsDict, kPropCFBundleVersion);
+        if ((DictPointer != NULL) && (DictPointer->type == kTagTypeString)) {
+          //AsciiStrCpyS (KextBundleVersion, ARRAY_SIZE (KextBundleVersion), DictPointer->string);
+          DBG (" (%a)", DictPointer->string);
         }
 #else
-        ExtractKextBundleIdentifier (gKextBundleIdentifier, ARRAY_SIZE (gKextBundleIdentifier), InfoPlist);
+        ExtractKextPropString (KextBundleIdentifier, ARRAY_SIZE (KextBundleIdentifier), PropCFBundleIdentifierKey, InfoPlist);
+        ExtractKextPropString (KextBundleVersion, ARRAY_SIZE (KextBundleVersion), PropCFBundleVersionKey, InfoPlist);
+
+        if (AsciiStrLen (KextBundleVersion)) {
+          DBG (" (%a)", KextBundleVersion);
+        }
 #endif
+
+        DBG ("\n");
 
         for (i = 0; i < Entry->KernelAndKextPatches->NrKexts; i++) {
           if (
             !Entry->KernelAndKextPatches->KextPatches[i].Disabled &&
             !Entry->KernelAndKextPatches->KextPatches[i].Patched &&
-            IsPatchNameMatch (gKextBundleIdentifier, Entry->KernelAndKextPatches->KextPatches[i].Name, InfoPlist, &IsBundle)
+            IsPatchNameMatch (KextBundleIdentifier, Entry->KernelAndKextPatches->KextPatches[i].Name, InfoPlist, &IsBundle)
           ) {
             AnyKextPatch (
               (UINT8 *)(UINTN)Drvinfo->executablePhysAddr,
