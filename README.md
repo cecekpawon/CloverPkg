@@ -1,5 +1,7 @@
 > _First of all, Im just PHP coder, with poor knowledge of C. Thats why I cannot accept any issues on this repo regarding all modificatons that been made, so feel free to add yours on your own. Not for production / daily usage. This project is intended for general use and no warranty is implied for suitability to any given task. **I hold no responsibility for your setup or any damage done while using/installing/modifying current sources / supplied binaries**._
 
+![](../../wiki/assets/main-1.gif)
+
 I create this fork (start on mid 2016 based on revision [3884](https://sourceforge.net/p/cloverefiboot/code/3884/tree/)) with the following changes:
 
 ### Goals:
