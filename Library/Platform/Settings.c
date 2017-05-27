@@ -27,7 +27,7 @@ UINTN                             ACPIDropTablesNum = 0, ACPIPatchedAMLNum = 0,
 SETTINGS_DATA                     gSettings;
 LANGUAGES                         gLanguage = english;
 GFX_PROPERTIES                    gGraphics[5]; //no more then 4 graphics cards + iGPU
-SLOT_DEVICE                       SlotDevices[32]; //assume DEV_XXX, Arpt=6
+SLOT_DEVICE                       SlotDevices[DEV_INDEX_MAX], SmbiosSlotDevices[DEV_INDEX_MAX]; //assume DEV_XXX, Arpt=6
 EFI_EDID_DISCOVERED_PROTOCOL      *EdidDiscovered;
 UINT8                             *gEDID = NULL,
                                   *gLanMmio[4],     // their MMIO regions
@@ -2303,56 +2303,56 @@ GetThemeTagSettings (
       // Add the anime to the list
       if ((Anime->ID == 0) || (Anime->Path == NULL)) {
         FreePool (Anime);
-      } else if (GuiAnime != NULL) { //second anime or further
-        if (GuiAnime->ID == Anime->ID) { //why the same anime here?
-          Anime->Next = GuiAnime->Next;
-          FreeAnime (GuiAnime); //free double
-        } else {
-          GUI_ANIME   *Ptr = GuiAnime;
+      } else {
+        if (GuiAnime != NULL) { //second anime or further
+          if (GuiAnime->ID == Anime->ID) { //why the same anime here?
+            Anime->Next = GuiAnime->Next;
+            FreeAnime (GuiAnime); //free double
+          } else {
+            GUI_ANIME   *Ptr = GuiAnime;
 
-          while (Ptr->Next) {
-            if (Ptr->Next->ID == Anime->ID) { //delete double from list
-              GUI_ANIME *Next = Ptr->Next;
-              Ptr->Next = Next->Next;
-              FreeAnime (Next);
-              break;
+            while (Ptr->Next) {
+              if (Ptr->Next->ID == Anime->ID) { //delete double from list
+                GUI_ANIME *Next = Ptr->Next;
+                Ptr->Next = Next->Next;
+                FreeAnime (Next);
+                break;
+              }
+
+              Ptr = Ptr->Next;
             }
 
-            Ptr = Ptr->Next;
+            Anime->Next = GuiAnime;
           }
-
-          Anime->Next = GuiAnime;
         }
 
         GuiAnime = Anime;
-      } else {
-        GuiAnime = Anime; //first anime
       }
     }
   }
 
   if (GlobalConfig.BackgroundName == NULL) {
-    GlobalConfig.BackgroundName = L"background.png";
+    GlobalConfig.BackgroundName = PoolPrint (L"%s.png", DEFAULT_THEME_BACKGROUND_FILENAME);
   }
 
   if (GlobalConfig.BannerFileName == NULL) {
-    GlobalConfig.BannerFileName = L"logo.png";
+    GlobalConfig.BannerFileName = PoolPrint (L"%s.png", BuiltinIconTable[BUILTIN_ICON_BANNER].Path);
   }
 
   if (GlobalConfig.SelectionSmallFileName == NULL) {
-    GlobalConfig.SelectionSmallFileName = L"selection_small.png";
+    GlobalConfig.SelectionSmallFileName = PoolPrint (L"%s.png", BuiltinIconTable[BUILTIN_SELECTION_SMALL].Path);
   }
 
   if (GlobalConfig.SelectionBigFileName == NULL) {
-    GlobalConfig.SelectionBigFileName = L"selection_big.png";
+    GlobalConfig.SelectionBigFileName = PoolPrint (L"%s.png", BuiltinIconTable[BUILTIN_SELECTION_BIG].Path);
   }
 
   if (GlobalConfig.SelectionIndicatorName == NULL) {
-    GlobalConfig.SelectionIndicatorName = L"selection_indicator.png";
+    GlobalConfig.SelectionIndicatorName = PoolPrint (L"%s.png", BuiltinIconTable[BUILTIN_SELECTION_INDICATOR].Path);
   }
 
   if (GlobalConfig.FontFileName == NULL) {
-    GlobalConfig.FontFileName = L"font.png";
+    GlobalConfig.FontFileName = PoolPrint (L"%s.png", DEFAULT_THEME_FONT_FILENAME);
   }
 
   if (
@@ -3131,10 +3131,8 @@ ParseSMBIOSSettings (
         }
 
         SlotPtr->InUse = (SlotPtr->ModuleSize > 0);
-        if (SlotPtr->InUse) {
-          if (gRAM.UserInUse <= Slot) {
-            gRAM.UserInUse = Slot + 1;
-          }
+        if (SlotPtr->InUse && (gRAM.UserInUse <= Slot)) {
+          gRAM.UserInUse = Slot + 1;
         }
       }
 
@@ -3146,11 +3144,14 @@ ParseSMBIOSSettings (
 
   Prop = GetProperty (DictPointer, "Slots");
   if (Prop != NULL) {
-    INTN    DeviceN, Index, Count = Prop->size;
+    INTN          DeviceN = 0, Index, Count = Prop->size;
+    SLOT_DEVICE   *SlotDevice;
 
     Prop3 = NULL;
 
     for (Index = 0; Index < Count; ++Index) {
+      INTN    Bus = 0, Device = 0, Function = 0;
+
       if (EFI_ERROR (GetElement (Prop, Index, Count, &Prop3))) {
         continue;
       }
@@ -3159,33 +3160,38 @@ ParseSMBIOSSettings (
         break;
       }
 
+      Prop2 = GetProperty (Prop3, "PciAddr");
+      if ((Prop2 != NULL) && (Prop2->type == kTagTypeString)) {
+        CHAR8     *Str = Prop2->string;
+
+        if ((Str[2] != ':') || (Str[5] != '.')) {
+          //DBG (" wrong PciAddr string: %a\n", Str);
+          continue;
+        }
+
+        Bus = HexStrToUint8 (Str);
+        Device = HexStrToUint8 (&Str[3]);
+        Function = HexStrToUint8 (&Str[6]);
+      }
+
       if (!Index) {
         DBG ("Slots->Device:\n");
       }
 
-      DeviceN = -1;
       Prop2 = GetProperty (Prop3, "Device");
       if ((Prop2 != NULL) && (Prop2->type == kTagTypeString)) {
-        if (AsciiStriCmp (Prop2->string,        "ATI") == 0) {
-          DeviceN = 0;
-        } else if (AsciiStriCmp (Prop2->string, "NVidia") == 0) {
-          DeviceN = 1;
-        } else if (AsciiStriCmp (Prop2->string, "IntelGFX") == 0) {
-          DeviceN = 2;
-        } else if (AsciiStriCmp (Prop2->string, "LAN") == 0) {
-          DeviceN = 5;
-        } else if (AsciiStriCmp (Prop2->string, "WIFI") == 0) {
-          DeviceN = 6;
-        } else if (AsciiStriCmp (Prop2->string, "Firewire") == 0) {
-          DeviceN = 12;
-        } else if (AsciiStriCmp (Prop2->string, "HDMI") == 0) {
-          DeviceN = 4;
-        } else if (AsciiStriCmp (Prop2->string, "USB") == 0) {
-          DeviceN = 11;
-        } else if (AsciiStriCmp (Prop2->string, "NVME") == 0) {
-          DeviceN = 13;
-        } else {
-          DBG (" - add properties to unknown device %a, ignored\n", Prop2->string);
+        if (
+          (AsciiStriCmp (Prop2->string, "ATI") != 0) ||
+          (AsciiStriCmp (Prop2->string, "NVidia") != 0) ||
+          (AsciiStriCmp (Prop2->string, "IntelGFX") != 0) ||
+          (AsciiStriCmp (Prop2->string, "LAN") != 0) ||
+          (AsciiStriCmp (Prop2->string, "WIFI") != 0) ||
+          (AsciiStriCmp (Prop2->string, "Firewire") != 0) ||
+          (AsciiStriCmp (Prop2->string, "HDMI") != 0) ||
+          (AsciiStriCmp (Prop2->string, "USB") != 0) ||
+          (AsciiStriCmp (Prop2->string, "NVME") != 0)
+         ) {
+          DBG (" - unknown device %a, ignored\n", Prop2->string);
           continue;
         }
       } else {
@@ -3193,55 +3199,59 @@ ParseSMBIOSSettings (
         continue;
       }
 
-      if (DeviceN >= 0) {
-        SLOT_DEVICE   *SlotDevice = &SlotDevices[DeviceN];
+      SlotDevice = &SmbiosSlotDevices[DeviceN];
 
-        Prop2 = GetProperty (Prop3, "ID");
-        SlotDevice->SlotID = (UINT8)GetPropertyInteger (Prop2, DeviceN);
-        SlotDevice->SlotType = SlotTypePci;
+      SlotDevice->Valid = TRUE;
 
-        Prop2 = GetProperty (Prop3, "Type");
-        if (Prop2 != NULL) {
-          switch ((UINT8)GetPropertyInteger (Prop2, 0)) {
-            case 0:
-              SlotDevice->SlotType = SlotTypePci;
-              break;
+      SlotDevice->PCIDevice.dev.addr = (UINT32)PCIADDR (Bus, Device, Function);
 
-            case 1:
-              SlotDevice->SlotType = SlotTypePciExpressX1;
-              break;
+      Prop2 = GetProperty (Prop3, "ID");
+      SlotDevice->SlotID = (UINT8)GetPropertyInteger (Prop2, DeviceN);
+      SlotDevice->SlotType = SlotTypePci;
 
-            case 2:
-              SlotDevice->SlotType = SlotTypePciExpressX2;
-              break;
+      Prop2 = GetProperty (Prop3, "Type");
+      if (Prop2 != NULL) {
+        switch ((UINT8)GetPropertyInteger (Prop2, 0)) {
+          case 0:
+            SlotDevice->SlotType = SlotTypePci;
+            break;
 
-            case 4:
-              SlotDevice->SlotType = SlotTypePciExpressX4;
-              break;
+          case 1:
+            SlotDevice->SlotType = SlotTypePciExpressX1;
+            break;
 
-            case 8:
-              SlotDevice->SlotType = SlotTypePciExpressX8;
-              break;
+          case 2:
+            SlotDevice->SlotType = SlotTypePciExpressX2;
+            break;
 
-            case 16:
-              SlotDevice->SlotType = SlotTypePciExpressX16;
-              break;
+          case 4:
+            SlotDevice->SlotType = SlotTypePciExpressX4;
+            break;
 
-            default:
-              SlotDevice->SlotType = SlotTypePciExpress;
-              break;
-          }
+          case 8:
+            SlotDevice->SlotType = SlotTypePciExpressX8;
+            break;
+
+          case 16:
+            SlotDevice->SlotType = SlotTypePciExpressX16;
+            break;
+
+          default:
+            SlotDevice->SlotType = SlotTypePciExpress;
+            break;
         }
-
-        Prop2 = GetProperty (Prop3, "Name");
-        if ((Prop2 != NULL) && (Prop2->type == kTagTypeString)) {
-          AsciiSPrint (SlotDevice->SlotName, 31, "%a", Prop2->string);
-        } else {
-          AsciiSPrint (SlotDevice->SlotName, 31, "PCI Slot %d", DeviceN);
-        }
-
-        DBG (" - %a\n", SlotDevice->SlotName);
       }
+
+      Prop2 = GetProperty (Prop3, "Name");
+      if ((Prop2 != NULL) && (Prop2->type == kTagTypeString)) {
+        AsciiSPrint (SlotDevice->SlotName, ARRAY_SIZE (SlotDevice->SlotName), "%a", Prop2->string);
+      } else {
+        AsciiSPrint (SlotDevice->SlotName, ARRAY_SIZE (SlotDevice->SlotName), "PCI Slot %d", DeviceN);
+      }
+
+      DBG (" - %a\n", SlotDevice->SlotName);
+
+      DeviceN++;
     }
   }
 }
@@ -3390,8 +3400,9 @@ ParseDevicesSettings (
         if (Count > 0) {
           DBG ("Add %d devices:\n", Count);
           for (Index = 0; Index < Count; Index++) {
-            UINTN         DeviceAddr = 0U;
-            EFI_STATUS    Status = GetElement (Prop, Index, Count, &Prop2);
+            UINTN   DeviceAddr = 0U;
+
+            Status = GetElement (Prop, Index, Count, &Prop2);
 
             DBG (" - [%02d]:", Index);
 
@@ -3428,8 +3439,8 @@ ParseDevicesSettings (
 
             Dict = GetProperty (Prop2, "CustomProperties");
             if ((Dict != NULL) && (Dict->type == kTagTypeArray)) {
-              TagPtr      Dict3;
-              INTN        PropIndex, PropCount = Dict->size;
+              TagPtr    Dict3;
+              INTN      PropIndex, PropCount = Dict->size;
 
               for (PropIndex = 0; PropIndex < PropCount; PropIndex++) {
                 UINTN     Size = 0;
@@ -3485,8 +3496,9 @@ ParseDevicesSettings (
             gSettings.AddProperties = AllocateZeroPool (Count * sizeof (DEV_PROPERTY));
 
             for (i = 0; i < Count; i++) {
-              UINTN         Size = 0;
-              EFI_STATUS    Status = GetElement (Prop, i, Count, &Dict);
+              UINTN   Size = 0;
+
+              Status = GetElement (Prop, i, Count, &Dict);
 
               DBG (" - [%02d]:", i);
 
@@ -3497,7 +3509,7 @@ ParseDevicesSettings (
 
               Prop2 = GetProperty (Dict, "Device");
               if ((Prop2 != NULL) && (Prop2->type == kTagTypeString)) {
-                BOOLEAN       Found = FALSE;
+                BOOLEAN   Found = FALSE;
 
                 for (i = 0; i < OptDevicesBitNum; ++i) {
                   if (AsciiStriCmp (Prop2->string, ADEVICES[i].Title) == 0) {
@@ -3599,9 +3611,10 @@ ParseACPISettings (
         MsgLog ("Dropping %d tables:\n", Count);
 
         for (i = 0; i < Count; i++) {
-          UINT32        Signature = 0, TabLength = 0;
-          UINT64        TableId = 0;
-          EFI_STATUS    Status = GetElement (Prop, i, Count, &Dict);
+          UINT32  Signature = 0, TabLength = 0;
+          UINT64  TableId = 0;
+
+          Status = GetElement (Prop, i, Count, &Dict);
 
           MsgLog (" - [%02d]:", i);
 
@@ -4009,11 +4022,9 @@ ParseRtVariablesSettings (
       } else {
         UINTN   ROMLength = 0;
 
-        if (AsciiStrStr (Prop->string, "%") != NULL) {
-          gSettings.RtROM = StringDataToHex (GetDataROM (Prop->string), &ROMLength);
-        } else {
-          gSettings.RtROM = GetDataSetting (DictPointer, "ROM", &ROMLength);
-        }
+        gSettings.RtROM = (AsciiStrStr (Prop->string, "%") != NULL)
+          ? StringDataToHex (GetDataROM (Prop->string), &ROMLength)
+          : GetDataSetting (DictPointer, "ROM", &ROMLength);
 
         gSettings.RtROMLen = ROMLength;
       }
@@ -4048,16 +4059,8 @@ VOID
 ParseSystemParametersSettings (
   TagPtr    CurrentDict
 ) {
-  //EFI_STATUS    Status;
-  TagPtr        DictPointer, Prop;
+  TagPtr  DictPointer, Prop;
 
-  // if CustomUUID and InjectSystemID are not specified
-  // then use InjectSystemID=TRUE and SMBIOS UUID
-  // to get Chameleon's default behaviour (to make user's life easier)
-  //CopyMem ((VOID *)&gUuid, (VOID *)&gSettings.SmUUID, sizeof (EFI_GUID));
-  //gSettings.InjectSystemID = TRUE;
-
-  // SystemParameters again - values that can depend on previous params
   DictPointer = GetProperty (CurrentDict, "SystemParameters");
   if (DictPointer != NULL) {
     if (gGuiIsReady) {
@@ -4106,30 +4109,6 @@ ParseSystemParametersSettings (
         }
       }
     }
-
-    /*
-    Prop = GetProperty (DictPointer, "CustomUUID");
-    if ((Prop != NULL) && (Prop->type == kTagTypeString)) {
-      if (IsValidGuidAsciiString (Prop->string)) {
-        AsciiStrToUnicodeStrS (Prop->string, gSettings.CustomUuid, ARRAY_SIZE (gSettings.CustomUuid));
-        Status = StrToGuidLE (gSettings.CustomUuid, &gUuid);
-
-        if (!EFI_ERROR (Status)) {
-          // if CustomUUID specified, then default for InjectSystemID=FALSE
-          // to stay compatibile with previous Clover behaviour
-          gSettings.InjectSystemID = FALSE;
-        } else {
-          DBG ("Error: invalid CustomUUID '%a' - should be in the format XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX\n", Prop->string);
-        }
-      }
-    }
-
-    //else gSettings.SmUUID value from SMBIOS
-
-    if (gSettings.InjectSystemID) {
-      gSettings.InjectSystemID = GetPropertyBool (GetProperty (DictPointer, "InjectSystemID"), FALSE);
-    }
-    */
   }
 }
 
@@ -4225,7 +4204,6 @@ GetDevices () {
   EFI_HANDLE              *HandleBuffer = NULL;
   EFI_PCI_IO_PROTOCOL     *PciIo;
   PCI_TYPE00              Pci;
-  SLOT_DEVICE             *SlotDevice;
 
   NGFX = 0;
 
@@ -4242,7 +4220,7 @@ GetDevices () {
 
   if (!EFI_ERROR (Status)) {
     for (i = 0; i < HandleCount; ++i) {
-      BOOLEAN   NewDevice = FALSE;
+      SLOT_DEVICE   *SlotDevice = &SlotDevices[DeviceN];
 
       Status = gBS->HandleProtocol (HandleBuffer[i], &gEfiPciIoProtocolGuid, (VOID **)&PciIo);
       if (!EFI_ERROR (Status)) {
@@ -4278,14 +4256,14 @@ GetDevices () {
           ) &&
           (NGFX < ARRAY_SIZE (gGraphics))
         ) {
-          GFX_PROPERTIES      *gfx = &gGraphics[NGFX];
+          GFX_PROPERTIES  *gfx = &gGraphics[NGFX];
 
-          gfx->DeviceID            = Pci.Hdr.DeviceId;
-          gfx->Segment             = Segment;
-          gfx->Bus                 = Bus;
-          gfx->Device              = Device;
-          gfx->Function            = Function;
-          gfx->Handle              = HandleBuffer[i];
+          gfx->DeviceID = Pci.Hdr.DeviceId;
+          gfx->Segment  = Segment;
+          gfx->Bus      = Bus;
+          gfx->Device   = Device;
+          gfx->Function = Function;
+          gfx->Handle   = HandleBuffer[i];
 
           MsgLog (" - GFX");
 
@@ -4293,39 +4271,27 @@ GetDevices () {
             case 0x1002:
               MsgLog (" (ATI/AMD)");
 
-              gfx->Vendor                   = GfxAti;
+              gfx->Vendor = GfxAti;
 
               //GetAtiModel (&gfx[0], Pci.Hdr.DeviceId);
 
-              SlotDevice                    = &SlotDevices[DeviceN];
-              SlotDevice->SegmentGroupNum   = (UINT16)Segment;
-              SlotDevice->BusNum            = (UINT8)Bus;
-              SlotDevice->DevFuncNum        = (UINT8)((Device << 3) | (Function & 0x07));
-              SlotDevice->Valid             = TRUE;
-              AsciiSPrint (SlotDevice->SlotName, 31, "PCI Slot %d", DeviceN);
-              SlotDevice->SlotID            = DeviceN;
-              SlotDevice->SlotType          = SlotTypePciExpressX16;
+              AsciiSPrint (SlotDevice->SlotName, ARRAY_SIZE (SlotDevice->SlotName), "PCI Slot %d", DeviceN);
+              SlotDevice->SlotType = SlotTypePciExpressX16;
 
-              gSettings.HasGraphics->Ati    = TRUE;
+              gSettings.HasGraphics->Ati = TRUE;
               break;
 
             case 0X10DE:
               MsgLog (" (Nvidia)");
 
-              gfx->Vendor                   = GfxNvidia;
-              gfx->Mmio                     = (UINT8 *)(UINTN)(Pci.Device.Bar[0] & ~0x0f);
+              gfx->Vendor = GfxNvidia;
+              gfx->Mmio = (UINT8 *)(UINTN)(Pci.Device.Bar[0] & ~0x0f);
               // get card type
-              gfx->Family                   = (REG32 (gfx->Mmio, 0) >> 20) & 0x1ff;
-              //gfx->Ports                    = 0;
+              gfx->Family = (REG32 (gfx->Mmio, 0) >> 20) & 0x1ff;
 
-              SlotDevice                    = &SlotDevices[DeviceN];
-              SlotDevice->SegmentGroupNum   = (UINT16)Segment;
-              SlotDevice->BusNum            = (UINT8)Bus;
-              SlotDevice->DevFuncNum        = (UINT8)((Device << 3) | (Function & 0x07));
-              SlotDevice->Valid             = TRUE;
-              AsciiSPrint (SlotDevice->SlotName, 31, "PCI Slot %d", DeviceN);
-              SlotDevice->SlotID            = DeviceN;
-              SlotDevice->SlotType          = SlotTypePciExpressX16;
+              AsciiSPrint (SlotDevice->SlotName, ARRAY_SIZE (SlotDevice->SlotName), "PCI Slot %d", DeviceN);
+
+              SlotDevice->SlotType = SlotTypePciExpressX16;
 
               gSettings.HasGraphics->Nvidia = TRUE;
               break;
@@ -4333,20 +4299,18 @@ GetDevices () {
             case 0x8086:
               MsgLog (" (Intel)");
 
-              gfx->Vendor                   = GfxIntel;
-              //gfx->Ports                    = 0;
+              gfx->Vendor = GfxIntel;
 
-              SlotDevice                    = &SlotDevices[DeviceN];
-              SlotDevice->ForceInject       = TRUE;
+              SlotDevice->ForceInject = TRUE;
 
-              gSettings.HasGraphics->Intel  = TRUE;
+              gSettings.HasGraphics->Intel = TRUE;
 
               break;
 
             default:
               MsgLog (" (Unknown)");
 
-              gfx->Vendor                   = GfxUnknown;
+              gfx->Vendor = GfxUnknown;
               //AsciiSPrint (gfx->Model, 64, "pci%x,%x", Pci.Hdr.VendorId, Pci.Hdr.DeviceId);
               //gfx->Ports                  = 1;
               break;
@@ -4354,7 +4318,8 @@ GetDevices () {
 
           if (gfx->Vendor != GfxUnknown) {
             NGFX++;
-            NewDevice = TRUE;
+          } else {
+            goto EndGetDevice;
           }
 
         } else if (
@@ -4363,16 +4328,9 @@ GetDevices () {
         ) {
           MsgLog (" - WIFI");
 
-          SlotDevice                  = &SlotDevices[DeviceN];
-          SlotDevice->SegmentGroupNum = (UINT16)Segment;
-          SlotDevice->BusNum          = (UINT8)Bus;
-          SlotDevice->DevFuncNum      = (UINT8)((Device << 3) | (Function & 0x07));
-          SlotDevice->Valid           = TRUE;
-          AsciiSPrint (SlotDevice->SlotName, 31, "Airport");
-          SlotDevice->SlotID          = DeviceN;
-          SlotDevice->SlotType        = SlotTypePciExpressX1;
+          AsciiSPrint (SlotDevice->SlotName, ARRAY_SIZE (SlotDevice->SlotName), "Airport");
 
-          NewDevice = TRUE;
+          SlotDevice->SlotType = SlotTypePciExpressX1;
 
         } else if (
           (Pci.Hdr.ClassCode[2] == PCI_CLASS_NETWORK) &&
@@ -4386,35 +4344,22 @@ GetDevices () {
             continue;
           }
 
-          SlotDevice                  = &SlotDevices[DeviceN];
-          SlotDevice->SegmentGroupNum = (UINT16)Segment;
-          SlotDevice->BusNum          = (UINT8)Bus;
-          SlotDevice->DevFuncNum      = (UINT8)((Device << 3) | (Function & 0x07));
-          SlotDevice->Valid           = TRUE;
-          AsciiSPrint (SlotDevice->SlotName, 31, "Ethernet");
-          SlotDevice->SlotID          = DeviceN;
-          SlotDevice->SlotType        = SlotTypePciExpressX1;
-          gLanVendor[nLanCards]       = Pci.Hdr.VendorId;
-          gLanMmio[nLanCards++]       = (UINT8 *)(UINTN)(Pci.Device.Bar[0] & ~0x0f);
+          SlotDevice->SlotType = SlotTypePciExpressX1;
 
-          NewDevice = TRUE;
+          AsciiSPrint (SlotDevice->SlotName, ARRAY_SIZE (SlotDevice->SlotName), "Ethernet");
+
+          gLanVendor[nLanCards] = Pci.Hdr.VendorId;
+          gLanMmio[nLanCards++] = (UINT8 *)(UINTN)(Pci.Device.Bar[0] & ~0x0f);
 
         } else if (
           (Pci.Hdr.ClassCode[2] == PCI_CLASS_SERIAL) &&
           (Pci.Hdr.ClassCode[1] == PCI_CLASS_SERIAL_FIREWIRE)
         ) {
-          DBG (" - SERIAL");
+          MsgLog (" - SERIAL");
 
-          SlotDevice = &SlotDevices[DeviceN];
-          SlotDevice->SegmentGroupNum = (UINT16)Segment;
-          SlotDevice->BusNum          = (UINT8)Bus;
-          SlotDevice->DevFuncNum      = (UINT8)((Device << 3) | (Function & 0x07));
-          SlotDevice->Valid           = TRUE;
-          AsciiSPrint (SlotDevice->SlotName, 31, "Firewire");
-          SlotDevice->SlotID          = DeviceN;
-          SlotDevice->SlotType        = SlotTypePciExpressX4;
+          SlotDevice->SlotType = SlotTypePciExpressX4;
 
-          NewDevice = TRUE;
+          AsciiSPrint (SlotDevice->SlotName, ARRAY_SIZE (SlotDevice->SlotName), "Firewire");
 
         } else if (
           (Pci.Hdr.ClassCode[2] == PCI_CLASS_MEDIA) &&
@@ -4427,38 +4372,71 @@ GetDevices () {
 
           if (IsHDMIAudio (HandleBuffer[i])) { // (Pci.Hdr.VendorId == 0x1002) || (Pci.Hdr.VendorId == 0x10DE)
             MsgLog (" (HDMI)");
-            SlotDevice = &SlotDevices[DeviceN];
-            SlotDevice->SegmentGroupNum = (UINT16)Segment;
-            SlotDevice->BusNum          = (UINT8)Bus;
-            SlotDevice->DevFuncNum      = (UINT8)((Device << 3) | (Function & 0x07));
-            SlotDevice->Valid           = TRUE;
-            AsciiSPrint (SlotDevice->SlotName, 31, "HDMI Audio");
-            SlotDevice->SlotID          = DeviceN;
-            SlotDevice->SlotType        = SlotTypePciExpressX4;
+
+            SlotDevice->SlotType = SlotTypePciExpressX4;
+
+            AsciiSPrint (SlotDevice->SlotName, ARRAY_SIZE (SlotDevice->SlotName), "HDMI Audio");
           }
 
-          NewDevice = TRUE;
+        } else {
+          goto EndGetDevice;
         }
 
-        if (NewDevice) {
-          SlotDevice->PCIDevice.DeviceHandle               = HandleBuffer[i];
-          SlotDevice->PCIDevice.dev.addr                   = (UINT32)PCIADDR (Bus, Device, Function);
-          SlotDevice->PCIDevice.vendor_id                  = Pci.Hdr.VendorId;
-          SlotDevice->PCIDevice.device_id                  = Pci.Hdr.DeviceId;
-          SlotDevice->PCIDevice.revision                   = Pci.Hdr.RevisionID;
-          SlotDevice->PCIDevice.subclass                   = Pci.Hdr.ClassCode[0];
-          SlotDevice->PCIDevice.class_id                   = *((UINT16 *)(Pci.Hdr.ClassCode+1));
-          SlotDevice->PCIDevice.subsys_id.subsys.vendor_id = Pci.Device.SubsystemVendorID;
-          SlotDevice->PCIDevice.subsys_id.subsys.device_id = Pci.Device.SubsystemID;
+        SlotDevice->SegmentGroupNum                       = (UINT16)Segment;
+        SlotDevice->BusNum                                = (UINT8)Bus;
+        SlotDevice->DevFuncNum                            = (UINT8)((Device << 3) | (Function & 0x07));
+        SlotDevice->Valid                                 = TRUE;
+        SlotDevice->SlotID                                = DeviceN;
 
-          CopyMem (&SlotDevice->PCIDevice.class_code, &Pci.Hdr.ClassCode, ARRAY_SIZE (Pci.Hdr.ClassCode));
-          CopyMem (&SlotDevice->PCIDevice.handle, &HandleBuffer[i], sizeof (EFI_HANDLE));
+        SlotDevice->PCIDevice.DeviceHandle                = HandleBuffer[i];
+        SlotDevice->PCIDevice.dev.addr                    = (UINT32)PCIADDR (Bus, Device, Function);
+        SlotDevice->PCIDevice.vendor_id                   = Pci.Hdr.VendorId;
+        SlotDevice->PCIDevice.device_id                   = Pci.Hdr.DeviceId;
+        SlotDevice->PCIDevice.revision                    = Pci.Hdr.RevisionID;
+        SlotDevice->PCIDevice.subclass                    = Pci.Hdr.ClassCode[0];
+        SlotDevice->PCIDevice.class_id                    = *((UINT16 *)(Pci.Hdr.ClassCode+1));
+        SlotDevice->PCIDevice.subsys_id.subsys.vendor_id  = Pci.Device.SubsystemVendorID;
+        SlotDevice->PCIDevice.subsys_id.subsys.device_id  = Pci.Device.SubsystemID;
 
-          DeviceN++;
-        }
+        CopyMem (&SlotDevice->PCIDevice.class_code, &Pci.Hdr.ClassCode, ARRAY_SIZE (Pci.Hdr.ClassCode));
+        CopyMem (&SlotDevice->PCIDevice.handle, &HandleBuffer[i], sizeof (EFI_HANDLE));
+
+        DeviceN++;
+
+        EndGetDevice:
 
         MsgLog ("\n");
       }
+    }
+  }
+}
+
+VOID
+SyncDevices () {
+  UINTN   i, y;
+
+  //DbgHeader ("SyncDevices");
+
+  for (i = 0; i < DEV_INDEX_MAX; i++) {
+    SLOT_DEVICE   *SlotDevice = &SlotDevices[i];
+
+    if (!SlotDevice->Valid) {
+      continue;
+    }
+
+    for (y = 0; y < DEV_INDEX_MAX; y++) {
+      SLOT_DEVICE   *SmbiosSlotDevice = &SmbiosSlotDevices[i];
+
+      if (
+        !SmbiosSlotDevice->Valid ||
+        (SlotDevice->PCIDevice.dev.addr != SmbiosSlotDevice->PCIDevice.dev.addr)
+      ) {
+        continue;
+      }
+
+      SlotDevice->SlotID = SmbiosSlotDevice->SlotID;
+      SlotDevice->SlotType = SmbiosSlotDevice->SlotType;
+      AsciiStrCpyS (SlotDevice->SlotName, ARRAY_SIZE (SlotDevice->SlotName), SmbiosSlotDevice->SlotName);
     }
   }
 }
@@ -4470,11 +4448,11 @@ SetDevices (
   EFI_STATUS              Status;
   EFI_PCI_IO_PROTOCOL     *PciIo;
   BOOLEAN                 StringDirty = FALSE, TmpDirty = FALSE;
-  UINTN                   i, Count = ARRAY_SIZE (SlotDevices);
+  UINTN                   i;
 
   DbgHeader ("SetDevices");
 
-  for (i = 0; i < Count; i++) {
+  for (i = 0; i < DEV_INDEX_MAX; i++) {
     if (SlotDevices[i].Valid || SlotDevices[i].ForceInject) {
       if (gSettings.NrAddProperties == 0xFFFE) {
         DEV_PROPERTY      *Prop = gSettings.AddProperties;
@@ -4523,7 +4501,7 @@ SetDevices (
 
             if (gSettings.InjectATI) {
               //can't do this in one step because of C-conventions
-              TmpDirty    = SetupAtiDevprop (Entry, &SlotDevices[i].PCIDevice);
+              TmpDirty = SetupAtiDevprop (Entry, &SlotDevices[i].PCIDevice);
               StringDirty |=  TmpDirty;
             } else {
               DBG (" - injection not set\n");
@@ -4533,7 +4511,7 @@ SetDevices (
           case 0X10DE:
             MsgLog (" Nvidia\n");
             if (gSettings.InjectNVidia) {
-              TmpDirty    = SetupNvidiaDevprop (&SlotDevices[i].PCIDevice);
+              TmpDirty = SetupNvidiaDevprop (&SlotDevices[i].PCIDevice);
               StringDirty |=  TmpDirty;
             } else {
               DBG (" - injection not set\n");
@@ -4543,7 +4521,7 @@ SetDevices (
           case 0x8086:
             MsgLog (" Intel\n");
             if (gSettings.InjectIntel) {
-              TmpDirty    = SetupGmaDevprop (&SlotDevices[i].PCIDevice);
+              TmpDirty = SetupGmaDevprop (&SlotDevices[i].PCIDevice);
               StringDirty |=  TmpDirty;
               //MsgLog (" - Intel GFX revision  =0x%x\n", SlotDevices[i].PCIDevice.revision);
             } else {
@@ -4629,14 +4607,14 @@ SetDevices (
       mProperties       = (UINT8 *)(UINTN)BufferPtr;
       gDeviceProperties = (VOID *)DevpropGenerateString (gDevPropString);
       gDeviceProperties[gDevPropStringLength] = 0;
-      //     DBG (gDeviceProperties);
-      //     DBG ("\n");
-      //     StringDirty = FALSE;
+      //DBG (gDeviceProperties);
+      //DBG ("\n");
+      //StringDirty = FALSE;
       //-------
       mPropSize = (UINT32)AsciiStrLen (gDeviceProperties) / 2;
-      //     DBG ("Preliminary size of mProperties=%d\n", mPropSize);
+      //DBG ("Preliminary size of mProperties=%d\n", mPropSize);
       mPropSize = Hex2Bin (gDeviceProperties, mProperties, mPropSize);
-      //     DBG ("Final size of mProperties=%d\n", mPropSize);
+      //DBG ("Final size of mProperties=%d\n", mPropSize);
       //---------
     }
   }

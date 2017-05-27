@@ -4,14 +4,14 @@
 # Wed Jan  4 13:34:04 2017
 # Taken from 'yod-CloverUpd.sh' (https://github.com/cecekpawon/OSXOLVED)
 
-# HOME
+# $HOME                   (/Users/username/)
 # .
-# ├── edk2
-# │   ├── Build
-# │   ├── CloverPkg
-# │   ├── Conf
-# ├── opt
-# │   └── local
+# └── src
+#     ├── edk2
+#     │   ├── Build       (Compiled binaries)
+#     │   ├── CloverPkg   (CloverPkg sources)
+#     └── opt
+#         └── local       (Build tools)
 
 SRC="/Users/${USER}/src"
 TOOLCHAIN_DIR="${SRC}/opt/local"
@@ -21,8 +21,10 @@ TOOLCHAIN_DIR="${SRC}/opt/local"
 GCC_BIN="${TOOLCHAIN_DIR}/cross/bin/x86_64-clover-linux-gnu-"
 export GCC49_BIN="${GCC_BIN}"
 export GCC5_BIN="${GCC_BIN}"
-export NASM_BIN="${TOOLCHAIN_DIR}/bin/"
-export MTOC_BIN="${TOOLCHAIN_DIR}/bin/"
+export TOOLCHAIN_BIN="${TOOLCHAIN_DIR}/bin"
+export NASM_BIN="${TOOLCHAIN_BIN}/"
+export NASM_PREFIX="${TOOLCHAIN_BIN}/"
+export MTOC_BIN="${TOOLCHAIN_BIN}/"
 export LC_ALL="en_US.UTF-8"
 #export LANG="en_US.UTF-8"
 
@@ -74,7 +76,12 @@ case "${MYTOOLCHAIN}" in
         ln -s "${gMake}" "${gGNUmake}"
       fi
     ;;
+  XCODE5)
+      BUILD_OPTIONS="${BUILD_OPTIONS} -D NO_MSABI_VA_FUNCS"
+    ;;
 esac
+
+export BUILD_OPTIONS
 
 cd "${CLOVER_PATH}"
 

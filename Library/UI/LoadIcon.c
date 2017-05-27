@@ -75,9 +75,11 @@ BUILTIN_ICON BuiltinIconTable[BUILTIN_ICON_COUNT] = {
   { NULL, L"icons\\vol_internal_ext3" },
   { NULL, L"icons\\vol_recovery" },
   { NULL, L"logo" },
+  { NULL, NULL },
 
   { NULL, L"selection_small" },
-  { NULL, L"selection_big" }
+  { NULL, L"selection_big" },
+  { NULL, L"selection_indicator" }
 };
 
 UI_IMG ScrollbarImg[] = {
@@ -146,15 +148,11 @@ LoadIcns (
   IN CHAR16             *FileName,
   IN UINTN              PixelSize
 ) {
-  if (gSettings.TextOnly) {
-    return NULL;
-  }
-
-  if (BaseDir) {
-    return LoadImage (BaseDir, FileName);
-  }
-
-  return DummyImage (PixelSize);
+  return gSettings.TextOnly
+    ? NULL
+    : BaseDir
+        ? LoadImage (BaseDir, FileName)
+        : DummyImage (PixelSize);
 }
 
 STATIC EG_PIXEL BlackPixel  = { 0x00, 0x00, 0x00, 0 };
@@ -359,9 +357,10 @@ FreeBanner () {
 VOID
 FreeAnims () {
   while (GuiAnime != NULL) {
-    GUI_ANIME *NextAnime = GuiAnime->Next;
+    GUI_ANIME   *NextAnime = GuiAnime->Next;
+
     FreeAnime (GuiAnime);
-    GuiAnime             = NextAnime;
+    GuiAnime = NextAnime;
   }
 
   GuiAnime = NULL;
@@ -564,23 +563,15 @@ EG_IMAGE *
 GetSmallHover (
   IN UINTN    Id
 ) {
-  if (IsEmbeddedTheme ()) {
-    return NULL;
-  } else {
-    CHAR16    *Path = AllocateZeroPool (AVALUE_MAX_SIZE);
-
-    Path = PoolPrint (L"%s_hover.png", BuiltinIconTable[Id].Path);
-    return LoadImage (ThemeDir, Path);
-  }
+  return IsEmbeddedTheme ()
+    ? NULL
+    : LoadImage (ThemeDir, PoolPrint (L"%s_hover.png", BuiltinIconTable[Id].Path));
 }
 
 EG_IMAGE *
 BuiltinIcon (
   IN UINTN    Id
 ) {
-  EG_IMAGE  *TextBuffer = NULL;
-  CHAR16    *p, *Text;
-
   if (Id >= BUILTIN_ICON_COUNT) {
     return NULL;
   }
@@ -695,10 +686,16 @@ GET_EMBEDDED:
     case BUILTIN_SELECTION_BIG:
       DEC_BUILTIN_ICON (Id, emb_selection_big);
       break;
+
+    case BUILTIN_SELECTION_INDICATOR:
+      DEC_BUILTIN_ICON (Id, emb_selection_indicator);
+      break;
   }
 
   if (!BuiltinIconTable[Id].Image) {
-    INTN  Size = (Id  < BUILTIN_ICON_VOL_INTERNAL) ? TOOL_DIMENSION : VOL_DIMENSION;
+    EG_IMAGE  *TextBuffer = NULL;
+    CHAR16    *p, *Text;
+    INTN      Size = (Id  < BUILTIN_ICON_VOL_INTERNAL) ? TOOL_DIMENSION : VOL_DIMENSION;
 
     TextBuffer = CreateImage (Size, Size, TRUE);
     FillImage (TextBuffer, &TransparentBackgroundPixel);
@@ -815,7 +812,7 @@ LoadOSIcon (
   Image = NULL;
 
   // try the names from OSIconName
-  for (StartIndex = 0; OSIconName != NULL && OSIconName[StartIndex]; StartIndex = NextIndex) {
+  for (StartIndex = 0; (OSIconName != NULL) && OSIconName[StartIndex]; StartIndex = NextIndex) {
     // find the next name in the list
     NextIndex = 0;
 
@@ -867,11 +864,9 @@ EG_IMAGE *
 LoadHoverIcon (
   IN CHAR16   *OSIconName
 ) {
-  if (gSettings.TextOnly || IsEmbeddedTheme ()) {
-    return NULL;
-  }
-
-  return LoadImage (ThemeDir, OSIconName);
+  return (gSettings.TextOnly || IsEmbeddedTheme ())
+    ? NULL
+    : LoadImage (ThemeDir, OSIconName);
 }
 
 CHAR16 *
@@ -879,6 +874,10 @@ GetOSIconName (
   IN  SVersion  *SDarwinVersion
 ) {
   CHAR16  *OSIconName = L"mac";
+
+  if (!SDarwinVersion) {
+    goto Finish;
+  }
 
   switch (SDarwinVersion->VersionMajor) {
     case DARWIN_OS_VER_MAJOR_10:
@@ -902,6 +901,8 @@ GetOSIconName (
       //
       break;
   }
+
+  Finish:
 
   return OSIconName;
 }

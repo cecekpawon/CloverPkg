@@ -51,11 +51,8 @@
 
 #define DBG(...) DebugLog (DEBUG_TEXT, __VA_ARGS__)
 
-EG_IMAGE *FontImage = NULL;
-EG_IMAGE *FontImageHover = NULL;
-INTN FontWidth = 9;
-INTN FontHeight = 18;
-INTN TextHeight = 19;
+EG_IMAGE    *FontImage = NULL, *FontImageHover = NULL;
+INTN        FontWidth = 9, FontHeight = 18, TextHeight = 19;
 
 //
 // Text rendering

@@ -26,6 +26,7 @@ Headers collection for procedures
 #include <Library/MemoryAllocationLib.h>
 #include <Library/PcdLib.h>
 #include <Library/PrintLib.h>
+#include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
 
@@ -105,7 +106,8 @@ Headers collection for procedures
 #define OSX_GE(OSVersion, CurrVer) (OSVersion && CurrVer && (AsciiOSVersionToUint64 (OSVersion) >= AsciiOSVersionToUint64 (CurrVer)))
 
 
-#define MAX_NUM_DEVICES  64
+#define MAX_NUM_DEVICES   64
+#define MAX_NUM_GFX       5
 
 /* Decimal powers: */
 #define kilo    (1000ULL)
@@ -747,6 +749,17 @@ typedef struct {
 #define DEV_MCHC        bit (13)
 #define DEV_BY_PCI      bit (31)
 
+//#define DEV_INDEX_ATI       (0)
+//#define DEV_INDEX_NVIDIA    (1)
+//#define DEV_INDEX_INTELGFX  (2)
+//#define DEV_INDEX_HDMI      (4)
+//#define DEV_INDEX_LAN       (5)
+//#define DEV_INDEX_WIFI      (6)
+//#define DEV_INDEX_FIREWIRE  (12)
+//#define DEV_INDEX_USB       (11)
+//#define DEV_INDEX_NVME      (13)
+#define DEV_INDEX_MAX       (32)
+
 typedef struct {
   UINT16            SegmentGroupNum;
   UINT8             BusNum;
@@ -757,6 +770,7 @@ typedef struct {
   CHAR8             SlotName[31];
   BOOLEAN           ForceInject;
   PCI_DT            PCIDevice;
+  UINT8             Type;
 } SLOT_DEVICE;
 
 typedef struct DEV_PROPERTY {
@@ -1173,7 +1187,7 @@ extern UINT32                           gFwFeatures;
 extern UINT32                           gFwFeaturesMask;
 extern CPU_STRUCTURE                    gCPUStructure;
 //extern EFI_GUID                         gUuid;
-extern SLOT_DEVICE                      SlotDevices[32];
+extern SLOT_DEVICE                      SlotDevices[];
 extern EFI_EDID_DISCOVERED_PROTOCOL     *EdidDiscovered;
 extern UINT8                            *gEDID;
 extern UINT32                           mPropSize;
@@ -1508,7 +1522,7 @@ GetMacAddress ();
 
 INTN
 FindStartupDiskVolume (
-  REFIT_MENU_SCREEN   *MainMenu
+  REFIT_MENU_SCREEN   *MenuScreen
 );
 
 EFI_STATUS
@@ -1543,6 +1557,9 @@ SetupDataForOSX ();
 
 EFI_STATUS
 SetPrivateVarProto ();
+
+VOID
+SyncDevices ();
 
 VOID
 SetDevices (

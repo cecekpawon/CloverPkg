@@ -121,7 +121,11 @@
 #define BUILTIN_ICON_BANNER_BLACK               (16)
 #define BUILTIN_SELECTION_SMALL                 (17)
 #define BUILTIN_SELECTION_BIG                   (18)
-#define BUILTIN_ICON_COUNT                      (19)
+#define BUILTIN_SELECTION_INDICATOR             (19)
+#define BUILTIN_ICON_COUNT                      (20)
+
+#define DEFAULT_THEME_FONT_FILENAME             L"font"
+#define DEFAULT_THEME_BACKGROUND_FILENAME       L"background"
 
 #define TAG_ABOUT                               (1)
 #define TAG_RESET                               (2)
@@ -761,6 +765,7 @@ DecodePNG (
 extern UI_IMG               ButtonsImg[];
 extern UI_IMG               SelectionImg[];
 //extern INTN               ButtonsImgCount;
+extern BUILTIN_ICON         BuiltinIconTable[];
 
 extern INTN                 FontWidth;
 extern INTN                 FontHeight;

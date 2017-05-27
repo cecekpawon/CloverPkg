@@ -981,7 +981,7 @@ ParseTagList (
   INT32   Type,
   INT32   Empty
 ) {
-  INT32   Length, Pos = 0, Size = 0;
+  INT32   Length = -1, Pos = 0, Size = 0;
   TagPtr  TagList = 0, TmpTag = (TagPtr) - 1;
 
   if (!Empty) {

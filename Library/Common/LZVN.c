@@ -1156,7 +1156,7 @@ LzvnEncode (
                               // need Header + end-of-stream marker
   UINTN                       ExtraSize = 4 + sizeof (LzvnCompressedBlockHeader);
 #endif
-  UINTN                       Size, ScratchBuffer,
+  UINTN                       Size = 0, ScratchBuffer,
                               ResDstSize = *DstSize = SrcSize;
   UINT8                       *ResDst = NULL;
   EFI_STATUS                  Status = LZVN_STATUS_ERROR;

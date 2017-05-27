@@ -1473,7 +1473,7 @@ PatchACPI (
   UINT8                                                   CPUBase, *Buffer = NULL;
   BOOLEAN                                                 DsdtLoaded = FALSE, NeedUpdate = FALSE, OSTypeDarwin = FALSE,
                                                           PatchedDirExists = FALSE;
-  CHAR16                                                  *PatchedPath, *FullPatchedPath, *OsSubdir = NULL,
+  CHAR16                                                  PatchedPath[SVALUE_MAX_SIZE], *FullPatchedPath, *OsSubdir = NULL,
                                                           *FixedDsdt = PoolPrint (DSDT_PATCHED_NAME, gSettings.FixDsdt);
 
   DbgHeader ("PatchACPI");
@@ -1565,7 +1565,8 @@ PatchACPI (
 
   if (OsSubdir != NULL) {
     // prepare dirs that will be searched for custom ACPI tables
-    PatchedPath = PoolPrint (DIR_ACPI_PATCHED L"\\%s", OsSubdir);
+    //PatchedPath = PoolPrint (DIR_ACPI_PATCHED L"\\%s", OsSubdir);
+    UnicodeSPrint (PatchedPath, ARRAY_SIZE (PatchedPath), DIR_ACPI_PATCHED L"\\%s", OsSubdir);
     PatchedDirExists = FileExists (SelfRootDir, PatchedPath);
   }
 

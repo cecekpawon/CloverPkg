@@ -320,7 +320,6 @@ ScaleImage (
       if (a11.a == 0) {
         Dest->r = Dest->g = Dest->b = 0x55;
       } else {
-
         EDGE (r);
         EDGE (g);
         EDGE (b);
@@ -1306,11 +1305,11 @@ BltImageCompositeBadge (
   }
 
   if (GlobalConfig.SelectionOnTop) {
-    if (CompWidth < TotalWidth) {
-      ComposeImage (CompImage, NewTopImage, OffsetXTmp, OffsetYTmp);
-    } else {
-      ComposeImage (CompImage, NewTopImage, 0, 0);
+    if (CompWidth >= TotalWidth) {
+      OffsetXTmp = OffsetYTmp = 0;
     }
+
+    ComposeImage (CompImage, NewTopImage, OffsetXTmp, OffsetYTmp);
   }
 
   BltImageAlpha (CompImage, XPos, YPos, &TransparentBackgroundPixel, (GlobalConfig.NonSelectedGrey && !Selected) ? -16 : 16);

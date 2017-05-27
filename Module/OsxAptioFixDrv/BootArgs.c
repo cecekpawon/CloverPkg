@@ -12,6 +12,8 @@
 
 #include "Lib.h"
 
+InternalBootArgs    gAptioBootArgs;
+
 VOID
 EFIAPI
 BootArgsPrint (

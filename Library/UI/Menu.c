@@ -1858,7 +1858,7 @@ TextMenuStyle (
 ) {
   INTN      i = 0, j = 0;
   UINTN     ThisMenuPosY = 0;
-  UINTN     TextMenuWidth = 0, ItemWidth = 0, MenuHeight = 0, iSwitch;
+  UINTN     TextMenuWidth = 0, ItemWidth = 0, MenuHeight = 0, iSwitch = 0;
   CHAR16    *TimeoutMessage,
             *ResultString = AllocateZeroPool (SVALUE_MAX_SIZE);
 
@@ -2336,7 +2336,7 @@ GraphicsMenuStyle (
   IN CHAR16               *ParamText
 ) {
   INTN        i, j = 0, ItemWidth = 0, X, t1, t2, VisibleHeight = 0; //assume vertical layout
-  UINTN       TitleLen, iSwitch;
+  UINTN       TitleLen, iSwitch = 0;
   BOOLEAN     NeedMarginLeft;
   CHAR16      ResultString[SVALUE_MAX_SIZE];
 

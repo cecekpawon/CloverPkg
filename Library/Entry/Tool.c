@@ -49,7 +49,7 @@
 #define DBG(...) DebugLog (DEBUG_SCAN_TOOL, __VA_ARGS__)
 
 STATIC CHAR16 *ShellPath[] = {
-  L"Shell64.efi",
+  L"Shellx64.efi",
   L"Shell.efi"
 };
 
@@ -160,16 +160,17 @@ ScanTool () {
   // look for the EFI shell
   if (!(GlobalConfig.DisableFlags & HIDEUI_FLAG_SHELL)) {
     for (i = 0; i < ShellPathCount; ++i) {
-      if (AddToolEntry (
-            PoolPrint (L"%s\\%s", DIR_TOOLS, ShellPath[i]),
-            NULL,
-            L"UEFI Shell 64",
-            SelfVolume,
-            BuiltinIcon (BUILTIN_ICON_TOOL_SHELL),
-            GetSmallHover (BUILTIN_ICON_TOOL_SHELL),
-            'S',
-            NULL
-          )
+      if (
+        AddToolEntry (
+          PoolPrint (L"%s\\%s", DIR_TOOLS, ShellPath[i]),
+          NULL,
+          L"UEFI Shell 64",
+          SelfVolume,
+          BuiltinIcon (BUILTIN_ICON_TOOL_SHELL),
+          GetSmallHover (BUILTIN_ICON_TOOL_SHELL),
+          'S',
+          NULL
+        )
       ) {
         //MsgLog ("- %s\n", ShellPath[i]);
         break;

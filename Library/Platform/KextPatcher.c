@@ -129,59 +129,6 @@ SearchAndCount (
   return NumFounds;
 }
 
-#if 0
-EFI_STATUS
-FindPatternAddr (
-  IN  UINT8   *Pattern,
-  IN  UINT8   Wildcard,
-  IN  UINT32  PatternLength,
-  IN  VOID    *Base,
-  IN  UINT32  Size,
-  OUT VOID    **Addr
-) {
-  UINT32  i, j;
-
-  if ((Addr == NULL) || (Pattern == NULL) || (Base == NULL)) {
-    return EFI_INVALID_PARAMETER;
-  }
-
-  for (i = 0; i < Size - PatternLength; i++) {
-    BOOLEAN   Found = TRUE;
-
-    for (j = 0; j < PatternLength; j++) {
-      if ((Pattern[j] != Wildcard) && (Pattern[j] != ((UINT8*)Base)[i + j])) {
-        Found = FALSE;
-        break;
-      }
-    }
-
-    if (Found) {
-      *Addr = (UINT8*)Base + i;
-      return EFI_SUCCESS;
-    }
-  }
-
-  return EFI_NOT_FOUND;
-}
-
-VOID *
-UtilCallAddress (
-  IN VOID   *CallAddress
-) {
-  UINT32  RelativeCallOffset = *(UINT32*)((UINT8*)CallAddress + 1);
-
-  return (VOID*)((UINT8*)CallAddress + RelativeCallOffset + 1 + sizeof (UINT32));
-}
-
-UINT32
-UtilCalcRelativeCallOffset (
-  IN VOID   *CallAddress,
-  IN VOID   *TargetAddress
-) {
-  return (UINT32)(((UINT64)TargetAddress) - ((UINT64)CallAddress + 1 + sizeof (UINT32)));
-}
-#endif
-
 //
 // Searches Source for Search pattern of size SearchSize
 // and replaces it with Replace up to MaxReplaces times.
@@ -239,8 +186,8 @@ SearchAndReplace (
   UINT8     Wildcard,
   INTN      MaxReplaces
 ) {
-  UINTN     NumReplaces = 0;
   BOOLEAN   NoReplacesRestriction = (MaxReplaces <= 0);
+  UINTN     NumReplaces = 0;
   UINT8     *End = Source + SourceSize;
 
   if (!Source || !Search || !Replace || !SearchSize) {

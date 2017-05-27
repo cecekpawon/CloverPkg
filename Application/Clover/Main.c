@@ -54,11 +54,6 @@
 BOOLEAN                 gGuiIsReady = FALSE,
                         gThemeNeedInit = TRUE,
                         gDoHibernateWake = FALSE;
-EFI_HANDLE              gImageHandle;
-EFI_SYSTEM_TABLE        *gST;
-EFI_BOOT_SERVICES       *gBS;
-EFI_RUNTIME_SERVICES    *gRS;
-EFI_DXE_SERVICES        *gDS;
 
 // Splash -->
 CHAR16                  **LoadMessages;
@@ -69,7 +64,7 @@ VOID
 DrawLoadMessage (
   CHAR16  *Msg
 ) {
-  UINTN   i, Size, FontHeight = 20;
+  UINTN   i, Size, RowHeight = 20;
 
   //if (gSettings.NoEarlyProgress) {
   //  return;
@@ -83,7 +78,7 @@ DrawLoadMessage (
   LoadMessages[MessageNow - 1] = EfiStrDuplicate (Msg);
 
   for (i = 0; i < MessageNow; i++) {
-    DrawTextXY (LoadMessages[i], 0, UGAHeight - ((MessageNow - i) * FontHeight), X_IS_LEFT, MessageClearWidth);
+    DrawTextXY (LoadMessages[i], 0, UGAHeight - ((MessageNow - i) * RowHeight), X_IS_LEFT, MessageClearWidth);
   }
 
   //gBS->Stall (500000);
@@ -92,10 +87,10 @@ DrawLoadMessage (
 VOID
 InitSplash () {
   //if (!gSettings.NoEarlyProgress) {
-    EG_IMAGE  *Banner = BuiltinIcon (BUILTIN_ICON_BANNER_BLACK);
+    EG_IMAGE  *SplashLogo = BuiltinIcon (BUILTIN_ICON_BANNER_BLACK);
 
-    MessageClearWidth = (UGAWidth - Banner->Width) >> 1;
-    DrawImageArea (Banner, 0, 0, 0, 0, MessageClearWidth, (UGAHeight - Banner->Height) >> 1);
+    MessageClearWidth = (UGAWidth - SplashLogo->Width) >> 1;
+    DrawImageArea (SplashLogo, 0, 0, 0, 0, MessageClearWidth, (UGAHeight - SplashLogo->Height) >> 1);
   //}
 }
 
@@ -129,7 +124,7 @@ RefitMain (
   gST           = SystemTable;
   gImageHandle  = ImageHandle;
   gBS           = SystemTable->BootServices;
-  gRS           = SystemTable->RuntimeServices;
+  gRT           = SystemTable->RuntimeServices;
   /*Status = */EfiGetSystemConfigurationTable (&gEfiDxeServicesTableGuid, (VOID **)&gDS);
 
   // To initialize 'SelfRootDir', we should place it here
@@ -143,7 +138,7 @@ RefitMain (
   /*Status = */MkDir (SelfRootDir, DIR_MISC);
   //Should apply to: "ACPI/origin/" too
 
-  gRS->GetTime (&Now, NULL);
+  gRT->GetTime (&Now, NULL);
 
   //DbgHeader ("RefitMain");
 
@@ -462,9 +457,9 @@ RefitMain (
       switch (ChosenEntry->Tag) {
         case TAG_RESET:    // Restart
           // Attempt warm reboot
-          gRS->ResetSystem (EfiResetWarm, EFI_SUCCESS, 0, NULL);
+          gRT->ResetSystem (EfiResetWarm, EFI_SUCCESS, 0, NULL);
           // Warm reboot may not be supported attempt cold reboot
-          gRS->ResetSystem (EfiResetCold, EFI_SUCCESS, 0, NULL);
+          gRT->ResetSystem (EfiResetCold, EFI_SUCCESS, 0, NULL);
           // Terminate the screen and just exit
           TerminateScreen ();
           MainLoopRunning = FALSE;
@@ -474,7 +469,7 @@ RefitMain (
 
         case TAG_EXIT: // It is not Shut Down, it is Exit from Clover
           TerminateScreen ();
-          //gRS->ResetSystem (EfiResetShutdown, EFI_SUCCESS, 0, NULL);
+          //gRT->ResetSystem (EfiResetShutdown, EFI_SUCCESS, 0, NULL);
           MainLoopRunning = FALSE;   // just in case we get this far
           ReinitDesktop = FALSE;
           AfterTool = TRUE;

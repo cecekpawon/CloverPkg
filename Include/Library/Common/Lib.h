@@ -48,11 +48,6 @@
 #define CONSTRAIN_MIN(Variable, MinValue) if (Variable < MinValue) Variable = MinValue
 #define CONSTRAIN_MAX(Variable, MaxValue) if (Variable > MaxValue) Variable = MaxValue
 
-extern EFI_HANDLE                 gImageHandle;
-extern EFI_SYSTEM_TABLE           *gST;
-extern EFI_BOOT_SERVICES          *gBS;
-extern EFI_RUNTIME_SERVICES       *gRS;
-
 //
 // lib module
 //

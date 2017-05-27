@@ -159,6 +159,4 @@ BootArgsFix (
 //  IN EFI_PHYSICAL_ADDRESS   Start
 //);
 
-InternalBootArgs    gAptioBootArgs;
-
 #endif

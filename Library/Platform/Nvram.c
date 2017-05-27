@@ -623,7 +623,7 @@ GetEfiBootDeviceFromNvram () {
  */
 INTN
 FindStartupDiskVolume (
-  REFIT_MENU_SCREEN   *MainMenu
+  REFIT_MENU_SCREEN   *MenuScreen
 ) {
   INTN              Index;
   LOADER_ENTRY      *LoaderEntry;
@@ -660,9 +660,9 @@ FindStartupDiskVolume (
   //
   if (gEfiBootLoaderPath != NULL) {
     DBG ("   - searching for that partition and loader '%s'\n", gEfiBootLoaderPath);
-    for (Index = 0; ((Index < (INTN)MainMenu->EntryCount) && (MainMenu->Entries[Index]->Row == 0)); ++Index) {
-      if (MainMenu->Entries[Index]->Tag == TAG_LOADER) {
-        LoaderEntry = (LOADER_ENTRY *)MainMenu->Entries[Index];
+    for (Index = 0; ((Index < (INTN)MenuScreen->EntryCount) && (MenuScreen->Entries[Index]->Row == 0)); ++Index) {
+      if (MenuScreen->Entries[Index]->Tag == TAG_LOADER) {
+        LoaderEntry = (LOADER_ENTRY *)MenuScreen->Entries[Index];
         Volume = LoaderEntry->Volume;
         LoaderPath = LoaderEntry->LoaderPath;
 
@@ -687,9 +687,9 @@ FindStartupDiskVolume (
     //
     DBG ("   - searching again, but comparing Media dev path nodes\n");
 
-    for (Index = 0; ((Index < (INTN)MainMenu->EntryCount) && (MainMenu->Entries[Index]->Row == 0)); ++Index) {
-      if (MainMenu->Entries[Index]->Tag == TAG_LOADER) {
-        LoaderEntry = (LOADER_ENTRY *)MainMenu->Entries[Index];
+    for (Index = 0; ((Index < (INTN)MenuScreen->EntryCount) && (MenuScreen->Entries[Index]->Row == 0)); ++Index) {
+      if (MenuScreen->Entries[Index]->Tag == TAG_LOADER) {
+        LoaderEntry = (LOADER_ENTRY *)MenuScreen->Entries[Index];
         Volume = LoaderEntry->Volume;
         LoaderPath = LoaderEntry->LoaderPath;
 
@@ -715,16 +715,16 @@ FindStartupDiskVolume (
   //
   if (IsPartitionVolume) {
     DBG ("   - searching for that partition\n");
-    for (Index = 0; ((Index < (INTN)MainMenu->EntryCount) && (MainMenu->Entries[Index]->Row == 0)); ++Index) {
+    for (Index = 0; ((Index < (INTN)MenuScreen->EntryCount) && (MenuScreen->Entries[Index]->Row == 0)); ++Index) {
       Volume = NULL;
 
-      if (MainMenu->Entries[Index]->Tag == TAG_LOADER) {
-        LoaderEntry = (LOADER_ENTRY *)MainMenu->Entries[Index];
+      if (MenuScreen->Entries[Index]->Tag == TAG_LOADER) {
+        LoaderEntry = (LOADER_ENTRY *)MenuScreen->Entries[Index];
         Volume = LoaderEntry->Volume;
       }
 
       if ((Volume != NULL) && BootVolumeDevicePathEqual (gEfiBootVolume, Volume->DevicePath)) {
-        DBG ("    - found entry %d. '%s', Volume '%s'\n", Index, MainMenu->Entries[Index]->Title, Volume->VolName);
+        DBG ("    - found entry %d. '%s', Volume '%s'\n", Index, MenuScreen->Entries[Index]->Title, Volume->VolName);
         return Index;
       }
     }
@@ -736,15 +736,15 @@ FindStartupDiskVolume (
     //
     DBG ("   - searching again, but comparing Media dev path nodes\n");
 
-    for (Index = 0; ((Index < (INTN)MainMenu->EntryCount) && (MainMenu->Entries[Index]->Row == 0)); ++Index) {
+    for (Index = 0; ((Index < (INTN)MenuScreen->EntryCount) && (MenuScreen->Entries[Index]->Row == 0)); ++Index) {
       Volume = NULL;
 
-      if (MainMenu->Entries[Index]->Tag == TAG_LOADER) {
-        LoaderEntry = (LOADER_ENTRY *)MainMenu->Entries[Index];
+      if (MenuScreen->Entries[Index]->Tag == TAG_LOADER) {
+        LoaderEntry = (LOADER_ENTRY *)MenuScreen->Entries[Index];
         Volume = LoaderEntry->Volume;
       }
       if ((Volume != NULL) && BootVolumeMediaDevicePathNodesEqual (gEfiBootVolume, Volume->DevicePath)) {
-        DBG ("    - found entry %d. '%s', Volume '%s'\n", Index, MainMenu->Entries[Index]->Title, Volume->VolName);
+        DBG ("    - found entry %d. '%s', Volume '%s'\n", Index, MenuScreen->Entries[Index]->Title, Volume->VolName);
         return Index;
       }
     }
@@ -783,9 +783,9 @@ FindStartupDiskVolume (
   // search for first entry with win loader or win partition on that disk
   //
   DBG ("   - searching for first entry with win loader or win partition on that disk\n");
-  for (Index = 0; ((Index < (INTN)MainMenu->EntryCount) && (MainMenu->Entries[Index]->Row == 0)); ++Index) {
-    if (MainMenu->Entries[Index]->Tag == TAG_LOADER) {
-      LoaderEntry = (LOADER_ENTRY *)MainMenu->Entries[Index];
+  for (Index = 0; ((Index < (INTN)MenuScreen->EntryCount) && (MenuScreen->Entries[Index]->Row == 0)); ++Index) {
+    if (MenuScreen->Entries[Index]->Tag == TAG_LOADER) {
+      LoaderEntry = (LOADER_ENTRY *)MenuScreen->Entries[Index];
       Volume = LoaderEntry->Volume;
 
       if ((Volume != NULL) && (Volume->WholeDiskBlockIO == DiskVolume->BlockIO)) {
@@ -813,9 +813,9 @@ FindStartupDiskVolume (
 
   DBG ("   - searching for any entry from disk '%s'\n", DiskVolume->VolName);
 
-  for (Index = 0; ((Index < (INTN)MainMenu->EntryCount) && (MainMenu->Entries[Index]->Row == 0)); ++Index) {
-    if (MainMenu->Entries[Index]->Tag == TAG_LOADER) {
-      LoaderEntry = (LOADER_ENTRY *)MainMenu->Entries[Index];
+  for (Index = 0; ((Index < (INTN)MenuScreen->EntryCount) && (MenuScreen->Entries[Index]->Row == 0)); ++Index) {
+    if (MenuScreen->Entries[Index]->Tag == TAG_LOADER) {
+      LoaderEntry = (LOADER_ENTRY *)MenuScreen->Entries[Index];
       Volume = LoaderEntry->Volume;
 
       if ((Volume != NULL) && (Volume->WholeDiskBlockIO == DiskVolume->BlockIO)) {
@@ -828,6 +828,7 @@ FindStartupDiskVolume (
   }
 
   DBG ("    - [!] not found\n");
+
   return -1;
 }
 

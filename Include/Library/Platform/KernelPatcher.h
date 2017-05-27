@@ -266,28 +266,7 @@ SearchAndCount (
   UINT8     *Search,
   UINTN     SearchSize
 );
-/*
-EFI_STATUS
-FindPatternAddr (
-  IN  UINT8   *Pattern,
-  IN  UINT8   Wildcard,
-  IN  UINT32  PatternLength,
-  IN  VOID    *Base,
-  IN  UINT32  Size,
-  OUT VOID    **Addr
-);
 
-VOID *
-UtilCallAddress (
-  IN VOID   *CallAddress
-);
-
-UINT32
-UtilCalcRelativeCallOffset (
-  IN VOID   *CallAddress,
-  IN VOID   *TargetAddress
-);
-*/
 //
 // Searches Source for Search pattern of size SearchSize
 // and replaces it with Replace up to MaxReplaces times.

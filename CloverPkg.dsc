@@ -86,17 +86,13 @@
     CloverPkg/Module/OsxAptioFixDrv/OsxAptioFixDrv.inf
   !endif
 
-  #CloverPkg/Module/OsxFatBinaryDrv/OsxFatBinaryDrv.inf
   #CloverPkg/Application/bdmesg_efi/bdmesg.inf
   CloverPkg/Application/Clover/Clover.inf
 
 [BuildOptions]
-  #!ifdef DISABLE_LTO
-  #  DEFINE DISABLE_LTO_FLAG = -fno-lto
-  #!endif
-
   DEFINE BUILD_OPTIONS_GEN = -D DISABLE_NEW_DEPRECATED_INTERFACES $(BUILD_OPTIONS)
 
-  MSFT:*_*_*_CC_FLAGS  = /D MDEPKG_NDEBUG $(BUILD_OPTIONS_GEN)
-  XCODE:*_*_*_CC_FLAGS = -D MDEPKG_NDEBUG $(BUILD_OPTIONS_GEN) #$(DISABLE_LTO_FLAG)
+  MSFT:*_*_*_CC_FLAGS  = /D MDEPKG_NDEBUG $(BUILD_OPTIONS_GEN) /GL-
+  XCODE:*_*_*_CC_FLAGS = -D MDEPKG_NDEBUG $(BUILD_OPTIONS_GEN)
   GCC:*_*_*_CC_FLAGS   = -D MDEPKG_NDEBUG $(BUILD_OPTIONS_GEN)
+  *_*_*_MTOC_PATH      = $(TOOLCHAIN_BIN)/mtoc

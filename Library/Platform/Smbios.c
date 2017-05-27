@@ -978,7 +978,6 @@ PatchTableType7 () {
 
 VOID
 PatchTableType9 () {
-  UINTN   Count = ARRAY_SIZE (SlotDevices);
   //
   // System Slots (Type 9)
   /*
@@ -1005,7 +1004,7 @@ PatchTableType9 () {
   // SlotType = 32bit PCI/SlotTypePciExpressX1/x4/x16
   // real PC -> PCI, real Mac -> PCIe
 
-  for (Index = 0; Index < Count; Index++) {
+  for (Index = 0; Index < DEV_INDEX_MAX; Index++) {
     if (SlotDevices[Index].Valid) {
       INTN    Dev, Func;
 

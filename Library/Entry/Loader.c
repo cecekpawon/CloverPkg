@@ -528,7 +528,7 @@ CreateLoaderEntry (
   CHAR8             *Indent = "    ",
                     *OSVersion = NULL, *OSBuildVersion = NULL;
   EG_IMAGE          *ImageTmp;
-  SVersion          *DarwinOSVersion;
+  SVersion          *DarwinOSVersion = NULL;
 
   // Check parameters are valid
   if ((LoaderPath == NULL) || (*LoaderPath == 0) || (Volume == NULL)) {
@@ -707,11 +707,14 @@ CreateLoaderEntry (
     case OSTYPE_DARWIN_INSTALLER:
       Entry->OSVersion = AllocateCopyPool (AsciiStrSize (OSVersion), OSVersion);
       Entry->OSBuildVersion = AllocateCopyPool (AsciiStrSize (OSBuildVersion), OSBuildVersion);
-      Entry->OSVersionMajor = DarwinOSVersion->VersionMajor;
-      Entry->OSVersionMinor = DarwinOSVersion->VersionMinor;
-      Entry->OSRevision = DarwinOSVersion->Revision;
 
-      OSIconName = GetOSIconName (DarwinOSVersion);
+      if (DarwinOSVersion != NULL) {
+        Entry->OSVersionMajor = DarwinOSVersion->VersionMajor;
+        Entry->OSVersionMinor = DarwinOSVersion->VersionMinor;
+        Entry->OSRevision = DarwinOSVersion->Revision;
+
+        OSIconName = GetOSIconName (DarwinOSVersion);
+      }
 
       if ((OSType == OSTYPE_DARWIN) && IsDarwinHibernated (Volume)) {
         Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_HIBERNATED);
@@ -2338,6 +2341,8 @@ StartLoader (
       Entry->LoadOptions = TempOptions;
     }
 
+    SyncDevices ();
+
     // first PatchDarwinACPI and find PCIROOT and RTC
     // but before ACPI patch we need smbios patch
     PatchSmbios ();
@@ -2611,26 +2616,31 @@ SetFSInjection (
 VOID
 ReadCsrCfg () {
   UINT32    csrCfg = gSettings.CsrActiveConfig & CSR_VALID_FLAGS;
-  CHAR16    *csrLog = AllocateZeroPool (SVALUE_MAX_SIZE);
+  UINTN     Len = SVALUE_MAX_SIZE;
+  CHAR16    *csrLog = AllocateZeroPool (Len);
 
-  if (csrCfg & CSR_ALLOW_UNTRUSTED_KEXTS)
-    StrCatS (csrLog, SVALUE_MAX_SIZE, L"CSR_ALLOW_UNTRUSTED_KEXTS");
-  if (csrCfg & CSR_ALLOW_UNRESTRICTED_FS)
-    StrCatS (csrLog, SVALUE_MAX_SIZE, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_UNRESTRICTED_FS"));
-  if (csrCfg & CSR_ALLOW_TASK_FOR_PID)
-    StrCatS (csrLog, SVALUE_MAX_SIZE, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_TASK_FOR_PID"));
-  if (csrCfg & CSR_ALLOW_KERNEL_DEBUGGER)
-    StrCatS (csrLog, SVALUE_MAX_SIZE, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_KERNEL_DEBUGGER"));
-  if (csrCfg & CSR_ALLOW_APPLE_INTERNAL)
-    StrCatS (csrLog, SVALUE_MAX_SIZE, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_APPLE_INTERNAL"));
-  if (csrCfg & CSR_ALLOW_UNRESTRICTED_DTRACE)
-    StrCatS (csrLog, SVALUE_MAX_SIZE, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_UNRESTRICTED_DTRACE"));
-  if (csrCfg & CSR_ALLOW_UNRESTRICTED_NVRAM)
-    StrCatS (csrLog, SVALUE_MAX_SIZE, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_UNRESTRICTED_NVRAM"));
-  if (csrCfg & CSR_ALLOW_DEVICE_CONFIGURATION)
-    StrCatS (csrLog, SVALUE_MAX_SIZE, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_DEVICE_CONFIGURATION"));
-  if (csrCfg & CSR_ALLOW_ANY_RECOVERY_OS)
-    StrCatS (csrLog, SVALUE_MAX_SIZE, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_ANY_RECOVERY_OS"));
+  if (gSettings.CsrActiveConfig != 0xFFFF) {
+    if (csrCfg & CSR_ALLOW_UNTRUSTED_KEXTS)
+      StrCatS (csrLog, Len, L"CSR_ALLOW_UNTRUSTED_KEXTS");
+    if (csrCfg & CSR_ALLOW_UNRESTRICTED_FS)
+      StrCatS (csrLog, Len, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_UNRESTRICTED_FS"));
+    if (csrCfg & CSR_ALLOW_TASK_FOR_PID)
+      StrCatS (csrLog, Len, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_TASK_FOR_PID"));
+    if (csrCfg & CSR_ALLOW_KERNEL_DEBUGGER)
+      StrCatS (csrLog, Len, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_KERNEL_DEBUGGER"));
+    if (csrCfg & CSR_ALLOW_APPLE_INTERNAL)
+      StrCatS (csrLog, Len, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_APPLE_INTERNAL"));
+    if (csrCfg & CSR_ALLOW_UNRESTRICTED_DTRACE)
+      StrCatS (csrLog, Len, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_UNRESTRICTED_DTRACE"));
+    if (csrCfg & CSR_ALLOW_UNRESTRICTED_NVRAM)
+      StrCatS (csrLog, Len, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_UNRESTRICTED_NVRAM"));
+    if (csrCfg & CSR_ALLOW_DEVICE_CONFIGURATION)
+      StrCatS (csrLog, Len, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_DEVICE_CONFIGURATION"));
+    if (csrCfg & CSR_ALLOW_ANY_RECOVERY_OS)
+      StrCatS (csrLog, Len, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_ANY_RECOVERY_OS"));
+  } else {
+    StrCpyS (csrLog, Len, L"NONE (SIP are fully enabled)");
+  }
 
   if (StrLen (csrLog)) {
     MsgLog ("CSR_CFG: %s\n", csrLog);

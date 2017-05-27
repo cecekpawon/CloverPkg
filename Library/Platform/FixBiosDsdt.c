@@ -55,13 +55,13 @@ UINT32      HDAADR1;
 UINT32      HDMIADR1;
 UINT32      HDMIADR2;
 
-UINT32      DisplayADR1[4];
-UINT32      DisplayADR2[4];
-UINT32      DisplayVendor[4];
-UINT16      DisplayID[4];
-UINT32      DisplaySubID[4];
+UINT32      DisplayADR1[MAX_NUM_GFX];
+UINT32      DisplayADR2[MAX_NUM_GFX];
+UINT32      DisplayVendor[MAX_NUM_GFX];
+//UINT16      DisplayID[MAX_NUM_GFX];
+//UINT32      DisplaySubID[MAX_NUM_GFX];
 //UINT32      GfxlayoutId = 1;
-PCI_DT      Displaydevice[2];
+//PCI_DT      Displaydevice[MAX_NUM_GFX];
 
 //UINT32 IMEIADR1;
 //UINT32 IMEIADR2;
@@ -230,6 +230,7 @@ CheckHardware () {
 
           //Display ADR
           if (
+            (Display <= MAX_NUM_GFX) &&
             (Pci.Hdr.ClassCode[2] == PCI_CLASS_DISPLAY) &&
             (Pci.Hdr.ClassCode[1] == PCI_CLASS_DISPLAY_VGA)
           ) {
@@ -251,18 +252,18 @@ CheckHardware () {
 
                  //DAdr2 = DAdr1; //to avoid warning "unused variable" :(
             DisplayVendor[Display] = Pci.Hdr.VendorId;
-            DisplayID[Display] = Pci.Hdr.DeviceId;
-            DisplaySubID[Display] = (Pci.Device.SubsystemID << 16) | (Pci.Device.SubsystemVendorID << 0);
+            //DisplayID[Display] = Pci.Hdr.DeviceId;
+            //DisplaySubID[Display] = (Pci.Device.SubsystemID << 16) | (Pci.Device.SubsystemVendorID << 0);
             // for get Display data
-            Displaydevice[Display].DeviceHandle = HandleBuffer[HandleIndex];
-            Displaydevice[Display].dev.addr = (UINT32)PCIADDR (Bus, Device, Function);
-            Displaydevice[Display].vendor_id = Pci.Hdr.VendorId;
-            Displaydevice[Display].device_id = Pci.Hdr.DeviceId;
-            Displaydevice[Display].revision = Pci.Hdr.RevisionID;
-            Displaydevice[Display].subclass = Pci.Hdr.ClassCode[0];
-            Displaydevice[Display].class_id = *((UINT16 *)(Pci.Hdr.ClassCode + 1));
-            Displaydevice[Display].subsys_id.subsys.vendor_id = Pci.Device.SubsystemVendorID;
-            Displaydevice[Display].subsys_id.subsys.device_id = Pci.Device.SubsystemID;
+            //Displaydevice[Display].DeviceHandle = HandleBuffer[HandleIndex];
+            //Displaydevice[Display].dev.addr = (UINT32)PCIADDR (Bus, Device, Function);
+            //Displaydevice[Display].vendor_id = Pci.Hdr.VendorId;
+            //Displaydevice[Display].device_id = Pci.Hdr.DeviceId;
+            //Displaydevice[Display].revision = Pci.Hdr.RevisionID;
+            //Displaydevice[Display].subclass = Pci.Hdr.ClassCode[0];
+            //Displaydevice[Display].class_id = *((UINT16 *)(Pci.Hdr.ClassCode + 1));
+            //Displaydevice[Display].subsys_id.subsys.vendor_id = Pci.Device.SubsystemVendorID;
+            //Displaydevice[Display].subsys_id.subsys.device_id = Pci.Device.SubsystemID;
 
             //
             // Detect if PCI Express Device
@@ -667,6 +668,7 @@ WriteSize (
   return Offset;
 }
 
+/*
 STATIC
 INT32
 FindName (
@@ -688,6 +690,7 @@ FindName (
 
   return 0;
 }
+*/
 
 STATIC
 BOOLEAN
@@ -1665,12 +1668,13 @@ FIXDisplay (
 
   Skip_DSM:
 
+  /*
   //add _sun
   switch (DisplayVendor[VCard]) {
     case 0x10DE:
     case 0x1002:
       Size = AcpiGetSize (Dsdt, i);
-      j = (DisplayVendor[VCard] == 0x1002) ? 0 : 1;
+      j = (DisplayVendor[VCard] == 0x1002) ? DEV_INDEX_ATI : DEV_INDEX_NVIDIA;
       k = FindMethod (Dsdt + i, Size, "_SUN");
 
       if (k == 0) {
@@ -1689,6 +1693,7 @@ FIXDisplay (
       }
       break;
   }
+  */
 
   if (!NonUsable) {
     //now insert video
@@ -1895,11 +1900,11 @@ AddHDMI (
       k = FindName (Dsdt + i, Size, "_SUN");
       if (k == 0) {
         AmlAddName (dev, "_SUN");
-        AmlAddDword (dev, SlotDevices[4].SlotID);
+        AmlAddDword (dev, SlotDevices[DEV_INDEX_HDMI].SlotID);
       } else {
         //we have name sun, set the number
         if (Dsdt[k + 4] == 0x0A) {
-          Dsdt[k + 5] = SlotDevices[4].SlotID;
+          Dsdt[k + 5] = SlotDevices[DEV_INDEX_HDMI].SlotID;
         }
       }
     }
@@ -2099,11 +2104,11 @@ FIXNetwork (
     k = FindName (Dsdt + i, Size, "_SUN");
     if (k == 0) {
       AmlAddName (Dev, "_SUN");
-      AmlAddDword (Dev, SlotDevices[5].SlotID);
+      AmlAddDword (Dev, SlotDevices[DEV_INDEX_LAN].SlotID);
     } else {
       //we have name sun, set the number
       if (Dsdt[k + 4] == 0x0A) {
-        Dsdt[k + 5] = SlotDevices[5].SlotID;
+        Dsdt[k + 5] = SlotDevices[DEV_INDEX_LAN].SlotID;
       }
     }
   }
@@ -2319,11 +2324,11 @@ FIXAirport (
     k = FindName (Dsdt + i, Size, "_SUN");
     if (k == 0) {
       AmlAddName (Dev, "_SUN");
-      AmlAddDword (Dev, SlotDevices[6].SlotID);
+      AmlAddDword (Dev, SlotDevices[DEV_INDEX_WIFI].SlotID);
     } else {
       //we have name sun, set the number
       if (Dsdt[k + 4] == 0x0A) {
-        Dsdt[k + 5] = SlotDevices[6].SlotID;
+        Dsdt[k + 5] = SlotDevices[DEV_INDEX_WIFI].SlotID;
       }
     }
   } else {
@@ -2760,7 +2765,7 @@ FixBiosDsdt (
   ) {
     INT32   i;
 
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < MAX_NUM_GFX; i++) {
       if (DisplayADR1[i]) {
         if (
           ((DisplayVendor[i] != 0x8086) && (gSettings.FixDsdt & FIX_DISPLAY)) ||

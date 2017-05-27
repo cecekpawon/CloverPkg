@@ -33,6 +33,7 @@ The main goals is to bring some of outstanding Ozmosis features into Clover. Str
 - [x] Detect .png icons only.
 - [x] No 'OEM' setting folder support.
 - [x] Remove huge built-in injection properties.
+- [x] No FileVault support.
 
 ### Migrations:
 

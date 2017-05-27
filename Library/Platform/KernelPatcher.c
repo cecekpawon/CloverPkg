@@ -897,7 +897,9 @@ PatchLoadEXE (
 }
 
 /*
-## Meklort's style
+//
+// ## Meklort's style
+//
 
 BOOLEAN
 PatchPrelinked (
@@ -1047,111 +1049,6 @@ KernelBooterExtensionsPatchBruteForce (
 }
 #endif
 
-#if 0
-/**
-cc: @bs0d
-
-Here Im trying to create 'trampoline' like, but just FAILED, to catch all kexts after fully loaded
-(in installer / recovery mode) and then patch it like Lilu (https://github.com/vit9696/Lilu).
-
-Method below was taken from UEFI-Bootkit for Windows (https://github.com/dude719/UEFI-Bootkit).
-**/
-
-//
-// TargetCall hook
-//
-typedef EFI_STATUS(EFIAPI *tTargetCall)(VOID);
-
-UINT8         OriginalCallPatterns[] = { 0xE8, 0xCC, 0x7C, 0x00, 0x00, 0x85, 0xC0, 0x0F, 0x84, 0x91, 0x00, 0x00, 0x00 };
-
-UINT8         *TargetCallPatchLocation = NULL;
-UINT8         TargetCallBackup[5] = { 0 };
-tTargetCall   oTargetCall = NULL;
-
-//ffffff8000842f91 488D3558662C00     lea        rsi, qword [ds:0xffffff8000b095f0]
-//ffffff8000842f98 E8137C0000         call       sub_ffffff800084abb0
-//ffffff8000842f9d 85C0               test       eax, eax
-//ffffff8000842f9f 0F8491000000       je         0xffffff8000843036
-
-//
-// Our TargetCall hook which takes the winload Image Base as a parameter so we can patch the kernel
-//
-EFI_STATUS
-EFIAPI
-OnCalledFromKernel (VOID) {
-  // Restore original bytes to call
-  CopyMem (TargetCallPatchLocation, TargetCallBackup, 5);
-/*
-  // Clear the screen
-  gST->ConOut->ClearScreen (gST->ConOut);
-
-  Print( L"Called..." );
-  //DBG_PAUSE (Entry, 10);
-
-  // Clear screen
-  gST->ConOut->ClearScreen (gST->ConOut);
-*/
-
-  return oTargetCall();
-}
-
-VOID
-PatchKeat (
-  LOADER_ENTRY    *Entry
-) {
-  EFI_STATUS  Status = EFI_SUCCESS;
-  UINT8       *Found = NULL;
-
-  // Find right location to patch
-  Status = FindPatternAddr (
-    OriginalCallPatterns,
-    0xCC,
-    sizeof (OriginalCallPatterns),
-    KernelInfo->Bin + KernelInfo->TextOff,
-    KernelInfo->TextSize,
-    (VOID**)&Found
-  );
-
-  if (!EFI_ERROR (Status)) {
-    // Found address, now let's do our patching
-    UINT32  NewCallRelative = 0, PatchLocation = 0;
-
-    DBG ("Found TargetCall at %lx\n", Found);
-
-    // Save original call
-    oTargetCall = (tTargetCall)UtilCallAddress (Found);
-
-    // Backup original bytes and patch location before patching
-    TargetCallPatchLocation = (VOID*)Found;
-    CopyMem (TargetCallBackup, TargetCallPatchLocation, 5);
-
-    // Patch call to jump to our OnCalledFromKernel hook
-    NewCallRelative = UtilCalcRelativeCallOffset ((VOID*)Found, (VOID*)&OnCalledFromKernel);
-
-    //DBG ("1: %02x - ",  (UINT8)Found[PatchLocation]);
-    //DBG ("%02x - ",     (UINT8)Found[++PatchLocation]);
-    //DBG ("%02x - ",     (UINT8)Found[++PatchLocation]);
-    //DBG ("%02x - ",     (UINT8)Found[++PatchLocation]);
-    //DBG ("%02x - ",     (UINT8)Found[++PatchLocation]);
-    //DBG ("%02x - ",     (UINT8)Found[++PatchLocation]);
-    //DBG ("%02x\n",      (UINT8)Found[++PatchLocation]);
-
-    //Found
-    //*(UINT8*)Found = 0xE8; // Write call opcode
-    *(UINT32*)(Found + 1) = NewCallRelative; // Write the new relative call offset
-
-    //PatchLocation = 0;
-    //DBG ("2: %02x - ",  (UINT8)Found[PatchLocation]);
-    //DBG ("%02x - ",     (UINT8)Found[++PatchLocation]);
-    //DBG ("%02x - ",     (UINT8)Found[++PatchLocation]);
-    //DBG ("%02x - ",     (UINT8)Found[++PatchLocation]);
-    //DBG ("%02x - ",     (UINT8)Found[++PatchLocation]);
-    //DBG ("%02x - ",     (UINT8)Found[++PatchLocation]);
-    //DBG ("%02x\n",      (UINT8)Found[++PatchLocation]);
-  }
-}
-#endif
-
 VOID
 EFIAPI
 KernelBooterExtensionsPatch (
@@ -1164,8 +1061,6 @@ KernelBooterExtensionsPatch (
   }/* else {
     KernelBooterExtensionsPatchBruteForce (Entry);
   }*/
-
-  //PatchKeat (Entry);
 
   DBG ("%a: End\n", __FUNCTION__);
 }
