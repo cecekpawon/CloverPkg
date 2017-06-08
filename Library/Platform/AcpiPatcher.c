@@ -1565,7 +1565,6 @@ PatchACPI (
 
   if (OsSubdir != NULL) {
     // prepare dirs that will be searched for custom ACPI tables
-    //PatchedPath = PoolPrint (DIR_ACPI_PATCHED L"\\%s", OsSubdir);
     UnicodeSPrint (PatchedPath, ARRAY_SIZE (PatchedPath), DIR_ACPI_PATCHED L"\\%s", OsSubdir);
     PatchedDirExists = FileExists (SelfRootDir, PatchedPath);
   }

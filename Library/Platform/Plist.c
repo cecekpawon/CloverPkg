@@ -1238,10 +1238,11 @@ DumpSpaces (
   INT32   Cnt = 0, Total = (Depth * 2);
   CHAR8   *Spaces = AllocateZeroPool (Total);
 
-  while (Cnt < Total) {
-    Spaces[Cnt] = ' ';
-    Cnt++;
-  }
+  //while (Cnt < Total) {
+  //  Spaces[Cnt] = ' ';
+  //  Cnt++;
+  //}
+  SetMem (&Spaces[Cnt], Total - Cnt, 0x20);
 
   Spaces[Total] = '\0';
 

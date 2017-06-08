@@ -26,15 +26,11 @@ freely, subject to the following restrictions:
 #ifndef LODEPNG_H
 #define LODEPNG_H
 
-#include <Library/UefiLib.h>
-
 // Microsoft compiler has built-in size_t
 //#if !defined(_MSC_VER)
 //#define size_t UINTN
 typedef UINTN    size_t;
 //#endif
-
-extern EFI_BOOT_SERVICES  *gBS;
 
 //#define LODEPNG_NO_COMPILE_DECODER
 //#define LODEPNG_NO_COMPILE_DISK

@@ -33,10 +33,10 @@
 //#define QWRVAL(x)     { kCst, 8, (UINT8 *)(UINTN)x }
 #define NULVAL        { kNul, 0, (UINT8 *)NULL }
 
-#define RADEON_CRTC_GEN_CNTL                      0x0050
-#define RADEON_CRTC_EN                            (1 << 25)
-#define RADEON_CRTC2_GEN_CNTL                     0x03f8
-#define R600_CONFIG_MEMSIZE                       0x5428
+#define RADEON_CRTC_GEN_CNTL    0x0050
+#define RADEON_CRTC_EN          (1 << 25)
+#define RADEON_CRTC2_GEN_CNTL   0x03f8
+#define R600_CONFIG_MEMSIZE     0x5428
 
 /* Typedefs ENUMS */
 typedef enum {

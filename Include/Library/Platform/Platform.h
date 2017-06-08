@@ -912,6 +912,7 @@ typedef struct {
   BOOLEAN   FSInjectEmbedded;
   BOOLEAN   AptioFixLoaded;
   BOOLEAN   HFSLoaded;
+  BOOLEAN   APFSLoaded;
 } DRIVERS_FLAGS;
 
 typedef enum {

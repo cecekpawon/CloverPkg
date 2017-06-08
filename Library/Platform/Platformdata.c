@@ -32,7 +32,7 @@ S_MAC_MODELS   MAC_MODELS[] = {
   { "IM162.88Z.0207.B11.1702161134"  , "Mac-FFE5EF870D7BA81A" , "iMac16,2"       , "C02PNHACGG7G", "j94"  , { 0x02, 0x32, 0x0F, 0, 0, 0x20 }, 0xf00008 },// broadwell
   { "IM171.88Z.0105.B20.1702221516"  , "Mac-DB15BD556843C820" , "iMac17,1"       , "C02QFHACGG7L", "j95"  , { 0x02, 0x33, 0x0F, 0, 0, 0x10 }, 0xf0c008 },// skylake
 
-  { "MP61.88Z.0116.B25.1702171857"   , "Mac-F60DEB81FF30ACF6" , "MacPro6,1"      , "F5KLA770F9VM", "j90"  , { 0x02, 0x20, 0x0F, 0, 0, 0x18 }, 0xf0f006 },
+  { "MP61.88Z.0116.B44.1705011717"   , "Mac-F60DEB81FF30ACF6" , "MacPro6,1"      , "F5KLA770F9VM", "j90"  , { 0x02, 0x20, 0x0F, 0, 0, 0x18 }, 0xf0f006 },
 
   // Mobile
 

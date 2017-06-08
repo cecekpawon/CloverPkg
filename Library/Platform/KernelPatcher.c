@@ -857,7 +857,7 @@ PatchLoadEXE (
       //(Ptr[PatchLocation + 2] == 0x85) &&
       //(Ptr[PatchLocation + 3] == 0xDB) &&
       (Ptr[PatchLocation + 4] == 0x74) &&
-      ((Ptr[PatchLocation + 5] == 0x70) || (Ptr[PatchLocation + 5] == 0x71)) &&
+      ((Ptr[PatchLocation + 5] == 0x69) || (Ptr[PatchLocation + 5] == 0x70) || (Ptr[PatchLocation + 5] == 0x71)) &&
       (Ptr[PatchLocation + 6] == 0x48)
     ) {
       DBG (" - found at 0x%x\n", PatchLocation);
@@ -983,72 +983,6 @@ PatchPrelinked (
 }
 */
 
-#if 0
-////////////////////////////////////
-//
-// KernelBooterExtensionsPatch to load extra kexts besides kernelcache
-//
-//
-// -- StartupExt
-UINT8 KBStartupExt_S1[]   = { 0xC6, 0xE8, 0x0C, 0xFD, 0xFF, 0xFF, 0xEB, 0x08, 0x48, 0x89, 0xDF }; // 10.7
-UINT8 KBStartupExt_R1[]   = { 0xC6, 0xE8, 0x0C, 0xFD, 0xFF, 0xFF, 0x90, 0x90, 0x48, 0x89, 0xDF };
-
-UINT8 KBStartupExt_S2[]   = { 0xC6, 0xE8, 0x30, 0x00, 0x00, 0x00, 0xEB, 0x08, 0x48, 0x89, 0xDF }; // 10.8 - 10.9
-UINT8 KBStartupExt_R2[]   = { 0xC6, 0xE8, 0x30, 0x00, 0x00, 0x00, 0x90, 0x90, 0x48, 0x89, 0xDF };
-
-UINT8 KBStartupExt_S3[]   = { 0xC6, 0xE8, 0x25, 0x00, 0x00, 0x00, 0xEB, 0x05, 0xE8, 0xCE, 0x02 }; // 10.10 - 10.11
-UINT8 KBStartupExt_R3[]   = { 0xC6, 0xE8, 0x25, 0x00, 0x00, 0x00, 0x90, 0x90, 0xE8, 0xCE, 0x02 };
-
-UINT8 KBStartupExt_S4[]   = { 0xC6, 0xE8, 0x25, 0x00, 0x00, 0x00, 0xEB, 0x05, 0xE8, 0x7E, 0x05 }; // 10.12
-UINT8 KBStartupExt_R4[]   = { 0xC6, 0xE8, 0x25, 0x00, 0x00, 0x00, 0x90, 0x90, 0xE8, 0x7E, 0x05 };
-
-// -- LoadExec + Entitlement
-UINT8 KBLoadExec_S1[]     = { 0xC3, 0x48, 0x85, 0xDB, 0x74, 0x70, 0x48, 0x8B, 0x03, 0x48, 0x89, 0xDF, 0xFF, 0x50, 0x28, 0x48 }; // 10.11
-UINT8 KBLoadExec_R1[]     = { 0xC3, 0x48, 0x85, 0xDB, 0xEB, 0x12, 0x48, 0x8B, 0x03, 0x48, 0x89, 0xDF, 0xFF, 0x50, 0x28, 0x48 };
-
-UINT8 KBLoadExec_S2[]     = { 0xC3, 0x48, 0x85, 0xDB, 0x74, 0x71, 0x48, 0x8B, 0x03, 0x48, 0x89, 0xDF, 0xFF, 0x50, 0x28, 0x48 }; // 10.12
-UINT8 KBLoadExec_R2[]     = { 0xC3, 0x48, 0x85, 0xDB, 0xEB, 0x12, 0x48, 0x8B, 0x03, 0x48, 0x89, 0xDF, 0xFF, 0x50, 0x28, 0x48 };
-
-//
-// We can not rely on OSVersion global variable for OS version detection,
-// since in some cases it is not correct (install of ML from Lion, for example).
-// So, we'll use "brute-force" method - just try to patch.
-// Actually, we'll at least check that if we can find only one instance of code that
-// we are planning to patch.
-//
-VOID
-EFIAPI
-KernelBooterExtensionsPatchBruteForce (
-  LOADER_ENTRY    *Entry
-) {
-  UINTN   Num = 0;
-
-  if (!KernelInfo->A64Bit) {
-    return;
-  }
-
-  DBG ("Patching kernel for injected kexts:\n");
-
-  // LoadExec + Entitlement
-  Num = FSearchReplace (KernelInfo->TextAddr, KernelInfo->TextSize, KBLoadExec_S2, KBLoadExec_R2) +
-        FSearchReplace (KernelInfo->TextAddr, KernelInfo->TextSize, KBLoadExec_S1, KBLoadExec_R1);
-
-  // StartupExt
-  if (Num) { // >= 10.11
-    Num += FSearchReplace (KernelInfo->KldAddr, KernelInfo->KldSize, KBStartupExt_S4, KBStartupExt_R4) +
-           FSearchReplace (KernelInfo->KldAddr, KernelInfo->KldSize, KBStartupExt_S3, KBStartupExt_R3);
-    DBG ("==> OS: >= 10.11\n");
-  } else { // <= 10.10
-    Num = FSearchReplace (KernelInfo->KldAddr, KernelInfo->KldSize, KBStartupExt_S3, KBStartupExt_R3) +
-          FSearchReplace (KernelInfo->KldAddr, KernelInfo->KldSize, KBStartupExt_S2, KBStartupExt_R2) +
-          FSearchReplace (KernelInfo->KldAddr, KernelInfo->KldSize, KBStartupExt_S1, KBStartupExt_R1);
-    DBG ("==> OS: <= 10.10\n");
-  }
-
-  DBG_("==> %a : %d replaces done\n", Num ? "Success" : "Error", Num);
-}
-#endif
-
 VOID
 EFIAPI
 KernelBooterExtensionsPatch (
@@ -1058,9 +992,7 @@ KernelBooterExtensionsPatch (
 
   if (PatchStartupExt (Entry)) {
     PatchLoadEXE (Entry);
-  }/* else {
-    KernelBooterExtensionsPatchBruteForce (Entry);
-  }*/
+  }
 
   DBG ("%a: End\n", __FUNCTION__);
 }

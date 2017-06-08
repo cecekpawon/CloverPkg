@@ -13,7 +13,7 @@
 
 #define DBG(...) DebugLog (DEBUG_SCAN_DRIVER, __VA_ARGS__)
 
-DRIVERS_FLAGS   gDriversFlags = { FALSE, FALSE, FALSE, FALSE };  //the initializer is not needed for global variables
+DRIVERS_FLAGS   gDriversFlags = { FALSE, FALSE, FALSE, FALSE, FALSE };  //the initializer is not needed for global variables
 
 UINTN
 ScanDriverDir (
@@ -68,6 +68,10 @@ ScanDriverDir (
       (
         gDriversFlags.HFSLoaded &&
         (StriStr (DirEntry->FileName, L"HFS") != NULL)
+      ) ||
+      (
+        gDriversFlags.APFSLoaded &&
+        (StriStr (DirEntry->FileName, L"APFS") != NULL)
       )
     ) {
       continue;
@@ -95,6 +99,10 @@ ScanDriverDir (
 
     if (StriStr (Str, L"HFS") != NULL) {
       gDriversFlags.HFSLoaded = TRUE;
+    }
+
+    if (StriStr (Str, L"APFS") != NULL) {
+      gDriversFlags.APFSLoaded = TRUE;
     }
 
     if (
@@ -170,8 +178,14 @@ DisconnectSomeDevices () {
   CHAR16                            *DriverName;
   UINTN                             HandleCount, Index, Index2, ControllerHandleCount;
 
-  if (gDriversFlags.HFSLoaded) {
-    DBG ("- HFS+ driver loaded\n");
+  if (gDriversFlags.HFSLoaded || gDriversFlags.APFSLoaded) {
+    if (gDriversFlags.HFSLoaded) {
+      DBG ("- HFS+ driver loaded\n");
+    }
+
+    if (gDriversFlags.APFSLoaded) {
+      DBG ("- APFS driver loaded\n");
+    }
 
     // get all FileSystem handles
     ControllerHandleCount = 0;
@@ -217,7 +231,7 @@ DisconnectSomeDevices () {
           continue;
         }
 
-        if (StriStr (DriverName, L"HFS")) {
+        if (StriStr (DriverName, L"HFS") || StriStr (DriverName, L"APFS")) {
           for (Index2 = 0; Index2 < ControllerHandleCount; Index2++) {
             Status = gBS->DisconnectController (
                             ControllerHandles[Index2],

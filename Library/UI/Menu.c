@@ -1211,7 +1211,7 @@ InputDialog (
     because it works.
   */
 
-  UINTN             LineSize = 38;
+  UINTN             LineSize = 48;//38
 #define DBG_INPUTDIALOG 0
 #if DBG_INPUTDIALOG
   UINTN             Iteration = 0;
@@ -1297,7 +1297,7 @@ InputDialog (
 
         case SCAN_HOME:
           Pos = 0;
-          Item->LineShift=0;
+          Item->LineShift = 0;
           break;
 
         case SCAN_END:
@@ -1328,19 +1328,24 @@ InputDialog (
 
         case SCAN_DELETE:
           // forward delete
-          if (Pos + Item->LineShift < StrLen (Buffer)) {
-            for (i = Pos + Item->LineShift; i < StrLen (Buffer); i++) {
-              Buffer[i] = Buffer[i + 1];
+          {
+            UINTN   Len = StrLen (Buffer),
+                    NewPos = Pos + Item->LineShift;
+
+            if (NewPos < Len) {
+              for (i = NewPos; i < Len; i++) {
+                Buffer[i] = Buffer[i + 1];
+              }
+              /*
+              // Commented this out because it looks weird - Forward Delete should not
+              // affect anything left of the cursor even if it's just to shift more of the
+              // string into view.
+              if (Item->LineShift > 0 && Item->LineShift + LineSize > StrLen (Buffer)) {
+                Item->LineShift--;
+                Pos++;
+              }
+              */
             }
-            /*
-            // Commented this out because it looks weird - Forward Delete should not
-            // affect anything left of the cursor even if it's just to shift more of the
-            // string into view.
-            if (Item->LineShift > 0 && Item->LineShift + LineSize > StrLen (Buffer)) {
-              Item->LineShift--;
-              Pos++;
-            }
-            */
           }
           break;
       }
@@ -1348,8 +1353,11 @@ InputDialog (
       switch (Key.UnicodeChar) {
         case CHAR_BACKSPACE:
           if ((Buffer[0] != CHAR_NULL) && (Pos != 0)) {
-            for (i = Pos + Item->LineShift; i <= StrLen (Buffer); i++) {
-               Buffer[i - 1] = Buffer[i];
+            UINTN   Len = StrLen (Buffer),
+                    NewPos = Pos + Item->LineShift;
+
+            for (i = NewPos; i <= Len; i++) {
+              Buffer[i - 1] = Buffer[i];
             }
 
             Item->LineShift > 0 ? Item->LineShift-- : Pos--;
@@ -1369,10 +1377,11 @@ InputDialog (
             (Key.UnicodeChar < 0x80)
           ) {
             if (StrSize (Buffer) < SVALUE_MAX_SIZE) {
-              UINTN   Len = StrLen (Buffer);
+              UINTN   Len = StrLen (Buffer) + 1,
+                      NewPos = Pos + Item->LineShift;
 
-              for (i = Len + 1; i > (Pos + Item->LineShift); i--) {
-                 Buffer[i] = Buffer[i - 1];
+              for (i = Len; i > NewPos; i--) {
+                Buffer[i] = Buffer[i - 1];
               }
 
               Buffer[i] = Key.UnicodeChar;
@@ -2484,6 +2493,11 @@ GraphicsMenuStyle (
               );
             } else { //text input
               StrCatS (ResultString, SVALUE_MAX_SIZE, PoolPrint (L": %s ", ((REFIT_INPUT_DIALOG *)(Entry))->Item->SValue));
+
+              if (StrLen (ResultString) >= (TitleLen + 48)) {
+                ResultString[TitleLen + 48] = '\0';
+              }
+
               Entry->Place.Width = StrLen (ResultString) * GlobalConfig.CharWidth;
               // Slice - suppose to use Row as Cursor in text
               DrawMenuText (
@@ -2585,6 +2599,11 @@ GraphicsMenuStyle (
             );
           } else {
             StrCatS (ResultString, SVALUE_MAX_SIZE, PoolPrint (L": %s ", ((REFIT_INPUT_DIALOG *)(EntryL))->Item->SValue));
+
+            if (StrLen (ResultString) >= (TitleLen + 48)) {
+              ResultString[TitleLen + 48] = '\0';
+            }
+
             DrawMenuText (
               ResultString,
               0,
