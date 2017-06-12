@@ -336,7 +336,11 @@ typedef struct {
   UINT16          bootProgressMeterStart;
   UINT16          bootProgressMeterEnd;
   Boot_Video      Video;    /* Video Information */
-  UINT32          __reserved4[712];
+
+  UINT32          apfsDataStart; /* Physical address of apfs volume key structure */
+  UINT32          apfsDataSize;
+
+  UINT32          __reserved4[710];
 } BootArgs2;
 
 typedef struct {
@@ -354,7 +358,7 @@ typedef struct {
 #define DARWIN_KERNEL_VER_MAJOR_YOSEMITE        14
 #define DARWIN_KERNEL_VER_MAJOR_ELCAPITAN       15
 #define DARWIN_KERNEL_VER_MAJOR_SIERRA          16
-#define DARWIN_KERNEL_VER_MAJOR_HIGH_SIERRA     17
+#define DARWIN_KERNEL_VER_MAJOR_HIGHSIERRA      17
 
 #define DARWIN_OS_VER_MAJOR_10                  10
 
@@ -362,13 +366,13 @@ typedef struct {
 #define DARWIN_OS_VER_MINOR_YOSEMITE            10
 #define DARWIN_OS_VER_MINOR_ELCAPITAN           11
 #define DARWIN_OS_VER_MINOR_SIERRA              12
-#define DARWIN_OS_VER_MINOR_HIGH_SIERRA         13
+#define DARWIN_OS_VER_MINOR_HIGHSIERRA          13
 
 #define DARWIN_OS_VER_STR_MAVERICKS             "10.9"
 #define DARWIN_OS_VER_STR_YOSEMITE              "10.10"
 #define DARWIN_OS_VER_STR_ELCAPITAN             "10.11"
 #define DARWIN_OS_VER_STR_SIERRA                "10.12"
-#define DARWIN_OS_VER_STR_HIGH_SIERRA           "10.13"
+#define DARWIN_OS_VER_STR_HIGHSIERRA            "10.13"
 
 #define DARWIN_KERNEL_VER_MAJOR_MINIMUM         DARWIN_KERNEL_VER_MAJOR_MAVERICKS
 #define DARWIN_OS_VER_MAJOR_MINIMUM             DARWIN_OS_VER_MAJOR_10

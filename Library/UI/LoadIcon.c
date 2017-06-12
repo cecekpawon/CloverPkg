@@ -882,7 +882,7 @@ GetOSIconName (
   switch (SDarwinVersion->VersionMajor) {
     case DARWIN_OS_VER_MAJOR_10:
       switch (SDarwinVersion->VersionMinor) {
-        case DARWIN_OS_VER_MINOR_HIGH_SIERRA:
+        case DARWIN_OS_VER_MINOR_HIGHSIERRA:
           OSIconName = L"highsierra,mac";
           break;
         case DARWIN_OS_VER_MINOR_SIERRA:
