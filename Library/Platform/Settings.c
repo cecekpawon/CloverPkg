@@ -3325,6 +3325,7 @@ ParseGraphicsSettings (
 
     if (gSettings.InjectNVidia) {
       gSettings.NvidiaSingle = GetPropertyBool (GetProperty (DictPointer, "NvidiaSingle"), TRUE);
+      gSettings.NvidiaNoEFI = GetPropertyBool (GetProperty (DictPointer, "NvidiaNoEFI"), FALSE);
 
       Prop = GetProperty (DictPointer, "display-cfg");
       if ((Prop != NULL) && (Prop->type == kTagTypeString)) {

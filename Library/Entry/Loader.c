@@ -56,6 +56,7 @@ CHAR16  *SupportedOsType[3] = { OSTYPE_DARWIN_STR, OSTYPE_LINUX_STR, OSTYPE_WIND
 #define DARWIN_DISK_LABEL                 DARWIN_CORE_SERVICES L".disk_label.contentDetails"
 #define DARWIN_LOADER_PATH                DARWIN_CORE_SERVICES L"boot.efi"
 #define DARWIN_INSTALLER_LOADERBASE_PATH  DARWIN_CORE_SERVICES L"bootbase.efi"
+#define DARWIN_INSTALLER_IA_PATH          L"\\.IABootFiles\\boot.efi"
 #define DARWIN_RECOVERY_LOADER_PATH       L"\\com.apple.recovery.boot\\boot.efi"
 
 #define DARWIN_KERNEL_PATH                L"/mach_kernel"
@@ -181,7 +182,10 @@ GetOSTypeFromPath (
     return OSTYPE_OTHER;
   }
 
-  if (StriCmp (Path, DARWIN_INSTALLER_LOADERBASE_PATH) == 0) {
+  if (
+    (StriCmp (Path, DARWIN_INSTALLER_IA_PATH) == 0) ||
+    (StriCmp (Path, DARWIN_INSTALLER_LOADERBASE_PATH) == 0)
+  ) {
     return OSTYPE_DARWIN_INSTALLER;
   } else if (StriCmp (Path, DARWIN_RECOVERY_LOADER_PATH) == 0) {
     return OSTYPE_DARWIN_RECOVERY;
@@ -1041,11 +1045,14 @@ ScanLoader () {
   UINTN         VolumeIndex, Index;
   REFIT_VOLUME  *Volume;
   EFI_GUID      *PartGUID;
+  BOOLEAN       ValidLoader;
 
   //DBG ("Scanning loaders...\n");
   DbgHeader ("ScanLoader");
 
   for (VolumeIndex = 0; VolumeIndex < VolumesCount; VolumeIndex++) {
+    ValidLoader = FALSE;
+
     Volume = Volumes[VolumeIndex];
 
     if (Volume->RootDir == NULL) { // || Volume->VolName == NULL)
@@ -1075,15 +1082,24 @@ ScanLoader () {
     // Use standard location for boot.efi, unless the file /.IAPhysicalMedia is present
     // That file indentifies a 2nd-stage Install Media, so when present, skip standard path to avoid entry duplication
     if (FileExists (Volume->RootDir, DARWIN_INSTALLER_LOADERBASE_PATH)) {
-      AddLoaderEntry (DARWIN_INSTALLER_LOADERBASE_PATH, NULL, L"Installer", Volume, NULL, OSTYPE_DARWIN_INSTALLER, 0);
+      ValidLoader = AddLoaderEntry (DARWIN_INSTALLER_LOADERBASE_PATH, NULL, L"Installer", Volume, NULL, OSTYPE_DARWIN_INSTALLER, 0);
+    }
+
+    else if (FileExists (Volume->RootDir, DARWIN_INSTALLER_IA_PATH)) {
+      ValidLoader = AddLoaderEntry (DARWIN_INSTALLER_IA_PATH, NULL, L"Installer", Volume, NULL, OSTYPE_DARWIN_INSTALLER, 0);
     }
 
     else if (FileExists (Volume->RootDir, DARWIN_RECOVERY_LOADER_PATH)) {
-      AddLoaderEntry (DARWIN_RECOVERY_LOADER_PATH, NULL, L"Recovery", Volume, NULL, OSTYPE_DARWIN_RECOVERY, 0);
+      ValidLoader = AddLoaderEntry (DARWIN_RECOVERY_LOADER_PATH, NULL, L"Recovery", Volume, NULL, OSTYPE_DARWIN_RECOVERY, 0);
     }
 
-    else if (EFI_ERROR (GetRootUUID (Volume)) || IsFirstRootUUID (Volume)) {
-      AddLoaderEntry (DARWIN_LOADER_PATH, NULL, L"MacOS", Volume, NULL, OSTYPE_DARWIN, 0);
+    else if (
+      FileExists (Volume->RootDir, DARWIN_LOADER_PATH) && (EFI_ERROR (GetRootUUID (Volume)) || IsFirstRootUUID (Volume))) {
+      ValidLoader = AddLoaderEntry (DARWIN_LOADER_PATH, NULL, L"MacOS", Volume, NULL, OSTYPE_DARWIN, 0);
+    }
+
+    if (!gSettings.Dev && ValidLoader) {
+      continue;
     }
 
     //
@@ -1091,15 +1107,15 @@ ScanLoader () {
     //
 
     Index = 0;
-    while (Index < WINEFIPathsCount) {
-      AddLoaderEntry (WINEFIPaths[Index++], NULL, L"Microsoft", Volume, NULL, OSTYPE_WINEFI, 0);
+    while ((gSettings.Dev || !ValidLoader) && (Index < WINEFIPathsCount)) {
+      ValidLoader = AddLoaderEntry (WINEFIPaths[Index++], NULL, L"Microsoft", Volume, NULL, OSTYPE_WINEFI, 0);
     }
 
     //
     // Android
     //
 
-    if (gSettings.AndroidScan) {
+    if ((gSettings.Dev || !ValidLoader) && gSettings.AndroidScan) {
       // check for Android loaders
       for (Index = 0; Index < AndroidEntryDataCount; ++Index) {
         UINTN   aIndex, aFound = 0;
@@ -1115,11 +1131,15 @@ ScanLoader () {
           }
 
           if (aFound && (aFound == aIndex)) {
-            AddLoaderEntry (
-              AndroidEntryData[Index].Path, L"", AndroidEntryData[Index].Title, Volume,
-              LoadOSIcon (AndroidEntryData[Index].Icon, NULL /* , NULL, FALSE, TRUE */),
-              OSTYPE_LIN, OSFLAG_NODEFAULTARGS
-            );
+            ValidLoader = AddLoaderEntry (
+                            AndroidEntryData[Index].Path, L"", AndroidEntryData[Index].Title, Volume,
+                            LoadOSIcon (AndroidEntryData[Index].Icon, NULL /* , NULL, FALSE, TRUE */),
+                            OSTYPE_LIN, OSFLAG_NODEFAULTARGS
+                          );
+          }
+
+          if (ValidLoader) {
+            break;
           }
         }
       }
@@ -1129,21 +1149,25 @@ ScanLoader () {
     // Linux
     //
 
-    if (gSettings.LinuxScan) {
+    if ((gSettings.Dev || !ValidLoader) && gSettings.LinuxScan) {
       // check for linux loaders
       if (InitLinuxPath ()) {
         for (Index = 0; Index < LinuxEntryDataCount; ++Index) {
-          AddLoaderEntry (
-            LinuxEntryData[Index].Path, L"", LinuxEntryData[Index].Title, Volume,
-            LoadOSIcon (LinuxEntryData[Index].Icon, NULL /* , NULL, FALSE, TRUE */),
-            OSTYPE_LIN, OSFLAG_NODEFAULTARGS
-          );
+          ValidLoader = AddLoaderEntry (
+                          LinuxEntryData[Index].Path, L"", LinuxEntryData[Index].Title, Volume,
+                          LoadOSIcon (LinuxEntryData[Index].Icon, NULL /* , NULL, FALSE, TRUE */),
+                          OSTYPE_LIN, OSFLAG_NODEFAULTARGS
+                        );
+
+          if (ValidLoader) {
+            break;
+          }
         }
       }
 
       // check for linux kernels
       PartGUID = FindGPTPartitionGuidInDevicePath (Volume->DevicePath);
-      if ((PartGUID != NULL) && (Volume->RootDir != NULL)) {
+      if ((gSettings.Dev || !ValidLoader) && (PartGUID != NULL) && (Volume->RootDir != NULL)) {
         REFIT_DIR_ITER  Iter;
         EFI_FILE_INFO   *FileInfo = NULL;
         EFI_TIME        PreviousTime;
@@ -1173,17 +1197,21 @@ ScanLoader () {
                     Options = LinuxKernelOptions (Iter.DirHandle, Basename (Path) + StrLen (LINUX_LOADER_PATH), StrToLower (PartUUID), NULL);
 
                     // Add the entry
-                    AddLoaderEntry (
-                      Path,
-                      (Options == NULL) ? LINUX_DEFAULT_OPTIONS : Options,
-                      NULL, Volume, NULL, OSTYPE_LINEFI, OSFLAG_NODEFAULTARGS
-                    );
+                    ValidLoader = AddLoaderEntry (
+                                    Path,
+                                    (Options == NULL) ? LINUX_DEFAULT_OPTIONS : Options,
+                                    NULL, Volume, NULL, OSTYPE_LINEFI, OSFLAG_NODEFAULTARGS
+                                  );
 
                     if (Options != NULL) {
                       FreePool (Options);
                     }
 
                     FreePool (Path);
+
+                    if (ValidLoader) {
+                      break;
+                    }
                   }
                 }
 
@@ -1206,7 +1234,7 @@ ScanLoader () {
     } //if linux scan
 
     //DBG ("search for  optical UEFI\n");
-    if (Volume->DiskKind == DISK_KIND_OPTICAL) {
+    if ((gSettings.Dev || !ValidLoader) && (Volume->DiskKind == DISK_KIND_OPTICAL)) {
       AddLoaderEntry (BOOT_LOADER_PATH, L"", L"UEFI optical", Volume, NULL, OSTYPE_OTHER, 0);
     }
   }

@@ -578,6 +578,10 @@ SetupNvidiaDevprop (
 
   DevpropAddNvidiaTemplate (Device, PortsNum);
 
+  if (gSettings.NvidiaNoEFI) {
+    DevpropAddValue (Device, "NVDA,noEFI", (UINT8 *)"true", 5);
+  }
+
   //there are default or calculated properties, can be skipped
   if (gSettings.NoDefaultProperties) {
     //MsgLog (" - no default properties\n");

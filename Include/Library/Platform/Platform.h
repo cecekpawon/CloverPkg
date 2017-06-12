@@ -129,6 +129,8 @@ Headers collection for procedures
 
 #define DIR_CLOVER                L"\\EFI\\CLOVER"
 
+#define DEV_MARK                  DIR_CLOVER L"\\.dev"
+
 #define DIR_DRIVERS               DIR_CLOVER L"\\Driver"
 #define DIR_MISC                  DIR_CLOVER L"\\Misc"
 //#define DIR_OEM                   DIR_CLOVER L"\\Oem"
@@ -1063,6 +1065,7 @@ typedef struct {
   CHAR16                    FBName[16];
   UINT16                    VideoPorts;
   BOOLEAN                   NvidiaSingle;
+  BOOLEAN                   NvidiaNoEFI;
   UINT64                    VRAM;
   UINT8                     Dcfg[8];
   UINT8                     NVCAP[20];
@@ -1150,6 +1153,8 @@ typedef struct {
   CHAR16                    LinuxDiskTemplate[255];
   //CHAR16                    AndroidDiskTemplate[255];
   CHAR16                    WindowsDiskTemplate[255];
+
+  BOOLEAN                   Dev;
 } SETTINGS_DATA;
 
 

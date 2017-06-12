@@ -182,6 +182,10 @@ RefitMain (
 
   GetDefaultConfig (); // Init gSettings
 
+  if (FileExists (SelfRootDir, DEV_MARK)) {
+    gSettings.Dev = TRUE;
+  }
+
   GetAcpiTablesList ();
 
   PrePatchSmbios ();
