@@ -543,6 +543,9 @@ GetDefaultModel () {
     switch (gCPUStructure.Model) {
       case CPUID_MODEL_KABYLAKE:
       case CPUID_MODEL_KABYLAKE_DT:
+        DefaultType = MacBookPro143;
+        break;
+
       case CPUID_MODEL_SKYLAKE:
       case CPUID_MODEL_SKYLAKE_DT:
         DefaultType = MacBookPro133;
@@ -575,6 +578,9 @@ GetDefaultModel () {
     switch (gCPUStructure.Model) {
       case CPUID_MODEL_KABYLAKE:
       case CPUID_MODEL_KABYLAKE_DT:
+        DefaultType = iMac183;
+        break;
+
       case CPUID_MODEL_SKYLAKE:
       case CPUID_MODEL_SKYLAKE_DT:
         DefaultType = iMac171;
@@ -600,7 +606,7 @@ GetDefaultModel () {
       case CPUID_MODEL_SANDYBRIDGE:
       //case CPUID_MODEL_JAKETOWN:
       default:
-        //DefaultType = MacMini53;
+        DefaultType = MacMini53;
         break;
     }
   }

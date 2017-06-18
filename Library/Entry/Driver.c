@@ -37,13 +37,15 @@ ScanDriverDir (
   while (DirIterNext (&DirIter, 2, L"*.EFI", &DirEntry)) {
     Skip = (DirEntry->FileName[0] == L'.');
 
-    MsgLog ("- [%02d]: %s\n", i++, DirEntry->FileName);
+    if (!Skip) {
+      MsgLog ("- [%02d]: %s\n", i++, DirEntry->FileName);
 
-    for (y = 0; y < gSettings.BlackListCount; y++) {
-      if (StrStr (DirEntry->FileName, gSettings.BlackList[y]) != NULL) {
-        Skip = TRUE; // skip this
-        MsgLog (" - in blacklist, skip\n");
-        break;
+      for (y = 0; y < gSettings.BlackListCount; y++) {
+        if (StrStr (DirEntry->FileName, gSettings.BlackList[y]) != NULL) {
+          Skip = TRUE; // skip this
+          MsgLog (" - in blacklist, skip\n");
+          break;
+        }
       }
     }
 

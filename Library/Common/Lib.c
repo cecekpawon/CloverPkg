@@ -81,6 +81,9 @@ EFI_UNICODE_COLLATION_PROTOCOL    *mUnicodeCollation = NULL;
 
 #define                 MAX_ELEMENT_COUNT 8
 
+REFIT_VOLUME_GUID       VolumesGUID[256];
+UINTN                   VolumesGUIDCount = 0;
+
 BOOLEAN
 MetaiMatch (
   IN CHAR16   *String,
@@ -219,7 +222,8 @@ ScanVolumeBootCode (
 
   // look at the boot sector (this is used for both hard disks and El Torito images!)
   Status = Volume->BlockIO->ReadBlocks (
-                              Volume->BlockIO, Volume->BlockIO->Media->MediaId,
+                              Volume->BlockIO,
+                              Volume->BlockIO->Media->MediaId,
                               Volume->BlockIOOffset /* start lba */,
                               2048,
                               SectorBuffer
@@ -387,8 +391,8 @@ ScanVolumeBootCode (
     //  need to fix AddLegacyEntry in main.c.
 
 #if REFIT_DEBUG > 0
-    DBG ("         Result of bootCode detection: %s %s (%s)\n",
-        Volume->HasBootCode ? L"bootable" : L"non-bootable",
+    DBG ("         Result of bootCode detection: %sbootable %s (%s)\n",
+        Volume->HasBootCode ? L"" : L"non-",
         Volume->LegacyOS->Name ? Volume->LegacyOS->Name: L"unknown",
         Volume->LegacyOS->IconName ? Volume->LegacyOS->IconName: L"legacy");
 #endif
@@ -399,6 +403,93 @@ ScanVolumeBootCode (
   }
 
   gBS->FreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)SectorBuffer, 1);
+}
+
+STATIC
+EFI_STATUS
+ReadGPT (
+  IN OUT REFIT_VOLUME           *Volume
+) {
+  EFI_STATUS                        Status = EFI_SUCCESS;
+  EFI_DISK_IO_PROTOCOL              *DiskIo;
+  EFI_PARTITION_TABLE_HEADER        *PartHdr;
+  EFI_PARTITION_ENTRY               *PartEntry, *Entry;
+  UINT32                            MediaId, BlockSize, Index;
+
+  Status = gBS->HandleProtocol (
+                  Volume->DeviceHandle,
+                  &gEfiDiskIoProtocolGuid,
+                  (VOID **) &(DiskIo)
+                );
+
+  if (!EFI_ERROR (Status)) {
+    BlockSize = Volume->BlockIO->Media->BlockSize;
+    MediaId = Volume->BlockIO->Media->MediaId;
+    PartHdr = AllocateZeroPool (BlockSize);
+
+    Status = DiskIo->ReadDisk (
+                       DiskIo,
+                       MediaId,
+                       MultU64x32 (PRIMARY_PART_HEADER_LBA, BlockSize),
+                       BlockSize,
+                       PartHdr
+                     );
+
+    if (!EFI_ERROR (Status)) {
+      if (
+        (PartHdr->Header.Signature != EFI_PTAB_HEADER_ID) ||
+        (PartHdr->MyLBA != PRIMARY_PART_HEADER_LBA) ||
+        (PartHdr->SizeOfPartitionEntry < sizeof (EFI_PARTITION_ENTRY))
+      ) {
+        DBG ("Invalid EFI partition table header\n");
+        FreePool (PartHdr);
+        return EFI_LOAD_ERROR;
+      }
+
+      DBG ("Read patition entries:\n");
+
+      PartEntry = AllocatePool (PartHdr->NumberOfPartitionEntries * PartHdr->SizeOfPartitionEntry);
+      if (PartEntry == NULL) {
+        return EFI_BUFFER_TOO_SMALL;
+      }
+
+      DBG ("BlockSize                :%d\n", BlockSize);
+      DBG ("PartitionEntryLBA        :%x\n", PartHdr->PartitionEntryLBA);
+      DBG ("NumberOfPartitionEntries :%d\n", PartHdr->NumberOfPartitionEntries);
+      DBG ("SizeOfPartitionEntry     :%d\n", PartHdr->SizeOfPartitionEntry);
+
+      Status = DiskIo->ReadDisk (
+                         DiskIo,
+                         MediaId,
+                         MultU64x32 (PartHdr->PartitionEntryLBA, BlockSize),
+                         PartHdr->NumberOfPartitionEntries * (PartHdr->SizeOfPartitionEntry),
+                         PartEntry
+                       );
+
+      if (EFI_ERROR (Status)) {
+        DBG (" Partition Entry ReadDisk error\n");
+        return EFI_DEVICE_ERROR;
+      }
+
+      for (Index = 0; Index < PartHdr->NumberOfPartitionEntries; Index++) {
+        Entry = (EFI_PARTITION_ENTRY *) ((UINT8 *) PartEntry + Index * PartHdr->SizeOfPartitionEntry);
+        if ((Entry->StartingLBA == 0) && (Entry->EndingLBA == 0)) {
+          break;
+        }
+
+        DBG (" Partition            :%d\n", Index);
+        DBG (" PartitionTypeGUID    :%g\n", Entry->PartitionTypeGUID);
+        DBG (" UniquePartitionGUID  :%g\n", Entry->UniquePartitionGUID);
+        DBG (" StartingLBA          :%d\n", Entry->StartingLBA);
+        DBG (" EndingLBA            :%d\n", Entry->EndingLBA);
+
+        CopyGuid (&VolumesGUID[VolumesGUIDCount].PartitionTypeGUID, &Entry->PartitionTypeGUID);
+        CopyGuid (&VolumesGUID[VolumesGUIDCount++].UniquePartitionGUID, &Entry->UniquePartitionGUID);
+      }
+    }
+  }
+
+  return Status;
 }
 
 //at start we have only Volume->DeviceHandle
@@ -429,16 +520,9 @@ ScanVolume (
   Volume->DevicePathString = FileDevicePathToStr (Volume->DevicePath);
 
   //Volume->DevicePath = DuplicateDevicePath (DevicePathFromHandle (Volume->DeviceHandle));
-//#if REFIT_DEBUG > 0
   if (Volume->DevicePath != NULL) {
     MsgLog (" %s\n", FileDevicePathToStr (Volume->DevicePath));
-//#if REFIT_DEBUG >= 2
-    //       DumpHex (1, 0, GetDevicePathSize (Volume->DevicePath), Volume->DevicePath);
-//#endif
   }
-//#else
-//  DBG ("\n");
-//#endif
 
   Volume->DiskKind = DISK_KIND_INTERNAL;  // default
 
@@ -556,12 +640,20 @@ ScanVolume (
   // find the partition device path node
   //
   while (DevicePath && !IsDevicePathEnd (DevicePath)) {
-    if (
-      (DevicePathType (DevicePath) == MEDIA_DEVICE_PATH) &&
-      (DevicePathSubType (DevicePath) == MEDIA_HARDDRIVE_DP)
-    ) {
-      HdPath = (HARDDRIVE_DEVICE_PATH *)DevicePath;
-      //break;
+    if (DevicePathType (DevicePath) == MEDIA_DEVICE_PATH) {
+      if (DevicePathSubType (DevicePath) == MEDIA_HARDDRIVE_DP) {
+        HdPath = (HARDDRIVE_DEVICE_PATH *)DevicePath;
+        //break;
+      }
+
+      // @savvas: Check that vendor-assigned GUID defines APFS Container Partition
+      else if (
+        (DevicePathSubType (DevicePath) == MEDIA_VENDOR_DP) &&
+        (CompareGuid ((EFI_GUID *)((UINT8 *)DevicePath + 0x04), &gAppleVenMediaGUID))
+      ) {
+        CopyGuid (&Volume->VenMediaGUID, (EFI_GUID *)((UINT8 *)DevicePath + 0x14));
+        //DBG (" ---> VenMediaGUID :%g\n", &Volume->VenMediaGUID);
+      }
     }
 
     DevicePath = NextDevicePathNode (DevicePath);
@@ -627,13 +719,12 @@ ScanVolume (
   //  }
 
   if (!Bootable) {
-#if REFIT_DEBUG > 0
-    if (Volume->HasBootCode) {
-      DBG ("  Volume considered non-bootable, but boot code is present\n");
-      //WaitForSingleEvent (gST->ConIn->WaitForKey, 0);
-      //gST->ConIn->ReadKeyStroke (gST->ConIn, &Key);
-    }
-#endif
+
+    //if (Volume->HasBootCode) {
+    //  DBG ("  Volume considered non-bootable, but boot code is present\n");
+    //  //WaitForSingleEvent (gST->ConIn->WaitForKey, 0);
+    //  //gST->ConIn->ReadKeyStroke (gST->ConIn, &Key);
+    //}
 
     Volume->HasBootCode = FALSE;
   }
@@ -815,7 +906,7 @@ ScanVolumes () {
   EFI_STATUS                  Status;
   EFI_HANDLE                  *Handles = NULL;
   //EFI_DEVICE_PATH_PROTOCOL  *VolumeDevicePath;
-  //EFI_GUID                  *Guid; //for debug only
+  EFI_GUID                    *Guid; //for debug only
   //EFI_INPUT_KEY Key;
   UINTN                       HandleCount = 0, HandleIndex,
                               PartitionIndex, i, SectorSum,
@@ -823,7 +914,7 @@ ScanVolumes () {
   REFIT_VOLUME                *Volume, *WholeDiskVolume;
   MBR_PARTITION_INFO          *MbrTable;
   UINT8                       *SectorBuffer1, *SectorBuffer2;
-  INT32                       HVi;
+  INT32                       HVi, Index;
 
   //DBG ("Scanning volumes...\n");
   DbgHeader ("ScanVolumes");
@@ -857,8 +948,20 @@ ScanVolumes () {
 
     Volume->Hidden = FALSE; // default to not hidden
 
+    CopyGuid (&Volume->VenMediaGUID, &gEfiPartTypeUnusedGuid);
+
     Status = ScanVolume (Volume);
     if (!EFI_ERROR (Status)) {
+      if (ReadGPT (Volume) == EFI_LOAD_ERROR) { /////////////
+        Guid = FindGPTPartitionGuidInDevicePath (Volume->DevicePath);
+        for (Index = 0; Index < VolumesGUIDCount; Index++) {
+          if (CompareGuid (&VolumesGUID[Index].UniquePartitionGUID, Guid)) {
+            CopyGuid (&Volume->PartitionTypeGUID, &VolumesGUID[Index].PartitionTypeGUID);
+            //DBG (" ---> PartitionTypeGUID :%g\n", &Volume->PartitionTypeGUID);
+          }
+        }
+      }
+
       AddListElement ((VOID ***)&Volumes, &VolumesCount, Volume);
       for (HVi = 0; HVi < gSettings.HVCount; HVi++) {
         if (
@@ -871,7 +974,6 @@ ScanVolumes () {
         }
       }
 
-      //Guid = FindGPTPartitionGuidInDevicePath (Volume->DevicePath);
       if (!Volume->LegacyOS->IconName) {
         Volume->LegacyOS->IconName = L"legacy";
       }
@@ -1553,8 +1655,6 @@ LoadFile (
   return EFI_SUCCESS;
 }
 
-//Slice - this is gEfiPartTypeSystemPartGuid
-//STATIC EFI_GUID ESPGuid = { 0xc12a7328, 0xf81f, 0x11d2, { 0xba, 0x4b, 0x00, 0xa0, 0xc9, 0x3e, 0xc9, 0x3b } };
 //there is assumed only one ESP partition. What if there are two HDD gpt formatted?
 EFI_STATUS
 FindESP (

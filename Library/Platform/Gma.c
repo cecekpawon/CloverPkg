@@ -40,6 +40,9 @@ UINT8 RegSubsystemId[]                   = { 0xA2, 0x00, 0x00, 0x00 };
 
 UINT8 RegSubsystemVendorId[]             = { 0x6B, 0x10, 0x00, 0x00 };
 
+UINT8 RegIgPlatformIdKBLMobile[]         = { 0x00, 0x00, 0x12, 0x59 };
+UINT8 RegIgPlatformIdKBLDesktop[]        = { 0x04, 0x00, 0x27, 0x59 };
+
 UINT8 RegIgPlatformIdSKLMobile[]         = { 0x02, 0x00, 0x26, 0x19 };
 UINT8 RegIgPlatformIdSKLDesktop[]        = { 0x02, 0x00, 0x26, 0x19 };
 
@@ -169,6 +172,20 @@ SetupGmaDevprop (
   }
 
   if (DevId >= 0x0102) {
+    // Skylake
+    if (DevId >= 0x5000) {
+      SetIgPlatform (
+        Device,
+        NeedIgPlatform,
+        "AAPL,ig-platform-id",
+        gMobile
+          ? RegIgPlatformIdKBLMobile
+          : RegIgPlatformIdKBLDesktop
+      );
+
+      //DevpropAddValue (Device, "AAPL,GfxYTile", RegGfxYTile, 4);
+    }
+
     // Skylake
     if (DevId >= 0x1900) {
       SetIgPlatform (

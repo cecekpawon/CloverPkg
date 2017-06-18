@@ -1910,12 +1910,12 @@ PatchACPI (
             if (!EFI_ERROR (Status)) {
               if (!StriCmp (ACPIPatchedAMLTmp->FileName, SSDT_PSTATES_NAME)) {
                 if (gSettings.GeneratePStates) {
-                  MsgLog (" (GeneratedPStates) ");
+                  MsgLog ("(GeneratedPStates) ");
                   gSettings.GeneratePStates = FALSE;
                 }
               } else if (!StriCmp (ACPIPatchedAMLTmp->FileName, SSDT_CSTATES_NAME)) {
                 if (gSettings.GenerateCStates) {
-                  MsgLog (" (GeneratedCStates) ");
+                  MsgLog ("(GeneratedCStates) ");
                   gSettings.GenerateCStates = FALSE;
                 }
               }

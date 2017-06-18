@@ -91,6 +91,10 @@
   UefiLib
 
 [Guids]
+  gAppleAPFSPartGuid
+  gAppleHFSPartGuid
+  gAppleRecoveryPartGuid
+  gAppleVenMediaGUID
   gDataHubPlatformGuid
   gEfiAcpi10TableGuid
   gEfiAcpi20TableGuid
@@ -100,6 +104,7 @@
   gEfiFileSystemInfoGuid
   gEfiFileSystemVolumeLabelInfoIdGuid
   gEfiPartTypeSystemPartGuid
+  gEfiPartTypeUnusedGuid
 
 [Protocols]
   gAppleDevicePropertyProtocolGuid
@@ -107,6 +112,7 @@
 
   gEfiBlockIoProtocolGuid
   gEfiDataHubProtocolGuid
+  gEfiDiskIoProtocolGuid
   gEfiMiscSubClassGuid
   gEfiPciIoProtocolGuid
   gEfiPlatformDriverOverrideProtocolGuid

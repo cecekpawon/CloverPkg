@@ -50,36 +50,45 @@
 
 CHAR16  *SupportedOsType[3] = { OSTYPE_DARWIN_STR, OSTYPE_LINUX_STR, OSTYPE_WINDOWS_STR };
 
-#define BOOT_LOADER_PATH                  L"\\EFI\\BOOT\\BOOTX64.efi"
+#define BOOT_LOADER_PATH                    L"\\EFI\\BOOT\\BOOTX64.efi"
 
-#define DARWIN_CORE_SERVICES              L"\\System\\Library\\CoreServices\\"
-#define DARWIN_DISK_LABEL                 DARWIN_CORE_SERVICES L".disk_label.contentDetails"
-#define DARWIN_LOADER_PATH                DARWIN_CORE_SERVICES L"boot.efi"
-#define DARWIN_INSTALLER_LOADERBASE_PATH  DARWIN_CORE_SERVICES L"bootbase.efi"
-#define DARWIN_INSTALLER_IA_PATH          L"\\.IABootFiles\\boot.efi"
-#define DARWIN_RECOVERY_LOADER_PATH       L"\\com.apple.recovery.boot\\boot.efi"
+#define DARWIN_CORE_SERVICES                L"\\System\\Library\\CoreServices"
+#define DARWIN_IA_PATH                      L"\\.IABootFiles"
+#define DARWIN_RECOVERY_PATH                L"\\com.apple.recovery.boot"
 
-#define DARWIN_KERNEL_PATH                L"/mach_kernel"
-#define DARWIN_MACH_KERNEL_PATH           L"/System/Library/Kernels/kernel"
+#define DARWIN_BOOT_EFI                     L"\\boot.efi"
+#define DARWIN_BOOTBASE_EFI                 L"\\bootbase.efi"
+#define DARWIN_SYSTEM_VER_PLIST             L"\\SystemVersion.plist"
+#define DARWIN_SERVER_VER_PLIST             L"\\ServerVersion.plist"
+#define DARWIN_DISK_LABEL                   L"\\.disk_label.contentDetails"
 
-#define LINUX_GRUB_PATH                   L"\\EFI\\%s\\grubx64.efi"
-#define LINUX_ICON_NAME                   L"%s,linux\0"
-#define LINUX_ISSUE_PATH                  L"\\etc\\issue"
-#define LINUX_BOOT_PATH                   L"\\boot"
-#define LINUX_LOADER_PATH                 L"vmlinuz"
-#define LINUX_FULL_LOADER_PATH            LINUX_BOOT_PATH L"\\" LINUX_LOADER_PATH
-#define LINUX_LOADER_SEARCH_PATH          LINUX_LOADER_PATH L"*"
-#define LINUX_DEFAULT_OPTIONS             L"ro add_efi_memmap quiet splash vt.handoff=7"
+#define DARWIN_DISK_LABEL_PATH              DARWIN_CORE_SERVICES DARWIN_DISK_LABEL
+#define DARWIN_LOADER_PATH                  DARWIN_CORE_SERVICES DARWIN_BOOT_EFI
+#define DARWIN_INSTALLER_LOADERBASE_PATH    DARWIN_CORE_SERVICES DARWIN_BOOTBASE_EFI
+#define DARWIN_INSTALLER_IA_PATH            DARWIN_IA_PATH DARWIN_BOOT_EFI
+#define DARWIN_RECOVERY_LOADER_PATH         DARWIN_RECOVERY_PATH DARWIN_BOOT_EFI
 
-#define STR_S_UNKNOWN                     L"Unknown"
+#define DARWIN_KERNEL_PATH                  L"/mach_kernel"
+#define DARWIN_MACH_KERNEL_PATH             L"/System/Library/Kernels/kernel"
+
+#define LINUX_GRUB_PATH                     L"\\EFI\\%s\\grubx64.efi"
+#define LINUX_ICON_NAME                     L"%s,linux\0"
+#define LINUX_ISSUE_PATH                    L"\\etc\\issue"
+#define LINUX_BOOT_PATH                     L"\\boot"
+#define LINUX_LOADER_PATH                   L"vmlinuz"
+#define LINUX_FULL_LOADER_PATH              LINUX_BOOT_PATH L"\\" LINUX_LOADER_PATH
+#define LINUX_LOADER_SEARCH_PATH            LINUX_LOADER_PATH L"*"
+#define LINUX_DEFAULT_OPTIONS               L"ro add_efi_memmap quiet splash vt.handoff=7"
+
+#define STR_S_UNKNOWN                       L"Unknown"
 
 CHAR16    *DarwinSystemPlists[] = {
-  L"\\System\\Library\\CoreServices\\SystemVersion.plist", // OS X Regular
-  L"\\System\\Library\\CoreServices\\ServerVersion.plist"  // OS X Server
+  DARWIN_CORE_SERVICES DARWIN_SYSTEM_VER_PLIST, // OS X Regular
+  DARWIN_CORE_SERVICES DARWIN_SERVER_VER_PLIST  // OS X Server
 };
 
-CHAR16    *DarwinInstallerSystemPlists = L"\\.IABootFilesSystemVersion.plist";
-CHAR16    *DarwinRecoverySystemPlists = L"\\com.apple.recovery.boot\\SystemVersion.plist";
+CHAR16    *DarwinInstallerSystemPlists      = DARWIN_IA_PATH DARWIN_SYSTEM_VER_PLIST;
+CHAR16    *DarwinRecoverySystemPlists       = DARWIN_RECOVERY_PATH DARWIN_SYSTEM_VER_PLIST;
 
 // Linux loader path data
 typedef struct {
@@ -318,8 +327,8 @@ GetDarwinVolumeName (
   CHAR8         *FileBuffer, *TargetString;
   UINTN         FileLen = 0, Len;
 
-  if (FileExists (Entry->Volume->RootDir, DARWIN_DISK_LABEL)) {
-    Status = LoadFile (Entry->Volume->RootDir, DARWIN_DISK_LABEL, (UINT8 **)&FileBuffer, &FileLen);
+  if (FileExists (Entry->Volume->RootDir, DARWIN_DISK_LABEL_PATH)) {
+    Status = LoadFile (Entry->Volume->RootDir, DARWIN_DISK_LABEL_PATH, (UINT8 **)&FileBuffer, &FileLen);
     if (!EFI_ERROR (Status)) {
       Len = FileLen + 1;
 
@@ -508,6 +517,109 @@ TranslateLoaderTitleTemplate (
   return Buffer;
 }
 
+BOOLEAN
+CheckDarwinVersion (
+  IN  EFI_FILE       *RootDir,
+  OUT CHAR8          **OSVersion,
+  OUT CHAR8          **BuildVersion,
+  IN  CHAR16         *Plist
+) {
+  EFI_STATUS    Status = EFI_INCOMPATIBLE_VERSION;
+  CHAR8         *PlistBuffer = NULL;
+  UINTN         PlistLen, i = 0, Count = ARRAY_SIZE (DarwinSystemPlists);
+  TagPtr        Dict = NULL,  Prop = NULL;
+
+  if (*OSVersion != NULL) {
+    FreePool (*OSVersion);
+  }
+
+  if (Plist != NULL) {
+    goto Next;
+  }
+
+  // Detect exact version for Mac OS X Regular/Server
+  for (i = 0; i < Count; i++) {
+    if (FileExists (RootDir, DarwinSystemPlists[i])) {
+      Plist = AllocateCopyPool (StrSize (DarwinSystemPlists[i]), DarwinSystemPlists[i]);
+      break;
+    }
+  }
+
+  if (Plist == NULL) {
+    goto Finish;
+  }
+
+  Next:
+
+  // found OSX System
+
+  Status = LoadFile (RootDir, Plist, (UINT8 **)&PlistBuffer, &PlistLen);
+
+  if (
+    !EFI_ERROR (Status) &&
+    (PlistBuffer != NULL) &&
+    !EFI_ERROR (ParseXML (PlistBuffer, 0, &Dict))
+  ) {
+    Prop = GetProperty (Dict, "ProductVersion");
+    if ((Prop != NULL) && (Prop->type == kTagTypeString)) {
+      *OSVersion = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
+    }
+
+    Prop = GetProperty (Dict, "ProductBuildVersion");
+    if ((Prop != NULL) && (Prop->type == kTagTypeString)) {
+      *BuildVersion = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
+    }
+  }
+
+  Finish:
+
+  if (PlistBuffer != NULL) {
+    FreePool (PlistBuffer);
+  }
+
+  return (*OSVersion && (AsciiStrLen (*OSVersion) > 0));
+}
+
+VOID
+GetDarwinVersion (
+  IN  UINT8         OSType,
+  IN  REFIT_VOLUME  *Volume,
+  OUT CHAR8         **OSVersion,
+  OUT CHAR8         **BuildVersion
+) {
+  if (!Volume->RootDir) {
+    return;
+  }
+
+  switch (OSType) {
+    case OSTYPE_DARWIN:
+      if (CompareGuid (&Volume->VenMediaGUID, &gEfiPartTypeUnusedGuid)) {
+        CheckDarwinVersion (Volume->RootDir, OSVersion, BuildVersion, NULL);
+      } else {
+        UINTN   i = 0, Count = ARRAY_SIZE (DarwinSystemPlists);
+        // Detect exact version for Mac OS X Regular/Server
+        for (i = 0; i < Count; i++) {
+          if (CheckDarwinVersion (Volume->RootDir, OSVersion, BuildVersion, PoolPrint (L"\\%g%s", &Volume->VenMediaGUID, DarwinSystemPlists[i]))) {
+            break;
+          }
+        }
+      }
+      break;
+    case OSTYPE_DARWIN_RECOVERY:
+      if (CompareGuid (&Volume->VenMediaGUID, &gEfiPartTypeUnusedGuid)) {
+        CheckDarwinVersion (Volume->RootDir, OSVersion, BuildVersion, DarwinRecoverySystemPlists);
+      } else {
+        CheckDarwinVersion (Volume->RootDir, OSVersion, BuildVersion, PoolPrint (L"\\%g%s", &Volume->VenMediaGUID, DARWIN_SERVER_VER_PLIST));
+      }
+      break;
+    case OSTYPE_DARWIN_INSTALLER:
+      if (!CheckDarwinVersion (Volume->RootDir, OSVersion, BuildVersion, DarwinInstallerSystemPlists)) {
+        CheckDarwinVersion (Volume->RootDir, OSVersion, BuildVersion, NULL);
+      }
+      break;
+  }
+}
+
 STATIC
 LOADER_ENTRY *
 CreateLoaderEntry (
@@ -665,7 +777,7 @@ CreateLoaderEntry (
   }
 
   if (OSTYPE_IS_DARWIN_GLOB (OSType)) {
-    GetDarwinVersion (OSType, Volume->RootDir, &OSVersion, &OSBuildVersion);
+    GetDarwinVersion (OSType, Volume, &OSVersion, &OSBuildVersion);
     DarwinOSVersion = StrToVersion (OSVersion);
 
     //if (!DARWIN_OS_VER_MINIMUM (DarwinOSVersion->VersionMajor, DarwinOSVersion->VersionMinor)) {
@@ -1079,23 +1191,31 @@ ScanLoader () {
     // Darwin
     //
 
-    // Use standard location for boot.efi, unless the file /.IAPhysicalMedia is present
-    // That file indentifies a 2nd-stage Install Media, so when present, skip standard path to avoid entry duplication
-    if (FileExists (Volume->RootDir, DARWIN_INSTALLER_LOADERBASE_PATH)) {
-      ValidLoader = AddLoaderEntry (DARWIN_INSTALLER_LOADERBASE_PATH, NULL, L"Installer", Volume, NULL, OSTYPE_DARWIN_INSTALLER, 0);
-    }
+    if (gSettings.Dev || CompareGuid (&Volume->VenMediaGUID, &gEfiPartTypeUnusedGuid)) {
+      // Use standard location for boot.efi, unless the file /.IAPhysicalMedia is present
+      // That file indentifies a 2nd-stage Install Media, so when present, skip standard path to avoid entry duplication
+      if ((gSettings.Dev || CompareGuid (&Volume->PartitionTypeGUID, &gAppleHFSPartGuid)) && FileExists (Volume->RootDir, DARWIN_INSTALLER_LOADERBASE_PATH)) {
+        ValidLoader = AddLoaderEntry (DARWIN_INSTALLER_LOADERBASE_PATH, NULL, L"Installer", Volume, NULL, OSTYPE_DARWIN_INSTALLER, 0);
+      }
 
-    else if (FileExists (Volume->RootDir, DARWIN_INSTALLER_IA_PATH)) {
-      ValidLoader = AddLoaderEntry (DARWIN_INSTALLER_IA_PATH, NULL, L"Installer", Volume, NULL, OSTYPE_DARWIN_INSTALLER, 0);
-    }
+      else if ((gSettings.Dev || CompareGuid (&Volume->PartitionTypeGUID, &gAppleHFSPartGuid)) && FileExists (Volume->RootDir, DARWIN_INSTALLER_IA_PATH)) {
+        ValidLoader = AddLoaderEntry (DARWIN_INSTALLER_IA_PATH, NULL, L"Installer", Volume, NULL, OSTYPE_DARWIN_INSTALLER, 0);
+      }
 
-    else if (FileExists (Volume->RootDir, DARWIN_RECOVERY_LOADER_PATH)) {
-      ValidLoader = AddLoaderEntry (DARWIN_RECOVERY_LOADER_PATH, NULL, L"Recovery", Volume, NULL, OSTYPE_DARWIN_RECOVERY, 0);
-    }
+      else if ((gSettings.Dev || CompareGuid (&Volume->PartitionTypeGUID, &gAppleRecoveryPartGuid)) && FileExists (Volume->RootDir, DARWIN_RECOVERY_LOADER_PATH)) {
+        ValidLoader = AddLoaderEntry (DARWIN_RECOVERY_LOADER_PATH, NULL, L"Recovery", Volume, NULL, OSTYPE_DARWIN_RECOVERY, 0);
+      }
 
-    else if (
-      FileExists (Volume->RootDir, DARWIN_LOADER_PATH) && (EFI_ERROR (GetRootUUID (Volume)) || IsFirstRootUUID (Volume))) {
-      ValidLoader = AddLoaderEntry (DARWIN_LOADER_PATH, NULL, L"MacOS", Volume, NULL, OSTYPE_DARWIN, 0);
+      else if (
+        (gSettings.Dev || CompareGuid (&Volume->PartitionTypeGUID, &gAppleHFSPartGuid)) &&
+        FileExists (Volume->RootDir, DARWIN_LOADER_PATH) && (EFI_ERROR (GetRootUUID (Volume)) || IsFirstRootUUID (Volume))) {
+        ValidLoader = AddLoaderEntry (DARWIN_LOADER_PATH, NULL, L"MacOS", Volume, NULL, OSTYPE_DARWIN, 0);
+      }
+    } else {
+      ValidLoader = AddLoaderEntry (PoolPrint (L"\\%g%s", &Volume->VenMediaGUID, DARWIN_BOOT_EFI), NULL, L"Recovery", Volume, NULL, OSTYPE_DARWIN_RECOVERY, 0);
+      if (!ValidLoader) {
+        ValidLoader = AddLoaderEntry (PoolPrint (L"\\%g%s", &Volume->VenMediaGUID, DARWIN_LOADER_PATH), NULL, L"MacOS", Volume, NULL, OSTYPE_DARWIN, 0);
+      }
     }
 
     if (!gSettings.Dev && ValidLoader) {
@@ -2675,93 +2795,4 @@ ReadCsrCfg () {
   }
 
   FreePool (csrLog);
-}
-
-BOOLEAN
-CheckDarwinVersion (
-  IN  EFI_FILE       *RootDir,
-  OUT CHAR8          **OSVersion,
-  OUT CHAR8          **BuildVersion,
-  IN  CHAR16         *Plist
-) {
-  EFI_STATUS    Status = EFI_INCOMPATIBLE_VERSION;
-  CHAR8         *PlistBuffer = NULL;
-  UINTN         PlistLen, i = 0, Count = ARRAY_SIZE (DarwinSystemPlists);
-  TagPtr        Dict = NULL,  Prop = NULL;
-
-  if (*OSVersion != NULL) {
-    FreePool (*OSVersion);
-  }
-
-  if (Plist != NULL) {
-    goto Next;
-  }
-
-  // Detect exact version for Mac OS X Regular/Server
-  for (i = 0; i < Count; i++) {
-    if (FileExists (RootDir, DarwinSystemPlists[i])) {
-      Plist = AllocateCopyPool (StrSize (DarwinSystemPlists[i]), DarwinSystemPlists[i]);
-      break;
-    }
-  }
-
-  if (Plist == NULL) {
-    goto Finish;
-  }
-
-  Next:
-
-  // found OSX System
-
-  Status = LoadFile (RootDir, Plist, (UINT8 **)&PlistBuffer, &PlistLen);
-
-  if (
-    !EFI_ERROR (Status) &&
-    (PlistBuffer != NULL) &&
-    !EFI_ERROR (ParseXML (PlistBuffer, 0, &Dict))
-  ) {
-    Prop = GetProperty (Dict, "ProductVersion");
-    if ((Prop != NULL) && (Prop->type == kTagTypeString)) {
-      *OSVersion = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
-    }
-
-    Prop = GetProperty (Dict, "ProductBuildVersion");
-    if ((Prop != NULL) && (Prop->type == kTagTypeString)) {
-      *BuildVersion = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
-    }
-  }
-
-  Finish:
-
-  if (PlistBuffer != NULL) {
-    FreePool (PlistBuffer);
-  }
-
-  return (*OSVersion && (AsciiStrLen (*OSVersion) > 0));
-}
-
-VOID
-GetDarwinVersion (
-  IN  UINT8      OSType,
-  IN  EFI_FILE   *RootDir,
-  OUT CHAR8      **OSVersion,
-  OUT CHAR8      **BuildVersion
-) {
-  if (!RootDir) {
-    return;
-  }
-
-  switch (OSType) {
-    case OSTYPE_DARWIN:
-      CheckDarwinVersion (RootDir, OSVersion, BuildVersion, NULL);
-      break;
-    case OSTYPE_DARWIN_RECOVERY:
-      CheckDarwinVersion (RootDir, OSVersion, BuildVersion, DarwinRecoverySystemPlists);
-      break;
-    case OSTYPE_DARWIN_INSTALLER:
-      if (!CheckDarwinVersion (RootDir, OSVersion, BuildVersion, DarwinInstallerSystemPlists)) {
-        CheckDarwinVersion (RootDir, OSVersion, BuildVersion, NULL);
-      }
-      break;
-  }
 }

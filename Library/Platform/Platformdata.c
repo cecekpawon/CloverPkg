@@ -26,21 +26,23 @@ typedef struct {
 S_MAC_MODELS   MAC_MODELS[] = {
   // Desktop
 
-  { "MM51.88Z.0077.B15.1610201614"   , "Mac-7BA5B2794B2CDB12" , "Macmini5,3"     , "C07GA041DJD0", "NA"   , { 0x01, 0x77, 0x0F, 0, 0, 0x00 }, 0x7d005  },// sandy
-  { "MM61.88Z.0106.B12.1702171720"   , "Mac-F65AE981FFA204ED" , "Macmini6,2"     , "C07JD041DWYN", "j50s" , { 0x02, 0x13, 0x0F, 0, 0, 0x15 }, 0x7d006  },// ivy
-  { "MM71.88Z.0220.B14.1702161608"   , "Mac-35C5E08120C7EEAF" , "Macmini7,1"     , "C02NN7NHG1J0", "j64"  , { 0x02, 0x24, 0x0F, 0, 0, 0x32 }, 0xf04008 },// haswell
-  { "IM162.88Z.0207.B11.1702161134"  , "Mac-FFE5EF870D7BA81A" , "iMac16,2"       , "C02PNHACGG7G", "j94"  , { 0x02, 0x32, 0x0F, 0, 0, 0x20 }, 0xf00008 },// broadwell
-  { "IM171.88Z.0105.B20.1702221516"  , "Mac-DB15BD556843C820" , "iMac17,1"       , "C02QFHACGG7L", "j95"  , { 0x02, 0x33, 0x0F, 0, 0, 0x10 }, 0xf0c008 },// skylake
+  { "MM51.88Z.0077.B31.1705011214"   , "Mac-7BA5B2794B2CDB12" , "Macmini5,3"     , "C07GA041DJD0", "NA"   , { 0x01, 0x77, 0x0F, 0, 0, 0x00 }, 0x7d005  },// sandy
+  { "MM61.88Z.0106.B1D.1705011514"   , "Mac-F65AE981FFA204ED" , "Macmini6,2"     , "C07JD041DWYN", "j50s" , { 0x02, 0x13, 0x0F, 0, 0, 0x15 }, 0x7d006  },// ivy
+  { "MM71.88Z.0220.B28.1705011413"   , "Mac-35C5E08120C7EEAF" , "Macmini7,1"     , "C02NN7NHG1J0", "j64"  , { 0x02, 0x24, 0x0F, 0, 0, 0x32 }, 0xf04008 },// haswell
+  { "IM162.88Z.0206.B19.1705011413"  , "Mac-FFE5EF870D7BA81A" , "iMac16,2"       , "C02PNHACGG7G", "j94"  , { 0x02, 0x32, 0x0F, 0, 0, 0x20 }, 0xf00008 },// broadwell
+  { "IM171.88Z.0105.B25.1704292104"  , "Mac-DB15BD556843C820" , "iMac17,1"       , "C02QFHACGG7L", "j95"  , { 0x02, 0x33, 0x0F, 0, 0, 0x10 }, 0xf0c008 },// skylake
+  { "IM183.88Z.0145.B07.1705082121"  , "Mac-BE088AF8C5EB4FA2" , "iMac18,3"       , "C02V7P7AJ1GG", "NA"   , { 0x02, 0x33, 0x0F, 0, 0, 0x10 }, 0xf0c008 },// kabylake
 
   { "MP61.88Z.0116.B44.1705011717"   , "Mac-F60DEB81FF30ACF6" , "MacPro6,1"      , "F5KLA770F9VM", "j90"  , { 0x02, 0x20, 0x0F, 0, 0, 0x18 }, 0xf0f006 },
 
   // Mobile
 
-  { "MBP81.88Z.0047.B32.1702180130"  , "Mac-942459F5819B171B" , "MacBookPro8,3"  , "W88F9CDEDF93", "k92"  , { 0x01, 0x70, 0x0F, 0, 0, 0x06 }, 0x7c005  },// sandy
-  { "MBP102.88Z.0106.B12.1702171357" , "Mac-AFD8A9D944EA4843" , "MacBookPro10,2" , "C02K2HACG4N7", "d1"   , { 0x02, 0x06, 0x0F, 0, 0, 0x59 }, 0x73007  },// ivy
-  { "MBP114.88Z.0172.B16.1702161608" , "Mac-06F11F11946D27C5" , "MacBookPro11,5" , "C02LSHACG85Y", "NA"   , { 0x02, 0x30, 0x0F, 0, 0, 0x02 }, 0xf0b007 },// haswell
-  { "MBP121.88Z.0167.B24.1702161608" , "Mac-E43C1C25D4880AD6" , "MacBookPro12,1" , "C02Q51OSH1DP", "j52"  , { 0x02, 0x28, 0x0F, 0, 0, 0x07 }, 0xf01008 },// broadwell
-  { "MBP133.88Z.0226.B11.1702161827" , "Mac-A5C67F76ED83108C" , "MacBookPro13,3" , "C02SLHACGTFN", "NA"   , { 0x02, 0x38, 0x0F, 0, 0, 0x07 }, 0xf02009 } // skylake
+  { "MBP81.88Z.0047.B39.1705101327"  , "Mac-942459F5819B171B" , "MacBookPro8,3"  , "W88F9CDEDF93", "k92"  , { 0x01, 0x70, 0x0F, 0, 0, 0x06 }, 0x7c005  },// sandy
+  { "MBP102.88Z.0106.B1C.1705011311" , "Mac-AFD8A9D944EA4843" , "MacBookPro10,2" , "C02K2HACG4N7", "d1"   , { 0x02, 0x06, 0x0F, 0, 0, 0x59 }, 0x73007  },// ivy
+  { "MBP114.88Z.0172.B23.1705011413" , "Mac-06F11F11946D27C5" , "MacBookPro11,5" , "C02LSHACG85Y", "NA"   , { 0x02, 0x30, 0x0F, 0, 0, 0x02 }, 0xf0b007 },// haswell
+  { "MBP121.88Z.0167.B31.1705011413" , "Mac-E43C1C25D4880AD6" , "MacBookPro12,1" , "C02Q51OSH1DP", "j52"  , { 0x02, 0x28, 0x0F, 0, 0, 0x07 }, 0xf01008 },// broadwell
+  { "MBP133.88Z.0226.B11.1702161827" , "Mac-A5C67F76ED83108C" , "MacBookPro13,3" , "C02SLHACGTFN", "NA"   , { 0x02, 0x38, 0x0F, 0, 0, 0x07 }, 0xf02009 },// skylake
+  { "MBP143.88Z.0160.B00.1705090111" , "Mac-551B86E5744E2388" , "MacBookPro14,3" , "C02V7PCYHTD5", "NA"   , { 0x02, 0x38, 0x0F, 0, 0, 0x07 }, 0xf02009 } // kabylake
 };
 
 CHAR8   *AppleBoardSN       = "C02140302D5DMT31M";

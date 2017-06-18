@@ -189,8 +189,15 @@ typedef struct {
   MBR_PARTITION_INFO    *MbrPartitionTable;
   UINT32                DriveCRC32;
   EFI_GUID              RootUUID;
+  EFI_GUID              PartitionTypeGUID;
+  EFI_GUID              VenMediaGUID;
   UINT64                SleepImageOffset;
 } REFIT_VOLUME;
+
+typedef struct {
+  EFI_GUID              PartitionTypeGUID;
+  EFI_GUID              UniquePartitionGUID;
+} REFIT_VOLUME_GUID;
 
 typedef struct {
   REFIT_MENU_ENTRY  Entry;

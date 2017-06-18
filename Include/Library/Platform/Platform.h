@@ -35,6 +35,7 @@ Headers collection for procedures
 
 #include <Protocol/BlockIo.h>
 #include <Protocol/DataHub.h>
+#include <Protocol/DiskIo.h>
 #include <Protocol/EdidDiscovered.h>
 #include <Protocol/EdidOverride.h>
 #include <Protocol/LoadedImage.h>
@@ -876,6 +877,7 @@ typedef enum {
   MacMini71,
   iMac162,
   iMac171,
+  iMac183,
 
   MacPro61,
 
@@ -886,6 +888,7 @@ typedef enum {
   MacBookPro115,
   MacBookPro121,
   MacBookPro133,
+  MacBookPro143,
 
   MaxMachineType
 } MACHINE_TYPES;
@@ -1408,14 +1411,6 @@ GetDefaultModel ();
 
 UINT16
 GetAdvancedCpuType ();
-
-VOID
-GetDarwinVersion (
-  IN  UINT8      OSType,
-  IN  EFI_FILE   *RootDir,
-  OUT CHAR8      **OSVersion,
-  OUT CHAR8      **BuildVersion
-);
 
 CHAR16 *
 GetOSIconName (
