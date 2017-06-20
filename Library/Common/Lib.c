@@ -483,8 +483,10 @@ ReadGPT (
         DBG (" StartingLBA          :%d\n", Entry->StartingLBA);
         DBG (" EndingLBA            :%d\n", Entry->EndingLBA);
 
-        CopyGuid (&VolumesGUID[VolumesGUIDCount].PartitionTypeGUID, &Entry->PartitionTypeGUID);
-        CopyGuid (&VolumesGUID[VolumesGUIDCount++].UniquePartitionGUID, &Entry->UniquePartitionGUID);
+        if (VolumesGUIDCount < ARRAY_SIZE (VolumesGUID)) {
+          CopyGuid (&VolumesGUID[VolumesGUIDCount].PartitionTypeGUID, &Entry->PartitionTypeGUID);
+          CopyGuid (&VolumesGUID[VolumesGUIDCount++].UniquePartitionGUID, &Entry->UniquePartitionGUID);
+        }
       }
     }
   }
@@ -649,7 +651,7 @@ ScanVolume (
       // @savvas: Check that vendor-assigned GUID defines APFS Container Partition
       else if (
         (DevicePathSubType (DevicePath) == MEDIA_VENDOR_DP) &&
-        (CompareGuid ((EFI_GUID *)((UINT8 *)DevicePath + 0x04), &gAppleVenMediaGUID))
+        (CompareGuid ((EFI_GUID *)((UINT8 *)DevicePath + 0x04), &gAppleVenMediaGuid))
       ) {
         CopyGuid (&Volume->VenMediaGUID, (EFI_GUID *)((UINT8 *)DevicePath + 0x14));
         //DBG (" ---> VenMediaGUID :%g\n", &Volume->VenMediaGUID);
@@ -934,11 +936,16 @@ ScanVolumes () {
 
   MsgLog ("Found %d volumes with blockIO:\n", HandleCount);
 
+  VolumesGUIDCount = 0;
+  ZeroMem (&VolumesGUID, ARRAY_SIZE (VolumesGUID) * sizeof (REFIT_VOLUME_GUID));
+
   // first pass: collect information about all handles
   for (HandleIndex = 0; HandleIndex < HandleCount; HandleIndex++) {
     Volume = AllocateZeroPool (sizeof (REFIT_VOLUME));
     Volume->LegacyOS = AllocateZeroPool (sizeof (LEGACY_OS));
     Volume->DeviceHandle = Handles[HandleIndex];
+    Volume->BlessedPath = NULL;
+    Volume->PartitionType = PARTITION_TYPE_UNKNOWN;
 
     if (Volume->DeviceHandle == SelfDeviceHandle) {
       SelfVolume = Volume;
@@ -2301,6 +2308,26 @@ EfiLibFileSystemInfo (
   }
 
   return EFI_ERROR (Status) ? NULL : FileSystemInfo;
+}
+
+EFI_DEVICE_PATH_PROTOCOL *
+EfiLibPathInfo (
+  IN EFI_FILE_HANDLE    FHand,
+  IN EFI_GUID           *InformationType
+) {
+  EFI_STATUS                  Status;
+  UINTN                       Size = 0;
+  EFI_DEVICE_PATH_PROTOCOL    *PathInfo = NULL;
+
+  Status = FHand->GetInfo (FHand, InformationType, &Size, PathInfo);
+  if (Status == EFI_BUFFER_TOO_SMALL) {
+    // inc size by 2 because some drivers (HFSPlus.efi) do not count 0 at the end of file name
+    Size += 2;
+    PathInfo = AllocateZeroPool (Size);
+    Status = FHand->GetInfo (FHand, InformationType, &Size, PathInfo);
+  }
+
+  return EFI_ERROR (Status) ? NULL : PathInfo;
 }
 
 /**

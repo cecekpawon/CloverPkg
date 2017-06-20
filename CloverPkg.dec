@@ -30,10 +30,15 @@
   gEfiAppleNvramGuid                      = { 0X4D1EDE05, 0X38C7, 0X4A6A, { 0X9C, 0XC6, 0X4B, 0XCC, 0XA8, 0XB3, 0X8C, 0X14 } }
   gEfiGlobalVariableGuid                  = { 0X8BE4DF61, 0X93CA, 0X11D2, { 0XAA, 0X0D, 0X00, 0XE0, 0X98, 0X03, 0X2B, 0X8C } }
 
-  gAppleRecoveryPartGuid                  = { 0X426F6F74, 0X0000, 0X11AA, { 0XAA, 0X11, 0X00, 0X30, 0X65, 0X43, 0XEC, 0XAC } }
-  gAppleHFSPartGuid                       = { 0X48465300, 0X0000, 0X11AA, { 0XAA, 0X11, 0X00, 0X30, 0X65, 0X43, 0XEC, 0XAC } }
   gAppleAPFSPartGuid                      = { 0X7C3457EF, 0X0000, 0X11AA, { 0XAA, 0X11, 0X00, 0X30, 0X65, 0X43, 0XEC, 0XAC } }
-  gAppleVenMediaGUID                      = { 0xBE74FCF7, 0x0B7C, 0x49F3, { 0x91, 0x47, 0x01, 0xf4, 0x04, 0x2E, 0x68, 0x42 } }
+  gAppleHFSPartGuid                       = { 0X48465300, 0X0000, 0X11AA, { 0XAA, 0X11, 0X00, 0X30, 0X65, 0X43, 0XEC, 0XAC } }
+  gAppleKernelCoreDumpPartGuid            = { 0X5361644D, 0X6163, 0X11AA, { 0XAA, 0X11, 0X00, 0X30, 0X65, 0X43, 0XEC, 0XAC } }
+  gAppleRecoveryPartGuid                  = { 0X426F6F74, 0X0000, 0X11AA, { 0XAA, 0X11, 0X00, 0X30, 0X65, 0X43, 0XEC, 0XAC } }
+  gAppleVenMediaGuid                      = { 0xBE74FCF7, 0x0B7C, 0x49F3, { 0x91, 0x47, 0x01, 0xf4, 0x04, 0x2E, 0x68, 0x42 } }
+
+  gAppleBlessedOsxFolderInfoGuid          = { 0x893CA450, 0x5F5E, 0x48BA, { 0x85, 0x8F, 0x08, 0xC4, 0x5D, 0x80, 0x23, 0x18 } }
+  gAppleBlessedSystemFileInfoGuid         = { 0xCA7E4814, 0x2ADC, 0x4ADD, { 0xAB, 0xFF, 0x73, 0x4E, 0x3C, 0xFE, 0x13, 0xF3 } }
+  gAppleBlessedSystemFolderInfoGuid       = { 0x7BD1F02D, 0x9C2F, 0x4581, { 0xBF, 0x12, 0xD5, 0x4a, 0xBA, 0x0D, 0x98, 0xD6 } }
 
  [Protocols]
   gAppleDevicePropertyProtocolGuid        = { 0X91BD12FE, 0XF6C3, 0X44FB, { 0XA5, 0XB7, 0X51, 0X22, 0XAB, 0X30, 0X3A, 0XE0 } }

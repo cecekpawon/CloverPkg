@@ -55,6 +55,7 @@ CHAR16  *SupportedOsType[3] = { OSTYPE_DARWIN_STR, OSTYPE_LINUX_STR, OSTYPE_WIND
 #define DARWIN_CORE_SERVICES                L"\\System\\Library\\CoreServices"
 #define DARWIN_IA_PATH                      L"\\.IABootFiles"
 #define DARWIN_RECOVERY_PATH                L"\\com.apple.recovery.boot"
+#define DARWIN_INSTALLER_PATH               L"\\com.apple.installer"
 
 #define DARWIN_BOOT_EFI                     L"\\boot.efi"
 #define DARWIN_BOOTBASE_EFI                 L"\\bootbase.efi"
@@ -67,9 +68,10 @@ CHAR16  *SupportedOsType[3] = { OSTYPE_DARWIN_STR, OSTYPE_LINUX_STR, OSTYPE_WIND
 #define DARWIN_INSTALLER_LOADERBASE_PATH    DARWIN_CORE_SERVICES DARWIN_BOOTBASE_EFI
 #define DARWIN_INSTALLER_IA_PATH            DARWIN_IA_PATH DARWIN_BOOT_EFI
 #define DARWIN_RECOVERY_LOADER_PATH         DARWIN_RECOVERY_PATH DARWIN_BOOT_EFI
+#define DARWIN_INSTALLER_LOADER_PATH        DARWIN_INSTALLER_PATH DARWIN_BOOT_EFI
 
-#define DARWIN_KERNEL_PATH                  L"/mach_kernel"
-#define DARWIN_MACH_KERNEL_PATH             L"/System/Library/Kernels/kernel"
+#define DARWIN_MACH_KERNEL_PATH             L"/mach_kernel"
+#define DARWIN_KERNEL_PATH                  L"/System/Library/Kernels/kernel"
 
 #define LINUX_GRUB_PATH                     L"\\EFI\\%s\\grubx64.efi"
 #define LINUX_ICON_NAME                     L"%s,linux\0"
@@ -89,6 +91,18 @@ CHAR16    *DarwinSystemPlists[] = {
 
 CHAR16    *DarwinInstallerSystemPlists      = DARWIN_IA_PATH DARWIN_SYSTEM_VER_PLIST;
 CHAR16    *DarwinRecoverySystemPlists       = DARWIN_RECOVERY_PATH DARWIN_SYSTEM_VER_PLIST;
+
+STATIC CHAR16   *OSXInstallerPaths[] = {
+  L"\\OS X Install Data" DARWIN_BOOT_EFI,
+  L"\\Mac OS X Install Data" DARWIN_BOOT_EFI,
+  L"\\macOS Install Data" DARWIN_BOOT_EFI,
+  L"\\macOS Install Data\\Locked Files\\Boot Files" DARWIN_BOOT_EFI,
+  DARWIN_IA_PATH DARWIN_BOOT_EFI,
+  DARWIN_INSTALLER_PATH DARWIN_BOOT_EFI,
+  DARWIN_INSTALLER_LOADERBASE_PATH
+};
+
+STATIC CONST UINTN OSXInstallerPathsCount = ARRAY_SIZE(OSXInstallerPaths);
 
 // Linux loader path data
 typedef struct {
@@ -124,17 +138,6 @@ STATIC ANDX86_PATH_DATA AndroidEntryData[] = {
 };
 
 STATIC CONST UINTN AndroidEntryDataCount = ARRAY_SIZE (AndroidEntryData);
-
-/*
-STATIC CHAR16 *OSXInstallerPaths[] = {
-  L"\\Mac OS X Install Data\\boot.efi",
-  L"\\macOS Install Data\\boot.efi",
-  L"\\OS X Install Data\\boot.efi",
-  L"\\.IABootFiles\\boot.efi"
-};
-
-STATIC CONST UINTN OSXInstallerPathsCount = ARRAY_SIZE (OSXInstallerPaths);
-*/
 
 STATIC CHAR16   *WINEFIPaths[] = {
   L"\\EFI\\MICROSOFT\\BOOT\\bootmgfw.efi",
@@ -191,10 +194,7 @@ GetOSTypeFromPath (
     return OSTYPE_OTHER;
   }
 
-  if (
-    (StriCmp (Path, DARWIN_INSTALLER_IA_PATH) == 0) ||
-    (StriCmp (Path, DARWIN_INSTALLER_LOADERBASE_PATH) == 0)
-  ) {
+  if (IsBootExists (Path, OSXInstallerPaths)) {
     return OSTYPE_DARWIN_INSTALLER;
   } else if (StriCmp (Path, DARWIN_RECOVERY_LOADER_PATH) == 0) {
     return OSTYPE_DARWIN_RECOVERY;
@@ -315,6 +315,25 @@ IsFirstRootUUID (
   }
 
   return TRUE;
+}
+
+CHAR16 *
+GetDarwinBlessed (
+  IN REFIT_VOLUME    *Volume
+) {
+  CHAR16                    *Ret = NULL;
+  EFI_DEVICE_PATH_PROTOCOL  *Path = NULL;
+
+  if (
+    ((Path = EfiLibPathInfo (Volume->RootDir, &gAppleBlessedSystemFileInfoGuid)) != NULL) ||
+    ((Path = EfiLibPathInfo (Volume->RootDir, &gAppleBlessedSystemFolderInfoGuid)) != NULL) ||
+    ((Path = EfiLibPathInfo (Volume->RootDir, &gAppleBlessedOsxFolderInfoGuid)) != NULL)
+  ) {
+    Ret = FileDevicePathFileToStr (Path);
+    MsgLog ("         Blessed !!\n");
+  }
+
+  return Ret;
 }
 
 //Set Entry->VolName to .disk_label.contentDetails if it exists
@@ -593,7 +612,13 @@ GetDarwinVersion (
 
   switch (OSType) {
     case OSTYPE_DARWIN:
-      if (CompareGuid (&Volume->VenMediaGUID, &gEfiPartTypeUnusedGuid)) {
+      if (
+        gSettings.Dev ||
+        (
+          CompareGuid (&Volume->VenMediaGUID, &gEfiPartTypeUnusedGuid) &&
+          (Volume->PartitionType == PARTITION_TYPE_HFS)
+        )
+      ) {
         CheckDarwinVersion (Volume->RootDir, OSVersion, BuildVersion, NULL);
       } else {
         UINTN   i = 0, Count = ARRAY_SIZE (DarwinSystemPlists);
@@ -605,13 +630,21 @@ GetDarwinVersion (
         }
       }
       break;
+
     case OSTYPE_DARWIN_RECOVERY:
-      if (CompareGuid (&Volume->VenMediaGUID, &gEfiPartTypeUnusedGuid)) {
+      if (
+        gSettings.Dev ||
+        (
+          CompareGuid (&Volume->VenMediaGUID, &gEfiPartTypeUnusedGuid) &&
+          (Volume->PartitionType == PARTITION_TYPE_RECOVERY)
+        )
+      ) {
         CheckDarwinVersion (Volume->RootDir, OSVersion, BuildVersion, DarwinRecoverySystemPlists);
       } else {
         CheckDarwinVersion (Volume->RootDir, OSVersion, BuildVersion, PoolPrint (L"\\%g%s", &Volume->VenMediaGUID, DARWIN_SERVER_VER_PLIST));
       }
       break;
+
     case OSTYPE_DARWIN_INSTALLER:
       if (!CheckDarwinVersion (Volume->RootDir, OSVersion, BuildVersion, DarwinInstallerSystemPlists)) {
         CheckDarwinVersion (Volume->RootDir, OSVersion, BuildVersion, NULL);
@@ -1086,8 +1119,9 @@ AddLoaderEntry (
     (LoaderPath == NULL) ||
     (Volume == NULL) ||
     (Volume->RootDir == NULL) ||
-    !FileExists (Volume->RootDir, LoaderPath)
+    ((Volume->BlessedPath == NULL) && !FileExists (Volume->RootDir, LoaderPath))
   ) {
+    //MsgLog ("        --> [xxx] LoaderPath: %s\n", LoaderPath);
     return FALSE;
   }
 
@@ -1157,13 +1191,12 @@ ScanLoader () {
   UINTN         VolumeIndex, Index;
   REFIT_VOLUME  *Volume;
   EFI_GUID      *PartGUID;
-  BOOLEAN       ValidLoader;
 
   //DBG ("Scanning loaders...\n");
   DbgHeader ("ScanLoader");
 
   for (VolumeIndex = 0; VolumeIndex < VolumesCount; VolumeIndex++) {
-    ValidLoader = FALSE;
+    BOOLEAN   ValidLoader = FALSE , PartIsHFS = FALSE, PartIsRecovery = FALSE, PartIsAPFS = FALSE, PartIsKernelCoreDump = FALSE;
 
     Volume = Volumes[VolumeIndex];
 
@@ -1191,30 +1224,65 @@ ScanLoader () {
     // Darwin
     //
 
-    if (gSettings.Dev || CompareGuid (&Volume->VenMediaGUID, &gEfiPartTypeUnusedGuid)) {
-      // Use standard location for boot.efi, unless the file /.IAPhysicalMedia is present
-      // That file indentifies a 2nd-stage Install Media, so when present, skip standard path to avoid entry duplication
-      if ((gSettings.Dev || CompareGuid (&Volume->PartitionTypeGUID, &gAppleHFSPartGuid)) && FileExists (Volume->RootDir, DARWIN_INSTALLER_LOADERBASE_PATH)) {
-        ValidLoader = AddLoaderEntry (DARWIN_INSTALLER_LOADERBASE_PATH, NULL, L"Installer", Volume, NULL, OSTYPE_DARWIN_INSTALLER, 0);
-      }
+    if ((PartIsHFS = CompareGuid (&Volume->PartitionTypeGUID, &gAppleHFSPartGuid)) == TRUE) {
+      Volume->PartitionType = PARTITION_TYPE_HFS;
+    }
 
-      else if ((gSettings.Dev || CompareGuid (&Volume->PartitionTypeGUID, &gAppleHFSPartGuid)) && FileExists (Volume->RootDir, DARWIN_INSTALLER_IA_PATH)) {
-        ValidLoader = AddLoaderEntry (DARWIN_INSTALLER_IA_PATH, NULL, L"Installer", Volume, NULL, OSTYPE_DARWIN_INSTALLER, 0);
-      }
+    if ((PartIsRecovery = CompareGuid (&Volume->PartitionTypeGUID, &gAppleRecoveryPartGuid)) == TRUE) {
+      Volume->PartitionType = PARTITION_TYPE_RECOVERY;
+    }
 
-      else if ((gSettings.Dev || CompareGuid (&Volume->PartitionTypeGUID, &gAppleRecoveryPartGuid)) && FileExists (Volume->RootDir, DARWIN_RECOVERY_LOADER_PATH)) {
-        ValidLoader = AddLoaderEntry (DARWIN_RECOVERY_LOADER_PATH, NULL, L"Recovery", Volume, NULL, OSTYPE_DARWIN_RECOVERY, 0);
-      }
+    if ((PartIsAPFS = CompareGuid (&Volume->PartitionTypeGUID, &gAppleAPFSPartGuid)) == TRUE) {
+      Volume->PartitionType = PARTITION_TYPE_APFS;
+    }
 
-      else if (
-        (gSettings.Dev || CompareGuid (&Volume->PartitionTypeGUID, &gAppleHFSPartGuid)) &&
-        FileExists (Volume->RootDir, DARWIN_LOADER_PATH) && (EFI_ERROR (GetRootUUID (Volume)) || IsFirstRootUUID (Volume))) {
-        ValidLoader = AddLoaderEntry (DARWIN_LOADER_PATH, NULL, L"MacOS", Volume, NULL, OSTYPE_DARWIN, 0);
-      }
-    } else {
-      ValidLoader = AddLoaderEntry (PoolPrint (L"\\%g%s", &Volume->VenMediaGUID, DARWIN_BOOT_EFI), NULL, L"Recovery", Volume, NULL, OSTYPE_DARWIN_RECOVERY, 0);
-      if (!ValidLoader) {
-        ValidLoader = AddLoaderEntry (PoolPrint (L"\\%g%s", &Volume->VenMediaGUID, DARWIN_LOADER_PATH), NULL, L"MacOS", Volume, NULL, OSTYPE_DARWIN, 0);
+    if ((PartIsKernelCoreDump = CompareGuid (&Volume->PartitionTypeGUID, &gAppleKernelCoreDumpPartGuid)) == TRUE) {
+      Volume->PartitionType = PARTITION_TYPE_KERNELCOREDUMP;
+    }
+
+    Volume->BlessedPath = GetDarwinBlessed (Volume);
+
+    ValidLoader = AddLoaderEntry (
+                    Volume->BlessedPath,
+                    NULL,
+                    PartIsRecovery ? L"Recovery" : L"MacOS",
+                    Volume,
+                    NULL,
+                    PartIsRecovery ? OSTYPE_DARWIN_RECOVERY : OSTYPE_DARWIN,
+                    0
+                  );
+
+    if (gSettings.Dev || !ValidLoader) {
+      if (
+        (gSettings.Dev || CompareGuid (&Volume->VenMediaGUID, &gEfiPartTypeUnusedGuid)) &&
+        (gSettings.Dev || (PartIsHFS || PartIsRecovery))
+      ) {
+        if (gSettings.Dev || PartIsRecovery) {
+          ValidLoader = AddLoaderEntry (DARWIN_RECOVERY_LOADER_PATH, NULL, L"Recovery", Volume, NULL, OSTYPE_DARWIN_RECOVERY, 0);
+        } else if (gSettings.Dev || PartIsHFS) {
+          Index = 0;
+          while ((gSettings.Dev || !ValidLoader) && (Index < OSXInstallerPathsCount)) {
+            ValidLoader = AddLoaderEntry (OSXInstallerPaths[Index++], NULL, L"Installer", Volume, NULL, OSTYPE_DARWIN_INSTALLER, 0);
+          }
+
+          if (
+            (gSettings.Dev || !ValidLoader) &&
+            (EFI_ERROR (GetRootUUID (Volume)) || IsFirstRootUUID (Volume))
+          ) {
+            ValidLoader = AddLoaderEntry (DARWIN_LOADER_PATH, NULL, L"MacOS", Volume, NULL, OSTYPE_DARWIN, 0);
+          }
+        }
+      } else {
+        //MsgLog ("        --> [PartitionTypeGUID] : %g\n", &Volume->PartitionTypeGUID);
+        //MsgLog ("        --> [VenMediaGUID] : %g\n", &Volume->VenMediaGUID);
+        // This block are have no sense at this time :(((
+        ValidLoader = AddLoaderEntry (PoolPrint (L"\\%g%s", &Volume->VenMediaGUID, DARWIN_BOOT_EFI), NULL, L"Recovery", Volume, NULL, OSTYPE_DARWIN_RECOVERY, 0);
+        if (!ValidLoader) {
+          ValidLoader = AddLoaderEntry (PoolPrint (L"\\%g%s", &Volume->VenMediaGUID, DARWIN_INSTALLER_LOADER_PATH), NULL, L"Installer", Volume, NULL, OSTYPE_DARWIN_INSTALLER, 0);
+          if (!ValidLoader) {
+            ValidLoader = AddLoaderEntry (PoolPrint (L"\\%g%s", &Volume->VenMediaGUID, DARWIN_LOADER_PATH), NULL, L"MacOS", Volume, NULL, OSTYPE_DARWIN, 0);
+          }
+        }
       }
     }
 

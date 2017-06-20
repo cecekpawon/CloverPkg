@@ -92,9 +92,13 @@
 
 [Guids]
   gAppleAPFSPartGuid
+  gAppleBlessedOsxFolderInfoGuid
+  gAppleBlessedSystemFileInfoGuid
+  gAppleBlessedSystemFolderInfoGuid
   gAppleHFSPartGuid
+  gAppleKernelCoreDumpPartGuid
   gAppleRecoveryPartGuid
-  gAppleVenMediaGUID
+  gAppleVenMediaGuid
   gDataHubPlatformGuid
   gEfiAcpi10TableGuid
   gEfiAcpi20TableGuid
