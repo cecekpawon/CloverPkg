@@ -414,7 +414,7 @@ EfiStrDuplicate (
   UINTN   Size;
 
   Size  = StrSize (Src); //at least 2bytes
-  Dest  = AllocatePool (Size);
+  Dest  = AllocateZeroPool (Size);
   //ASSERT (Dest != NULL);
   if (Dest != NULL) {
     CopyMem (Dest, Src, Size);
@@ -813,31 +813,32 @@ AsciiStrVersionToUint64 (
           UINT8   MaxDigitByPart,
           UINT8   MaxParts
 ) {
-  UINT64    result = 0;
-  UINT16    part_value = 0, part_mult  = 1, max_part_value;
+  UINT64    Res = 0;
+  UINT16    PartValue = 0, PartMult  = 1, MaxPartValue;
 
   if (!Version) {
-    Version = OsVerUndetected; //pointer to non-NULL string
+    //Version = DARWIN_OS_VER_DEFAULT; //pointer to non-NULL string
+    return Res;
   }
 
   while (MaxDigitByPart--) {
-    part_mult = part_mult * 10;
+    PartMult = PartMult * 10;
   }
 
-  max_part_value = part_mult - 1;
+  MaxPartValue = PartMult - 1;
 
   while (*Version && (MaxParts > 0)) {  //Slice - NULL pointer dereferencing
     if (*Version >= '0' && *Version <= '9') {
-      part_value = part_value * 10 + (*Version - '0');
+      PartValue = PartValue * 10 + (*Version - '0');
 
-      if (part_value > max_part_value) {
-        part_value = max_part_value;
+      if (PartValue > MaxPartValue) {
+        PartValue = MaxPartValue;
       }
     }
 
     else if (*Version == '.') {
-      result = MultU64x64 (result, part_mult) + part_value;
-      part_value = 0;
+      Res = MultU64x64 (Res, PartMult) + PartValue;
+      PartValue = 0;
       MaxParts--;
     }
 
@@ -845,11 +846,11 @@ AsciiStrVersionToUint64 (
   }
 
   while (MaxParts--) {
-    result = MultU64x64 (result, part_mult) + part_value;
-    part_value = 0; // part_value is only used at first pass
+    Res = MultU64x64 (Res, PartMult) + PartValue;
+    PartValue = 0; // PartValue is only used at first pass
   }
 
-  return result;
+  return Res;
 }
 
 CHAR8 *

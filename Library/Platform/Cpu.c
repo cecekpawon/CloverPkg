@@ -78,9 +78,9 @@ DoCpuid (
 //
 VOID
 GetCPUProperties () {
-  UINT32    BusSpeed = 0, //units kHz
-            Reg[4];
-  UINT64    TmpFSB, Msr = 0;
+  UINT32    Reg[4];
+
+  UINT64    Msr = 0;
   CHAR8     Str[128];
 
   DbgHeader ("GetCPUProperties");
@@ -376,6 +376,21 @@ GetCPUProperties () {
       }
     }
   }
+}
+
+VOID
+SyncCPUProperties () {
+  UINT32    BusSpeed = 0; //units kHz
+  UINT64    TmpFSB, ExternalClock = 0;
+
+  // Check if QPI is used
+  if (gSettings.QPI == 0xFFFF) {
+    // Not used, quad-pumped FSB; multiply ExternalClock by 4
+    ExternalClock = gCPUStructure.ExternalClock * 4;
+  } else {
+    // Used; keep the same value for ExternalClock
+    ExternalClock = gCPUStructure.ExternalClock;
+  }
 
   // DBG ("take FSB\n");
   TmpFSB = gCPUStructure.FSBFrequency;
@@ -384,11 +399,13 @@ GetCPUProperties () {
   DBG ("FSBFrequency=%dMHz DMIvalue=%dkHz\n", DivU64x32 (TmpFSB, Mega), gCPUStructure.ExternalClock);
 
   //now check if SMBIOS has ExternalClock = 4xBusSpeed
-  if ((BusSpeed > 50 * kilo) &&
-      ((gCPUStructure.ExternalClock > BusSpeed * 3) || (gCPUStructure.ExternalClock < 50 * kilo))) { //khz
+  if (
+    (BusSpeed > 50 * kilo) &&
+    ((/*gCPUStructure.*/ExternalClock > BusSpeed * 3) || (/*gCPUStructure.*/ExternalClock < 50 * kilo)) //khz
+  ) {
     gCPUStructure.ExternalClock = BusSpeed;
   } else {
-    TmpFSB = MultU64x32 (gCPUStructure.ExternalClock, kilo); //kHz -> Hz
+    TmpFSB = MultU64x32 (/*gCPUStructure.*/ExternalClock, kilo); //kHz -> Hz
     gCPUStructure.FSBFrequency = TmpFSB;
   }
 
@@ -415,9 +432,25 @@ GetCPUProperties () {
     (INT32)gCPUStructure.ProcessorInterconnectSpeed
   );
 
-  //#if DEBUG_PCI
-  //  WaitForKeyPress ("waiting for key press...\n");
-  //#endif
+  MsgLog ("Calibrated TSC frequency = %ld = %ldMHz\n", gCPUStructure.TSCCalibr, DivU64x32 (gCPUStructure.TSCCalibr, Mega));
+
+  if (gCPUStructure.TSCCalibr > 200000000ULL) {  //200MHz
+    gCPUStructure.TSCFrequency = gCPUStructure.TSCCalibr;
+  }
+
+  gCPUStructure.CPUFrequency  = gCPUStructure.TSCFrequency;
+  gCPUStructure.FSBFrequency  = DivU64x32 (
+                                  MultU64x32 (gCPUStructure.CPUFrequency, 10),
+                                  (gCPUStructure.MaxRatio == 0) ? 1 : gCPUStructure.MaxRatio
+                                );
+  gCPUStructure.ExternalClock = (UINT32)DivU64x32 (gCPUStructure.FSBFrequency, kilo);
+  gCPUStructure.MaxSpeed      = (UINT32)DivU64x32 (gCPUStructure.TSCFrequency + (Mega >> 1), Mega);
+
+  // Check if QPI is used
+  if (gSettings.QPI == 0xFFFF) {
+    // Not used, quad-pumped FSB; divide ExternalClock by 4
+    gCPUStructure.ExternalClock = gCPUStructure.ExternalClock / 4;
+  }
 }
 
 VOID

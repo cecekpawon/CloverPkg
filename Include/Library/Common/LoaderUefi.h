@@ -379,6 +379,9 @@ typedef struct {
 #define DARWIN_OS_VER_MINOR_MINIMUM             DARWIN_OS_VER_MINOR_MAVERICKS
 #define DARWIN_OS_VER_STR_MINIMUM               DARWIN_OS_VER_STR_MAVERICKS
 
+#define DARWIN_OS_VER_DEFAULT                   DARWIN_OS_VER_STR_MINIMUM
+#define DARWIN_OS_BUILD_VER_DEFAULT             "0000"
+
 #define DARWIN_OS_VER_MINIMUM(Major, Minor)     (\
                                                   (Major > DARWIN_OS_VER_MAJOR_MINIMUM) || \
                                                   ((Major == DARWIN_OS_VER_MAJOR_MINIMUM) && (Minor >= DARWIN_OS_VER_MINOR_MINIMUM)) \

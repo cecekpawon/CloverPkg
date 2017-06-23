@@ -739,7 +739,12 @@ GetTableType4 () {
 
   Size = SmbiosTable.Type4->Hdr.Length;
 
-  gCPUStructure.ExternalClock = (UINT32)((SmbiosTable.Type4->ExternalClock * 1000) + (Res * 110));//MHz->kHz
+  gCPUStructure.ExternalClock = (UINT32)((SmbiosTable.Type4->ExternalClock * 1000) + (Res * 110));//MHz->kHz 
+  // Check if QPI is used
+  if (gSettings.QPI == 0xFFFF) {
+    // Not used, quad-pumped FSB; divide ExternalClock by 4
+    gCPUStructure.ExternalClock = gCPUStructure.ExternalClock / 4;
+  }
   //UnicodeSPrint (gSettings.BusSpeed, 10, L"%d", gCPUStructure.ExternalClock);
   //gSettings.BusSpeed = gCPUStructure.ExternalClock; //why duplicate??
   gCPUStructure.CurrentSpeed = SmbiosTable.Type4->CurrentSpeed;
@@ -802,7 +807,6 @@ PatchTableType4 () {
     //if (NewSmbiosTable.Type4->CoreCount < NewSmbiosTable.Type4->EnabledCoreCount) {
     //  NewSmbiosTable.Type4->EnabledCoreCount = gCPUStructure.Cores;
     //}
-
     NewSmbiosTable.Type4->EnabledCoreCount = gSettings.EnabledCores;
     //some verifications
     if (
@@ -811,6 +815,8 @@ PatchTableType4 () {
     ) {
       NewSmbiosTable.Type4->ThreadCount = gCPUStructure.Threads;
     }
+
+    NewSmbiosTable.Type4->ExternalClock = (UINT16)DivU64x32 (gCPUStructure.ExternalClock, kilo);
 
     UniquifySmbiosTableStr (NewSmbiosTable, SMBIOS_TABLE_TYPE4_STR_IDX);
 
@@ -1210,6 +1216,9 @@ GetTableType17 () {
     if ((SmbiosTable.Type17->Speed > 0) && (SmbiosTable.Type17->Speed <= MAX_RAM_FREQUENCY)) {
       gRAM.SMBIOS[Index].InUse = TRUE;
       gRAM.SMBIOS[Index].Frequency = SmbiosTable.Type17->Speed;
+      if (SmbiosTable.Type17->Speed > gRAM.Frequency) {
+       gRAM.Frequency = SmbiosTable.Type17->Speed;
+      }
     } else {
       DBG (" - Ignoring insane frequency value %dMHz\n", SmbiosTable.Type17->Speed);
     }
@@ -1669,6 +1678,12 @@ PatchTableType17 () {
         UpdateSmbiosString (NewSmbiosTable, &NewSmbiosTable.Type17->PartNumber, STR_A_UNKNOWN);
       }
 
+      if (gRAM.Frequency > gRAM.SPD[SPDIndex].Frequency) {
+        NewSmbiosTable.Type17->Speed = (UINT16)gRAM.Frequency;
+      } else {
+        NewSmbiosTable.Type17->Speed = (UINT16)gRAM.SPD[SPDIndex].Frequency;
+      }
+
       NewSmbiosTable.Type17->Speed = (UINT16)gRAM.SPD[SPDIndex].Frequency;
       NewSmbiosTable.Type17->Size = (UINT16)gRAM.SPD[SPDIndex].ModuleSize;
       NewSmbiosTable.Type17->MemoryType = gRAM.SPD[SPDIndex].Type;
@@ -1963,7 +1978,7 @@ PatchTableType132 () {
   NewSmbiosTable.Type132->Hdr.Handle = hTable132;
 
   // Patch ProcessorBusSpeed
-  NewSmbiosTable.Type132->ProcessorBusSpeed = gSettings.QPI
+  NewSmbiosTable.Type132->ProcessorBusSpeed = (gSettings.QPI != 0xFFFF)
     ? gSettings.QPI
     : (UINT16)(LShiftU64 (DivU64x32 (gSettings.BusSpeed, kilo), 2));
 

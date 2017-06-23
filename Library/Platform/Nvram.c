@@ -144,7 +144,7 @@ GetNvramVariable (
     //
     // Allocate the buffer to return
     //
-    Data = AllocateZeroPool (IntDataSize + 1);
+    Data = AllocateZeroPool (IntDataSize/* + 1*/);
     if (Data != NULL) {
       //
       // Read variable into the allocated buffer.
@@ -922,11 +922,11 @@ RemoveStartupDiskVolume () {
 }
 
 VOID
-SetVariablesFromNvram () {
-  CHAR8   *TmpString, *Arg = NULL, *LoBootArgs;
+SyncBootArgsFromNvram () {
+  CHAR8   *TmpString, *Arg = NULL;
   UINTN   iNVRAM = 0, iBootArgs = 0, Index = 0, Index2, Len, i;
 
-  DbgHeader ("SetVariablesFromNvram");
+  DbgHeader ("SyncBootArgsFromNvram");
 
   iBootArgs = AsciiStrLen (gSettings.BootArgs);
 
@@ -934,12 +934,9 @@ SetVariablesFromNvram () {
     return;
   }
 
-  LoBootArgs = AsciiStrToLower (gSettings.BootArgs);
-
   TmpString = GetNvramVariable (L"boot-args", &gEfiAppleBootGuid, NULL, &iNVRAM);
-  iNVRAM = AsciiStrLen (TmpString);
 
-  if (!TmpString || !iNVRAM) {
+  if (!TmpString || !iNVRAM || ((iNVRAM = AsciiStrLen (TmpString)) == 0)) {
     return;
   }
 
@@ -948,7 +945,7 @@ SetVariablesFromNvram () {
 
   CONSTRAIN_MAX (iNVRAM, AVALUE_MAX_SIZE - 1 - iBootArgs);
 
-  Arg = AllocatePool (iNVRAM);
+  Arg = AllocateZeroPool (iNVRAM);
 
   while ((Index < iNVRAM) && (TmpString[Index] != 0x0)) {
     ZeroMem (Arg, iNVRAM + 1);
@@ -985,7 +982,7 @@ SetVariablesFromNvram () {
     //  continue;
     //}
 
-    if (AsciiStrStr (LoBootArgs, AsciiStrToLower (Arg)) == NULL) {
+    if (AsciiStrStr (gSettings.BootArgs, Arg) == NULL) {
       Len = AsciiStrLen (gSettings.BootArgs);
       CONSTRAIN_MAX (Len, AVALUE_MAX_SIZE - 1);
 
@@ -1010,5 +1007,4 @@ SetVariablesFromNvram () {
 
   FreePool (TmpString);
   FreePool (Arg);
-  FreePool (LoBootArgs);
 }

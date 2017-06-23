@@ -550,6 +550,12 @@ CheckDarwinVersion (
 
   if (*OSVersion != NULL) {
     FreePool (*OSVersion);
+    *OSVersion = NULL;
+  }
+
+  if (*BuildVersion != NULL) {
+    FreePool (*BuildVersion);
+    *BuildVersion = NULL;
   }
 
   if (Plist != NULL) {
@@ -811,6 +817,15 @@ CreateLoaderEntry (
 
   if (OSTYPE_IS_DARWIN_GLOB (OSType)) {
     GetDarwinVersion (OSType, Volume, &OSVersion, &OSBuildVersion);
+
+    if (OSVersion == NULL) {
+      OSVersion = AllocateCopyPool (AsciiStrSize (DARWIN_OS_VER_DEFAULT), DARWIN_OS_VER_DEFAULT);
+    }
+
+    if (OSBuildVersion == NULL) {
+      OSBuildVersion = AllocateCopyPool (AsciiStrSize (DARWIN_OS_BUILD_VER_DEFAULT), DARWIN_OS_BUILD_VER_DEFAULT);
+    }
+
     DarwinOSVersion = StrToVersion (OSVersion);
 
     //if (!DARWIN_OS_VER_MINIMUM (DarwinOSVersion->VersionMajor, DarwinOSVersion->VersionMinor)) {

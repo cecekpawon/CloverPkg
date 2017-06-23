@@ -846,6 +846,7 @@ ReadSmb (
       gRAM.SPD[i].Frequency = Speed;
     }
 
+    #if 0
     // pci memory controller if available, is more reliable
     if (gRAM.Frequency > 0) {
       UINT32 freq = (UINT32)DivU64x32 (gRAM.Frequency, 500000);
@@ -862,6 +863,7 @@ ReadSmb (
       gRAM.SPD[i].Frequency = freq;
       DBG ("%a RAM Speed %dMHz\n", LOG_INDENT, freq);
     }
+    #endif
 
     MsgLog (
       "%a Type %d %dMB %dMHz Vendor=%a PartNo=%a SerialNo=%a\n",

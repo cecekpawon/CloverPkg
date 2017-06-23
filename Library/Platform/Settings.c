@@ -4732,6 +4732,7 @@ GetDefaultConfig () {
   gSettings.CsrActiveConfig      = 0xFFFF;
   gSettings.BooterConfig         = 0xFFFF;
   gSettings.QPI                  = 0xFFFF;
+  gSettings.PlatformFeature      = 0xFFFF;
   gSettings.XMPDetection         = -1;
 
   //gLanguage = english;
@@ -4762,6 +4763,10 @@ SyncDefaultSettings () {
   }
 
   gSettings.Turbo = gCPUStructure.Turbo;
+
+  if (!gSettings.EnabledCores) {
+    gSettings.EnabledCores = gCPUStructure.Cores;
+  }
 }
 
 EFI_STATUS

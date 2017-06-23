@@ -209,23 +209,7 @@ RefitMain (
 
   GetCPUProperties ();
 
-  MsgLog ("Calibrated TSC frequency = %ld = %ldMHz\n", gCPUStructure.TSCCalibr, DivU64x32 (gCPUStructure.TSCCalibr, Mega));
-
-  if (gCPUStructure.TSCCalibr > 200000000ULL) {  //200MHz
-    gCPUStructure.TSCFrequency = gCPUStructure.TSCCalibr;
-  }
-
-  gCPUStructure.CPUFrequency  = gCPUStructure.TSCFrequency;
-  gCPUStructure.FSBFrequency  = DivU64x32 (
-                                  MultU64x32 (gCPUStructure.CPUFrequency, 10),
-                                  (gCPUStructure.MaxRatio == 0) ? 1 : gCPUStructure.MaxRatio
-                                );
-  gCPUStructure.ExternalClock = (UINT32)DivU64x32 (gCPUStructure.FSBFrequency, kilo);
-  gCPUStructure.MaxSpeed      = (UINT32)DivU64x32 (gCPUStructure.TSCFrequency + (Mega >> 1), Mega);
-
-  if (!gSettings.EnabledCores) {
-    gSettings.EnabledCores = gCPUStructure.Cores;
-  }
+  SyncCPUProperties ();
 
   SyncDefaultSettings ();
 
@@ -333,7 +317,7 @@ RefitMain (
     ScanVolumes ();
 
     // get boot-args
-    SetVariablesFromNvram ();
+    SyncBootArgsFromNvram ();
 
     if (!gSettings.FastBoot) {
       CHAR16  *TmpArgs;

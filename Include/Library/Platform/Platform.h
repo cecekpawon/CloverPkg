@@ -565,7 +565,7 @@ typedef struct {
   CHAR8     BrandString[48];
 
   //values from BIOS
-  UINT32    ExternalClock; //keep this values as kHz
+  UINT64    ExternalClock; //keep this values as kHz
   UINT32    MaxSpeed;       //MHz
   UINT32    CurrentSpeed;   //MHz
 
@@ -847,7 +847,7 @@ typedef struct {
 #define MAX_RAM_FREQUENCY 5000
 
 typedef struct {
-  UINT64    Frequency;
+  UINT32    Frequency;
   UINT32    Divider;
   UINT8     TRC;
   UINT8     TRP;
@@ -1249,8 +1249,6 @@ extern INTN                             OptMenuDSDTBitNum;
 extern CONST CHAR16                     *OsxPathLCaches[];
 extern CONST UINTN                      OsxPathLCachesCount;
 
-extern CHAR8                            *OsVerUndetected;
-
 extern BOOLEAN                          GraphicsScreenDirty;
 
 extern CONST NVRAM_DATA                 NvramData[];
@@ -1349,9 +1347,6 @@ GetModelFromString (
 );
 
 VOID
-SyncDefaultSettings ();
-
-VOID
 FillInputs (
   BOOLEAN   New
 );
@@ -1401,7 +1396,16 @@ VOID
 GetDefaultConfig ();
 
 VOID
+SyncDefaultSettings ();
+
+VOID
 GetCPUProperties ();
+
+VOID
+SyncCPUProperties ();
+
+VOID
+SetCPUProperties ();
 
 VOID
 GetDevices ();
@@ -1505,7 +1509,7 @@ VOID
 ResetClover ();
 
 VOID
-SetVariablesFromNvram ();
+SyncBootArgsFromNvram ();
 
 EFI_STATUS
 GetEfiBootDeviceFromNvram ();
@@ -1784,9 +1788,6 @@ TimeDiff (
   UINT64  t0,
   UINT64  t1
 );
-
-VOID
-SetCPUProperties ();
 
 BOOLEAN
 IsPatchEnabled (
