@@ -563,9 +563,35 @@ EG_IMAGE *
 GetSmallHover (
   IN UINTN    Id
 ) {
-  return IsEmbeddedTheme ()
+  EG_IMAGE  *Image;
+  BOOLEAN   NeedScaling = (GlobalConfig.IconScale != DefaultConfig.IconScale);
+
+  Image = IsEmbeddedTheme ()
     ? NULL
     : LoadImage (ThemeDir, PoolPrint (L"%s_hover.png", BuiltinIconTable[Id].Path));
+
+  if (
+    (Image != NULL) &&
+    (
+      NeedScaling ||
+      (
+        (Image->Width  /* != */ > TOOL_DIMENSION) || // Force if unmatched / only bigger than?
+        (Image->Height /* != */ > TOOL_DIMENSION)
+      )
+    )
+  ) {
+    EG_IMAGE  *NewImage = CopyImage (Image);
+
+    FreeImage (Image);
+
+    Image = NeedScaling
+              ? CopyScaledImage (NewImage, GlobalConfig.IconScale)
+              : ScaleImage (NewImage, TOOL_DIMENSION, TOOL_DIMENSION);
+
+    FreeImage (NewImage);
+  }
+
+  return Image;
 }
 
 EG_IMAGE *
@@ -602,7 +628,48 @@ BuiltinIcon (
   }
 
   if (BuiltinIconTable[Id].Image != NULL) {
-    return BuiltinIconTable[Id].Image;
+    UINTN     ScaleTo = 0;
+    BOOLEAN   NeedScaling = (GlobalConfig.IconScale != DefaultConfig.IconScale);
+
+    if (
+      (Id < BUILTIN_ICON_VOL_INTERNAL) &&
+      (
+        NeedScaling ||
+        (
+          (BuiltinIconTable[Id].Image->Width  /* != */ > TOOL_DIMENSION) || // Force if unmatched / only bigger than?
+          (BuiltinIconTable[Id].Image->Height /* != */ > TOOL_DIMENSION)
+        )
+      )
+    ) {
+      ScaleTo = TOOL_DIMENSION;
+    } else if (
+      (Id < BUILTIN_ICON_BANNER) &&
+      (
+        NeedScaling ||
+        (
+          (BuiltinIconTable[Id].Image->Width  /* != */ > VOL_DIMENSION) || // Force if unmatched / only bigger than?
+          (BuiltinIconTable[Id].Image->Height /* != */ > VOL_DIMENSION)
+        )
+      )
+    ) {
+      ScaleTo = VOL_DIMENSION;
+    }
+
+    if (ScaleTo > 0) {
+      EG_IMAGE  *NewImage = CopyImage (BuiltinIconTable[Id].Image);
+
+      FreeImage (BuiltinIconTable[Id].Image);
+
+      BuiltinIconTable[Id].Image = NeedScaling
+                                    ? CopyScaledImage (NewImage, GlobalConfig.IconScale)
+                                    : ScaleImage (NewImage, ScaleTo, ScaleTo);
+
+      FreeImage (NewImage);
+    }
+
+    if (BuiltinIconTable[Id].Image != NULL) {
+      return BuiltinIconTable[Id].Image;
+    }
   }
 
 GET_EMBEDDED:
@@ -618,7 +685,7 @@ GET_EMBEDDED:
 
     //case BUILTIN_ICON_FUNC_CLOVER:
     //  DEC_BUILTIN_ICON (Id, emb_func_clover);
-      break;
+    //  break;
 
     case BUILTIN_ICON_FUNC_RESET:
       DEC_BUILTIN_ICON (Id, emb_func_reset);

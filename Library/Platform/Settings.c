@@ -70,6 +70,7 @@ REFIT_CONFIG   DefaultConfig = {
   0xFFFF,             // INTN         BadgeOffsetX;
   0xFFFF,             // INTN         BadgeOffsetY;
   8,                  // INTN         BadgeScale;
+  16,                 // INTN         IconScale;
   0xFFFF,             // INTN         ThemeDesignWidth;
   0xFFFF,             // INTN         ThemeDesignHeight;
   0xFFFF,             // UINT32       BannerPosX;
@@ -1923,6 +1924,7 @@ GetThemeTagSettings (
   GlobalConfig.BadgeOffsetX                     = DefaultConfig.BadgeOffsetX;
   GlobalConfig.BadgeOffsetY                     = DefaultConfig.BadgeOffsetY;
   GlobalConfig.BadgeScale                       = DefaultConfig.BadgeScale;
+  GlobalConfig.IconScale                        = DefaultConfig.IconScale;
   GlobalConfig.BannerEdgeHorizontal             = Embedded ? DefaultConfig.BannerEdgeHorizontal : SCREEN_EDGE_LEFT;
   GlobalConfig.BannerEdgeVertical               = Embedded ? DefaultConfig.BannerEdgeVertical : SCREEN_EDGE_TOP;
   GlobalConfig.BannerNudgeX                     = DefaultConfig.BannerNudgeX;
@@ -2101,6 +2103,9 @@ GetThemeTagSettings (
 
     Dict2 = GetProperty (Dict, "PruneScrollRows");
     GlobalConfig.PruneScrollRows = GetPropertyInteger (Dict2, DefaultConfig.PruneScrollRows);
+
+    Dict2 = GetProperty (Dict, "IconScale");
+    GlobalConfig.IconScale = GetPropertyInteger (Dict2, DefaultConfig.IconScale);
   }
 
   Dict = GetProperty (DictPointer, "Components");

@@ -196,143 +196,87 @@ CopyScaledImage (
   return NewImage;
 }
 
-BOOLEAN
-BigDiff (
-  UINT8   a,
-  UINT8   b
-) {
-  BOOLEAN   Ret = FALSE;
+// The following function implements a bilinear image scaling algorithm, based on
+// code presented at http://tech-algorithm.com/articles/bilinear-image-scaling/.
+// Resize an image; returns pointer to resized image if successful, NULL otherwise.
+// Calling function is responsible for freeing allocated memory.
+// NOTE: x_ratio, y_ratio, x_diff, and y_diff should really be float values;
+// however, I've found that my 32-bit Mac Mini has a buggy EFI (or buggy CPU?), which
+// causes this function to hang on float-to-UINT8 conversions on some (but not all!)
+// float values. Therefore, this function uses integer arithmetic but multiplies
+// all values by FP_MULTIPLIER to achieve something resembling the sort of precision
+// needed for good results.
 
-  if (a > b) {
-    if (!GlobalConfig.BackgroundDark) {
-      Ret = (BOOLEAN)((a - b) > (UINT8)(0xFF - GlobalConfig.BackgroundSharp));
-    }
-  } else if (GlobalConfig.BackgroundDark) {
-    Ret = (BOOLEAN)((b - a) > (UINT8)(0xFF - GlobalConfig.BackgroundSharp));
-  }
+#define FP_MULTIPLIER (UINTN) 65536
 
-  return Ret;
-}
-
-//(c)Slice 2013
-#define EDGE(P) \
-do { \
-  if (BigDiff (a11.P, a10.P)) { \
-    if (!BigDiff (a11.P, a01.P) && !BigDiff (a11.P, a21.P)) { \
-      a10.P = a11.P; \
-    } else if (BigDiff (a11.P, a01.P)) { \
-      if ((dx + dy) < cell) { \
-        a11.P = a21.P = a12.P = (UINT8)((a10.P * (cell - dy + dx) + a01.P * (cell - dx + dy)) / (cell * 2)); \
-      } else { \
-        a10.P = a01.P = a11.P; \
-      } \
-    } else if (BigDiff (a11.P, a21.P)) { \
-      if (dx > dy) { \
-        a11.P = a01.P = a12.P = (UINT8)((a10.P * (cell * 2 - dy - dx) + a21.P * (dx + dy)) / (cell * 2)); \
-      }else { \
-        a10.P = a21.P = a11.P; \
-      } \
-    } \
-  } else if (BigDiff (a11.P, a21.P)) { \
-    if (!BigDiff (a11.P, a12.P)) { \
-      a21.P = a11.P; \
-    } else { \
-      if ((dx + dy) > cell) { \
-        a11.P = a01.P = a10.P = (UINT8)((a21.P * (cell + dx - dy) + a12.P * (cell - dx + dy)) / (cell * 2)); \
-      } else { \
-        a21.P = a12.P = a11.P; \
-      } \
-    } \
-  } else if (BigDiff (a11.P, a01.P)) { \
-    if (!BigDiff (a11.P, a12.P)) { \
-      a01.P = a11.P; \
-    } else { \
-      if (dx < dy) { \
-        a11.P = a21.P = a10.P = (UINT8)((a01.P * (cell * 2 - dx - dy) + a12.P * (dy + dx )) / (cell * 2)); \
-      } else { \
-        a01.P = a12.P = a11.P; \
-      } \
-    } \
-  } else if (BigDiff (a11.P, a12.P)) { \
-    a12.P = a11.P; \
-  } \
-} while (0)
-
-#define SMOOTH(P) \
-do { \
-  norm = (INTN)a01.P + a10.P + 4 * a11.P + a12.P + a21.P; \
-  if (norm == 0) { \
-    Dest->P = 0; \
-  } else { \
-    Dest->P = (UINT8)(a11.P * 2 * (a01.P * (cell - dx) + a10.P * (cell - dy) + \
-                      a21.P * dx + a12.P * dy + a11.P * 2 * cell) / (cell * norm)); \
-  } \
-} while (0)
-
-#define SMOOTH2(P) \
-do { \
-     Dest->P = (UINT8)((a01.P * (cell - dx) * 3 + a10.P * (cell - dy) * 3 + \
-                        a21.P * dx * 3 + a12.P * dy * 3 + a11.P * 2 * cell) / (cell * 8)); \
-} while (0)
-
-VOID
+EG_IMAGE *
 ScaleImage (
-  OUT EG_IMAGE    *NewImage,
-  IN  EG_IMAGE    *OldImage
+  IN EG_IMAGE   *Image,
+  IN UINTN      NewWidth,
+  IN UINTN      NewHeight
 ) {
-  INTN        W1, W2, H1, H2, i, j, f, cell,
-              x, dx, y, y1, dy; //, norm;
-  EG_PIXEL    a10, a11, a12, a01, a21,
-              *Src = OldImage->PixelData,
-              *Dest = NewImage->PixelData;
+  EG_IMAGE   *NewImage = NULL;
+  EG_PIXEL   a, b, c, d;
+  UINTN      x, y, Index,
+             i, j,
+             Offset = 0,
+             x_ratio, y_ratio, x_diff, y_diff;
 
-  W1 = OldImage->Width;
-  H1 = OldImage->Height;
-  W2 = NewImage->Width;
-  H2 = NewImage->Height;
-
-  if (H1 * W2 < H2 * W1) {
-    f = (H2 << 12) / H1;
-  } else {
-    f = (W2 << 12) / W1;
+  if ((Image == NULL) || (Image->Height == 0) || (Image->Width == 0) || (NewWidth == 0) || (NewHeight == 0)) {
+    return NULL;
   }
 
-  if (f == 0) {
-   return;
+  if ((Image->Width == NewWidth) && (Image->Height == NewHeight)) {
+    return (CopyImage(Image));
   }
 
-  cell = ((f - 1) >> 12) + 1;
-
-  for (j = 0; j < H2; j++) {
-    y = (j << 12) / f;
-    y1 = y * W1;
-    dy = j - ((y * f) >> 12);
-
-    for (i = 0; i < W2; i++) {
-      x = (i << 12) / f;
-      dx = i - ((x * f) >> 12);
-      a11 = Src[x + y1];
-      a10 = (y == 0) ? a11 : Src[x + y1 - W1];
-      a01 = (x == 0) ? a11 : Src[x + y1 - 1];
-      a21 = (x >= W1) ? a11 : Src[x + y1 + 1];
-      a12 = (y >= H1) ? a11 : Src[x + y1 + W1];
-
-      if (a11.a == 0) {
-        Dest->r = Dest->g = Dest->b = 0x55;
-      } else {
-        EDGE (r);
-        EDGE (g);
-        EDGE (b);
-
-        SMOOTH2 (r);
-        SMOOTH2 (g);
-        SMOOTH2 (b);
-      }
-
-      Dest->a = 0xFF;
-      Dest++;
-    }
+  NewImage = CreateImage(NewWidth, NewHeight, Image->HasAlpha);
+  if (NewImage == NULL) {
+    return (CopyImage(Image));
   }
+
+  x_ratio = ((Image->Width - 1) * FP_MULTIPLIER) / NewWidth;
+  y_ratio = ((Image->Height - 1) * FP_MULTIPLIER) / NewHeight;
+
+  for (i = 0; i < NewHeight; i++) {
+     for (j = 0; j < NewWidth; j++) {
+        x = (j * (Image->Width - 1)) / NewWidth;
+        y = (i * (Image->Height - 1)) / NewHeight;
+        x_diff = (x_ratio * j) - x * FP_MULTIPLIER;
+        y_diff = (y_ratio * i) - y * FP_MULTIPLIER;
+        Index = ((y * Image->Width) + x);
+        a = Image->PixelData[Index];
+        b = Image->PixelData[Index + 1];
+        c = Image->PixelData[Index + Image->Width];
+        d = Image->PixelData[Index + Image->Width + 1];
+
+        // blue element
+        NewImage->PixelData[Offset].b = ((a.b) * (FP_MULTIPLIER - x_diff) * (FP_MULTIPLIER - y_diff) +
+                                         (b.b) * (x_diff) * (FP_MULTIPLIER - y_diff) +
+                                         (c.b) * (y_diff) * (FP_MULTIPLIER - x_diff) +
+                                         (d.b) * (x_diff * y_diff)) / (FP_MULTIPLIER * FP_MULTIPLIER);
+
+        // green element
+        NewImage->PixelData[Offset].g = ((a.g) * (FP_MULTIPLIER - x_diff) * (FP_MULTIPLIER - y_diff) +
+                                         (b.g) * (x_diff) * (FP_MULTIPLIER - y_diff) +
+                                         (c.g) * (y_diff) * (FP_MULTIPLIER - x_diff) +
+                                         (d.g) * (x_diff * y_diff)) / (FP_MULTIPLIER * FP_MULTIPLIER);
+
+        // red element
+        NewImage->PixelData[Offset].r = ((a.r) * (FP_MULTIPLIER - x_diff) * (FP_MULTIPLIER - y_diff) +
+                                         (b.r) * (x_diff) * (FP_MULTIPLIER - y_diff) +
+                                         (c.r) * (y_diff) * (FP_MULTIPLIER - x_diff) +
+                                         (d.r) * (x_diff * y_diff)) / (FP_MULTIPLIER * FP_MULTIPLIER);
+
+        // alpha element
+        NewImage->PixelData[Offset++].a = ((a.a) * (FP_MULTIPLIER - x_diff) * (FP_MULTIPLIER - y_diff) +
+                                           (b.a) * (x_diff) * (FP_MULTIPLIER - y_diff) +
+                                           (c.a) * (y_diff) * (FP_MULTIPLIER - x_diff) +
+                                           (d.a) * (x_diff * y_diff)) / (FP_MULTIPLIER * FP_MULTIPLIER);
+     }
+  }
+
+  return NewImage;
 }
 
 VOID
@@ -1000,7 +944,7 @@ BltClearScreen (
   if (BigBack != NULL) {
     switch (GlobalConfig.BackgroundScale) {
       case Scale:
-        ScaleImage (BackgroundImage, BigBack);
+        BackgroundImage = ScaleImage (BigBack, UGAWidth, UGAHeight);
         break;
 
       case Crop:
@@ -1215,12 +1159,12 @@ BltImageCompositeBadge (
     Selected = FALSE;
   }
 
-  NewBaseImage = CopyScaledImage (BaseImage, Scale); //will be Scale/16
+  NewBaseImage = CopyScaledImage (GlobalConfig.SelectionOnTop ? BaseImage : TopImage, Scale); //will be Scale/16
   TotalWidth = NewBaseImage->Width;
   TotalHeight = NewBaseImage->Height;
   //DBG ("BaseImage: Width=%d Height=%d Alfa=%d\n", TotalWidth, TotalHeight, NewBaseImage->HasAlpha);
 
-  NewTopImage = CopyScaledImage (TopImage, Scale); //will be Scale/16
+  NewTopImage = CopyScaledImage (GlobalConfig.SelectionOnTop ? TopImage : BaseImage, Scale); //will be Scale/16
   CompWidth = NewTopImage->Width;
   CompHeight = NewTopImage->Height;
   //DBG ("TopImage: Width=%d Height=%d Alfa=%d\n", CompWidth, CompHeight, NewTopImage->HasAlpha);

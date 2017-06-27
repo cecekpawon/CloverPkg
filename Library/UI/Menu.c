@@ -2800,25 +2800,15 @@ DrawMainMenuEntry (
   }
 
   //DBG ("Entry title=%s; Width=%d\n", Entry->Title, MainImage->Width);
-  Scale = ((Entry->Row == 0) ? (Scale * (Selected ? 1 : -1)): 16) ;
-  if (GlobalConfig.SelectionOnTop) {
-    BltImageCompositeBadge (
-      MainImage,
-      SelectionImg[((Entry->Row == 0) ? kBigImage : kSmallImage) + (Selected ? 0 : 1)].Image,
-      Selected
-        ? (Entry->ImageHover ? Entry->ImageHover : ((Entry->Row == 0) ? Entry->BadgeImage : NULL))
-        : ((Entry->Row == 0) ? Entry->BadgeImage : NULL),
-      XPos, YPos, Scale);
+  Scale = ((Entry->Row == 0) ? (Scale * (Selected ? 1 : -1)) : 16) ;
 
-  } else {
-    BltImageCompositeBadge (
-      SelectionImg[((Entry->Row == 0) ? kBigImage : kSmallImage) + (Selected ? 0 : 1)].Image,
-      MainImage,
-      Selected
-        ? (Entry->ImageHover ? Entry->ImageHover : ((Entry->Row == 0) ? Entry->BadgeImage : NULL))
-        : ((Entry->Row == 0) ? Entry->BadgeImage : NULL),
-      XPos, YPos, Scale);
-  }
+  BltImageCompositeBadge (
+    MainImage,
+    SelectionImg[((Entry->Row == 0) ? kBigImage : kSmallImage) + (Selected ? 0 : 1)].Image,
+    Selected
+      ? (Entry->ImageHover ? Entry->ImageHover : ((Entry->Row == 0) ? Entry->BadgeImage : NULL))
+      : ((Entry->Row == 0) ? Entry->BadgeImage : NULL),
+    XPos, YPos, Scale);
 
   if (GlobalConfig.BootCampStyle && (Entry->Row == 0)) {
     BltImageAlpha (
@@ -2827,7 +2817,8 @@ DrawMainMenuEntry (
       row0PosY + GlobalConfig.row0TileSize + ((GlobalConfig.HideUIFlags & HIDEUI_FLAG_LABEL)
         ? 10
         : (FontHeight - TEXT_YMARGIN + 20)),
-      &TransparentBackgroundPixel, Scale
+      &TransparentBackgroundPixel,
+      Scale
     );
   }
 

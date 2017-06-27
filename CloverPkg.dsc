@@ -88,6 +88,7 @@
 
   #CloverPkg/Application/bdmesg_efi/bdmesg.inf
   CloverPkg/Application/Clover/Clover.inf
+  #CloverPkg/Application/Dumpprot/Dumpprot.inf
 
 [BuildOptions]
   DEFINE BUILD_OPTIONS_GEN = -D DISABLE_NEW_DEPRECATED_INTERFACES $(BUILD_OPTIONS)

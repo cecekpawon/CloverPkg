@@ -241,6 +241,7 @@ typedef struct {
   INTN        BadgeOffsetX;
   INTN        BadgeOffsetY;
   INTN        BadgeScale;
+  INTN        IconScale;
   INTN        ThemeDesignWidth;
   INTN        ThemeDesignHeight;
   INTN        BannerPosX;

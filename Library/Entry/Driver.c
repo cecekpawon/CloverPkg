@@ -94,11 +94,6 @@ ScanDriverDir (
 
     NumLoad++;
 
-    // either AptioFix, AptioFix2 or LowMemFix
-    //if (StriStr (DirEntry->FileName, L"AptioFixDrv") != NULL) {
-    //  gDriversFlags.AptioFixLoaded = TRUE;
-    //}
-
     if (StriStr (Str, L"HFS") != NULL) {
       gDriversFlags.HFSLoaded = TRUE;
     }
@@ -107,6 +102,7 @@ ScanDriverDir (
       gDriversFlags.APFSLoaded = TRUE;
     }
 
+    // either AptioFix, AptioFix2 or LowMemFix
     if (
       !gDriversFlags.AptioFixEmbedded && !gDriversFlags.AptioFixLoaded &&
       (

@@ -12,8 +12,8 @@ CHAR8   *DefaultSerial          = "CT288GT9VT6";
 
 CHAR8   *BiosVendor             = "Apple Inc.";
 
-UINT32  gFwFeatures             = 0xE003F536;
-UINT32  gFwFeaturesMask         = 0xE003FF37;
+UINT32  gFwFeatures             = 0XE807E136;
+UINT32  gFwFeaturesMask         = 0XFF1FFF3F;
 
 #define APPLE_SYSTEM_VERSION    "1.0"
 

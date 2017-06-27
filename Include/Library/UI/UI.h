@@ -631,10 +631,11 @@ FreeImage (
   IN EG_IMAGE   *Image
 );
 
-VOID
+EG_IMAGE *
 ScaleImage (
-  OUT EG_IMAGE    *NewImage,
-  IN  EG_IMAGE    *OldImage
+  IN EG_IMAGE   *Image,
+  IN UINTN      NewWidth,
+  IN UINTN      NewHeight
 );
 
 EG_IMAGE *

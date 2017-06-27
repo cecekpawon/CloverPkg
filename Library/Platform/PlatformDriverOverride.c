@@ -28,8 +28,8 @@
 EFI_HANDLE  *mPriorityDrivers = NULL;
 
 /** Saved original EFI_PLATFORM_DRIVER_OVERRIDE_PROTOCOL.GetDriver when doing override. */
-EFI_PLATFORM_DRIVER_OVERRIDE_GET_DRIVER mOrigPlatformGetDriver = NULL;
-EFI_PLATFORM_DRIVER_OVERRIDE_DRIVER_LOADED mOrigPlatformDriverLoaded = NULL;
+EFI_PLATFORM_DRIVER_OVERRIDE_GET_DRIVER       mOrigPlatformGetDriver = NULL;
+EFI_PLATFORM_DRIVER_OVERRIDE_DRIVER_LOADED    mOrigPlatformDriverLoaded = NULL;
 
 //////////////////////////////////////////////////////////////////////
 //
