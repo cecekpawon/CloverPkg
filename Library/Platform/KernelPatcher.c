@@ -629,11 +629,12 @@ KernelPatchPm (
   return Ret;
 }
 
-VOID
+BOOLEAN
 FindBootArgs (
   IN LOADER_ENTRY   *Entry
 ) {
-  UINT8   *Ptr, ArchMode = sizeof (UINTN) * 8;
+  UINT8     *Ptr, ArchMode = sizeof (UINTN) * 8;
+  BOOLEAN   Ret = FALSE;
 
   // start searching from 0x200000.
   Ptr = (UINT8 *)(UINTN)0x200000;
@@ -652,6 +653,12 @@ FindBootArgs (
       // set vars
       gDtRoot = (CHAR8 *)(UINTN)gBootArgs->deviceTreeP;
       KernelInfo->Slide = gBootArgs->kslide;
+
+      // Find kernel Mach-O header:
+      // for ML: gBootArgs->kslide + 0x00200000
+      // for older versions: just 0x200000
+      // for AptioFix booting - it's always at 0x200000
+      KernelInfo->Bin = (VOID *)(UINTN)(KernelInfo->Slide + 0x00200000);
 
       /*
       DBG ("Found gBootArgs at 0x%08x, DevTree at %p\n", Ptr, dtRoot);
@@ -703,11 +710,15 @@ FindBootArgs (
       DeleteNvramVariable (L"bootercfg", &gEfiAppleBootGuid);
 #endif
 
+      Ret = TRUE;
+
       break;
     }
 
     Ptr += EFI_PAGE_SIZE;
   }
+
+  return Ret;
 }
 
 BOOLEAN
@@ -1012,18 +1023,10 @@ KernelAndKextPatcherInit (
   KernelInfo->PatcherInited = TRUE;
 
   // Find bootArgs - we need then for proper detection of kernel Mach-O header
-  FindBootArgs (Entry);
-
-  if (gBootArgs == NULL) {
+  if (!FindBootArgs (Entry)) {
     DBG ("BootArgs not found - skipping patches!\n");
     goto Finish;
   }
-
-  // Find kernel Mach-O header:
-  // for ML: gBootArgs->kslide + 0x00200000
-  // for older versions: just 0x200000
-  // for AptioFix booting - it's always at 0x200000
-  KernelInfo->Bin = (VOID *)(UINTN)(KernelInfo->Slide + 0x00200000);
 
   // check that it is Mach-O header and detect architecture
   Magic = MACH_GET_MAGIC (KernelInfo->Bin);
@@ -1135,8 +1138,6 @@ KernelAndKextsPatcherStart (
 
     KextPatcher (Entry);
   }
-
-  //DBG_PAUSE (Entry, 5);
 
   //
   // Kext add

@@ -279,4 +279,16 @@ StrToMacAddress (
   IN CHAR8   *Str
 );
 
+UINT8 *
+Base64Decode (
+  IN  CHAR8   *Data,
+  OUT UINTN   *Size
+);
+
+UINT8 *
+Base64Encode (
+  IN  CHAR8   *Data,
+  OUT UINTN   *Size
+);
+
 #endif  // _GENERIC_ICH_H_

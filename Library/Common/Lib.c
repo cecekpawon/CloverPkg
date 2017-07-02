@@ -67,8 +67,6 @@ BOOLEAN                 gThemeChanged = FALSE;
 BOOLEAN                 gBootChanged = FALSE;
 BOOLEAN                 gThemeOptionsChanged = FALSE;
 
-EFI_FILE                *OEMDir;
-CHAR16                  *OEMPath = DIR_CLOVER;
 //EFI_FILE                *OemThemeDir = NULL;
 
 REFIT_VOLUME            *SelfVolume = NULL;
@@ -446,7 +444,7 @@ ReadGPT (
         return EFI_LOAD_ERROR;
       }
 
-      DBG ("Read patition entries:\n");
+      DBG ("Read partition entries:\n");
 
       PartEntry = AllocatePool (PartHdr->NumberOfPartitionEntries * PartHdr->SizeOfPartitionEntry);
       if (PartEntry == NULL) {
@@ -523,7 +521,7 @@ ScanVolume (
 
   //Volume->DevicePath = DuplicateDevicePath (DevicePathFromHandle (Volume->DeviceHandle));
   if (Volume->DevicePath != NULL) {
-    MsgLog (" %s\n", FileDevicePathToStr (Volume->DevicePath));
+    MsgLog (" %s\n", Volume->DevicePathString);
   }
 
   Volume->DiskKind = DISK_KIND_INTERNAL;  // default
@@ -1245,7 +1243,6 @@ FinishInitRefitLib () {
   }
 
   /*Status  = */  SelfRootDir->Open (SelfRootDir, &ThemeDir, ThemePath,    EFI_FILE_MODE_READ, 0);
-  /*Status  = */  SelfRootDir->Open (SelfRootDir, &OEMDir,   OEMPath,      EFI_FILE_MODE_READ, 0);
   Status    =     SelfRootDir->Open (SelfRootDir, &SelfDir,  SelfDirPath,  EFI_FILE_MODE_READ, 0);
 
   CheckFatalError (Status, L"while opening our installation directory");
@@ -1314,11 +1311,6 @@ UninitRefitLib () {
     SelfDir = NULL;
   }
 
-  if (OEMDir != NULL) {
-    OEMDir->Close (OEMDir);
-    OEMDir = NULL;
-  }
-
   if (ThemeDir != NULL) {
     ThemeDir->Close (ThemeDir);
     ThemeDir = NULL;
@@ -1373,7 +1365,6 @@ ReinitRefitLib () {
   SelfDeviceHandle = NewSelfHandle;
 
   /*Status  = */  SelfRootDir->Open (SelfRootDir, &ThemeDir, ThemePath,    EFI_FILE_MODE_READ, 0);
-  /*Status  = */  SelfRootDir->Open (SelfRootDir, &OEMDir,   OEMPath,      EFI_FILE_MODE_READ, 0);
   Status    =     SelfRootDir->Open (SelfRootDir, &SelfDir,  SelfDirPath,  EFI_FILE_MODE_READ, 0);
 
   CheckFatalError (Status, L"while reopening our installation directory");

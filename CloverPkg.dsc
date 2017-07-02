@@ -24,6 +24,7 @@
   SUPPORTED_ARCHITECTURES        = X64
   BUILD_TARGETS                  = RELEASE
   SKUID_IDENTIFIER               = DEFAULT
+  FLASH_DEFINITION               = CloverPkg/CloverPkg.fdf
 
 [LibraryClasses]
   #
@@ -66,28 +67,36 @@
   #
   # Our libs
   #
-  MemLogLib|CloverPkg/Module/MemLogLibDefault/MemLogLibDefault.inf
-  !ifdef EMBED_FSINJECT
-    NULL|CloverPkg/Module/FSInject/FSInject_embed.inf
-  !endif
-  !ifdef EMBED_APTIOFIX
-    NULL|CloverPkg/Module/OsxAptioFixDrv/OsxAptioFixDrv_embed.inf
-  !endif
   CommonLib|CloverPkg/Module/CommonLib/CommonLib.inf
   DeviceTreeLib|CloverPkg/Module/DeviceTreeLib/DeviceTreeLib.inf
+  MemLogLib|CloverPkg/Module/MemLogLibDefault/MemLogLibDefault.inf
 
 [Components.X64]
-  # Misc
-  !ifndef EMBED_FSINJECT
-    CloverPkg/Module/FSInject/FSInject.inf
-  !endif
+  CloverPkg/Application/Clover/Clover.inf {
+    <Components>
+      # Misc
+      !ifndef EMBED_FSINJECT
+        CloverPkg/Module/FSInject/FSInject.inf
+      !endif
+      !ifndef EMBED_APTIOFIX
+        CloverPkg/Module/OsxAptioFixDrv/OsxAptioFixDrv.inf
+      !endif
 
-  !ifndef EMBED_APTIOFIX
-    CloverPkg/Module/OsxAptioFixDrv/OsxAptioFixDrv.inf
+    <LibraryClasses>
+      !ifdef EMBED_FSINJECT
+        NULL|CloverPkg/Module/FSInject/FSInject_embed.inf
+      !endif
+      !ifdef EMBED_APTIOFIX
+        NULL|CloverPkg/Module/OsxAptioFixDrv/OsxAptioFixDrv_embed.inf
+      !endif
+  }
+
+
+  !ifdef BUILD_KERNEXTPATCHER
+    CloverPkg/Module/KernextPatcher/KernextPatcher.inf
   !endif
 
   #CloverPkg/Application/bdmesg_efi/bdmesg.inf
-  CloverPkg/Application/Clover/Clover.inf
   #CloverPkg/Application/Dumpprot/Dumpprot.inf
 
 [BuildOptions]

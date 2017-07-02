@@ -1,0 +1,47 @@
+##
+#
+#  KernextPatcher (kernel & extensions) patcher for Ozmosis
+#  Based on Memfix UEFI driver by dmazar
+#  https://sourceforge.net/p/cloverefiboot/
+#
+#  @cecekpawon Wed Jun 28 22:56:38 2017
+#
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = KernextPatcher
+  FILE_GUID                      = 99665243-5AED-4D57-92AF-8C785FBC7558
+  #MODULE_TYPE                    = DXE_RUNTIME_DRIVER
+  MODULE_TYPE                    = UEFI_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = KernextPatcherEntrypoint
+
+[Packages]
+  MdePkg/MdePkg.dec
+  CloverPkg/CloverPkg.dec
+
+[LibraryClasses]
+  CommonLib
+  #DeviceTreeLib
+  #MemLogLib
+  UefiDriverEntryPoint
+  UefiLib
+
+[Sources]
+  ../../Library/Platform/Plist.c
+  KernextPatcher.c
+
+[Guids]
+  #gEfiAppleBootGuid
+  gEfiFileInfoGuid
+  gEfiPartTypeSystemPartGuid
+
+[Protocols]
+  #gAptioFixProtocolGuid
+  gEfiStatusCodeRuntimeProtocolGuid
+  gEfiBlockIoProtocolGuid
+  gEfiSimpleFileSystemProtocolGuid
+
+#[Depex]
+#  TRUE

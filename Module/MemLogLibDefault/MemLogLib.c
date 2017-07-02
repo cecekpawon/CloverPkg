@@ -94,7 +94,7 @@ MemLogInit () {
   // Try to use existing MEM_LOG
   //
   Status = gBS->LocateProtocol (&gMsgLogProtocolGuid, NULL, (VOID **)&mMemLog);
-  if (Status == EFI_SUCCESS && mMemLog != NULL) {
+  if ((Status == EFI_SUCCESS) && (mMemLog != NULL)) {
     //
     // We are inited with existing MEM_LOG
     //
@@ -104,7 +104,7 @@ MemLogInit () {
   //
   // Set up and publish new MEM_LOG
   //
-  mMemLog = AllocateZeroPool ( sizeof (MEM_LOG) );
+  mMemLog = AllocateZeroPool (sizeof (MEM_LOG));
 
   if (mMemLog == NULL) {
     return EFI_OUT_OF_RESOURCES;

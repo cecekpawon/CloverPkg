@@ -28,7 +28,12 @@
  *  code split out from drivers.c by Soren Spies, 2005
  */
 
-#include <Library/Platform/Platform.h>
+//#include <Library/Platform/Platform.h>
+#include <Library/BaseLib.h>
+#include <Library/BaseMemoryLib.h>
+#include <Library/Common/CommonLib.h>
+#include <Library/MemoryAllocationLib.h>
+#include <Library/Platform/Plist.h>
 
 #ifndef DEBUG_ALL
 #ifndef DEBUG_PLIST
@@ -41,10 +46,10 @@
 #define DEBUG_PLIST DEBUG_ALL
 #endif
 
-#define DBG(...) DebugLog (DEBUG_PLIST, __VA_ARGS__)
+//#define DBG(...) DebugLog (DEBUG_PLIST, __VA_ARGS__)
 
 #define USE_REF 1
-#define DUMP_PLIST 1
+#define DUMP_PLIST 0
 
 #define kTagsPerBlock (0x1000)
 
@@ -1107,8 +1112,8 @@ ParseXML (
 
 #if DEBUG_PLIST
   } else {
-    DBG ("ParseXML gagged (-1) after '%s' (%d tags); buf + Pos: %s\n",
-      gLastTag, gTagsParsed, Buffer + Pos);
+    //DBG ("ParseXML gagged (-1) after '%s' (%d tags); buf + Pos: %s\n",
+    //  gLastTag, gTagsParsed, Buffer + Pos);
 #endif
   }
 
@@ -1159,39 +1164,6 @@ GetTagCount (
   TagPtr    Dict
 ) {
   return Dict->size;
-/*
-  INTN    Count = 0;
-  TagPtr  TagList, tag;
-
-  if ((Dict->type != kTagTypeDict) && (Dict->type != kTagTypeArray)) {
-    return 0;
-  }
-
-  tag = 0;
-  TagList = Dict->tag;
-
-  while (TagList) {
-    tag = TagList;
-    TagList = tag->tagNext;
-
-    if (
-      (
-        (tag->type != kTagTypeKey) &&
-        ((tag->string == 0) || (tag->string[0] == 0))
-      ) && (Dict->type != kTagTypeArray)  // If we are an array, any element is valid
-    ) {
-      continue;
-    }
-
-    if (tag->type == kTagTypeKey) {
-      DBG ("Located key %s\n", tag->string);
-    }
-
-    Count++;
-  }
-
-  return Count;
-*/
 }
 
 EFI_STATUS

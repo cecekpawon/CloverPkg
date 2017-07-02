@@ -1441,11 +1441,9 @@ FillinKextPatches (
 
           Dict = GetProperty (Prop2, "Wildcard");
           if (Dict != NULL) {
-            if (Patches->KextPatches[Patches->NrKexts].IsPlistPatch && (Dict->type == kTagTypeString)) {
-              Patches->KextPatches[Patches->NrKexts].Wildcard = (UINT8)*Prop->string;
-            } else {
-              Patches->KextPatches[Patches->NrKexts].Wildcard = (UINT8)GetPropertyInteger (Dict, 0xFF);
-            }
+            Patches->KextPatches[Patches->NrKexts].Wildcard = (Patches->KextPatches[Patches->NrKexts].IsPlistPatch && (Dict->type == kTagTypeString))
+                                                                ? (UINT8)*Prop->string
+                                                                : (UINT8)GetPropertyInteger (Dict, 0xFF);
           }
 
           DBG (" | %a | len: %d\n",
@@ -1726,7 +1724,7 @@ GetListOfConfigs () {
 
   DbgHeader ("GetListOfConfigs");
 
-  DirIterOpen (SelfRootDir, OEMPath, &DirIter);
+  DirIterOpen (SelfRootDir, DIR_CLOVER, &DirIter);
 
   OldChosenConfig = 0;
 
@@ -4674,7 +4672,7 @@ LoadUserSettings (
   EFI_STATUS    Status = EFI_NOT_FOUND;
   UINTN         Size = 0;
   CHAR8         *gConfigPtr = NULL;
-  CHAR16        *ConfigOemPath;
+  CHAR16        *ConfigDirPath;
 
   //DbgHeader ("LoadUserSettings");
 
@@ -4684,17 +4682,19 @@ LoadUserSettings (
     return EFI_NOT_FOUND;
   }
 
-  ConfigOemPath   = PoolPrint (L"%s\\%s.plist", OEMPath, ConfName);
+  ConfigDirPath   = PoolPrint (L"%s\\%s.plist", DIR_CLOVER, ConfName);
 
-  if (FileExists (SelfRootDir, ConfigOemPath)) {
-    Status = LoadFile (SelfRootDir, ConfigOemPath, (UINT8 **)&gConfigPtr, &Size);
-    DBG ("Load plist: '%s' ... %r\n", ConfigOemPath, Status);
+  if (FileExists (SelfRootDir, ConfigDirPath)) {
+    Status = LoadFile (SelfRootDir, ConfigDirPath, (UINT8 **)&gConfigPtr, &Size);
+    DBG ("Load plist: '%s' ... %r\n", ConfigDirPath, Status);
+
+    if (!EFI_ERROR (Status) && (gConfigPtr != NULL)) {
+      Status = ParseXML (gConfigPtr, (UINT32)Size, Dict);
+      DBG ("Parsing plist: ... %r\n", Status);
+    }
   }
 
-  if (!EFI_ERROR (Status) && (gConfigPtr != NULL)) {
-    Status = ParseXML (gConfigPtr, (UINT32)Size, Dict);
-    DBG ("Parsing plist: ... %r\n", Status);
-  }
+  FreePool (ConfigDirPath);
 
   return Status;
 }
