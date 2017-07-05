@@ -1058,7 +1058,7 @@ KernelAndKextPatcherInit (
 
   Finish:
 
-  return (KernelInfo->A64Bit && (KernelInfo->Bin != NULL));
+  return (KernelInfo->A64Bit && KernelInfo->Cached && (KernelInfo->Bin != NULL));
 }
 
 VOID

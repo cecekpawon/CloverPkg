@@ -323,7 +323,7 @@ GetStrArraySeparatedByChar (
 
     FreePool (Indexes);
   } else {
-    //DBG ("Str contains only one component and it is our String %s!\n", Str);
+    //DBG ("Str contains only one component and it is our String %a!\n", Str);
     MOS->array[0] = AllocateCopyPool (AsciiStrLen (Str) + 1, Str);
   }
 
@@ -356,7 +356,7 @@ IsPatchEnabled (
 ) {
   UINTN       i, MatchOSPartFrom, MatchOSPartTo, CurrOSPart;
   UINT64      ValFrom, ValTo, ValCurrFrom, ValCurrTo;
-  BOOLEAN     Ret = TRUE;
+  BOOLEAN     Ret = FALSE;
   MatchOSes   *MOS;
 
   if (
@@ -365,11 +365,13 @@ IsPatchEnabled (
     !CurrOS ||
     !AsciiStrLen (CurrOS)
   ) {
+    Ret = TRUE;
     goto Finish; // undefined matched corresponds to old behavior
   }
 
   MOS = GetStrArraySeparatedByChar (MatchOSEntry, ',');
   if (!MOS) {
+    Ret = TRUE;
     goto Finish; // memory fails -> anyway the patch enabled
   }
 
@@ -382,6 +384,7 @@ IsPatchEnabled (
         (CountOccurrences (MatchOSEntry, '-') == 1)
       ) {
         DeallocMatchOSes (MOS);
+
         MOS = GetStrArraySeparatedByChar (MatchOSEntry, '-');
         if (MOS && (MOS->count == 2)) { // do more strict
           MatchOSPartFrom = CountOccurrences (MOS->array[0], '.');
@@ -424,13 +427,15 @@ IsPatchEnabled (
         ValCurrFrom = AsciiStrVersionToUint64 (CurrOS, 2, (UINT8)MatchOSPartFrom);
 
         if (ValFrom == ValCurrFrom) {
+          Ret = TRUE;
           break;
         }
       }
     } else if ( // MatchBuild
-      AsciiStrCmp (MOS->array[i], CurrOS) == 0 // single unique
-      //AsciiStrStr (MOS->array[i], CurrOS) != NULL // saverals MatchBuild by commas
+      //AsciiStrCmp (MOS->array[i], CurrOS) == 0 // single unique
+      AsciiStrStr (MOS->array[i], CurrOS) != NULL // saverals MatchBuild by commas
     ) {
+      Ret = TRUE;
       break;
     }
   }

@@ -451,6 +451,7 @@ MOStartImage (
                 (StriStr (FilePathText, L"bootbase.efi") != NULL)
               );
 
+  // check if this is boot.efi
   if (StartFlag) {
     //Check recovery-boot-mode present for nested boot.efi
     Status = GetVariable2 (L"recovery-boot-mode", &gEfiAppleBootGuid, &Value, &Size);
@@ -461,10 +462,7 @@ MOStartImage (
     }
 
     FreePool (Value);
-  }
 
-  // check if this is boot.efi
-  if (StartFlag) {
     //the presence of the variable means HibernateWake
     //if the wake is canceled then the variable must be deleted
     Status = gRT->GetVariable (L"boot-switch-vars", &gEfiAppleBootGuid, NULL, &Size, NULL);
@@ -479,7 +477,6 @@ MOStartImage (
 
     // run with our overrides
     Status = RunImageWithOverrides (ImageHandle, Image, ExitDataSize, ExitData);
-
   } else {
     // call original function to do the job
     Status = gStartImage (ImageHandle, ExitDataSize, ExitData);

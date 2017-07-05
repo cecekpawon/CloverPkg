@@ -91,7 +91,6 @@
       !endif
   }
 
-
   !ifdef BUILD_KERNEXTPATCHER
     CloverPkg/Module/KernextPatcher/KernextPatcher.inf
   !endif

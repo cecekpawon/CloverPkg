@@ -170,10 +170,10 @@ Headers collection for procedures
 #define SSDT_PSTATES_NAME         SSDT_CLOVER_PREFIX L"PStates.aml"
 #define SSDT_CSTATES_NAME         SSDT_CLOVER_PREFIX L"CStates.aml"
 
-#ifndef DEBUG_ALL
-#define MsgLog(...)  MemLog (TRUE, 1, __VA_ARGS__)
-#else
+#ifdef DEBUG_ALL
 #define MsgLog(...)  MemLog (TRUE, DEBUG_ALL, __VA_ARGS__)
+#else
+#define MsgLog(...)  MemLog (TRUE, 1, __VA_ARGS__)
 #endif
 
 #define DebugLog(Mode, ...) do { if ((Mode > 0) && (Mode < 3)) MemLog (TRUE, Mode, __VA_ARGS__); } while (0)

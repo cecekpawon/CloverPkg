@@ -1,6 +1,6 @@
 ##
 #
-#  KernextPatcher (kernel & extensions) patcher for Ozmosis
+#  KernextPatcher (kernel & extensions) patcher
 #  Based on Memfix UEFI driver by dmazar
 #  https://sourceforge.net/p/cloverefiboot/
 #
@@ -24,7 +24,7 @@
 [LibraryClasses]
   CommonLib
   #DeviceTreeLib
-  #MemLogLib
+  MemLogLib
   UefiDriverEntryPoint
   UefiLib
 
