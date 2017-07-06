@@ -117,15 +117,16 @@ DEVICES_BIT_K   ADEVICES[] = {
 INTN    OptDevicesBitNum = ARRAY_SIZE (ADEVICES);
 
 OPT_MENU_BIT_K OPT_MENU_DSDTBIT[] = {
-  { "Add HDMI",       "AddHDMI_8000000",      FIX_HDMI },
-  { "Add MCHC",       "AddMCHC_0008",         FIX_MCHC },
-  { "Add PNLF",       "AddPNLF_1000000",      FIX_PNLF },
-  { "Fix Airport",    "FixAirport_4000",      FIX_WIFI },
-  { "Fix Display",    "FixDisplay_0100",      FIX_DISPLAY },
-  { "Fix IMEI",       "AddIMEI_80000",        FIX_IMEI },
-  { "Fix IntelGFX",   "FIX_INTELGFX_100000",  FIX_INTELGFX },
-  { "Fix LAN",        "FixLAN_2000",          FIX_LAN },
-  { "Fix Sound",      "FixHDA_8000",          FIX_HDA },
+  { "Add HDMI",       "AddHDMI",        FIX_HDMI },
+  { "Add MCHC",       "AddMCHC",        FIX_MCHC },
+  { "Add PNLF",       "AddPNLF",        FIX_PNLF },
+  { "Fix Airport",    "FixAirport",     FIX_WIFI },
+  { "Fix Display",    "FixDisplay",     FIX_DISPLAY },
+  { "Fix IMEI",       "AddIMEI",        FIX_IMEI },
+  { "Fix IntelGFX",   "FixIntelGFX",    FIX_INTELGFX },
+  { "Fix LAN",        "FixLAN",         FIX_LAN },
+  { "Fix Sound",      "FixHDA",         FIX_HDA },
+  { "Fix Header",     "FixHeader",      FIX_HEADER },
 };
 
 INTN    OptMenuDSDTBitNum = ARRAY_SIZE (OPT_MENU_DSDTBIT);

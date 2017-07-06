@@ -604,6 +604,7 @@ typedef struct {
 #define FIX_PNLF        bit (6)
 #define FIX_HDMI        bit (7)
 #define FIX_IMEI        bit (8)
+#define FIX_HEADER      bit (9)
 
 typedef struct ACPI_DROP_TABLE {
           UINT32            Signature;
