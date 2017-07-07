@@ -472,8 +472,6 @@ GetTextSection (
 
     BinaryIndex += CmdSize;
   }
-
-  return;
 }
 
 // TODO: to swap this method, hardcodedless

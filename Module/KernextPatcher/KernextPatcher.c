@@ -48,7 +48,6 @@
 #define DARWIN_SYSTEM_VER_PLIST                     L"\\SystemVersion.plist"
 #endif
 #define KERNEXTPATCHER_PLIST                        L"\\EFI\\KernextPatcher.plist"
-#define KERNEXTPATCHER_PLIST_KEY                    "KernextPatches"
 #define DEBUG_LOG                                   L"\\EFI\\KernextPatcherLog.txt"
 #define DEBUG_LOG_ARG                               "-KernextPatcherLog"
 #define PropCFBundleIdentifierKey                   "<key>" kPropCFBundleIdentifier "</key>"
@@ -515,18 +514,20 @@ SaveFile (
 // so we need a different way of saving the msg log - apianti
 STATIC
 EFI_STATUS
-SaveBooterLog (
-  IN EFI_FILE_HANDLE    BaseDir OPTIONAL,
-  IN CHAR16             *FileName
-) {
-  CHAR8   *MemLogBuffer = GetMemLogBuffer ();
-  UINTN   MemLogLen = GetMemLogLen ();
+SaveBooterLog () {
+  MsgLog ("KernextPatcher: End\n");
 
-  if ((MemLogBuffer == NULL) || (MemLogLen == 0)) {
-    return EFI_NOT_FOUND;
+  if (SaveLogToFile) {
+    CHAR8   *MemLogBuffer = GetMemLogBuffer ();
+    UINTN   MemLogLen = GetMemLogLen ();
+
+
+    if ((MemLogBuffer != NULL) && (MemLogLen != 0)) {
+      return SaveFile (gSelfRootDir, DEBUG_LOG, (UINT8 *)MemLogBuffer, MemLogLen);
+    }
   }
 
-  return SaveFile (BaseDir, FileName, (UINT8 *)MemLogBuffer, MemLogLen);
+  return EFI_NOT_FOUND;
 }
 
 //
@@ -1034,13 +1035,12 @@ GetTextSection (
 
     BinaryIndex += CmdSize;
   }
-
-  return;
 }
 
 STATIC
 VOID
 AnyKextPatch (
+  CHAR8         *BundleIdentifier,
   UINT8         *Driver,
   UINT32        DriverSize,
   CHAR8         *InfoPlist,
@@ -1049,11 +1049,11 @@ AnyKextPatch (
 ) {
   UINTN   Num = 0;
 
-  MsgLog ("AnyKextPatch: driverAddr = %x, driverSize = %x | AnyKext = %a",
-         Driver, DriverSize, KextPatches->Label);
+  MsgLog ("AnyKextPatch: %a (%a) | Addr = %x, Size = %x",
+         BundleIdentifier, KextPatches->Label, Driver, DriverSize);
 
   if (KextPatches->IsPlistPatch) { // Info plist patch
-    MsgLog (" | Info.plist patch");
+    MsgLog (" | PlistPatch");
 
     Num = SearchAndReplaceTxt (
             (UINT8 *)InfoPlist,
@@ -1069,7 +1069,7 @@ AnyKextPatch (
 
     GetTextSection (Driver, &Addr, &Size, &Off);
 
-    MsgLog (" | Binary patch");
+    MsgLog (" | BinPatch");
 
     if (Off && Size) {
       Driver += Off;
@@ -1116,7 +1116,7 @@ PatchKext (
       continue;
     }
 
-    AnyKextPatch (Driver, DriverSize, InfoPlist, InfoPlistSize, &KextPatches[i]);
+    AnyKextPatch (BundleIdentifier, Driver, DriverSize, InfoPlist, InfoPlistSize, &KextPatches[i]);
 
     if (IsBundle) {
       KextPatches[i].Patched = TRUE;
@@ -1741,7 +1741,7 @@ FindBootArgs () {
       DBG ("mBootArgs->bootMemStart = 0x%x\n", mBootArgs->bootMemStart);
       */
 
-      if (AsciiStriStr (mBootArgs->CommandLine, DEBUG_LOG_ARG)) {
+      if (!SaveLogToFile && AsciiStriStr (mBootArgs->CommandLine, DEBUG_LOG_ARG)) {
         SaveLogToFile = TRUE;
       }
 
@@ -1822,18 +1822,12 @@ OnExitBootServices (
   IN EFI_EVENT  Event,
   IN VOID       *Context
 ) {
-  //DBG ("**** ExitBootServices called\n");
-
   if (KernelAndKextPatcherInit ()) {
     FilterKernelPatches ();
     FilterKextPatches ();
   }
 
-  MsgLog ("KernextPatcher: End\n");
-
-  if (SaveLogToFile) {
-    SaveBooterLog (gSelfRootDir, DEBUG_LOG);
-  }
+  SaveBooterLog ();
 }
 
 STATIC
@@ -2103,10 +2097,10 @@ GetDataSetting (
 STATIC
 VOID
 ParsePatchesPlist (
-  IN TagPtr     Dict
+  IN TagPtr     RootDict
 ) {
-  if (Dict != NULL) {
-    TagPtr  Prop, DictPointer = GetProperty (Dict, KERNEXTPATCHER_PLIST_KEY);
+  if (RootDict != NULL) {
+    TagPtr  Prop, DictPointer = GetProperty (RootDict, "KernextPatches");
     INTN    i, Count;
 
     if (DictPointer != NULL) {
@@ -2307,8 +2301,14 @@ ParsePatchesPlist (
         }
       }
     }
+
+    DictPointer = GetProperty (RootDict, "Preferences");
+    if (DictPointer != NULL) {
+      SaveLogToFile = GetPropertyBool (GetProperty (DictPointer, "SaveLogToFile"), FALSE);
+    }
   }
 }
+
 
 STATIC
 EFI_STATUS

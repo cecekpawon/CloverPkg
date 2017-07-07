@@ -4,8 +4,8 @@
 
 - [x] Compile with `-D BUILD_KERNEXTPATCHER=1`.
 - [x] Need to be loaded before boot manager in order to successfully hook ExitBootServices event.
-- [x] Will read patches property in `\EFI\KernextPatcher.plist`.
-- [x] Will create `\EFI\KernextPatcherLog.txt` log-file with supplied `-KernextPatcherLog` boot-args.
+- [x] Read patches property in `\EFI\KernextPatcher.plist`.
+- [x] Create `\EFI\KernextPatcherLog.txt` log-file with supplied `-KernextPatcherLog` boot-args / `Preferences`->`SaveLogToFile`=`TRUE`.
 
 **Known bugs:**
 
@@ -73,6 +73,11 @@
         </data>
       </dict>
     </array>
+  </dict>
+  <key>Preferences</key>
+  <dict>
+    <key>SaveLogToFile</key>
+    <true/>
   </dict>
 </dict>
 </plist>
