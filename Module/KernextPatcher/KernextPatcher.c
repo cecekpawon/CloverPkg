@@ -6,6 +6,8 @@
   @cecekpawon Wed Jun 28 22:56:38 2017
 **/
 
+#include "Version.h"
+
 #include <Library/BaseMemoryLib.h>
 #include <Library/Common/CommonLib.h>
 #include <Library/Common/MemLogLib.h>
@@ -24,6 +26,12 @@
 #include <Protocol/DiskIo.h>
 #include <Protocol/LoadedImage.h>
 #include <Protocol/SimpleFileSystem.h>
+
+#ifdef CLOVER_REVISION
+#define KERNEXTPATCHER_REVISION                     CLOVER_REVISION
+#else
+#define KERNEXTPATCHER_REVISION                     "0000"
+#endif
 
 #define DEBUG_KERNEXTPATCHER                        0
 
@@ -1049,7 +1057,7 @@ AnyKextPatch (
 ) {
   UINTN   Num = 0;
 
-  MsgLog ("AnyKextPatch: %a (%a) | Addr = %x, Size = %x",
+  MsgLog ("- %a (%a) | Addr = %x, Size = %x",
          BundleIdentifier, KextPatches->Label, Driver, DriverSize);
 
   if (KextPatches->IsPlistPatch) { // Info plist patch
@@ -1105,7 +1113,7 @@ PatchKext (
 ) {
   INT32  i, IsBundle = 0;
 
-  //DBG ("- %a\n", BundleIdentifier);
+  DBG ("- %a\n", BundleIdentifier);
 
   for (i = 0; i < NrKexts; i++) {
     if (
@@ -1156,7 +1164,7 @@ KernelUserPatch () {
   MsgLog ("%a: Start\n", __FUNCTION__);
 
   for (i = 0; i < NrKernels; ++i) {
-    MsgLog ("KernelUserPatch[%02d]: %a", i, KernelPatches[i].Label);
+    MsgLog ("- %a", KernelPatches[i].Label);
 
     if (KernelPatches[i].Disabled) {
       MsgLog (" | DISABLED!\n");
@@ -1216,7 +1224,7 @@ FilterKernelPatches () {
       if (NeedBuildVersion) {
         KernelPatches[i].Disabled = !IsPatchEnabled (KernelPatches[i].MatchBuild, gBuildVersion);
 
-        MsgLog (" ==> %a\n", KernelPatches[i].Disabled ? "not allowed" : "allowed");
+        MsgLog (" | Allowed: %a\n", KernelPatches[i].Disabled ? "No" : "Yes");
 
         //if (!KernelPatches[i].Disabled) {
           continue; // If user give MatchOS, should we ignore MatchOS / keep reading 'em?
@@ -1225,7 +1233,7 @@ FilterKernelPatches () {
 
       KernelPatches[i].Disabled = !IsPatchEnabled (KernelPatches[i].MatchOS, gOSVersion);
 
-      MsgLog (" ==> %a\n", KernelPatches[i].Disabled ? "not allowed" : "allowed");
+      MsgLog (" | Allowed: %a\n", KernelPatches[i].Disabled ? "No" : "Yes");
 
       if (!KernelPatches[i].Disabled) {
         y++;
@@ -1233,6 +1241,7 @@ FilterKernelPatches () {
     }
 
     if (y > 0) {
+      MsgLog ("Kernel patches to process: %d\n", y);
       KernelUserPatch ();
     }
   }
@@ -1304,6 +1313,8 @@ PatchPrelinkedKexts () {
   INTN      DictLevel = 0;
   UINT32    KextAddr, KextSize;
 
+  MsgLog ("%a: Start\n", __FUNCTION__);
+
   WholePlist = (CHAR8 *)(UINTN)gKernelInfo->PrelinkInfoAddr;
 
   //
@@ -1373,6 +1384,8 @@ PatchPrelinkedKexts () {
 
     DictPtr += 5;
   }
+
+  MsgLog ("%a: End\n", __FUNCTION__);
 }
 
 STATIC
@@ -1407,7 +1420,7 @@ FilterKextPatches () {
       if (NeedBuildVersion) {
         KextPatches[i].Disabled = !IsPatchEnabled (KextPatches[i].MatchBuild, gBuildVersion);
 
-        MsgLog (" ==> %a\n", KextPatches[i].Disabled ? "not allowed" : "allowed");
+        MsgLog (" | Allowed: %a\n", KextPatches[i].Disabled ? "No" : "Yes");
 
         //if (!KextPatches[i].Disabled) {
           continue; // If user give MatchOS, should we ignore MatchOS / keep reading 'em?
@@ -1416,7 +1429,7 @@ FilterKextPatches () {
 
       KextPatches[i].Disabled = !IsPatchEnabled (KextPatches[i].MatchOS, gOSVersion);
 
-      MsgLog (" ==> %a\n", KextPatches[i].Disabled ? "not allowed" : "allowed");
+      MsgLog (" | Allowed: %a\n", KextPatches[i].Disabled ? "No" : "Yes");
 
       if (!KextPatches[i].Disabled) {
         y++;
@@ -1424,6 +1437,7 @@ FilterKextPatches () {
     }
 
     if (y > 0) {
+      MsgLog ("Kext patches to process: %d\n", y);
       PatchPrelinkedKexts ();
     }
   }
@@ -1705,8 +1719,10 @@ FindBootArgs () {
 
   Ptr = (UINT8 *)(UINTN)TmpRelocBase;
 
-  if (MACH_GET_MAGIC (Ptr) != MH_MAGIC_64) {
-    return Ret;
+  while (MACH_GET_MAGIC (Ptr) != MH_MAGIC_64) {
+    //DBG ("TmpRelocBase: 0x%x\n", TmpRelocBase);
+    Ptr += EFI_PAGE_SIZE;
+    TmpRelocBase += EFI_PAGE_SIZE;
   }
 
   nCmds = MACH_GET_NCMDS (Ptr);
@@ -1731,14 +1747,14 @@ FindBootArgs () {
       // set vars
       gKernelInfo->Slide = mBootArgs->kslide;
 
-      MsgLog ("Found mBootArgs at 0x%x\n", Ptr);
+      MsgLog ("Found BootArgs at 0x%x\n", Ptr);
       /*
-      //DBG ("mBootArgs->kaddr = 0x%08x and mBootArgs->ksize =  0x%08x\n", mBootArgs->kaddr, mBootArgs->ksize);
-      //DBG ("mBootArgs->efiMode = 0x%02x\n", mBootArgs->efiMode);
-      DBG ("mBootArgs->CommandLine = %a\n", mBootArgs->CommandLine);
-      DBG ("mBootArgs->flags = 0x%x\n", mBootArgs->flags);
-      DBG ("mBootArgs->kslide = 0x%x\n", mBootArgs->kslide);
-      DBG ("mBootArgs->bootMemStart = 0x%x\n", mBootArgs->bootMemStart);
+      //DBG ("BootArgs->kaddr = 0x%08x and mBootArgs->ksize =  0x%08x\n", mBootArgs->kaddr, mBootArgs->ksize);
+      //DBG ("BootArgs->efiMode = 0x%02x\n", mBootArgs->efiMode);
+      DBG ("BootArgs->CommandLine = %a\n", mBootArgs->CommandLine);
+      DBG ("BootArgs->flags = 0x%x\n", mBootArgs->flags);
+      DBG ("BootArgs->kslide = 0x%x\n", mBootArgs->kslide);
+      DBG ("BootArgs->bootMemStart = 0x%x\n", mBootArgs->bootMemStart);
       */
 
       if (!SaveLogToFile && AsciiStriStr (mBootArgs->CommandLine, DEBUG_LOG_ARG)) {
@@ -2469,7 +2485,8 @@ KernextPatcherEntrypoint (
 
   gRT->GetTime (&Now, NULL);
 
-  MsgLog ("KernextPatcher: Start at %d.%d.%d, %d:%d:%d (GMT+%d)\n",
+  MsgLog ("KernextPatcher (rev %a): Start at %d.%d.%d, %d:%d:%d (GMT+%d)\n",
+    KERNEXTPATCHER_REVISION,
     Now.Year, Now.Month, Now.Day, Now.Hour, Now.Minute, Now.Second,
     ((Now.TimeZone < 0) || (Now.TimeZone > 24)) ? 0 : Now.TimeZone
   );
