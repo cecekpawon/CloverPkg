@@ -88,7 +88,7 @@ FilterKextPatches (
         Entry->KernelAndKextPatches->KextPatches[i].Disabled = !IsPatchEnabled (
           Entry->KernelAndKextPatches->KextPatches[i].MatchBuild, Entry->OSBuildVersion);
 
-        MsgLog (" ==> %a\n", Entry->KernelAndKextPatches->KextPatches[i].Disabled ? "not allowed" : "allowed");
+        MsgLog (" | Allowed: %a\n", Entry->KernelAndKextPatches->KextPatches[i].Disabled ? "No" : "Yes");
 
         //if (!Entry->KernelAndKextPatches->KextPatches[i].Disabled) {
           continue; // If user give MatchOS, should we ignore MatchOS / keep reading 'em?
@@ -98,7 +98,7 @@ FilterKextPatches (
       Entry->KernelAndKextPatches->KextPatches[i].Disabled = !IsPatchEnabled (
         Entry->KernelAndKextPatches->KextPatches[i].MatchOS, Entry->OSVersion);
 
-      MsgLog (" ==> %a\n", Entry->KernelAndKextPatches->KextPatches[i].Disabled ? "not allowed" : "allowed");
+      MsgLog (" | Allowed: %a\n", Entry->KernelAndKextPatches->KextPatches[i].Disabled ? "No" : "Yes");
     }
   }
 }
@@ -574,36 +574,37 @@ AsusAICPUPMPatch (
 
 VOID
 AnyKextPatch (
+  CHAR8         *BundleIdentifier,
   UINT8         *Driver,
   UINT32        DriverSize,
   CHAR8         *InfoPlist,
   UINT32        InfoPlistSize,
-  KEXT_PATCH    *KextPatches,
+  KEXT_PATCH    *KextPatch,
   LOADER_ENTRY  *Entry
 ) {
   UINTN   Num = 0;
 
-  DBG ("AnyKextPatch: driverAddr = %x, driverSize = %x | AnyKext = %a",
-         Driver, DriverSize, KextPatches->Label);
+  MsgLog ("- %a (%a) | Addr = %x, Size = %x",
+         BundleIdentifier, KextPatch->Label, Driver, DriverSize);
 
-  if (KextPatches->IsPlistPatch) { // Info plist patch
-    DBG (" | Info.plist patch");
+  if (KextPatch->IsPlistPatch) { // Info plist patch
+    MsgLog (" | PlistPatch");
 
     Num = SearchAndReplaceTxt (
             (UINT8 *)InfoPlist,
             InfoPlistSize,
-            KextPatches->Data,
-            KextPatches->DataLen,
-            KextPatches->Patch,
-            KextPatches->Wildcard,
-            KextPatches->Count
+            KextPatch->Data,
+            KextPatch->DataLen,
+            KextPatch->Patch,
+            KextPatch->Wildcard,
+            KextPatch->Count
           );
   } else { // kext binary patch
     UINT32    Addr, Size, Off;
 
     GetTextSection (Driver, &Addr, &Size, &Off, Entry);
 
-    DBG (" | Binary patch");
+    MsgLog (" | BinPatch");
 
     if (Off && Size) {
       Driver += Off;
@@ -613,19 +614,15 @@ AnyKextPatch (
     Num = SearchAndReplace (
             Driver,
             DriverSize,
-            KextPatches->Data,
-            KextPatches->DataLen,
-            KextPatches->Patch,
-            KextPatches->Wildcard,
-            KextPatches->Count
+            KextPatch->Data,
+            KextPatch->DataLen,
+            KextPatch->Patch,
+            KextPatch->Wildcard,
+            KextPatch->Count
           );
   }
 
-  if (Num > 0) {
-    DBG (" | patched %d times!\n", Num);
-  } else {
-    DBG (" | NOT patched!\n");
-  }
+  MsgLog (" | %a : %d replaces done\n", Num ? "Success" : "Error", Num);
 }
 
 //
@@ -725,7 +722,15 @@ PatchKext (
         continue;
       }
 
-      AnyKextPatch (Driver, DriverSize, InfoPlist, InfoPlistSize, &Entry->KernelAndKextPatches->KextPatches[i], Entry);
+      AnyKextPatch (
+        BundleIdentifier,
+        Driver,
+        DriverSize,
+        InfoPlist,
+        InfoPlistSize,
+        &Entry->KernelAndKextPatches->KextPatches[i],
+        Entry
+      );
 
       if (IsBundle) {
         Entry->KernelAndKextPatches->KextPatches[i].Patched = TRUE;

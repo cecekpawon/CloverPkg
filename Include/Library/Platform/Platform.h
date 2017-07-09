@@ -1302,23 +1302,6 @@ IsValidGuidAsciiString (
   IN CHAR8  *Str
 );
 
-//EFI_STATUS
-//StrToGuidLE (
-//  IN  CHAR16      *Str,
-//  OUT EFI_GUID    *Guid
-//);
-
-//EFI_STATUS
-//InitBootScreen (
-//  IN  LOADER_ENTRY *Entry
-//);
-
-//EFI_STATUS
-//InitializeConsoleSim ();
-
-//EFI_STATUS
-//GuiEventsInitialize ();
-
 EFI_STATUS
 InitializeEdidOverride ();
 

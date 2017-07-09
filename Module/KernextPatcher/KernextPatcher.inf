@@ -16,6 +16,7 @@
   MODULE_TYPE                    = UEFI_DRIVER
   VERSION_STRING                 = 1.0
   ENTRY_POINT                    = KernextPatcherEntrypoint
+  #UNLOAD_IMAGE                   = KernextPatcherUnload
 
 [Packages]
   MdePkg/MdePkg.dec
@@ -23,7 +24,6 @@
 
 [LibraryClasses]
   CommonLib
-  #DeviceTreeLib
   MemLogLib
   UefiDriverEntryPoint
   UefiLib
@@ -33,15 +33,20 @@
   KernextPatcher.c
 
 [Guids]
-  #gEfiAppleBootGuid
   gEfiFileInfoGuid
   gEfiPartTypeSystemPartGuid
 
 [Protocols]
-  #gAptioFixProtocolGuid
-  gEfiStatusCodeRuntimeProtocolGuid
   gEfiBlockIoProtocolGuid
   gEfiSimpleFileSystemProtocolGuid
+  gEfiStatusCodeRuntimeProtocolGuid
 
 #[Depex]
+#  #gEfiBlockIoProtocolGuid AND
+#  #gEfiStatusCodeRuntimeProtocolGuid AND
+#  #gEfiLoadedImageProtocolGuid AND
+#  #gEfiSimpleFileSystemProtocolGuid AND
+#  #gEfiSimpleTextInputExProtocolGuid AND
+#  #gEfiDiskIoProtocolGuid AND
+#  #gEfiDevicePathProtocolGuid
 #  TRUE

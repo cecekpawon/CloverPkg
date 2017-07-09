@@ -466,6 +466,7 @@ InjectKexts (
             IsPatchNameMatch (KextBundleIdentifier, Entry->KernelAndKextPatches->KextPatches[i].Name, InfoPlist, &IsBundle)
           ) {
             AnyKextPatch (
+              KextBundleIdentifier,
               (UINT8 *)(UINTN)Drvinfo->executablePhysAddr,
               Drvinfo->executableLength,
               InfoPlist,

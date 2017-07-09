@@ -303,11 +303,12 @@ KernelAndKextPatcherInit (
 
 VOID
 AnyKextPatch (
+  CHAR8         *BundleIdentifier,
   UINT8         *Driver,
   UINT32        DriverSize,
   CHAR8         *InfoPlist,
   UINT32        InfoPlistSize,
-  KEXT_PATCH    *KextPatches,
+  KEXT_PATCH    *KextPatch,
   LOADER_ENTRY  *Entry
 );
 

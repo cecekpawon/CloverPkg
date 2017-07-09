@@ -36,9 +36,11 @@
 #define DEBUG_KERNEXTPATCHER                        0
 
 #define MsgLog(...)                                 MemLog (TRUE, 1, __VA_ARGS__)
+//#define MsgLog(...)                                 AsciiPrint (__VA_ARGS__)
 
 #if DEBUG_KERNEXTPATCHER
 #define DBG(...)                                    MsgLog (__VA_ARGS__)
+//#define DBG(...)                                    AsciiPrint (__VA_ARGS__)
 #else
 #define DBG(...)
 #endif
@@ -268,18 +270,124 @@ EFI_IMAGE_START         gKPStartImage = NULL;
 EFI_EVENT               gExitBootServiceEvent = NULL;
 KERNEL_INFO             *gKernelInfo;
 EFI_FILE                *gSelfRootDir;
-UINTN                   NrKexts;
-KEXT_PATCH              *KextPatches;
-UINTN                   NrKernels;
-KERNEL_PATCH            *KernelPatches;
+UINTN                   gNrKexts;
+KEXT_PATCH              *gKextPatches;
+UINTN                   gNrKernels;
+KERNEL_PATCH            *gKernelPatches;
 EFI_PHYSICAL_ADDRESS    gRelocBase = 0;
 CHAR8                   *gOSVersion = NULL, *gBuildVersion = NULL;
-BOOLEAN                 SaveLogToFile = FALSE;
+BOOLEAN                 gSaveLogToFile = FALSE, gInitialized = FALSE;
+
+
+//
+// Plist
+//
+
+
+STATIC
+BOOLEAN
+GetPropertyBool (
+  TagPtr    Prop,
+  BOOLEAN   Default
+) {
+  return (
+    (Prop == NULL)
+      ? Default
+      : (
+          (Prop->type == kTagTypeTrue) ||
+          (
+            (Prop->type == kTagTypeString) &&
+            (TO_AUPPER (Prop->string[0]) == 'Y')
+          )
+        )
+  );
+}
+
+STATIC
+INTN
+GetPropertyInteger (
+  TagPtr  Prop,
+  INTN    Default
+) {
+  if (Prop != NULL) {
+    if (Prop->type == kTagTypeInteger) {
+      return Prop->integer;
+    } else if (Prop->type == kTagTypeString) {
+      if ((Prop->string[0] == '0') && (TO_AUPPER (Prop->string[1]) == 'X')) {
+        return (INTN)AsciiStrHexToUintn (Prop->string);
+      }
+
+      if (Prop->string[0] == '-') {
+        return -(INTN)AsciiStrDecimalToUintn (Prop->string + 1);
+      }
+
+      return (INTN)AsciiStrDecimalToUintn (Prop->string);
+    }
+  }
+
+  return Default;
+}
+
+/*
+STATIC
+CHAR8 *
+GetPropertyString (
+  TagPtr  Prop,
+  CHAR8   *Default
+) {
+  if (
+    (Prop != NULL) &&
+    (Prop->type == kTagTypeString) &&
+    AsciiStrLen (Prop->string)
+  ) {
+    return Prop->string;
+  }
+
+  return Default;
+}
+*/
+
+//
+// returns binary setting in a new allocated buffer and data length in dataLen.
+// data can be specified in <data></data> base64 encoded
+// or in <string></string> hex encoded
+//
+
+STATIC
+VOID *
+GetDataSetting (
+  IN   TagPtr   Dict,
+  IN   CHAR8    *PropName,
+  OUT  UINTN    *DataLen
+) {
+  TagPtr    Prop;
+  UINT8     *Data = NULL;
+  UINTN     Len;
+
+  Prop = GetProperty (Dict, PropName);
+  if (Prop != NULL) {
+    if ((Prop->type == kTagTypeData) && Prop->data && Prop->size) {
+      // data property
+      Data = AllocateCopyPool (Prop->size, Prop->data);
+
+      if (Data != NULL) {
+        *DataLen = Prop->size;
+      }
+    } else {
+      // assume data in hex encoded string property
+      Data = StringDataToHex (Prop->string, &Len);
+      *DataLen = Len;
+    }
+  }
+
+  return Data;
+}
 
 
 //
 // file and dir functions
 //
+
 
 STATIC
 CHAR16 *
@@ -288,6 +396,31 @@ DevicePathToStr (
   IN EFI_DEVICE_PATH_PROTOCOL  *DevPath
 ) {
   return ConvertDevicePathToText (DevPath, TRUE, TRUE);
+}
+
+STATIC
+CHAR16 *
+SelfPathToString (
+  IN EFI_DEVICE_PATH    *DevicePath
+) {
+  // find the current directory
+  CHAR16  *FilePathAsString = DevicePathToStr (DevicePath);
+
+  if (FilePathAsString != NULL) {
+    UINTN   i, Len = StrLen (FilePathAsString);
+    //SelfFullDevicePath = FileDevicePath (SelfDeviceHandle, FilePathAsString);
+    for (i = Len; i > 0 && FilePathAsString[i] != '\\'; i--);
+    if (i > 0) {
+      FilePathAsString[i] = 0;
+    } else {
+      FilePathAsString[0] = L'\\';
+      FilePathAsString[1] = 0;
+    }
+  } else {
+    FilePathAsString = AllocateCopyPool (StrSize (L"\\"), L"\\");
+  }
+
+  return FilePathAsString;
 }
 
 CHAR16 *
@@ -309,6 +442,28 @@ Dirname (
 
   return FileName;
 }
+
+/*
+STATIC
+CHAR16 *
+FindExtension (
+  IN CHAR16   *FileName
+) {
+  UINTN   i, len = StrLen (FileName);
+
+  for (i = len; i >= 0; i--) {
+    if (FileName[i] == '.') {
+      return FileName + i + 1;
+    }
+
+    if ((FileName[i] == '/') || (FileName[i] == '\\')) {
+      break;
+    }
+  }
+
+  return FileName;
+}
+*/
 
 STATIC
 EFI_FILE_INFO *
@@ -432,31 +587,6 @@ EfiLibOpenRoot (
   return EFI_ERROR (Status) ? NULL : File;
 }
 
-STATIC
-CHAR16 *
-SelfPathToString (
-  IN EFI_DEVICE_PATH    *DevicePath
-) {
-  // find the current directory
-  CHAR16  *FilePathAsString = DevicePathToStr (DevicePath);
-
-  if (FilePathAsString != NULL) {
-    UINTN   i, Len = StrLen (FilePathAsString);
-    //SelfFullDevicePath = FileDevicePath (SelfDeviceHandle, FilePathAsString);
-    for (i = Len; i > 0 && FilePathAsString[i] != '\\'; i--);
-    if (i > 0) {
-      FilePathAsString[i] = 0;
-    } else {
-      FilePathAsString[0] = L'\\';
-      FilePathAsString[1] = 0;
-    }
-  } else {
-    FilePathAsString = AllocateCopyPool (StrSize (L"\\"), L"\\");
-  }
-
-  return FilePathAsString;
-}
-
 //if (NULL, ...) then save to EFI partition
 STATIC
 EFI_STATUS
@@ -525,7 +655,7 @@ EFI_STATUS
 SaveBooterLog () {
   MsgLog ("KernextPatcher: End\n");
 
-  if (SaveLogToFile) {
+  if (gSaveLogToFile) {
     CHAR8   *MemLogBuffer = GetMemLogBuffer ();
     UINTN   MemLogLen = GetMemLogLen ();
 
@@ -631,6 +761,12 @@ DeallocMatchOSes (
   }
 }
 
+
+//
+// Patch Helper
+//
+
+
 STATIC
 BOOLEAN
 IsPatchEnabled (
@@ -731,6 +867,76 @@ IsPatchEnabled (
 }
 
 STATIC
+BOOLEAN
+IsPatchNameMatch (
+  CHAR8   *BundleIdentifier,
+  CHAR8   *Name,
+  CHAR8   *InfoPlist,
+  INT32   *IsBundle
+) {
+  // Full BundleIdentifier: com.apple.driver.AppleHDA
+  *IsBundle = (CountOccurrences (Name, '.') < 2) ? 0 : 1;
+  return
+    ((InfoPlist != NULL) && (*IsBundle == 0))
+      ? (AsciiStrStr (InfoPlist, Name) != NULL)
+      : (AsciiStrCmp (BundleIdentifier, Name) == 0);
+}
+
+STATIC
+VOID
+GetTextSection (
+  IN  UINT8         *binary,
+  OUT UINT32        *Addr,
+  OUT UINT32        *Size,
+  OUT UINT32        *Off
+) {
+  struct  load_command        *LoadCommand;
+  struct  segment_command_64  *SegCmd64;
+  struct  section_64          *Sect64;
+          UINT32              NCmds, CmdSize, BinaryIndex, SectionIndex;
+          UINTN               i;
+
+  if (MACH_GET_MAGIC (binary) != MH_MAGIC_64) {
+    return;
+  }
+
+  BinaryIndex = sizeof (struct mach_header_64);
+
+  NCmds = MACH_GET_NCMDS (binary);
+
+  for (i = 0; i < NCmds; i++) {
+    LoadCommand = (struct load_command *)(binary + BinaryIndex);
+
+    if (LoadCommand->cmd != LC_SEGMENT_64) {
+      continue;
+    }
+
+    CmdSize = LoadCommand->cmdsize;
+    SegCmd64 = (struct segment_command_64 *)LoadCommand;
+    SectionIndex = sizeof (struct segment_command_64);
+
+    while (SectionIndex < SegCmd64->cmdsize) {
+      Sect64 = (struct section_64 *)((UINT8 *)SegCmd64 + SectionIndex);
+      SectionIndex += sizeof (struct section_64);
+
+      if (
+        (Sect64->size > 0) &&
+        (AsciiStrCmp (Sect64->segname, kTextSegment) == 0) &&
+        (AsciiStrCmp (Sect64->sectname, kTextTextSection) == 0)
+      ) {
+        *Addr = (UINT32)(Sect64->addr ? Sect64->addr + gRelocBase : 0);
+        *Size = (UINT32)Sect64->size;
+        *Off = Sect64->offset;
+        //DBG ("%a, %a address 0x%x\n", kTextSegment, kTextTextSection, Off);
+        break;
+      }
+    }
+
+    BinaryIndex += CmdSize;
+  }
+}
+
+STATIC
 UINT64
 GetPlistHexValue (
   CHAR8     *Plist,
@@ -806,19 +1012,59 @@ GetPlistHexValue (
 }
 
 STATIC
-BOOLEAN
-IsPatchNameMatch (
-  CHAR8   *BundleIdentifier,
-  CHAR8   *Name,
-  CHAR8   *InfoPlist,
-  INT32   *IsBundle
+VOID
+ExtractKextPropString (
+  OUT CHAR8   *Res,
+  IN  INTN    Len,
+  IN  CHAR8   *Key,
+  IN  CHAR8   *Plist
 ) {
-  // Full BundleIdentifier: com.apple.driver.AppleHDA
-  *IsBundle = (CountOccurrences (Name, '.') < 2) ? 0 : 1;
-  return
-    ((InfoPlist != NULL) && (*IsBundle == 0))
-      ? (AsciiStrStr (InfoPlist, Name) != NULL)
-      : (AsciiStrCmp (BundleIdentifier, Name) == 0);
+  CHAR8     *Tag, *BIStart, *BIEnd;
+  UINTN     DictLevel = 0, KeyLen = AsciiStrLen (Key);
+
+  Res[0] = '\0';
+
+  // start with first <dict>
+  Tag = AsciiStrStr (Plist, "<dict>");
+  if (Tag == NULL) {
+    return;
+  }
+
+  Tag += 6;
+  DictLevel++;
+
+  while (*Tag != '\0') {
+    if (AsciiStrnCmp (Tag, "<dict>", 6) == 0) {
+      // opening dict
+      DictLevel++;
+      Tag += 6;
+    } else if (AsciiStrnCmp (Tag, "</dict>", 7) == 0) {
+      // closing dict
+      DictLevel--;
+      Tag += 7;
+    } else if ((DictLevel == 1) && (AsciiStrnCmp (Tag, Key, KeyLen) == 0)) {
+      // StringValue is next <string>...</string>
+      BIStart = AsciiStrStr (Tag + KeyLen, "<string>");
+      if (BIStart != NULL) {
+        BIStart += 8; // skip "<string>"
+        BIEnd = AsciiStrStr (BIStart, "</string>");
+        if ((BIEnd != NULL) && ((BIEnd - BIStart + 1) < Len)) {
+          CopyMem (Res, BIStart, BIEnd - BIStart);
+          Res[BIEnd - BIStart] = '\0';
+          break;
+        }
+      }
+
+      Tag++;
+    } else {
+      Tag++;
+    }
+
+    // advance to next tag
+    while ((*Tag != '<') && (*Tag != '\0')) {
+      Tag++;
+    }
+  }
 }
 
 //
@@ -991,59 +1237,11 @@ SearchAndReplaceTxt (
   return NumReplaces;
 }
 
-STATIC
-VOID
-GetTextSection (
-  IN  UINT8         *binary,
-  OUT UINT32        *Addr,
-  OUT UINT32        *Size,
-  OUT UINT32        *Off
-) {
-  struct  load_command        *LoadCommand;
-  struct  segment_command_64  *SegCmd64;
-  struct  section_64          *Sect64;
-          UINT32              NCmds, CmdSize, BinaryIndex, SectionIndex;
-          UINTN               i;
 
-  if (MACH_GET_MAGIC (binary) != MH_MAGIC_64) {
-    return;
-  }
+//
+// Kext Patcher
+//
 
-  BinaryIndex = sizeof (struct mach_header_64);
-
-  NCmds = MACH_GET_NCMDS (binary);
-
-  for (i = 0; i < NCmds; i++) {
-    LoadCommand = (struct load_command *)(binary + BinaryIndex);
-
-    if (LoadCommand->cmd != LC_SEGMENT_64) {
-      continue;
-    }
-
-    CmdSize = LoadCommand->cmdsize;
-    SegCmd64 = (struct segment_command_64 *)LoadCommand;
-    SectionIndex = sizeof (struct segment_command_64);
-
-    while (SectionIndex < SegCmd64->cmdsize) {
-      Sect64 = (struct section_64 *)((UINT8 *)SegCmd64 + SectionIndex);
-      SectionIndex += sizeof (struct section_64);
-
-      if (
-        (Sect64->size > 0) &&
-        (AsciiStrCmp (Sect64->segname, kTextSegment) == 0) &&
-        (AsciiStrCmp (Sect64->sectname, kTextTextSection) == 0)
-      ) {
-        *Addr = (UINT32)(Sect64->addr ? Sect64->addr + gRelocBase : 0);
-        *Size = (UINT32)Sect64->size;
-        *Off = Sect64->offset;
-        //DBG ("%a, %a address 0x%x\n", kTextSegment, kTextTextSection, Off);
-        break;
-      }
-    }
-
-    BinaryIndex += CmdSize;
-  }
-}
 
 STATIC
 VOID
@@ -1053,24 +1251,24 @@ AnyKextPatch (
   UINT32        DriverSize,
   CHAR8         *InfoPlist,
   UINT32        InfoPlistSize,
-  KEXT_PATCH    *KextPatches
+  KEXT_PATCH    *KextPatch
 ) {
   UINTN   Num = 0;
 
   MsgLog ("- %a (%a) | Addr = %x, Size = %x",
-         BundleIdentifier, KextPatches->Label, Driver, DriverSize);
+         BundleIdentifier, KextPatch->Label, Driver, DriverSize);
 
-  if (KextPatches->IsPlistPatch) { // Info plist patch
+  if (KextPatch->IsPlistPatch) { // Info plist patch
     MsgLog (" | PlistPatch");
 
     Num = SearchAndReplaceTxt (
             (UINT8 *)InfoPlist,
             InfoPlistSize,
-            KextPatches->Data,
-            KextPatches->DataLen,
-            KextPatches->Patch,
-            KextPatches->Wildcard,
-            KextPatches->Count
+            KextPatch->Data,
+            KextPatch->DataLen,
+            KextPatch->Patch,
+            KextPatch->Wildcard,
+            KextPatch->Count
           );
   } else { // kext binary patch
     UINT32    Addr, Size, Off;
@@ -1087,21 +1285,17 @@ AnyKextPatch (
     Num = SearchAndReplace (
             Driver,
             DriverSize,
-            KextPatches->Data,
-            KextPatches->DataLen,
-            KextPatches->Patch,
-            KextPatches->Wildcard,
-            KextPatches->Count
+            KextPatch->Data,
+            KextPatch->DataLen,
+            KextPatch->Patch,
+            KextPatch->Wildcard,
+            KextPatch->Count
           );
   }
 
   MsgLog (" | %a : %d replaces done\n", Num ? "Success" : "Error", Num);
 }
 
-//
-// PatchKext is called for every kext from prelinked kernel (kernelcache) or from DevTree (booting with drivers).
-// Add kext detection code here and call kext specific patch function.
-//
 STATIC
 VOID
 PatchKext (
@@ -1115,192 +1309,19 @@ PatchKext (
 
   DBG ("- %a\n", BundleIdentifier);
 
-  for (i = 0; i < NrKexts; i++) {
+  for (i = 0; i < gNrKexts; i++) {
     if (
-      KextPatches[i].Patched ||
-      KextPatches[i].Disabled || // avoid redundant: if unique / IsBundle
-      !IsPatchNameMatch (BundleIdentifier, KextPatches[i].Name, InfoPlist, &IsBundle)
+      gKextPatches[i].Patched ||
+      gKextPatches[i].Disabled || // avoid redundant: if unique / IsBundle
+      !IsPatchNameMatch (BundleIdentifier, gKextPatches[i].Name, InfoPlist, &IsBundle)
     ) {
       continue;
     }
 
-    AnyKextPatch (BundleIdentifier, Driver, DriverSize, InfoPlist, InfoPlistSize, &KextPatches[i]);
+    AnyKextPatch (BundleIdentifier, Driver, DriverSize, InfoPlist, InfoPlistSize, &gKextPatches[i]);
 
     if (IsBundle) {
-      KextPatches[i].Patched = TRUE;
-    }
-  }
-
-}
-
-/*
-STATIC
-CHAR16 *
-FindExtension (
-  IN CHAR16   *FileName
-) {
-  UINTN   i, len = StrLen (FileName);
-
-  for (i = len; i >= 0; i--) {
-    if (FileName[i] == '.') {
-      return FileName + i + 1;
-    }
-
-    if ((FileName[i] == '/') || (FileName[i] == '\\')) {
-      break;
-    }
-  }
-
-  return FileName;
-}
-*/
-
-
-STATIC
-BOOLEAN
-KernelUserPatch () {
-  UINTN    Num, i = 0, y = 0;
-
-  MsgLog ("%a: Start\n", __FUNCTION__);
-
-  for (i = 0; i < NrKernels; ++i) {
-    MsgLog ("- %a", KernelPatches[i].Label);
-
-    if (KernelPatches[i].Disabled) {
-      MsgLog (" | DISABLED!\n");
-      continue;
-    }
-
-    Num = SearchAndReplace (
-      gKernelInfo->Bin,
-      KERNEL_MAX_SIZE,
-      KernelPatches[i].Data,
-      KernelPatches[i].DataLen,
-      KernelPatches[i].Patch,
-      KernelPatches[i].Wildcard,
-      KernelPatches[i].Count
-    );
-
-    if (Num) {
-      y++;
-    }
-
-    MsgLog (" | %a : %d replaces done\n", Num ? "Success" : "Error", Num);
-  }
-
-  MsgLog ("%a: End\n", __FUNCTION__);
-
-  return (y != 0);
-}
-
-STATIC
-VOID
-FilterKernelPatches () {
-  if (
-    (KernelPatches != NULL) &&
-    NrKernels
-  ) {
-    UINTN    i = 0, y = 0;
-
-    MsgLog ("Filtering KernelPatches:\n");
-
-    for (; i < NrKernels; ++i) {
-      BOOLEAN   NeedBuildVersion = (
-                  (gBuildVersion != NULL) &&
-                  (KernelPatches[i].MatchBuild != NULL)
-                );
-
-      MsgLog (" - [%02d]: %a | [MatchOS: %a | MatchBuild: %a]",
-        i,
-        KernelPatches[i].Label,
-        KernelPatches[i].MatchOS
-          ? KernelPatches[i].MatchOS
-          : "All",
-        NeedBuildVersion
-          ? KernelPatches[i].MatchBuild
-          : "All"
-      );
-
-      if (NeedBuildVersion) {
-        KernelPatches[i].Disabled = !IsPatchEnabled (KernelPatches[i].MatchBuild, gBuildVersion);
-
-        MsgLog (" | Allowed: %a\n", KernelPatches[i].Disabled ? "No" : "Yes");
-
-        //if (!KernelPatches[i].Disabled) {
-          continue; // If user give MatchOS, should we ignore MatchOS / keep reading 'em?
-        //}
-      }
-
-      KernelPatches[i].Disabled = !IsPatchEnabled (KernelPatches[i].MatchOS, gOSVersion);
-
-      MsgLog (" | Allowed: %a\n", KernelPatches[i].Disabled ? "No" : "Yes");
-
-      if (!KernelPatches[i].Disabled) {
-        y++;
-      }
-    }
-
-    if (y > 0) {
-      MsgLog ("Kernel patches to process: %d\n", y);
-      KernelUserPatch ();
-    }
-  }
-}
-
-
-
-STATIC
-VOID
-ExtractKextPropString (
-  OUT CHAR8   *Res,
-  IN  INTN    Len,
-  IN  CHAR8   *Key,
-  IN  CHAR8   *Plist
-) {
-  CHAR8     *Tag, *BIStart, *BIEnd;
-  UINTN     DictLevel = 0, KeyLen = AsciiStrLen (Key);
-
-  Res[0] = '\0';
-
-  // start with first <dict>
-  Tag = AsciiStrStr (Plist, "<dict>");
-  if (Tag == NULL) {
-    return;
-  }
-
-  Tag += 6;
-  DictLevel++;
-
-  while (*Tag != '\0') {
-    if (AsciiStrnCmp (Tag, "<dict>", 6) == 0) {
-      // opening dict
-      DictLevel++;
-      Tag += 6;
-    } else if (AsciiStrnCmp (Tag, "</dict>", 7) == 0) {
-      // closing dict
-      DictLevel--;
-      Tag += 7;
-    } else if ((DictLevel == 1) && (AsciiStrnCmp (Tag, Key, KeyLen) == 0)) {
-      // StringValue is next <string>...</string>
-      BIStart = AsciiStrStr (Tag + KeyLen, "<string>");
-      if (BIStart != NULL) {
-        BIStart += 8; // skip "<string>"
-        BIEnd = AsciiStrStr (BIStart, "</string>");
-        if ((BIEnd != NULL) && ((BIEnd - BIStart + 1) < Len)) {
-          CopyMem (Res, BIStart, BIEnd - BIStart);
-          Res[BIEnd - BIStart] = '\0';
-          break;
-        }
-      }
-
-      Tag++;
-    } else {
-      Tag++;
-    }
-
-    // advance to next tag
-    while ((*Tag != '<') && (*Tag != '\0')) {
-      Tag++;
+      gKextPatches[i].Patched = TRUE;
     }
   }
 }
@@ -1360,7 +1381,7 @@ PatchPrelinkedKexts () {
         // and if KernelSlide is != 0 then KextAddr must be adjusted
         KextAddr += gKernelInfo->Slide;
         // and adjust for AptioFixDrv's KernelRelocBase
-        KextAddr += gRelocBase;
+        KextAddr += (UINT32)gRelocBase;
 
         KextSize = (UINT32)GetPlistHexValue (InfoPlistStart, kPrelinkExecutableSizeKey, WholePlist);
 
@@ -1392,46 +1413,46 @@ STATIC
 VOID
 FilterKextPatches () {
   if (
-    (KextPatches != NULL) &&
-    NrKexts
+    (gKextPatches != NULL) &&
+    gNrKexts
   ) {
     UINTN    i = 0, y = 0;
 
     MsgLog ("Filtering KextPatches:\n");
 
-    for (; i < NrKexts; ++i) {
+    for (; i < gNrKexts; ++i) {
       BOOLEAN   NeedBuildVersion = (
                   (gBuildVersion != NULL) &&
-                  (KextPatches[i].MatchBuild != NULL)
+                  (gKextPatches[i].MatchBuild != NULL)
                 );
 
       MsgLog (" - [%02d]: %a | %a | [MatchOS: %a | MatchBuild: %a]",
         i,
-        KextPatches[i].Label,
-        KextPatches[i].IsPlistPatch ? "PlistPatch" : "BinPatch",
-        KextPatches[i].MatchOS
-          ? KextPatches[i].MatchOS
+        gKextPatches[i].Label,
+        gKextPatches[i].IsPlistPatch ? "PlistPatch" : "BinPatch",
+        gKextPatches[i].MatchOS
+          ? gKextPatches[i].MatchOS
           : "All",
         NeedBuildVersion
-          ? KextPatches[i].MatchBuild
+          ? gKextPatches[i].MatchBuild
           : "All"
       );
 
       if (NeedBuildVersion) {
-        KextPatches[i].Disabled = !IsPatchEnabled (KextPatches[i].MatchBuild, gBuildVersion);
+        gKextPatches[i].Disabled = !IsPatchEnabled (gKextPatches[i].MatchBuild, gBuildVersion);
 
-        MsgLog (" | Allowed: %a\n", KextPatches[i].Disabled ? "No" : "Yes");
+        MsgLog (" | Allowed: %a\n", gKextPatches[i].Disabled ? "No" : "Yes");
 
-        //if (!KextPatches[i].Disabled) {
+        //if (!gKextPatches[i].Disabled) {
           continue; // If user give MatchOS, should we ignore MatchOS / keep reading 'em?
         //}
       }
 
-      KextPatches[i].Disabled = !IsPatchEnabled (KextPatches[i].MatchOS, gOSVersion);
+      gKextPatches[i].Disabled = !IsPatchEnabled (gKextPatches[i].MatchOS, gOSVersion);
 
-      MsgLog (" | Allowed: %a\n", KextPatches[i].Disabled ? "No" : "Yes");
+      MsgLog (" | Allowed: %a\n", gKextPatches[i].Disabled ? "No" : "Yes");
 
-      if (!KextPatches[i].Disabled) {
+      if (!gKextPatches[i].Disabled) {
         y++;
       }
     }
@@ -1442,6 +1463,109 @@ FilterKextPatches () {
     }
   }
 }
+
+
+//
+// Kernel Patcher
+//
+
+
+STATIC
+BOOLEAN
+KernelUserPatch () {
+  UINTN    Num, i = 0, y = 0;
+
+  MsgLog ("%a: Start\n", __FUNCTION__);
+
+  for (i = 0; i < gNrKernels; ++i) {
+    MsgLog ("- %a", gKernelPatches[i].Label);
+
+    if (gKernelPatches[i].Disabled) {
+      MsgLog (" | DISABLED!\n");
+      continue;
+    }
+
+    Num = SearchAndReplace (
+      gKernelInfo->Bin,
+      KERNEL_MAX_SIZE,
+      gKernelPatches[i].Data,
+      gKernelPatches[i].DataLen,
+      gKernelPatches[i].Patch,
+      gKernelPatches[i].Wildcard,
+      gKernelPatches[i].Count
+    );
+
+    if (Num) {
+      y++;
+    }
+
+    MsgLog (" | %a : %d replaces done\n", Num ? "Success" : "Error", Num);
+  }
+
+  MsgLog ("%a: End\n", __FUNCTION__);
+
+  return (y != 0);
+}
+
+STATIC
+VOID
+FilterKernelPatches () {
+  if (
+    (gKernelPatches != NULL) &&
+    gNrKernels
+  ) {
+    UINTN    i = 0, y = 0;
+
+    MsgLog ("Filtering KernelPatches:\n");
+
+    for (; i < gNrKernels; ++i) {
+      BOOLEAN   NeedBuildVersion = (
+                  (gBuildVersion != NULL) &&
+                  (gKernelPatches[i].MatchBuild != NULL)
+                );
+
+      MsgLog (" - [%02d]: %a | [MatchOS: %a | MatchBuild: %a]",
+        i,
+        gKernelPatches[i].Label,
+        gKernelPatches[i].MatchOS
+          ? gKernelPatches[i].MatchOS
+          : "All",
+        NeedBuildVersion
+          ? gKernelPatches[i].MatchBuild
+          : "All"
+      );
+
+      if (NeedBuildVersion) {
+        gKernelPatches[i].Disabled = !IsPatchEnabled (gKernelPatches[i].MatchBuild, gBuildVersion);
+
+        MsgLog (" | Allowed: %a\n", gKernelPatches[i].Disabled ? "No" : "Yes");
+
+        //if (!gKernelPatches[i].Disabled) {
+          continue; // If user give MatchOS, should we ignore MatchOS / keep reading 'em?
+        //}
+      }
+
+      gKernelPatches[i].Disabled = !IsPatchEnabled (gKernelPatches[i].MatchOS, gOSVersion);
+
+      MsgLog (" | Allowed: %a\n", gKernelPatches[i].Disabled ? "No" : "Yes");
+
+      if (!gKernelPatches[i].Disabled) {
+        y++;
+      }
+    }
+
+    if (y > 0) {
+      MsgLog ("Kernel patches to process: %d\n", y);
+      KernelUserPatch ();
+    }
+  }
+}
+
+
+//
+// Memory parsing
+//
+
 
 STATIC
 VOID
@@ -1474,7 +1598,7 @@ InitKernel () {
 
         if (SegCmd64->nsects == 0) {
           if (AsciiStrCmp (SegCmd64->segname, kLinkeditSegment) == 0) {
-            LinkeditAddr = (UINT32)SegCmd64->vmaddr + gRelocBase;
+            LinkeditAddr = (UINT32)(SegCmd64->vmaddr + gRelocBase);
             LinkeditFileOff = (UINT32)SegCmd64->fileoff;
             //DBG ("%a: Segment = %a, Addr = 0x%x, Size = 0x%x, FileOff = 0x%x\n", __FUNCTION__,
             //  SegCmd64->segname, LinkeditAddr, SegCmd64->vmsize, LinkeditFileOff
@@ -1603,7 +1727,7 @@ InitKernel () {
       if (SysTabEntry->n_value) {
         SymbolName = (CHAR8 *)(StrBin + SysTabEntry->n_un.n_strx);
         Addr = (UINT32)SysTabEntry->n_value;
-        PatchLocation = Addr - (UINT32)(UINTN)gKernelInfo->Bin + gRelocBase;
+        PatchLocation = Addr - (UINT32)(UINTN)gKernelInfo->Bin + (UINT32)gRelocBase;
 
         //DBG ("Cnt: %d, n_sect: %d, SymbolName: %a\n", Cnt, SysTabEntry->n_sect, SymbolName);
 
@@ -1757,8 +1881,8 @@ FindBootArgs () {
       DBG ("BootArgs->bootMemStart = 0x%x\n", mBootArgs->bootMemStart);
       */
 
-      if (!SaveLogToFile && AsciiStriStr (mBootArgs->CommandLine, DEBUG_LOG_ARG)) {
-        SaveLogToFile = TRUE;
+      if (!gSaveLogToFile && AsciiStriStr (mBootArgs->CommandLine, DEBUG_LOG_ARG)) {
+        gSaveLogToFile = TRUE;
       }
 
       Ret = TRUE;
@@ -1801,11 +1925,11 @@ KernelAndKextPatcherInit () {
 
   // check that it is Mach-O header and detect architecture
   if (MACH_GET_MAGIC (gKernelInfo->Bin) == MH_MAGIC_64) {
-    MsgLog ("Found 64 bit kernel at 0x%p\n", gKernelInfo->Bin);
+    MsgLog ("Found 64Bit kernel at 0x%p\n", gKernelInfo->Bin);
     gKernelInfo->A64Bit = TRUE;
   } else {
     // not valid Mach-O header - exiting
-    MsgLog ("64Bit Kernel not found at 0x%p - skipping patches!", gKernelInfo->Bin);
+    MsgLog ("Invalid 64Bit kernel at 0x%p - skipping patches!", gKernelInfo->Bin);
     gKernelInfo->Bin = NULL;
     goto Finish;
   }
@@ -1830,6 +1954,383 @@ KernelAndKextPatcherInit () {
 
   return (gKernelInfo->A64Bit && gKernelInfo->Cached && (gKernelInfo->Bin != NULL));
 }
+
+
+//
+// Preferences
+//
+
+
+STATIC
+VOID
+ParsePatchesPlist (
+  IN TagPtr     RootDict
+) {
+  if (RootDict != NULL) {
+    TagPtr  Prop, DictPointer = GetProperty (RootDict, "KernextPatches");
+    INTN    i, Count;
+
+    if (DictPointer != NULL) {
+      Prop = GetProperty (DictPointer, "KextsToPatch");
+      if (Prop != NULL) {
+        Count = Prop->size;
+
+        //delete old and create new
+        if (gKextPatches) {
+          gNrKexts = 0;
+          FreePool (gKextPatches);
+        }
+
+        if (Count > 0) {
+          TagPtr        Prop2 = NULL, Dict = NULL;
+          KEXT_PATCH    *newPatches = AllocateZeroPool (Count * sizeof (KEXT_PATCH));
+
+          gKextPatches = newPatches;
+          MsgLog ("KextsToPatch: %d requested\n", Count);
+
+          for (i = 0; i < Count; i++) {
+            CHAR8     *KextPatchesName, *KextPatchesLabel;
+            UINTN     FindLen = 0, ReplaceLen = 0;
+            UINT8     *TmpData, *TmpPatch;
+
+            EFI_STATUS Status = GetElement (Prop, i, Count, &Prop2);
+
+            MsgLog (" - [%02d]:", i);
+
+            if (EFI_ERROR (Status) || (Prop2 == NULL)) {
+              MsgLog (" %r parsing / empty element\n", Status);
+              continue;
+            }
+
+            Dict = GetProperty (Prop2, "Name");
+            if ((Dict == NULL) || (Dict->type != kTagTypeString)) {
+              MsgLog (" patch without Name, skip\n");
+              continue;
+            }
+
+            KextPatchesName = AllocateCopyPool (255, Dict->string);
+            KextPatchesLabel = AllocateCopyPool (255, KextPatchesName);
+
+            Dict = GetProperty (Prop2, "Comment");
+            if ((Dict != NULL) && (Dict->type == kTagTypeString)) {
+              AsciiStrCatS (KextPatchesLabel, 255, " (");
+              AsciiStrCatS (KextPatchesLabel, 255, Dict->string);
+              AsciiStrCatS (KextPatchesLabel, 255, ")");
+            } else {
+              AsciiStrCatS (KextPatchesLabel, 255, " (NoLabel)");
+            }
+
+            MsgLog (" %a", KextPatchesLabel);
+
+            Dict = GetProperty (Prop2, "Disabled");
+            if (GetPropertyBool (Dict, FALSE)) {
+              MsgLog (" | patch disabled, skip\n");
+              continue;
+            }
+
+            TmpData    = GetDataSetting (Prop2, "Find", &FindLen);
+            TmpPatch   = GetDataSetting (Prop2, "Replace", &ReplaceLen);
+
+            if (!FindLen || !ReplaceLen || (FindLen != ReplaceLen)) {
+              MsgLog (" - invalid Find/Replace data, skip\n");
+              continue;
+            }
+
+            gKextPatches[gNrKexts].Data       = AllocateCopyPool (FindLen, TmpData);
+            gKextPatches[gNrKexts].DataLen    = FindLen;
+            gKextPatches[gNrKexts].Patch      = AllocateCopyPool (ReplaceLen, TmpPatch);
+            gKextPatches[gNrKexts].MatchOS    = NULL;
+            gKextPatches[gNrKexts].MatchBuild = NULL;
+            gKextPatches[gNrKexts].Filename   = NULL;
+            gKextPatches[gNrKexts].Disabled   = FALSE;
+            gKextPatches[gNrKexts].Patched    = FALSE;
+            gKextPatches[gNrKexts].Name       = AllocateCopyPool (AsciiStrnLenS (KextPatchesName, 255) + 1, KextPatchesName);
+            gKextPatches[gNrKexts].Label      = AllocateCopyPool (AsciiStrnLenS (KextPatchesLabel, 255) + 1, KextPatchesLabel);
+            gKextPatches[gNrKexts].Count      = GetPropertyInteger (GetProperty (Prop2, "Count"), 0);
+            gKextPatches[gNrKexts].Wildcard   = 0xFF;
+
+            FreePool (TmpData);
+            FreePool (TmpPatch);
+            FreePool (KextPatchesName);
+            FreePool (KextPatchesLabel);
+
+            Dict = GetProperty (Prop2, "MatchOS");
+            if ((Dict != NULL) && (Dict->type == kTagTypeString)) {
+              gKextPatches[gNrKexts].MatchOS = AllocateCopyPool (AsciiStrnLenS (Dict->string, 255) + 1, Dict->string);
+              MsgLog (" | MatchOS: %a", gKextPatches[gNrKexts].MatchOS);
+            }
+
+            Dict = GetProperty (Prop2, "MatchBuild");
+            if ((Dict != NULL) && (Dict->type == kTagTypeString)) {
+              gKextPatches[gNrKexts].MatchBuild = AllocateCopyPool (AsciiStrnLenS (Dict->string, 255) + 1, Dict->string);
+              MsgLog (" | MatchBuild: %a", gKextPatches[gNrKexts].MatchBuild);
+            }
+
+            // check if this is Info.plist patch or kext binary patch
+            gKextPatches[gNrKexts].IsPlistPatch = GetPropertyBool (GetProperty (Prop2, "InfoPlistPatch"), FALSE);
+            Dict = GetProperty (Prop2, "Wildcard");
+            if (Dict != NULL) {
+              gKextPatches[gNrKexts].Wildcard = (gKextPatches[gNrKexts].IsPlistPatch && (Dict->type == kTagTypeString))
+                                                  ? (UINT8)*Prop->string
+                                                  : (UINT8)GetPropertyInteger (Dict, 0xFF);
+            }
+
+            MsgLog (" | %a | len: %d\n",
+              gKextPatches[gNrKexts].IsPlistPatch ? "PlistPatch" : "BinPatch",
+              gKextPatches[gNrKexts].DataLen
+            );
+
+            gNrKexts++;
+          }
+        }
+      }
+
+      Prop = GetProperty (DictPointer, "KernelToPatch");
+      if (Prop != NULL) {
+        Count = Prop->size;
+
+        //delete old and create new
+        if (gKernelPatches) {
+          gNrKernels = 0;
+          FreePool (gKernelPatches);
+        }
+
+        if (Count > 0) {
+          TagPtr          Prop2 = NULL, Dict = NULL;
+          KERNEL_PATCH    *newPatches = AllocateZeroPool (Count * sizeof (KERNEL_PATCH));
+
+          gKernelPatches = newPatches;
+          MsgLog ("KernelToPatch: %d requested\n", Count);
+
+          for (i = 0; i < Count; i++) {
+            CHAR8         *KernelPatchesLabel;
+            UINTN         FindLen = 0, ReplaceLen = 0;
+            UINT8         *TmpData, *TmpPatch;
+            EFI_STATUS    Status = GetElement (Prop, i, Count, &Prop2);
+
+            MsgLog (" - [%02d]:", i);
+
+            if (EFI_ERROR (Status) || (Prop2 == NULL)) {
+              MsgLog (" %r parsing / empty element\n", Status);
+              continue;
+            }
+
+            Dict = GetProperty (Prop2, "Comment");
+            KernelPatchesLabel = ((Dict != NULL) && (Dict->type == kTagTypeString))
+                                    ? AllocateCopyPool (AsciiStrSize (Dict->string), Dict->string)
+                                    : AllocateCopyPool (8, "NoLabel");
+
+            MsgLog (" %a", KernelPatchesLabel);
+
+            if (GetPropertyBool (GetProperty (Prop2, "Disabled"), FALSE)) {
+              MsgLog (" | patch disabled, skip\n");
+              continue;
+            }
+
+            TmpData   = GetDataSetting (Prop2, "Find", &FindLen);
+            TmpPatch  = GetDataSetting (Prop2, "Replace", &ReplaceLen);
+
+            if (!FindLen || !ReplaceLen || (FindLen != ReplaceLen)) {
+              MsgLog (" | invalid Find/Replace data, skip\n");
+              continue;
+            }
+
+            gKernelPatches[gNrKernels].Data       = AllocateCopyPool (FindLen, TmpData);
+            gKernelPatches[gNrKernels].DataLen    = FindLen;
+            gKernelPatches[gNrKernels].Patch      = AllocateCopyPool (ReplaceLen, TmpPatch);
+            gKernelPatches[gNrKernels].MatchOS    = NULL;
+            gKernelPatches[gNrKernels].MatchBuild = NULL;
+            gKernelPatches[gNrKernels].Disabled   = FALSE;
+            gKernelPatches[gNrKernels].Label      = AllocateCopyPool (AsciiStrSize (KernelPatchesLabel), KernelPatchesLabel);
+            gKernelPatches[gNrKernels].Count      = GetPropertyInteger (GetProperty (Prop2, "Count"), 0);
+            gKernelPatches[gNrKernels].Wildcard   = (UINT8)GetPropertyInteger (GetProperty (Prop2, "Wildcard"), 0xFF);
+
+            FreePool (TmpData);
+            FreePool (TmpPatch);
+            FreePool (KernelPatchesLabel);
+
+            Dict = GetProperty (Prop2, "MatchOS");
+            if ((Dict != NULL) && (Dict->type == kTagTypeString)) {
+              gKernelPatches[gNrKernels].MatchOS = AllocateCopyPool (AsciiStrSize (Dict->string), Dict->string);
+              MsgLog (" | MatchOS: %a", gKernelPatches[gNrKernels].MatchOS);
+            }
+
+            Dict = GetProperty (Prop2, "MatchBuild");
+            if ((Dict != NULL) && (Dict->type == kTagTypeString)) {
+              gKernelPatches[gNrKernels].MatchBuild = AllocateCopyPool (AsciiStrSize (Dict->string), Dict->string);
+              MsgLog (" | MatchBuild: %a", gKernelPatches[gNrKernels].MatchBuild);
+            }
+
+            MsgLog (" | len: %d\n", gKernelPatches[gNrKernels].DataLen);
+
+            gNrKernels++;
+          }
+        }
+      }
+    }
+
+    DictPointer = GetProperty (RootDict, "Preferences");
+    if (DictPointer != NULL) {
+      gSaveLogToFile = GetPropertyBool (GetProperty (DictPointer, "SaveLogToFile"), FALSE);
+    }
+  }
+}
+
+STATIC
+EFI_STATUS
+LoadUserSettings (
+  IN EFI_FILE   *RootDir,
+  TagPtr        *Dict
+) {
+  EFI_STATUS    Status = EFI_NOT_FOUND;
+  UINTN         Size = 0;
+  CHAR8         *gConfigPtr = NULL;
+
+  if (FileExists (gSelfRootDir, KERNEXTPATCHER_PLIST)) {
+    Status = LoadFile (gSelfRootDir, KERNEXTPATCHER_PLIST, (UINT8 **)&gConfigPtr, &Size);
+    MsgLog ("Load plist: '%s' ... %r\n", KERNEXTPATCHER_PLIST, Status);
+
+    if (!EFI_ERROR (Status) && (gConfigPtr != NULL)) {
+      Status = ParseXML (gConfigPtr, (UINT32)Size, Dict);
+      MsgLog ("Parsing plist: ... %r\n", Status);
+    }
+  }
+
+  return Status;
+}
+
+STATIC
+EFI_STATUS
+FinishInitRefitLib (
+  IN EFI_HANDLE   DeviceHandle
+) {
+  EFI_STATUS        Status;
+
+  EFI_DEVICE_PATH_PROTOCOL    *TmpDevicePath;
+  EFI_DEVICE_PATH             *DevicePath;
+  UINTN                       DevicePathSize;
+  TagPtr                      gConfigDict;
+
+  CHAR16    *SelfDirPath = AllocateZeroPool (SVALUE_MAX_SIZE);
+  EFI_FILE  *SelfDir;
+
+  if (gSelfRootDir != NULL) {
+    gSelfRootDir->Close (gSelfRootDir);
+    gSelfRootDir = NULL;
+  }
+
+  TmpDevicePath = DevicePathFromHandle (DeviceHandle);
+  DevicePathSize = GetDevicePathSize (TmpDevicePath);
+  DevicePath = AllocateAlignedPages (EFI_SIZE_TO_PAGES (DevicePathSize), 64);
+  CopyMem (DevicePath, TmpDevicePath, DevicePathSize);
+
+  if (
+    (DevicePathType (DevicePath) == HARDWARE_DEVICE_PATH) &&
+    (DevicePathSubType (DevicePath) == HW_MEMMAP_DP)
+  ) {
+    DBG ("KernextPatcher running from firmware: %g", (EFI_GUID *)((CHAR8 *)DevicePath + 4));
+    return EFI_LOAD_ERROR;
+  }
+
+  gSelfRootDir = EfiLibOpenRoot (DeviceHandle);
+  if (gSelfRootDir == NULL) {
+    return EFI_LOAD_ERROR;
+  }
+
+  SelfDirPath = SelfPathToString (DevicePath);
+
+  Status = gSelfRootDir->Open (gSelfRootDir, &SelfDir, SelfDirPath, EFI_FILE_MODE_READ, 0);
+
+  if (EFI_ERROR (Status)) {
+    MsgLog ("Error while opening self directory\n");
+  } else {
+    Status = LoadUserSettings (gSelfRootDir, &gConfigDict);
+
+    if (!EFI_ERROR (Status)) {
+      MsgLog ("Found '%s' : Root = '%s', DevicePath = '%s'\n", KERNEXTPATCHER_PLIST, SelfDirPath, DevicePathToStr (DevicePath));
+      ParsePatchesPlist (gConfigDict);
+    }
+  }
+
+  FreePool (SelfDirPath);
+
+  return Status;
+}
+
+STATIC
+EFI_STATUS
+ScanVolumes () {
+  EFI_STATUS    Status;
+  EFI_HANDLE    *Handles = NULL, DeviceHandle;
+  UINTN         HandleCount = 0, HandleIndex;
+
+  DBG ("Scanning volumes...\n");
+
+  // get all BlockIo handles
+  Status = gBS->LocateHandleBuffer (
+                  ByProtocol,
+                  &gEfiBlockIoProtocolGuid,
+                  NULL,
+                  &HandleCount,
+                  &Handles
+                );
+
+  if (EFI_ERROR (Status)) {
+    DBG ("Error LocateHandleBuffer gEfiBlockIoProtocolGuid\n");
+    return Status;
+  }
+
+  Status = EFI_LOAD_ERROR;
+
+  // first pass: collect information about all handles
+  for (HandleIndex = 0; HandleIndex < HandleCount; HandleIndex++) {
+    VOID  *Instance;
+
+    DeviceHandle = Handles[HandleIndex];
+
+    if (!EFI_ERROR (gBS->HandleProtocol (
+                          DeviceHandle,
+                          &gEfiPartTypeSystemPartGuid,
+                          &Instance)
+                   )
+    ) {
+      Status = FinishInitRefitLib (DeviceHandle);
+      if (!EFI_ERROR (Status)) {
+        break;
+      }
+    }
+  }
+
+  return Status;
+}
+
+STATIC
+EFI_STATUS
+InitRefitLib (
+  IN EFI_HANDLE     ImageHandle
+) {
+  EFI_STATUS          Status;
+  EFI_LOADED_IMAGE    *SelfLoadedImage;
+
+  Status = gBS->HandleProtocol (
+                  ImageHandle,
+                  &gEfiLoadedImageProtocolGuid,
+                  (VOID **)&SelfLoadedImage
+                );
+
+  if (EFI_ERROR (Status)) {
+    DBG ("Error getting LoadedImageProtocol handle\n");
+    return Status;
+  }
+
+  return FinishInitRefitLib (SelfLoadedImage->DeviceHandle);
+}
+
+
+//
+// Hook events
+//
+
 
 STATIC
 VOID
@@ -1938,11 +2439,12 @@ GetVersion (
   }
 }
 
-/** gBS->StartImage override:
+/*
+ * gBS->StartImage override:
  * Called to start an efi image.
  *
  * If this is boot.efi, then run it with our overrides.
- */
+*/
 STATIC
 EFI_STATUS
 EFIAPI
@@ -1991,7 +2493,7 @@ KPStartImage (
               );
 
   if (StartFlag) {
-    //DBG ("**** boot.efi\n");
+    DBG ("**** boot.efi\n");
     GetVersion (Image->DeviceHandle, FilePathText);
     EventsInitialize ();
   }
@@ -2005,473 +2507,10 @@ KPStartImage (
   return Status;
 }
 
-
-//
-// Plist
-//
-
-
-STATIC
-BOOLEAN
-GetPropertyBool (
-  TagPtr    Prop,
-  BOOLEAN   Default
-) {
-  return (
-    (Prop == NULL)
-      ? Default
-      : (
-          (Prop->type == kTagTypeTrue) ||
-          (
-            (Prop->type == kTagTypeString) &&
-            (TO_AUPPER (Prop->string[0]) == 'Y')
-          )
-        )
-  );
-}
-
-STATIC
-INTN
-GetPropertyInteger (
-  TagPtr  Prop,
-  INTN    Default
-) {
-  if (Prop != NULL) {
-    if (Prop->type == kTagTypeInteger) {
-      return Prop->integer;
-    } else if (Prop->type == kTagTypeString) {
-      if ((Prop->string[0] == '0') && (TO_AUPPER (Prop->string[1]) == 'X')) {
-        return (INTN)AsciiStrHexToUintn (Prop->string);
-      }
-
-      if (Prop->string[0] == '-') {
-        return -(INTN)AsciiStrDecimalToUintn (Prop->string + 1);
-      }
-
-      return (INTN)AsciiStrDecimalToUintn (Prop->string);
-    }
-  }
-
-  return Default;
-}
-
 /*
-STATIC
-CHAR8 *
-GetPropertyString (
-  TagPtr  Prop,
-  CHAR8   *Default
-) {
-  if (
-    (Prop != NULL) &&
-    (Prop->type == kTagTypeString) &&
-    AsciiStrLen (Prop->string)
-  ) {
-    return Prop->string;
-  }
-
-  return Default;
-}
-*/
-
-//
-// returns binary setting in a new allocated buffer and data length in dataLen.
-// data can be specified in <data></data> base64 encoded
-// or in <string></string> hex encoded
-//
-
-STATIC
-VOID *
-GetDataSetting (
-  IN   TagPtr   Dict,
-  IN   CHAR8    *PropName,
-  OUT  UINTN    *DataLen
-) {
-  TagPtr    Prop;
-  UINT8     *Data = NULL;
-  UINTN     Len;
-
-  Prop = GetProperty (Dict, PropName);
-  if (Prop != NULL) {
-    if ((Prop->type == kTagTypeData) && Prop->data && Prop->size) {
-      // data property
-      Data = AllocateCopyPool (Prop->size, Prop->data);
-
-      if (Data != NULL) {
-        *DataLen = Prop->size;
-      }
-    } else {
-      // assume data in hex encoded string property
-      Data = StringDataToHex (Prop->string, &Len);
-      *DataLen = Len;
-    }
-  }
-
-  return Data;
-}
-
-STATIC
-VOID
-ParsePatchesPlist (
-  IN TagPtr     RootDict
-) {
-  if (RootDict != NULL) {
-    TagPtr  Prop, DictPointer = GetProperty (RootDict, "KernextPatches");
-    INTN    i, Count;
-
-    if (DictPointer != NULL) {
-      Prop = GetProperty (DictPointer, "KextsToPatch");
-      if (Prop != NULL) {
-        Count = Prop->size;
-
-        //delete old and create new
-        if (KextPatches) {
-          NrKexts = 0;
-          FreePool (KextPatches);
-        }
-
-        if (Count > 0) {
-          TagPtr        Prop2 = NULL, Dict = NULL;
-          KEXT_PATCH    *newPatches = AllocateZeroPool (Count * sizeof (KEXT_PATCH));
-
-          KextPatches = newPatches;
-          MsgLog ("KextsToPatch: %d requested\n", Count);
-
-          for (i = 0; i < Count; i++) {
-            CHAR8     *KextPatchesName, *KextPatchesLabel;
-            UINTN     FindLen = 0, ReplaceLen = 0;
-            UINT8     *TmpData, *TmpPatch;
-
-            EFI_STATUS Status = GetElement (Prop, i, Count, &Prop2);
-
-            MsgLog (" - [%02d]:", i);
-
-            if (EFI_ERROR (Status) || (Prop2 == NULL)) {
-              MsgLog (" %r parsing / empty element\n", Status);
-              continue;
-            }
-
-            Dict = GetProperty (Prop2, "Name");
-            if ((Dict == NULL) || (Dict->type != kTagTypeString)) {
-              MsgLog (" patch without Name, skip\n");
-              continue;
-            }
-
-            KextPatchesName = AllocateCopyPool (255, Dict->string);
-            KextPatchesLabel = AllocateCopyPool (255, KextPatchesName);
-
-            Dict = GetProperty (Prop2, "Comment");
-            if ((Dict != NULL) && (Dict->type == kTagTypeString)) {
-              AsciiStrCatS (KextPatchesLabel, 255, " (");
-              AsciiStrCatS (KextPatchesLabel, 255, Dict->string);
-              AsciiStrCatS (KextPatchesLabel, 255, ")");
-            } else {
-              AsciiStrCatS (KextPatchesLabel, 255, " (NoLabel)");
-            }
-
-            MsgLog (" %a", KextPatchesLabel);
-
-            Dict = GetProperty (Prop2, "Disabled");
-            if (GetPropertyBool (Dict, FALSE)) {
-              MsgLog (" | patch disabled, skip\n");
-              continue;
-            }
-
-            TmpData    = GetDataSetting (Prop2, "Find", &FindLen);
-            TmpPatch   = GetDataSetting (Prop2, "Replace", &ReplaceLen);
-
-            if (!FindLen || !ReplaceLen || (FindLen != ReplaceLen)) {
-              MsgLog (" - invalid Find/Replace data, skip\n");
-              continue;
-            }
-
-            KextPatches[NrKexts].Data       = AllocateCopyPool (FindLen, TmpData);
-            KextPatches[NrKexts].DataLen    = FindLen;
-            KextPatches[NrKexts].Patch      = AllocateCopyPool (ReplaceLen, TmpPatch);
-            KextPatches[NrKexts].MatchOS    = NULL;
-            KextPatches[NrKexts].MatchBuild = NULL;
-            KextPatches[NrKexts].Filename   = NULL;
-            KextPatches[NrKexts].Disabled   = FALSE;
-            KextPatches[NrKexts].Patched    = FALSE;
-            KextPatches[NrKexts].Name       = AllocateCopyPool (AsciiStrnLenS (KextPatchesName, 255) + 1, KextPatchesName);
-            KextPatches[NrKexts].Label      = AllocateCopyPool (AsciiStrnLenS (KextPatchesLabel, 255) + 1, KextPatchesLabel);
-            KextPatches[NrKexts].Count      = GetPropertyInteger (GetProperty (Prop2, "Count"), 0);
-            KextPatches[NrKexts].Wildcard   = 0xFF;
-
-            FreePool (TmpData);
-            FreePool (TmpPatch);
-            FreePool (KextPatchesName);
-            FreePool (KextPatchesLabel);
-
-            Dict = GetProperty (Prop2, "MatchOS");
-            if ((Dict != NULL) && (Dict->type == kTagTypeString)) {
-              KextPatches[NrKexts].MatchOS = AllocateCopyPool (AsciiStrnLenS (Dict->string, 255) + 1, Dict->string);
-              MsgLog (" | MatchOS: %a", KextPatches[NrKexts].MatchOS);
-            }
-
-            Dict = GetProperty (Prop2, "MatchBuild");
-            if ((Dict != NULL) && (Dict->type == kTagTypeString)) {
-              KextPatches[NrKexts].MatchBuild = AllocateCopyPool (AsciiStrnLenS (Dict->string, 255) + 1, Dict->string);
-              MsgLog (" | MatchBuild: %a", KextPatches[NrKexts].MatchBuild);
-            }
-
-            // check if this is Info.plist patch or kext binary patch
-            KextPatches[NrKexts].IsPlistPatch = GetPropertyBool (GetProperty (Prop2, "InfoPlistPatch"), FALSE);
-            Dict = GetProperty (Prop2, "Wildcard");
-            if (Dict != NULL) {
-              KextPatches[NrKexts].Wildcard = (KextPatches[NrKexts].IsPlistPatch && (Dict->type == kTagTypeString))
-                                                ? (UINT8)*Prop->string
-                                                : (UINT8)GetPropertyInteger (Dict, 0xFF);
-            }
-
-            MsgLog (" | %a | len: %d\n",
-              KextPatches[NrKexts].IsPlistPatch ? "PlistPatch" : "BinPatch",
-              KextPatches[NrKexts].DataLen
-            );
-
-            NrKexts++;
-          }
-        }
-      }
-
-      Prop = GetProperty (DictPointer, "KernelToPatch");
-      if (Prop != NULL) {
-        INTN    i, Count = Prop->size;
-
-        //delete old and create new
-        if (KernelPatches) {
-          NrKernels = 0;
-          FreePool (KernelPatches);
-        }
-
-        if (Count > 0) {
-          TagPtr          Prop2 = NULL, Dict = NULL;
-          KERNEL_PATCH    *newPatches = AllocateZeroPool (Count * sizeof (KERNEL_PATCH));
-
-          KernelPatches = newPatches;
-          MsgLog ("KernelToPatch: %d requested\n", Count);
-
-          for (i = 0; i < Count; i++) {
-            CHAR8         *KernelPatchesLabel;
-            UINTN         FindLen = 0, ReplaceLen = 0;
-            UINT8         *TmpData, *TmpPatch;
-            EFI_STATUS    Status = GetElement (Prop, i, Count, &Prop2);
-
-            MsgLog (" - [%02d]:", i);
-
-            if (EFI_ERROR (Status) || (Prop2 == NULL)) {
-              MsgLog (" %r parsing / empty element\n", Status);
-              continue;
-            }
-
-            Dict = GetProperty (Prop2, "Comment");
-            KernelPatchesLabel = ((Dict != NULL) && (Dict->type == kTagTypeString))
-                                    ? AllocateCopyPool (AsciiStrSize (Dict->string), Dict->string)
-                                    : AllocateCopyPool (8, "NoLabel");
-
-            MsgLog (" %a", KernelPatchesLabel);
-
-            if (GetPropertyBool (GetProperty (Prop2, "Disabled"), FALSE)) {
-              MsgLog (" | patch disabled, skip\n");
-              continue;
-            }
-
-            TmpData   = GetDataSetting (Prop2, "Find", &FindLen);
-            TmpPatch  = GetDataSetting (Prop2, "Replace", &ReplaceLen);
-
-            if (!FindLen || !ReplaceLen || (FindLen != ReplaceLen)) {
-              MsgLog (" | invalid Find/Replace data, skip\n");
-              continue;
-            }
-
-            KernelPatches[NrKernels].Data       = AllocateCopyPool (FindLen, TmpData);
-            KernelPatches[NrKernels].DataLen    = FindLen;
-            KernelPatches[NrKernels].Patch      = AllocateCopyPool (ReplaceLen, TmpPatch);
-            KernelPatches[NrKernels].MatchOS    = NULL;
-            KernelPatches[NrKernels].MatchBuild = NULL;
-            KernelPatches[NrKernels].Disabled   = FALSE;
-            KernelPatches[NrKernels].Label      = AllocateCopyPool (AsciiStrSize (KernelPatchesLabel), KernelPatchesLabel);
-            KernelPatches[NrKernels].Count      = GetPropertyInteger (GetProperty (Prop2, "Count"), 0);
-            KernelPatches[NrKernels].Wildcard   = (UINT8)GetPropertyInteger (GetProperty (Prop2, "Wildcard"), 0xFF);
-
-            FreePool (TmpData);
-            FreePool (TmpPatch);
-            FreePool (KernelPatchesLabel);
-
-            Dict = GetProperty (Prop2, "MatchOS");
-            if ((Dict != NULL) && (Dict->type == kTagTypeString)) {
-              KernelPatches[NrKernels].MatchOS = AllocateCopyPool (AsciiStrSize (Dict->string), Dict->string);
-              MsgLog (" | MatchOS: %a", KernelPatches[NrKernels].MatchOS);
-            }
-
-            Dict = GetProperty (Prop2, "MatchBuild");
-            if ((Dict != NULL) && (Dict->type == kTagTypeString)) {
-              KernelPatches[NrKernels].MatchBuild = AllocateCopyPool (AsciiStrSize (Dict->string), Dict->string);
-              MsgLog (" | MatchBuild: %a", KernelPatches[NrKernels].MatchBuild);
-            }
-
-            MsgLog (" | len: %d\n", KernelPatches[NrKernels].DataLen);
-
-            NrKernels++;
-          }
-        }
-      }
-    }
-
-    DictPointer = GetProperty (RootDict, "Preferences");
-    if (DictPointer != NULL) {
-      SaveLogToFile = GetPropertyBool (GetProperty (DictPointer, "SaveLogToFile"), FALSE);
-    }
-  }
-}
-
-
-STATIC
-EFI_STATUS
-LoadUserSettings (
-  IN EFI_FILE   *RootDir,
-  TagPtr        *Dict
-) {
-  EFI_STATUS    Status = EFI_NOT_FOUND;
-  UINTN         Size = 0;
-  CHAR8         *gConfigPtr = NULL;
-
-  //DbgHeader ("LoadUserSettings");
-
-  if (FileExists (gSelfRootDir, KERNEXTPATCHER_PLIST)) {
-    Status = LoadFile (gSelfRootDir, KERNEXTPATCHER_PLIST, (UINT8 **)&gConfigPtr, &Size);
-    MsgLog ("Load plist: '%s' ... %r\n", KERNEXTPATCHER_PLIST, Status);
-
-    if (!EFI_ERROR (Status) && (gConfigPtr != NULL)) {
-      Status = ParseXML (gConfigPtr, (UINT32)Size, Dict);
-      MsgLog ("Parsing plist: ... %r\n", Status);
-    }
-  }
-
-  return Status;
-}
-
-STATIC
-EFI_STATUS
-FinishInitRefitLib (
-  IN EFI_HANDLE   DeviceHandle
-) {
-  EFI_STATUS        Status;
-
-  EFI_DEVICE_PATH_PROTOCOL    *TmpDevicePath;
-  EFI_DEVICE_PATH             *DevicePath;
-  UINTN                       DevicePathSize;
-  TagPtr                      gConfigDict;
-
-  CHAR16    *SelfDirPath = AllocateZeroPool (SVALUE_MAX_SIZE);
-  EFI_FILE  *SelfDir;
-
-  if (gSelfRootDir != NULL) {
-    gSelfRootDir->Close (gSelfRootDir);
-    gSelfRootDir = NULL;
-  }
-
-  TmpDevicePath = DevicePathFromHandle (DeviceHandle);
-  DevicePathSize = GetDevicePathSize (TmpDevicePath);
-  DevicePath = AllocateAlignedPages (EFI_SIZE_TO_PAGES (DevicePathSize), 64);
-  CopyMem (DevicePath, TmpDevicePath, DevicePathSize);
-
-  gSelfRootDir = EfiLibOpenRoot (DeviceHandle);
-  if (gSelfRootDir == NULL) {
-    return EFI_LOAD_ERROR;
-  }
-
-  SelfDirPath = SelfPathToString (DevicePath);
-
-  Status = gSelfRootDir->Open (gSelfRootDir, &SelfDir, SelfDirPath, EFI_FILE_MODE_READ, 0);
-
-  if (EFI_ERROR (Status)) {
-    MsgLog ("Error while opening self directory\n");
-  } else {
-    Status = LoadUserSettings (gSelfRootDir, &gConfigDict);
-
-    if (!EFI_ERROR (Status)) {
-      MsgLog ("Found '%s' : Root = '%s', DevicePath = '%s'\n", KERNEXTPATCHER_PLIST, SelfDirPath, DevicePathToStr (DevicePath));
-      ParsePatchesPlist (gConfigDict);
-    }
-  }
-
-  FreePool (SelfDirPath);
-
-  return Status;
-}
-
-STATIC
-EFI_STATUS
-ScanVolumes () {
-  EFI_STATUS    Status;
-  EFI_HANDLE    *Handles = NULL, DeviceHandle;
-  UINTN         HandleCount = 0, HandleIndex;
-
-  //DBG ("Scanning volumes...\n");
-
-  // get all BlockIo handles
-  Status = gBS->LocateHandleBuffer (
-                  ByProtocol,
-                  &gEfiBlockIoProtocolGuid,
-                  NULL,
-                  &HandleCount,
-                  &Handles
-                );
-
-  if (EFI_ERROR (Status)) {
-    return Status;
-  }
-
-  Status = EFI_LOAD_ERROR;
-
-  // first pass: collect information about all handles
-  for (HandleIndex = 0; HandleIndex < HandleCount; HandleIndex++) {
-    VOID    *Instance;
-
-    DeviceHandle = Handles[HandleIndex];
-
-    if (!EFI_ERROR (gBS->HandleProtocol (
-                          DeviceHandle,
-                          &gEfiPartTypeSystemPartGuid,
-                          &Instance)
-                   )
-    ) {
-      if (!EFI_ERROR (FinishInitRefitLib (DeviceHandle))) {
-        Status = EFI_SUCCESS;
-        break;
-      }
-    }
-  }
-
-  return Status;
-}
-
-STATIC
-EFI_STATUS
-InitRefitLib (
-  IN EFI_HANDLE     ImageHandle
-) {
-  EFI_STATUS          Status;
-  EFI_LOADED_IMAGE    *SelfLoadedImage;
-
-  Status = gBS->HandleProtocol (
-                  ImageHandle,
-                  &gEfiLoadedImageProtocolGuid,
-                  (VOID **)&SelfLoadedImage
-                );
-
-  if (EFI_ERROR (Status)) {
-    DBG ("Error getting LoadedImageProtocol handle\n");
-    return Status;
-  }
-
-  return FinishInitRefitLib (SelfLoadedImage->DeviceHandle);
-}
-
-/** Entry point. Installs our StartImage override.
+ * Entry point. Installs our StartImage override.
  * All other stuff will be installed from there when boot.efi is started.
- */
+*/
 EFI_STATUS
 EFIAPI
 KernextPatcherEntrypoint (

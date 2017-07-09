@@ -142,13 +142,10 @@ RefitMain (
 
   //DbgHeader ("RefitMain");
 
-  if ((Now.TimeZone < 0) || (Now.TimeZone > 24)) {
-    MsgLog ("Now is %d.%d.%d, %d:%d:%d (GMT)\n",
-      Now.Year, Now.Month, Now.Day, Now.Hour, Now.Minute, Now.Second);
-  } else {
-    MsgLog ("Now is %d.%d.%d, %d:%d:%d (GMT+%d)\n",
-      Now.Year, Now.Month, Now.Day, Now.Hour, Now.Minute, Now.Second, Now.TimeZone);
-  }
+  MsgLog ("Now is %d.%d.%d, %d:%d:%d (GMT+%d)\n",
+    Now.Year, Now.Month, Now.Day, Now.Hour, Now.Minute, Now.Second,
+    ((Now.TimeZone < 0) || (Now.TimeZone > 24)) ? 0 : Now.TimeZone
+  );
 
   MsgLog ("Starting %a on %a\n", CLOVER_REVISION_STR, CLOVER_BUILDDATE);
   MsgLog (" - %a\n", CLOVER_BASED_INFO);
@@ -253,8 +250,6 @@ RefitMain (
   SetPrivateVarProto ();
 
   InitializeEdidOverride ();
-
-  //GuiEventsInitialize ();
 
   DrawLoadMessage (L"Scan SPD");
   ScanSPD ();

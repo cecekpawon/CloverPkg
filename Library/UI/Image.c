@@ -226,7 +226,7 @@ ScaleImage (
     return NULL;
   }
 
-  if ((Image->Width == NewWidth) && (Image->Height == NewHeight)) {
+  if (((UINTN)Image->Width == NewWidth) && ((UINTN)Image->Height == NewHeight)) {
     return (CopyImage(Image));
   }
 
@@ -251,28 +251,44 @@ ScaleImage (
         d = Image->PixelData[Index + Image->Width + 1];
 
         // blue element
-        NewImage->PixelData[Offset].b = ((a.b) * (FP_MULTIPLIER - x_diff) * (FP_MULTIPLIER - y_diff) +
-                                         (b.b) * (x_diff) * (FP_MULTIPLIER - y_diff) +
-                                         (c.b) * (y_diff) * (FP_MULTIPLIER - x_diff) +
-                                         (d.b) * (x_diff * y_diff)) / (FP_MULTIPLIER * FP_MULTIPLIER);
+        NewImage->PixelData[Offset].b = (UINT8)(
+                                            (
+                                              (a.b) * (FP_MULTIPLIER - x_diff) * (FP_MULTIPLIER - y_diff) +
+                                              (b.b) * (x_diff) * (FP_MULTIPLIER - y_diff) +
+                                              (c.b) * (y_diff) * (FP_MULTIPLIER - x_diff) +
+                                              (d.b) * (x_diff * y_diff
+                                            )) / (FP_MULTIPLIER * FP_MULTIPLIER)
+                                          );
 
         // green element
-        NewImage->PixelData[Offset].g = ((a.g) * (FP_MULTIPLIER - x_diff) * (FP_MULTIPLIER - y_diff) +
-                                         (b.g) * (x_diff) * (FP_MULTIPLIER - y_diff) +
-                                         (c.g) * (y_diff) * (FP_MULTIPLIER - x_diff) +
-                                         (d.g) * (x_diff * y_diff)) / (FP_MULTIPLIER * FP_MULTIPLIER);
+        NewImage->PixelData[Offset].g = (UINT8)(
+                                            (
+                                              (a.g) * (FP_MULTIPLIER - x_diff) * (FP_MULTIPLIER - y_diff) +
+                                              (b.g) * (x_diff) * (FP_MULTIPLIER - y_diff) +
+                                              (c.g) * (y_diff) * (FP_MULTIPLIER - x_diff) +
+                                              (d.g) * (x_diff * y_diff
+                                            )) / (FP_MULTIPLIER * FP_MULTIPLIER)
+                                          );
 
         // red element
-        NewImage->PixelData[Offset].r = ((a.r) * (FP_MULTIPLIER - x_diff) * (FP_MULTIPLIER - y_diff) +
-                                         (b.r) * (x_diff) * (FP_MULTIPLIER - y_diff) +
-                                         (c.r) * (y_diff) * (FP_MULTIPLIER - x_diff) +
-                                         (d.r) * (x_diff * y_diff)) / (FP_MULTIPLIER * FP_MULTIPLIER);
+        NewImage->PixelData[Offset].r =   (UINT8)(
+                                            (
+                                              (a.r) * (FP_MULTIPLIER - x_diff) * (FP_MULTIPLIER - y_diff) +
+                                              (b.r) * (x_diff) * (FP_MULTIPLIER - y_diff) +
+                                              (c.r) * (y_diff) * (FP_MULTIPLIER - x_diff) +
+                                              (d.r) * (x_diff * y_diff
+                                            )) / (FP_MULTIPLIER * FP_MULTIPLIER)
+                                          );
 
         // alpha element
-        NewImage->PixelData[Offset++].a = ((a.a) * (FP_MULTIPLIER - x_diff) * (FP_MULTIPLIER - y_diff) +
-                                           (b.a) * (x_diff) * (FP_MULTIPLIER - y_diff) +
-                                           (c.a) * (y_diff) * (FP_MULTIPLIER - x_diff) +
-                                           (d.a) * (x_diff * y_diff)) / (FP_MULTIPLIER * FP_MULTIPLIER);
+        NewImage->PixelData[Offset++].a = (UINT8)(
+                                            (
+                                              (a.a) * (FP_MULTIPLIER - x_diff) * (FP_MULTIPLIER - y_diff) +
+                                              (b.a) * (x_diff) * (FP_MULTIPLIER - y_diff) +
+                                              (c.a) * (y_diff) * (FP_MULTIPLIER - x_diff) +
+                                              (d.a) * (x_diff * y_diff
+                                            )) / (FP_MULTIPLIER * FP_MULTIPLIER)
+                                          );
      }
   }
 

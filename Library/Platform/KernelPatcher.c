@@ -86,7 +86,7 @@ FilterKernelPatches (
         Entry->KernelAndKextPatches->KernelPatches[i].Disabled = !IsPatchEnabled (
           Entry->KernelAndKextPatches->KernelPatches[i].MatchBuild, Entry->OSBuildVersion);
 
-        MsgLog (" ==> %a\n", Entry->KernelAndKextPatches->KernelPatches[i].Disabled ? "not allowed" : "allowed");
+        MsgLog (" | Allowed: %a\n", Entry->KernelAndKextPatches->KernelPatches[i].Disabled ? "No" : "Yes");
 
         //if (!Entry->KernelAndKextPatches->KernelPatches[i].Disabled) {
           continue; // If user give MatchOS, should we ignore MatchOS / keep reading 'em?
@@ -96,7 +96,7 @@ FilterKernelPatches (
       Entry->KernelAndKextPatches->KernelPatches[i].Disabled = !IsPatchEnabled (
         Entry->KernelAndKextPatches->KernelPatches[i].MatchOS, Entry->OSVersion);
 
-      MsgLog (" ==> %a\n", Entry->KernelAndKextPatches->KernelPatches[i].Disabled ? "not allowed" : "allowed");
+      MsgLog (" | Allowed: %a\n", Entry->KernelAndKextPatches->KernelPatches[i].Disabled ? "No" : "Yes");
     }
   }
 }
@@ -1032,11 +1032,11 @@ KernelAndKextPatcherInit (
   Magic = MACH_GET_MAGIC (KernelInfo->Bin);
 
   if ((Magic == MH_MAGIC_64) || (Magic == MH_CIGAM_64)) {
-    DBG ("Found 64 bit kernel at 0x%p\n", KernelInfo->Bin);
+    DBG ("Found 64Bit kernel at 0x%p\n", KernelInfo->Bin);
     KernelInfo->A64Bit = TRUE;
   } else {
     // not valid Mach-O header - exiting
-    DBG ("64Bit Kernel not found at 0x%p - skipping patches!", KernelInfo->Bin);
+    MsgLog ("Invalid 64Bit kernel at 0x%p - skipping patches!", KernelInfo->Bin);
     KernelInfo->Bin = NULL;
     goto Finish;
   }

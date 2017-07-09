@@ -111,7 +111,7 @@ PatchBooter (
       Entry->KernelAndKextPatches->BooterPatches[i].Disabled = !IsPatchEnabled (
         Entry->KernelAndKextPatches->BooterPatches[i].MatchOS, OSVer);
 
-      MsgLog (" ==> %a\n", Entry->KernelAndKextPatches->BooterPatches[i].Disabled ? "not allowed" : "allowed");
+      MsgLog (" | Allowed: %a\n", Entry->KernelAndKextPatches->BooterPatches[i].Disabled ? "No" : "Yes");
 
       if (Entry->KernelAndKextPatches->BooterPatches[i].Disabled) {
         continue;

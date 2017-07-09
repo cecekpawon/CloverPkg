@@ -160,26 +160,25 @@ EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE *
 GetFadt () {
   EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_POINTER    *RsdPtr;
   EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE       *FadtPointer = NULL;
-  //UINTN                                           AcpiVer = 1;
 
   RsdPtr = FindAcpiRsdPtr ();
 
   if (RsdPtr != NULL) {
     DBG ("Found UEFI Acpi %d.0 RSDP at %p\n", RsdPtr->Revision, RsdPtr);
 
-    // xsdt priority
-    Xsdt = (XSDT_TABLE *)(UINTN)(RsdPtr->XsdtAddress);
     if (RsdPtr->Revision > 0) {
+      // xsdt priority
+      Xsdt = (XSDT_TABLE *)(UINTN)(RsdPtr->XsdtAddress);
       if ((Xsdt == NULL) || (Rsdt->Header.Signature != EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_TABLE_SIGNATURE)) {
         Rsdt = (RSDT_TABLE *)(UINTN)(RsdPtr->RsdtAddress);
       }
-    }
 
-    // xsdt priority
-    if (Xsdt) {
-      FadtPointer = (EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE *)(UINTN)(Xsdt->Entry);
-    } else if (Rsdt) {
-      FadtPointer = (EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE *)(UINTN)(Rsdt->Entry);
+      // xsdt priority
+      if (Xsdt) {
+        FadtPointer = (EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE *)(UINTN)(Xsdt->Entry);
+      } else if (Rsdt) {
+        FadtPointer = (EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE *)(UINTN)(Rsdt->Entry);
+      }
     }
   }
 

@@ -65,7 +65,7 @@ GetTiming () {
     dTLastSec = DivU64x64Remainder (dTLastMs, 1000, &dTLastMs);
 
     AsciiSPrint (mTimingTxt, sizeof (mTimingTxt),
-                "%ld:%03ld (%ld:%03ld)", dTStartSec, dTStartMs, dTLastSec, dTLastMs);
+                "%02ld:%03ld (%02ld:%03ld)", dTStartSec, dTStartMs, dTLastSec, dTLastMs);
     mMemLog->TscLast = CurrentTsc;
   }
 
