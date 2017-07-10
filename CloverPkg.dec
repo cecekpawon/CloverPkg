@@ -25,15 +25,15 @@
   Include
 
 [Guids]
-  gDataHubPlatformGuid                    = { 0X64517CC8, 0X6561, 0X4051, { 0XB0, 0X3C, 0X59, 0X64, 0XB6, 0X0F, 0X4C, 0X7A } }
-  gEfiAppleBootGuid                       = { 0X7C436110, 0XAB2A, 0X4BBB, { 0XA8, 0X80, 0XFE, 0X41, 0X99, 0X5C, 0X9F, 0X82 } }
-  gEfiAppleNvramGuid                      = { 0X4D1EDE05, 0X38C7, 0X4A6A, { 0X9C, 0XC6, 0X4B, 0XCC, 0XA8, 0XB3, 0X8C, 0X14 } }
-  gEfiGlobalVariableGuid                  = { 0X8BE4DF61, 0X93CA, 0X11D2, { 0XAA, 0X0D, 0X00, 0XE0, 0X98, 0X03, 0X2B, 0X8C } }
+  gDataHubPlatformGuid                    = { 0x64517CC8, 0x6561, 0x4051, { 0xB0, 0x3C, 0x59, 0x64, 0xB6, 0x0F, 0x4C, 0x7A } }
+  gEfiAppleBootGuid                       = { 0x7C436110, 0xAB2A, 0x4BBB, { 0xA8, 0x80, 0xFE, 0x41, 0x99, 0x5C, 0x9F, 0x82 } }
+  gEfiAppleNvramGuid                      = { 0x4D1EDE05, 0x38C7, 0x4A6A, { 0x9C, 0xC6, 0x4B, 0xCC, 0xA8, 0xB3, 0x8C, 0x14 } }
+  gEfiGlobalVariableGuid                  = { 0x8BE4DF61, 0x93CA, 0x11D2, { 0xAA, 0x0D, 0x00, 0xE0, 0x98, 0x03, 0x2B, 0x8C } }
 
-  gAppleAPFSPartGuid                      = { 0X7C3457EF, 0X0000, 0X11AA, { 0XAA, 0X11, 0X00, 0X30, 0X65, 0X43, 0XEC, 0XAC } }
-  gAppleHFSPartGuid                       = { 0X48465300, 0X0000, 0X11AA, { 0XAA, 0X11, 0X00, 0X30, 0X65, 0X43, 0XEC, 0XAC } }
-  gAppleKernelCoreDumpPartGuid            = { 0X5361644D, 0X6163, 0X11AA, { 0XAA, 0X11, 0X00, 0X30, 0X65, 0X43, 0XEC, 0XAC } }
-  gAppleRecoveryPartGuid                  = { 0X426F6F74, 0X0000, 0X11AA, { 0XAA, 0X11, 0X00, 0X30, 0X65, 0X43, 0XEC, 0XAC } }
+  gAppleAPFSPartGuid                      = { 0x7C3457EF, 0x0000, 0x11AA, { 0xAA, 0x11, 0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC } }
+  gAppleHFSPartGuid                       = { 0x48465300, 0x0000, 0x11AA, { 0xAA, 0x11, 0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC } }
+  gAppleKernelCoreDumpPartGuid            = { 0x5361644D, 0x6163, 0x11AA, { 0xAA, 0x11, 0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC } }
+  gAppleRecoveryPartGuid                  = { 0x426F6F74, 0x0000, 0x11AA, { 0xAA, 0x11, 0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC } }
   gAppleVenMediaGuid                      = { 0xBE74FCF7, 0x0B7C, 0x49F3, { 0x91, 0x47, 0x01, 0xf4, 0x04, 0x2E, 0x68, 0x42 } }
 
   gAppleBlessedOsxFolderInfoGuid          = { 0x893CA450, 0x5F5E, 0x48BA, { 0x85, 0x8F, 0x08, 0xC4, 0x5D, 0x80, 0x23, 0x18 } }
@@ -41,12 +41,12 @@
   gAppleBlessedSystemFolderInfoGuid       = { 0x7BD1F02D, 0x9C2F, 0x4581, { 0xBF, 0x12, 0xD5, 0x4a, 0xBA, 0x0D, 0x98, 0xD6 } }
 
  [Protocols]
-  gAppleDevicePropertyProtocolGuid        = { 0X91BD12FE, 0XF6C3, 0X44FB, { 0XA5, 0XB7, 0X51, 0X22, 0XAB, 0X30, 0X3A, 0XE0 } }
-  gAppleFramebufferInfoProtocolGuid       = { 0XE316E100, 0X0751, 0X4C49, { 0X90, 0X56, 0X48, 0X6C, 0X7E, 0X47, 0X29, 0X03 } }
-  gEfiConsoleControlProtocolGuid          = { 0XF42F7782, 0X012E, 0X4C12, { 0X99, 0X56, 0X49, 0XF9, 0X43, 0X04, 0XF7, 0X21 } }
-  gEfiMiscSubClassGuid                    = { 0X772484B2, 0X7482, 0X4B91, { 0X9F, 0X9A, 0XAD, 0X43, 0XF8, 0X1C, 0X58, 0X81 } }
+  gAppleDevicePropertyProtocolGuid        = { 0x91BD12FE, 0xF6C3, 0x44FB, { 0xA5, 0xB7, 0x51, 0x22, 0xAB, 0x30, 0x3A, 0xE0 } }
+  gAppleFramebufferInfoProtocolGuid       = { 0xE316E100, 0x0751, 0x4C49, { 0x90, 0x56, 0x48, 0x6C, 0x7E, 0x47, 0x29, 0x03 } }
+  gEfiConsoleControlProtocolGuid          = { 0xF42F7782, 0x012E, 0x4C12, { 0x99, 0x56, 0x49, 0xF9, 0x43, 0x04, 0xF7, 0x21 } }
+  gEfiMiscSubClassGuid                    = { 0x772484B2, 0x7482, 0x4B91, { 0x9F, 0x9A, 0xAD, 0x43, 0xF8, 0x1C, 0x58, 0x81 } }
   gEfiSimpleTextInputExProtocolGuid       = { 0xdd9e7534, 0x7762, 0x4698, { 0x8c, 0x14, 0xf5, 0x85, 0x17, 0xa6, 0x25, 0xaa } }
 
-  gAptioFixProtocolGuid                   = { 0XB79DCC2E, 0X61BE, 0X453F, { 0XBC, 0XAC, 0XC2, 0X60, 0XFA, 0XAE, 0XCC, 0XDA } }
-  gFSInjectProtocolGuid                   = { 0X3F048284, 0X6D4C, 0X11E1, { 0XA4, 0XD7, 0X37, 0XE3, 0X48, 0X24, 0X01, 0X9B } }
-  gMsgLogProtocolGuid                     = { 0X511CE018, 0X0018, 0X4002, { 0X20, 0X12, 0X17, 0X38, 0X05, 0X01, 0X02, 0X03 } }
+  gAptioFixProtocolGuid                   = { 0xB79DCC2E, 0x61BE, 0x453F, { 0xBC, 0xAC, 0xC2, 0x60, 0xFA, 0xAE, 0xCC, 0xDA } }
+  gFSInjectProtocolGuid                   = { 0x3F048284, 0x6D4C, 0x11E1, { 0xA4, 0xD7, 0x37, 0xE3, 0x48, 0x24, 0x01, 0x9B } }
+  gMsgLogProtocolGuid                     = { 0x511CE018, 0x0018, 0x4002, { 0x20, 0x12, 0x17, 0x38, 0x05, 0x01, 0x02, 0x03 } }

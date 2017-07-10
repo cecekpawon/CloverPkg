@@ -10,8 +10,8 @@
 
 #include <Library/BaseMemoryLib.h>
 #include <Library/Common/CommonLib.h>
-#include <Library/Common/MemLogLib.h>
 #include <Library/Common/LoaderUefi.h>
+#include <Library/Common/MemLogLib.h>
 #include <Library/DebugLib.h>
 #include <Library/DevicePathLib.h>
 #include <Library/MemoryAllocationLib.h>
@@ -33,17 +33,15 @@
 #define KERNEXTPATCHER_REVISION                     "0000"
 #endif
 
-#define DEBUG_KERNEXTPATCHER                        0
+//#define DEBUG_KERNEXTPATCHER                        0
 
 #define MsgLog(...)                                 MemLog (TRUE, 1, __VA_ARGS__)
-//#define MsgLog(...)                                 AsciiPrint (__VA_ARGS__)
 
-#if DEBUG_KERNEXTPATCHER
-#define DBG(...)                                    MsgLog (__VA_ARGS__)
-//#define DBG(...)                                    AsciiPrint (__VA_ARGS__)
-#else
-#define DBG(...)
-#endif
+//#if DEBUG_KERNEXTPATCHER
+//#define DBG(...)                                    MsgLog (__VA_ARGS__)
+//#else
+//#define DBG(...)
+//#endif
 
 #define PoolPrint(...)                              CatSPrint(NULL, __VA_ARGS__)
 
@@ -59,7 +57,11 @@
 #endif
 #define KERNEXTPATCHER_PLIST                        L"\\EFI\\KernextPatcher.plist"
 #define DEBUG_LOG                                   L"\\EFI\\KernextPatcherLog.txt"
-#define DEBUG_LOG_ARG                               "-KernextPatcherLog"
+
+#define ARG_DEBUG                                   "-KernextPatcherDbg"
+#define ARG_DEBUG_LOG                               "-KernextPatcherLog"
+#define ARG_OFF                                     "-KernextPatcherOff"
+
 #define PropCFBundleIdentifierKey                   "<key>" kPropCFBundleIdentifier "</key>"
 #define PropCFBundleVersionKey                      "<key>" kPropCFBundleVersion "</key>"
 
@@ -266,7 +268,6 @@ typedef struct MatchOSes {
 //
 
 
-EFI_IMAGE_START         gKPStartImage = NULL;
 EFI_EVENT               gExitBootServiceEvent = NULL;
 KERNEL_INFO             *gKernelInfo;
 EFI_FILE                *gSelfRootDir;
@@ -276,7 +277,128 @@ UINTN                   gNrKernels;
 KERNEL_PATCH            *gKernelPatches;
 EFI_PHYSICAL_ADDRESS    gRelocBase = 0;
 CHAR8                   *gOSVersion = NULL, *gBuildVersion = NULL;
-BOOLEAN                 gSaveLogToFile = FALSE, gInitialized = FALSE;
+BOOLEAN                 gSaveLogToFile = FALSE, gOff = FALSE, gDbg = FALSE;
+
+
+#define DbgLog(...)     do { if (gDbg) MsgLog (__VA_ARGS__); } while (0)
+
+
+//
+// Component name
+//
+
+
+EFI_STATUS
+EFIAPI
+KernextPatcherComponentNameGetDriverName (
+  IN  EFI_COMPONENT_NAME_PROTOCOL   *This,
+  IN  CHAR8                         *Language,
+  OUT CHAR16                        **DriverName
+);
+
+EFI_STATUS
+EFIAPI
+KernextPatcherComponentNameGetControllerName (
+  IN  EFI_COMPONENT_NAME_PROTOCOL   *This,
+  IN  EFI_HANDLE                    ControllerHandle,
+  IN  EFI_HANDLE                    ChildHandle   OPTIONAL,
+  IN  CHAR8                         *Language,
+  OUT CHAR16                        **ControllerName
+);
+
+GLOBAL_REMOVE_IF_UNREFERENCED EFI_COMPONENT_NAME_PROTOCOL  gKernextPatcherComponentName = {
+  KernextPatcherComponentNameGetDriverName,
+  KernextPatcherComponentNameGetControllerName,
+  "eng"
+};
+
+GLOBAL_REMOVE_IF_UNREFERENCED EFI_COMPONENT_NAME2_PROTOCOL gKernextPatcherComponentName2 = {
+  (EFI_COMPONENT_NAME2_GET_DRIVER_NAME) KernextPatcherComponentNameGetDriverName,
+  (EFI_COMPONENT_NAME2_GET_CONTROLLER_NAME) KernextPatcherComponentNameGetControllerName,
+  "en"
+};
+
+GLOBAL_REMOVE_IF_UNREFERENCED EFI_UNICODE_STRING_TABLE mKernextPatcherDriverNameTable[] = {
+  {
+    "eng;en",
+    L"KernextPatcher (for Darwin)"
+  },
+  {
+    NULL,
+    NULL
+  }
+};
+
+EFI_STATUS
+EFIAPI
+KernextPatcherComponentNameGetDriverName (
+  IN  EFI_COMPONENT_NAME_PROTOCOL   *This,
+  IN  CHAR8                         *Language,
+  OUT CHAR16                        **DriverName
+) {
+  return LookupUnicodeString2 (
+           Language,
+           This->SupportedLanguages,
+           mKernextPatcherDriverNameTable,
+           DriverName,
+           (BOOLEAN)(This == &gKernextPatcherComponentName)
+           );
+}
+
+EFI_STATUS
+EFIAPI
+KernextPatcherComponentNameGetControllerName (
+  IN  EFI_COMPONENT_NAME_PROTOCOL   *This,
+  IN  EFI_HANDLE                    ControllerHandle,
+  IN  EFI_HANDLE                    ChildHandle OPTIONAL,
+  IN  CHAR8                         *Language,
+  OUT CHAR16                        **ControllerName
+) {
+  return EFI_UNSUPPORTED;
+}
+
+EFI_STATUS
+EFIAPI
+KernextPatcherDriverSupported (
+  IN EFI_DRIVER_BINDING_PROTOCOL    *DriverBinding,
+  IN EFI_HANDLE                     ControllerHandle,
+  IN EFI_DEVICE_PATH_PROTOCOL       *DevicePath OPTIONAL
+) {
+  // No idea what to do here
+  return EFI_SUCCESS;
+}
+
+EFI_STATUS
+EFIAPI
+KernextPatcherDriverStart (
+  IN EFI_DRIVER_BINDING_PROTOCOL    *DriverBinding,
+  IN EFI_HANDLE                     ControllerHandle,
+  IN EFI_DEVICE_PATH_PROTOCOL       *DevicePath OPTIONAL
+) {
+  // No idea what to do here
+  return EFI_SUCCESS;
+}
+
+EFI_STATUS
+EFIAPI
+KernextPatcherDriverStop (
+  IN EFI_DRIVER_BINDING_PROTOCOL    *DriverBinding,
+  IN EFI_HANDLE                     ControllerHandle,
+  IN UINTN                          NumberOfChildren,
+  IN EFI_HANDLE                     *ChildHandleBuffer OPTIONAL
+) {
+  // No idea what to do here
+  return EFI_SUCCESS;
+}
+
+EFI_DRIVER_BINDING_PROTOCOL   gKernextPatcherDriverBinding = {
+  KernextPatcherDriverSupported,
+  KernextPatcherDriverStart,
+  KernextPatcherDriverStop,
+  0xa,
+  NULL,
+  NULL
+};
 
 
 //
@@ -395,7 +517,7 @@ EFIAPI
 DevicePathToStr (
   IN EFI_DEVICE_PATH_PROTOCOL  *DevPath
 ) {
-  return ConvertDevicePathToText (DevPath, TRUE, TRUE);
+  return ConvertDevicePathToText (DevPath, FALSE, TRUE);
 }
 
 STATIC
@@ -722,7 +844,7 @@ GetStrArraySeparatedByChar (
               EndLocation = (i == (MOS->count - 1)) ? Len : Indexes[i + 1],
               NewLen = (EndLocation - StartLocation);
 
-      //DBG ("start %d, end %d\n", StartLocation, EndLocation);
+      //DbgLog ("start %d, end %d\n", StartLocation, EndLocation);
 
       MOS->array[i] = AllocateCopyPool (NewLen, Str + StartLocation);
       MOS->array[i][NewLen] = '\0';
@@ -734,7 +856,7 @@ GetStrArraySeparatedByChar (
 
     FreePool (Indexes);
   } else {
-    //DBG ("Str contains only one component and it is our String %a!\n", Str);
+    //DbgLog ("Str contains only one component and it is our String %a!\n", Str);
     MOS->array[0] = AllocateCopyPool (AsciiStrLen (Str) + 1, Str);
   }
 
@@ -885,10 +1007,10 @@ IsPatchNameMatch (
 STATIC
 VOID
 GetTextSection (
-  IN  UINT8         *binary,
-  OUT UINT32        *Addr,
-  OUT UINT32        *Size,
-  OUT UINT32        *Off
+  IN  UINT8     *binary,
+  OUT UINT32    *Addr,
+  OUT UINT32    *Size,
+  OUT UINT32    *Off
 ) {
   struct  load_command        *LoadCommand;
   struct  segment_command_64  *SegCmd64;
@@ -927,7 +1049,7 @@ GetTextSection (
         *Addr = (UINT32)(Sect64->addr ? Sect64->addr + gRelocBase : 0);
         *Size = (UINT32)Sect64->size;
         *Off = Sect64->offset;
-        //DBG ("%a, %a address 0x%x\n", kTextSegment, kTextTextSection, Off);
+        //DbgLog ("%a, %a address 0x%x\n", kTextSegment, kTextTextSection, Off);
         break;
       }
     }
@@ -939,13 +1061,13 @@ GetTextSection (
 STATIC
 UINT64
 GetPlistHexValue (
-  CHAR8     *Plist,
-  CHAR8     *Key,
-  CHAR8     *WholePlist
+  CHAR8   *Plist,
+  CHAR8   *Key,
+  CHAR8   *WholePlist
 ) {
-  UINT64    NumValue = 0;
-  CHAR8     *Value, *IntTag, *IDStart, *IDEnd, Buffer[48];
-  UINTN     IDLen, BufferLen = ARRAY_SIZE (Buffer);
+  UINT64  NumValue = 0;
+  CHAR8   *Value, *IntTag, *IDStart, *IDEnd, Buffer[48];
+  UINTN   IDLen, BufferLen = ARRAY_SIZE (Buffer);
 
   // search for Key
   Value = AsciiStrStr (Plist, Key);
@@ -1307,7 +1429,7 @@ PatchKext (
 ) {
   INT32  i, IsBundle = 0;
 
-  DBG ("- %a\n", BundleIdentifier);
+  DbgLog ("- %a\n", BundleIdentifier);
 
   for (i = 0; i < gNrKexts; i++) {
     if (
@@ -1600,7 +1722,7 @@ InitKernel () {
           if (AsciiStrCmp (SegCmd64->segname, kLinkeditSegment) == 0) {
             LinkeditAddr = (UINT32)(SegCmd64->vmaddr + gRelocBase);
             LinkeditFileOff = (UINT32)SegCmd64->fileoff;
-            //DBG ("%a: Segment = %a, Addr = 0x%x, Size = 0x%x, FileOff = 0x%x\n", __FUNCTION__,
+            //DbgLog ("%a: Segment = %a, Addr = 0x%x, Size = 0x%x, FileOff = 0x%x\n", __FUNCTION__,
             //  SegCmd64->segname, LinkeditAddr, SegCmd64->vmsize, LinkeditFileOff
             //);
           }
@@ -1619,7 +1741,7 @@ InitKernel () {
             Size = (UINT32)Sect64->size;
             Off = Sect64->offset;
 
-            //DBG ("Index: %d, segname: %a, sectname: %a\n", ISectionIndex, Sect64->segname, Sect64->sectname);
+            //DbgLog ("Index: %d, segname: %a, sectname: %a\n", ISectionIndex, Sect64->segname, Sect64->sectname);
 
             if (
               (AsciiStrCmp (Sect64->segname, kPrelinkTextSegment) == 0) &&
@@ -1700,7 +1822,7 @@ InitKernel () {
         NSyms = ComSymTab->nsyms;
         StrOff = ComSymTab->stroff;
         StrSize = ComSymTab->strsize;
-        //DBG ("%a: SymOff = 0x%x, NSyms = %d, StrOff = 0x%x, StrSize = %d\n", __FUNCTION__, SymOff, NSyms, StrOff, StrSize);
+        //DbgLog ("%a: SymOff = 0x%x, NSyms = %d, StrOff = 0x%x, StrSize = %d\n", __FUNCTION__, SymOff, NSyms, StrOff, StrSize);
         break;
 
       default:
@@ -1719,7 +1841,7 @@ InitKernel () {
     SymBin = (UINT8 *)(UINTN)(LinkeditAddr + (SymOff - LinkeditFileOff));
     StrBin = (UINT8 *)(UINTN)(LinkeditAddr + (StrOff - LinkeditFileOff));
 
-    //DBG ("%a: symaddr = 0x%x, straddr = 0x%x\n", __FUNCTION__, SymBin, StrBin);
+    //DbgLog ("%a: symaddr = 0x%x, straddr = 0x%x\n", __FUNCTION__, SymBin, StrBin);
 
     while ((Cnt < NSyms) && CntPatches) {
       SysTabEntry = (struct nlist_64 *)(SymBin);
@@ -1729,7 +1851,7 @@ InitKernel () {
         Addr = (UINT32)SysTabEntry->n_value;
         PatchLocation = Addr - (UINT32)(UINTN)gKernelInfo->Bin + (UINT32)gRelocBase;
 
-        //DBG ("Cnt: %d, n_sect: %d, SymbolName: %a\n", Cnt, SysTabEntry->n_sect, SymbolName);
+        //DbgLog ("Cnt: %d, n_sect: %d, SymbolName: %a\n", Cnt, SysTabEntry->n_sect, SymbolName);
 
         if (SysTabEntry->n_sect == gKernelInfo->TextIndex) {
           if (AsciiStrCmp (SymbolName, KernelPatchSymbolLookup[kLoadEXEStart].Name) == 0) {
@@ -1809,7 +1931,7 @@ InitKernel () {
       SymBin += sizeof (struct nlist_64);
     }
   } else {
-    DBG ("%a: symbol table not found\n", __FUNCTION__);
+    DbgLog ("%a: symbol table not found\n", __FUNCTION__);
   }
 
   if (gKernelInfo->LoadEXEStart && gKernelInfo->LoadEXEEnd && (gKernelInfo->LoadEXEEnd > gKernelInfo->LoadEXEStart)) {
@@ -1844,7 +1966,7 @@ FindBootArgs () {
   Ptr = (UINT8 *)(UINTN)TmpRelocBase;
 
   while (MACH_GET_MAGIC (Ptr) != MH_MAGIC_64) {
-    //DBG ("TmpRelocBase: 0x%x\n", TmpRelocBase);
+    //DbgLog ("TmpRelocBase: 0x%x\n", TmpRelocBase);
     Ptr += EFI_PAGE_SIZE;
     TmpRelocBase += EFI_PAGE_SIZE;
   }
@@ -1872,18 +1994,27 @@ FindBootArgs () {
       gKernelInfo->Slide = mBootArgs->kslide;
 
       MsgLog ("Found BootArgs at 0x%x\n", Ptr);
-      /*
-      //DBG ("BootArgs->kaddr = 0x%08x and mBootArgs->ksize =  0x%08x\n", mBootArgs->kaddr, mBootArgs->ksize);
-      //DBG ("BootArgs->efiMode = 0x%02x\n", mBootArgs->efiMode);
-      DBG ("BootArgs->CommandLine = %a\n", mBootArgs->CommandLine);
-      DBG ("BootArgs->flags = 0x%x\n", mBootArgs->flags);
-      DBG ("BootArgs->kslide = 0x%x\n", mBootArgs->kslide);
-      DBG ("BootArgs->bootMemStart = 0x%x\n", mBootArgs->bootMemStart);
-      */
 
-      if (!gSaveLogToFile && AsciiStriStr (mBootArgs->CommandLine, DEBUG_LOG_ARG)) {
+      if (!gSaveLogToFile && AsciiStriStr (mBootArgs->CommandLine, ARG_DEBUG_LOG)) {
         gSaveLogToFile = TRUE;
       }
+
+      if (!gOff && AsciiStriStr (mBootArgs->CommandLine, ARG_OFF)) {
+        gOff = TRUE;
+      }
+
+      if (!gDbg && AsciiStriStr (mBootArgs->CommandLine, ARG_DEBUG)) {
+        gDbg = TRUE;
+      }
+
+      /*
+      //DbgLog ("BootArgs->kaddr = 0x%08x and mBootArgs->ksize =  0x%08x\n", mBootArgs->kaddr, mBootArgs->ksize);
+      //DbgLog ("BootArgs->efiMode = 0x%02x\n", mBootArgs->efiMode);
+      DbgLog ("BootArgs->CommandLine = %a\n", mBootArgs->CommandLine);
+      DbgLog ("BootArgs->flags = 0x%x\n", mBootArgs->flags);
+      DbgLog ("BootArgs->kslide = 0x%x\n", mBootArgs->kslide);
+      DbgLog ("BootArgs->bootMemStart = 0x%x\n", mBootArgs->bootMemStart);
+      */
 
       Ret = TRUE;
 
@@ -1894,7 +2025,7 @@ FindBootArgs () {
       (MACH_GET_MAGIC (Ptr) == MH_MAGIC_64) &&
       (MACH_GET_NCMDS (Ptr) == nCmds)
     ) {
-      //DBG ("Ptr = 0x%x, nCmds = %d, gRelocBase = 0x%x\n", Ptr, MACH_GET_NCMDS(Ptr), TmpRelocBase);
+      //DbgLog ("Ptr = 0x%x, nCmds = %d, gRelocBase = 0x%x\n", Ptr, MACH_GET_NCMDS(Ptr), TmpRelocBase);
       gKernelInfo->Bin = (VOID *)(UINTN)(Ptr);
       gRelocBase = TmpRelocBase - 0x00200000;
     }
@@ -1971,6 +2102,89 @@ ParsePatchesPlist (
     INTN    i, Count;
 
     if (DictPointer != NULL) {
+      Prop = GetProperty (DictPointer, "KernelToPatch");
+      if (Prop != NULL) {
+        Count = Prop->size;
+
+        //delete old and create new
+        if (gKernelPatches) {
+          gNrKernels = 0;
+          FreePool (gKernelPatches);
+        }
+
+        if (Count > 0) {
+          TagPtr          Prop2 = NULL, Dict = NULL;
+          KERNEL_PATCH    *newPatches = AllocateZeroPool (Count * sizeof (KERNEL_PATCH));
+
+          gKernelPatches = newPatches;
+          MsgLog ("KernelToPatch: %d requested\n", Count);
+
+          for (i = 0; i < Count; i++) {
+            CHAR8         *KernelPatchesLabel;
+            UINTN         FindLen = 0, ReplaceLen = 0;
+            UINT8         *TmpData, *TmpPatch;
+            EFI_STATUS    Status = GetElement (Prop, i, Count, &Prop2);
+
+            MsgLog (" - [%02d]:", i);
+
+            if (EFI_ERROR (Status) || (Prop2 == NULL)) {
+              MsgLog (" %r parsing / empty element\n", Status);
+              continue;
+            }
+
+            Dict = GetProperty (Prop2, "Comment");
+            KernelPatchesLabel = ((Dict != NULL) && (Dict->type == kTagTypeString))
+                                    ? AllocateCopyPool (AsciiStrSize (Dict->string), Dict->string)
+                                    : AllocateCopyPool (8, "NoLabel");
+
+            MsgLog (" %a", KernelPatchesLabel);
+
+            if (GetPropertyBool (GetProperty (Prop2, "Disabled"), FALSE)) {
+              MsgLog (" | patch disabled, skip\n");
+              continue;
+            }
+
+            TmpData   = GetDataSetting (Prop2, "Find", &FindLen);
+            TmpPatch  = GetDataSetting (Prop2, "Replace", &ReplaceLen);
+
+            if (!FindLen || !ReplaceLen || (FindLen != ReplaceLen)) {
+              MsgLog (" | invalid Find/Replace data, skip\n");
+              continue;
+            }
+
+            gKernelPatches[gNrKernels].Data       = AllocateCopyPool (FindLen, TmpData);
+            gKernelPatches[gNrKernels].DataLen    = FindLen;
+            gKernelPatches[gNrKernels].Patch      = AllocateCopyPool (ReplaceLen, TmpPatch);
+            gKernelPatches[gNrKernels].MatchOS    = NULL;
+            gKernelPatches[gNrKernels].MatchBuild = NULL;
+            gKernelPatches[gNrKernels].Disabled   = FALSE;
+            gKernelPatches[gNrKernels].Label      = AllocateCopyPool (AsciiStrSize (KernelPatchesLabel), KernelPatchesLabel);
+            gKernelPatches[gNrKernels].Count      = GetPropertyInteger (GetProperty (Prop2, "Count"), 0);
+            gKernelPatches[gNrKernels].Wildcard   = (UINT8)GetPropertyInteger (GetProperty (Prop2, "Wildcard"), 0xFF);
+
+            FreePool (TmpData);
+            FreePool (TmpPatch);
+            FreePool (KernelPatchesLabel);
+
+            Dict = GetProperty (Prop2, "MatchOS");
+            if ((Dict != NULL) && (Dict->type == kTagTypeString)) {
+              gKernelPatches[gNrKernels].MatchOS = AllocateCopyPool (AsciiStrSize (Dict->string), Dict->string);
+              MsgLog (" | MatchOS: %a", gKernelPatches[gNrKernels].MatchOS);
+            }
+
+            Dict = GetProperty (Prop2, "MatchBuild");
+            if ((Dict != NULL) && (Dict->type == kTagTypeString)) {
+              gKernelPatches[gNrKernels].MatchBuild = AllocateCopyPool (AsciiStrSize (Dict->string), Dict->string);
+              MsgLog (" | MatchBuild: %a", gKernelPatches[gNrKernels].MatchBuild);
+            }
+
+            MsgLog (" | len: %d\n", gKernelPatches[gNrKernels].DataLen);
+
+            gNrKernels++;
+          }
+        }
+      }
+
       Prop = GetProperty (DictPointer, "KextsToPatch");
       if (Prop != NULL) {
         Count = Prop->size;
@@ -2084,94 +2298,13 @@ ParsePatchesPlist (
           }
         }
       }
-
-      Prop = GetProperty (DictPointer, "KernelToPatch");
-      if (Prop != NULL) {
-        Count = Prop->size;
-
-        //delete old and create new
-        if (gKernelPatches) {
-          gNrKernels = 0;
-          FreePool (gKernelPatches);
-        }
-
-        if (Count > 0) {
-          TagPtr          Prop2 = NULL, Dict = NULL;
-          KERNEL_PATCH    *newPatches = AllocateZeroPool (Count * sizeof (KERNEL_PATCH));
-
-          gKernelPatches = newPatches;
-          MsgLog ("KernelToPatch: %d requested\n", Count);
-
-          for (i = 0; i < Count; i++) {
-            CHAR8         *KernelPatchesLabel;
-            UINTN         FindLen = 0, ReplaceLen = 0;
-            UINT8         *TmpData, *TmpPatch;
-            EFI_STATUS    Status = GetElement (Prop, i, Count, &Prop2);
-
-            MsgLog (" - [%02d]:", i);
-
-            if (EFI_ERROR (Status) || (Prop2 == NULL)) {
-              MsgLog (" %r parsing / empty element\n", Status);
-              continue;
-            }
-
-            Dict = GetProperty (Prop2, "Comment");
-            KernelPatchesLabel = ((Dict != NULL) && (Dict->type == kTagTypeString))
-                                    ? AllocateCopyPool (AsciiStrSize (Dict->string), Dict->string)
-                                    : AllocateCopyPool (8, "NoLabel");
-
-            MsgLog (" %a", KernelPatchesLabel);
-
-            if (GetPropertyBool (GetProperty (Prop2, "Disabled"), FALSE)) {
-              MsgLog (" | patch disabled, skip\n");
-              continue;
-            }
-
-            TmpData   = GetDataSetting (Prop2, "Find", &FindLen);
-            TmpPatch  = GetDataSetting (Prop2, "Replace", &ReplaceLen);
-
-            if (!FindLen || !ReplaceLen || (FindLen != ReplaceLen)) {
-              MsgLog (" | invalid Find/Replace data, skip\n");
-              continue;
-            }
-
-            gKernelPatches[gNrKernels].Data       = AllocateCopyPool (FindLen, TmpData);
-            gKernelPatches[gNrKernels].DataLen    = FindLen;
-            gKernelPatches[gNrKernels].Patch      = AllocateCopyPool (ReplaceLen, TmpPatch);
-            gKernelPatches[gNrKernels].MatchOS    = NULL;
-            gKernelPatches[gNrKernels].MatchBuild = NULL;
-            gKernelPatches[gNrKernels].Disabled   = FALSE;
-            gKernelPatches[gNrKernels].Label      = AllocateCopyPool (AsciiStrSize (KernelPatchesLabel), KernelPatchesLabel);
-            gKernelPatches[gNrKernels].Count      = GetPropertyInteger (GetProperty (Prop2, "Count"), 0);
-            gKernelPatches[gNrKernels].Wildcard   = (UINT8)GetPropertyInteger (GetProperty (Prop2, "Wildcard"), 0xFF);
-
-            FreePool (TmpData);
-            FreePool (TmpPatch);
-            FreePool (KernelPatchesLabel);
-
-            Dict = GetProperty (Prop2, "MatchOS");
-            if ((Dict != NULL) && (Dict->type == kTagTypeString)) {
-              gKernelPatches[gNrKernels].MatchOS = AllocateCopyPool (AsciiStrSize (Dict->string), Dict->string);
-              MsgLog (" | MatchOS: %a", gKernelPatches[gNrKernels].MatchOS);
-            }
-
-            Dict = GetProperty (Prop2, "MatchBuild");
-            if ((Dict != NULL) && (Dict->type == kTagTypeString)) {
-              gKernelPatches[gNrKernels].MatchBuild = AllocateCopyPool (AsciiStrSize (Dict->string), Dict->string);
-              MsgLog (" | MatchBuild: %a", gKernelPatches[gNrKernels].MatchBuild);
-            }
-
-            MsgLog (" | len: %d\n", gKernelPatches[gNrKernels].DataLen);
-
-            gNrKernels++;
-          }
-        }
-      }
     }
 
     DictPointer = GetProperty (RootDict, "Preferences");
     if (DictPointer != NULL) {
       gSaveLogToFile = GetPropertyBool (GetProperty (DictPointer, "SaveLogToFile"), FALSE);
+      gOff = GetPropertyBool (GetProperty (DictPointer, "Off"), FALSE);
+      gDbg = GetPropertyBool (GetProperty (DictPointer, "Debug"), FALSE);
     }
   }
 }
@@ -2204,8 +2337,7 @@ EFI_STATUS
 FinishInitRefitLib (
   IN EFI_HANDLE   DeviceHandle
 ) {
-  EFI_STATUS        Status;
-
+  EFI_STATUS                  Status;
   EFI_DEVICE_PATH_PROTOCOL    *TmpDevicePath;
   EFI_DEVICE_PATH             *DevicePath;
   UINTN                       DevicePathSize;
@@ -2228,7 +2360,7 @@ FinishInitRefitLib (
     (DevicePathType (DevicePath) == HARDWARE_DEVICE_PATH) &&
     (DevicePathSubType (DevicePath) == HW_MEMMAP_DP)
   ) {
-    DBG ("KernextPatcher running from firmware: %g", (EFI_GUID *)((CHAR8 *)DevicePath + 4));
+    DbgLog ("Running from firmware: %s\n", DevicePathToStr (DevicePath));
     return EFI_LOAD_ERROR;
   }
 
@@ -2242,7 +2374,7 @@ FinishInitRefitLib (
   Status = gSelfRootDir->Open (gSelfRootDir, &SelfDir, SelfDirPath, EFI_FILE_MODE_READ, 0);
 
   if (EFI_ERROR (Status)) {
-    MsgLog ("Error while opening self directory\n");
+    DbgLog ("Error while opening self directory\n");
   } else {
     Status = LoadUserSettings (gSelfRootDir, &gConfigDict);
 
@@ -2260,11 +2392,15 @@ FinishInitRefitLib (
 STATIC
 EFI_STATUS
 ScanVolumes () {
-  EFI_STATUS    Status;
+  EFI_STATUS    Status = EFI_LOAD_ERROR;
   EFI_HANDLE    *Handles = NULL, DeviceHandle;
   UINTN         HandleCount = 0, HandleIndex;
 
-  DBG ("Scanning volumes...\n");
+  if (gOff) {
+    return Status;
+  }
+
+  DbgLog ("Scanning volumes...\n");
 
   // get all BlockIo handles
   Status = gBS->LocateHandleBuffer (
@@ -2276,7 +2412,7 @@ ScanVolumes () {
                 );
 
   if (EFI_ERROR (Status)) {
-    DBG ("Error LocateHandleBuffer gEfiBlockIoProtocolGuid\n");
+    DbgLog ("Error LocateHandleBuffer gEfiBlockIoProtocolGuid\n");
     return Status;
   }
 
@@ -2307,7 +2443,7 @@ ScanVolumes () {
 STATIC
 EFI_STATUS
 InitRefitLib (
-  IN EFI_HANDLE     ImageHandle
+  IN EFI_HANDLE   ImageHandle
 ) {
   EFI_STATUS          Status;
   EFI_LOADED_IMAGE    *SelfLoadedImage;
@@ -2319,67 +2455,18 @@ InitRefitLib (
                 );
 
   if (EFI_ERROR (Status)) {
-    DBG ("Error getting LoadedImageProtocol handle\n");
+    DbgLog ("Error getting LoadedImageProtocol handle\n");
     return Status;
   }
 
   return FinishInitRefitLib (SelfLoadedImage->DeviceHandle);
 }
 
-
-//
-// Hook events
-//
-
-
-STATIC
-VOID
-EFIAPI
-OnExitBootServices (
-  IN EFI_EVENT  Event,
-  IN VOID       *Context
-) {
-  if (KernelAndKextPatcherInit ()) {
-    FilterKernelPatches ();
-    FilterKextPatches ();
-  }
-
-  SaveBooterLog ();
-}
-
-STATIC
-EFI_STATUS
-EventsInitialize () {
-  EFI_STATUS    Status;
-  VOID          *Registration = NULL;
-
-  //
-  // Register notify for exit boot services
-  //
-  Status = gBS->CreateEvent (
-                  EVT_SIGNAL_EXIT_BOOT_SERVICES,
-                  TPL_CALLBACK,
-                  OnExitBootServices,
-                  NULL,
-                  &gExitBootServiceEvent
-                );
-
-  if (!EFI_ERROR (Status)) {
-    gBS->RegisterProtocolNotify (
-                         &gEfiStatusCodeRuntimeProtocolGuid,
-                         gExitBootServiceEvent,
-                         &Registration
-                       );
-  }
-
-  return EFI_SUCCESS;
-}
-
 STATIC
 VOID
 GetVersion (
-  EFI_HANDLE  DeviceHandle,
-  CHAR16      *Path
+  EFI_HANDLE    DeviceHandle,
+  CHAR16        *Path
 ) {
   EFI_STATUS                        Status;
   EFI_SIMPLE_FILE_SYSTEM_PROTOCOL   *Vol;
@@ -2398,12 +2485,12 @@ GetVersion (
 
     Status = Vol->OpenVolume (Vol, &RootDir);
     if (!EFI_ERROR (Status)) {
-      CHAR16  *Plist = PoolPrint (L"%s%s", Dirname (Path), DARWIN_SYSTEM_VER_PLIST);
+      CHAR16    *Plist = PoolPrint (L"%s%s", Dirname (Path), DARWIN_SYSTEM_VER_PLIST);
 
       if (FileExists (RootDir, Plist)) {
-        CHAR8         *PlistBuffer = NULL;
-        UINTN         PlistLen;
-        TagPtr        Dict = NULL,  Prop = NULL;
+        CHAR8     *PlistBuffer = NULL;
+        UINTN     PlistLen;
+        TagPtr    Dict = NULL,  Prop = NULL;
 
         // found OSX System
 
@@ -2439,72 +2526,119 @@ GetVersion (
   }
 }
 
-/*
- * gBS->StartImage override:
- * Called to start an efi image.
- *
- * If this is boot.efi, then run it with our overrides.
-*/
+
+//
+// Hook events
+//
+
+
+BOOLEAN
+GetLoadedBooter () {
+  EFI_STATUS    Status;
+  UINTN         Index, PIndex, HandleCount;
+  EFI_HANDLE    *HandleBuffer, Handle;
+  UINTN         ProtocolCount;
+  EFI_GUID      **ProtocolBuffer, *ProtocolID;
+  VOID          *ProtocolInterface;
+  BOOLEAN       Ret = FALSE;
+
+  Status = gBS->LocateHandleBuffer (AllHandles, NULL, NULL, &HandleCount, &HandleBuffer);
+  if (EFI_ERROR (Status)) {
+    Status = EFI_NOT_FOUND;
+    return Ret;
+  }
+
+  for (Index = HandleCount; (Index-- > 0) && !Ret;) {
+    Handle = HandleBuffer[Index];
+
+    //DbgLog ("Handle %02x @ %016x\n", Index, (UINT64)Handle);
+
+    Status = gBS->ProtocolsPerHandle (Handle, &ProtocolBuffer, &ProtocolCount);
+    if (!EFI_ERROR(Status)) {
+      for (PIndex = 0; PIndex < ProtocolCount; PIndex++) {
+        ProtocolID = ProtocolBuffer[PIndex];
+
+        if (CompareGuid (ProtocolID, &gEfiLoadedImageProtocolGuid)) {
+          Status = gBS->HandleProtocol (Handle, ProtocolID, &ProtocolInterface);
+          if (!EFI_ERROR(Status)) {
+            EFI_DEVICE_PATH     *DevicePath;
+            EFI_LOADED_IMAGE    *LoadedImage = (EFI_LOADED_IMAGE *)ProtocolInterface;
+            CHAR16              *FilePathText = DevicePathToStr (LoadedImage->FilePath);
+
+            if (
+              (StriStr (FilePathText, L"boot.efi") != NULL) ||
+              (StriStr (FilePathText, L"bootbase.efi") != NULL)
+            ) {
+              MsgLog ("Found Booter: ");
+              Status = gBS->HandleProtocol (LoadedImage->DeviceHandle, &gEfiDevicePathProtocolGuid, (VOID **) &DevicePath);
+              if (!EFI_ERROR(Status)) {
+                MsgLog ("%s", DevicePathToStr (DevicePath));
+              }
+              MsgLog ("%s\n", FilePathText);
+              GetVersion (LoadedImage->DeviceHandle, FilePathText);
+              Ret = TRUE;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    FreePool(ProtocolBuffer);
+  }
+
+  FreePool (HandleBuffer);
+
+  return Ret;
+}
+
+STATIC
+VOID
+EFIAPI
+OnExitBootServices (
+  IN EFI_EVENT    Event,
+  IN VOID         *Context
+) {
+  if (
+    GetLoadedBooter () &&
+    KernelAndKextPatcherInit ()
+  ) {
+    FilterKernelPatches ();
+    FilterKextPatches ();
+    SaveBooterLog ();
+  }
+}
+
 STATIC
 EFI_STATUS
-EFIAPI
-KPStartImage (
-  IN  EFI_HANDLE  ImageHandle,
-  OUT UINTN       *ExitDataSize,
-  OUT CHAR16      **ExitData  OPTIONAL
-) {
-  EFI_STATUS                  Status;
-  EFI_LOADED_IMAGE_PROTOCOL   *Image;
-  CHAR16                      *FilePathText = NULL;
-  BOOLEAN                     StartFlag;
+EventsInitialize () {
+  EFI_STATUS    Status = EFI_ABORTED;
+  VOID          *Registration = NULL;
 
-  DBG ("StartImage (%lx)\n", ImageHandle);
+  if (gOff) {
+    return Status;
+  }
 
-  // find out image name from EfiLoadedImageProtocol
-  Status = gBS->OpenProtocol (
-                  ImageHandle,
-                  &gEfiLoadedImageProtocolGuid,
-                  (VOID **)&Image,
-                  gImageHandle,
+  //
+  // Register notify for exit boot services
+  //
+  Status = gBS->CreateEvent (
+                  EVT_SIGNAL_EXIT_BOOT_SERVICES,
+                  TPL_CALLBACK,
+                  OnExitBootServices,
                   NULL,
-                  EFI_OPEN_PROTOCOL_GET_PROTOCOL
+                  &gExitBootServiceEvent
                 );
 
-  if (Status != EFI_SUCCESS) {
-    DBG ("ERROR: KPStartImage: OpenProtocol (gEfiLoadedImageProtocolGuid) = %r\n", Status);
-    return EFI_INVALID_PARAMETER;
+  if (!EFI_ERROR (Status)) {
+    gBS->RegisterProtocolNotify (
+                         &gEfiStatusCodeRuntimeProtocolGuid,
+                         gExitBootServiceEvent,
+                         &Registration
+                       );
   }
 
-  FilePathText = DevicePathToStr (Image->FilePath);
-  if (FilePathText != NULL) {
-    DBG ("FilePath: %s\n", FilePathText);
-  }
-
-  DBG ("ImageBase: %p - %lx (%lx)\n", Image->ImageBase, (UINT64)Image->ImageBase + Image->ImageSize, Image->ImageSize);
-
-  Status = gBS->CloseProtocol (ImageHandle, &gEfiLoadedImageProtocolGuid, gImageHandle, NULL);
-  if (EFI_ERROR (Status)) {
-    DBG ("CloseProtocol: %r\n", Status);
-  }
-
-  StartFlag = (
-                (StriStr (FilePathText, L"boot.efi") != NULL) ||
-                (StriStr (FilePathText, L"bootbase.efi") != NULL)
-              );
-
-  if (StartFlag) {
-    DBG ("**** boot.efi\n");
-    GetVersion (Image->DeviceHandle, FilePathText);
-    EventsInitialize ();
-  }
-
-  Status = gKPStartImage (ImageHandle, ExitDataSize, ExitData);
-
-  if (FilePathText != NULL) {
-    gBS->FreePool (FilePathText);
-  }
-
-  return Status;
+  return EFI_SUCCESS;
 }
 
 /*
@@ -2522,6 +2656,18 @@ KernextPatcherEntrypoint (
   //KERNEXTPATCHER_PROTOCOL   *KernextPatcher;
   //EFI_HANDLE                KernextPatcherIHandle;
 
+  //
+  // Install driver model protocol(s).
+  //
+  Status = EfiLibInstallDriverBindingComponentName2 (
+            ImageHandle,
+            SystemTable,
+            &gKernextPatcherDriverBinding,
+            ImageHandle,
+            &gKernextPatcherComponentName,
+            &gKernextPatcherComponentName2
+          );
+
   gRT->GetTime (&Now, NULL);
 
   MsgLog ("KernextPatcher (rev %a): Start at %d.%d.%d, %d:%d:%d (GMT+%d)\n",
@@ -2537,12 +2683,7 @@ KernextPatcherEntrypoint (
   }
 
   if (!EFI_ERROR (Status)) {
-    // install StartImage override
-    // all other overrides will be started when boot.efi is started
-    gKPStartImage = gBS->StartImage;
-    gBS->StartImage = KPStartImage;
-    gBS->Hdr.CRC32 = 0;
-    gBS->CalculateCrc32 (gBS, gBS->Hdr.HeaderSize, &gBS->Hdr.CRC32);
+    EventsInitialize ();
   }
 
   /*
@@ -2550,7 +2691,7 @@ KernextPatcherEntrypoint (
   KernextPatcher = AllocateZeroPool (sizeof (KERNEXTPATCHER_PROTOCOL));
 
   if (KernextPatcher == NULL)   {
-    DBG ("%a: Can not allocate memory for KERNEXTPATCHER_PROTOCOL\n", __FUNCTION__);
+    DbgLog ("%a: Can not allocate memory for KERNEXTPATCHER_PROTOCOL\n", __FUNCTION__);
     return EFI_OUT_OF_RESOURCES;
   }
 
@@ -2559,7 +2700,7 @@ KernextPatcherEntrypoint (
   Status = gBS->InstallMultipleProtocolInterfaces (&KernextPatcherIHandle, &gKernextPatcherProtocolGuid, KernextPatcher, NULL);
 
   if (EFI_ERROR (Status)) {
-    DBG ("%a: error installing KERNEXTPATCHER_PROTOCOL, Status = %r\n", __FUNCTION__, Status);
+    DbgLog ("%a: error installing KERNEXTPATCHER_PROTOCOL, Status = %r\n", __FUNCTION__, Status);
     return Status;
   }
   */

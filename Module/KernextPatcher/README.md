@@ -1,15 +1,85 @@
 **KernextPatcher** is an Darwin kernel & extensions patcher (part of my [Clover forked](https://github.com/cecekpawon/CloverPkg)) UEFI driver based on [Clover](https://sourceforge.net/p/cloverefiboot/) Memfix by dmazar (credits goes to him, rEFIt, Clover devs).
 
-**Prerequisites & Tasks:**
+### Prerequisites & Tasks:
 
 - [x] Compile with `-D BUILD_KERNEXTPATCHER=1`.
-- [x] Need to be loaded before boot manager in order to successfully hook ExitBootServices event.
+- [x] ~~Need to be loaded before boot manager in order to successfully hook ExitBootServices event.~~
 - [x] Read patches property in `\EFI\KernextPatcher.plist`.
+- [x] Adv log with supplied `-KernextPatcherDbg` boot-args / `Preferences`->`Debug`=`TRUE`.
 - [x] Create `\EFI\KernextPatcherLog.txt` log-file with supplied `-KernextPatcherLog` boot-args / `Preferences`->`SaveLogToFile`=`TRUE`.
+- [x] Disable patcher with supplied `-KernextPatcherOff` boot-args / `Preferences`->`Off`=`TRUE`.
 
-**Known bugs:**
+### Known bugs:
 
-- [x] Sometimes, it will incorrectly parse BootArgs & set RelocBase.
+- [x] ~~Sometimes, it will incorrectly parse BootArgs & set RelocBase.~~
+
+### Directory structure
+```
+.
+└── EFI
+    ├── KernextPatcher.efi
+    ├── KernextPatcher.plist
+    ├── KernextPatcherLog.txt
+    ├── Oz
+    │   ├── Acpi
+    │   │   ├── Dump
+    │   │   └── Load
+    │   │       ├── SSDT-1.aml
+    │   │       └── SSDT-2.aml
+    │   ├── Darwin
+    │   │   └── Extensions
+    │   │       └── Common
+    │   │           └── FakeSMC.kext
+    │   │               └── Contents
+    │   │                   ├── Info.plist
+    │   │                   └── MacOS
+    │   │                       └── FakeSMC
+    │   └── theme.bin
+    └── Ozmosis.efi
+```
+
+### Install driver with BCFG
+
+**Start shell and type following commands:**
+
+```
+# list existing drivers
+
+bcfg driver dump
+
+Option: 00. Variable: Driver0000
+  Desc    - KernextPatcher
+  DevPath - PciRoot(0x0)/Pci(0x1d,0x0)/USB(0x1,0x0)/USB(0x5,0x0)/HD(1,MBR,0x00045ef5,0x1000,0x64000)/\EFI\KernextPatcher.efi
+  Optional- N
+Option: 01. Variable: Driver0001
+  Desc    - Ozmosis
+  DevPath - PciRoot(0x0)/Pci(0x1d,0x0)/USB(0x1,0x0)/USB(0x5,0x0)/HD(1,MBR,0x00045ef5,0x1000,0x64000)/\EFI\Ozmosis.efi
+  Optional- N
+
+# remove any existing drivers
+
+bcfg driver rm 0
+...
+
+# register drivers
+
+fs0:
+cd EFI
+bcfg driver add 0 KernextPatcher.efi "KernextPatcher"
+bcfg driver add 1 Ozmosis.efi "Ozmosis"
+```
+### Install driver into Firmware
+
+Integrate `99665243-5AED-4D57-92AF-8C785FBC7558.ffs` into your UEFI firmware using [UEFITool](https://github.com/LongSoft/UEFITool) or any other suitable software.
+
+**Drivers list from Shell**
+```
+108 00000000 ? N N   0   0 Ozmosis Platform Driver             MemoryMapped(0xb,0xcdc77000,0xce0c6fff)/FvFile(aae65279-0761-41d1-ba13-4a3c1383603f)
+...
+166 0000000A ? N N   0   0 KernextPatcher (for Darwin)         MemoryMapped(0xb,0xcdc77000,0xce0c6fff)/FvFile(99665243-5aed-4d57-92af-8c785fbc7558)
+```
+
+### Configuration
 
 **Sample** of `\EFI\KernextPatcher.plist` ([KextsToPatch & KernelToPatch references](https://github.com/cecekpawon/CloverPkg/wiki/Config)):
 ```xml
@@ -76,9 +146,17 @@
   </dict>
   <key>Preferences</key>
   <dict>
+    <key>Debug</key>
+    <false/>
     <key>SaveLogToFile</key>
     <true/>
+    <key>Off</key>
+    <false/>
   </dict>
 </dict>
 </plist>
 ```
+
+### Download
+
+Precompiled binaries always can be found [here](https://1drv.ms/f/s!AjxLshYT0HDug0JUmVUbr1B-r0rh).

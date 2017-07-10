@@ -12,15 +12,15 @@
   INF_VERSION                    = 0x00010005
   BASE_NAME                      = KernextPatcher
   FILE_GUID                      = 99665243-5AED-4D57-92AF-8C785FBC7558
-  #MODULE_TYPE                    = DXE_RUNTIME_DRIVER
-  MODULE_TYPE                    = UEFI_DRIVER
+  MODULE_TYPE                    = DXE_RUNTIME_DRIVER
+  #MODULE_TYPE                    = UEFI_DRIVER
   VERSION_STRING                 = 1.0
   ENTRY_POINT                    = KernextPatcherEntrypoint
   #UNLOAD_IMAGE                   = KernextPatcherUnload
 
 [Packages]
-  MdePkg/MdePkg.dec
   CloverPkg/CloverPkg.dec
+  MdePkg/MdePkg.dec
 
 [LibraryClasses]
   CommonLib
@@ -38,15 +38,15 @@
 
 [Protocols]
   gEfiBlockIoProtocolGuid
+  gEfiLoadedImageDevicePathProtocolGuid
   gEfiSimpleFileSystemProtocolGuid
   gEfiStatusCodeRuntimeProtocolGuid
 
-#[Depex]
-#  #gEfiBlockIoProtocolGuid AND
-#  #gEfiStatusCodeRuntimeProtocolGuid AND
-#  #gEfiLoadedImageProtocolGuid AND
-#  #gEfiSimpleFileSystemProtocolGuid AND
-#  #gEfiSimpleTextInputExProtocolGuid AND
-#  #gEfiDiskIoProtocolGuid AND
-#  #gEfiDevicePathProtocolGuid
-#  TRUE
+[Depex]
+  gEfiBlockIoProtocolGuid AND
+  gEfiStatusCodeRuntimeProtocolGuid AND
+  gEfiLoadedImageProtocolGuid AND
+  gEfiSimpleFileSystemProtocolGuid AND
+  #gEfiSimpleTextInputExProtocolGuid AND
+  gEfiDiskIoProtocolGuid AND
+  gEfiDevicePathProtocolGuid
