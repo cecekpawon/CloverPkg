@@ -2490,7 +2490,6 @@ StartLoader (
             AsciiStrnCmp (BooterOSVersion, "12.", 3) */
           ) {
             DBG ("NO BooterOSVersion\n");
-            FreePool (BooterOSVersion);
             BooterOSVersion = NULL;
           } else { // known version was found in image
             MsgLog ("Found BooterOSVersion: %a\n", BooterOSVersion);

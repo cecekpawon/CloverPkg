@@ -1,44 +1,18 @@
 **KernextPatcher** is an Darwin kernel & extensions patcher (part of my [Clover forked](https://github.com/cecekpawon/CloverPkg)) UEFI driver based on [Clover](https://sourceforge.net/p/cloverefiboot/) Memfix by dmazar (credits goes to him, rEFIt, Clover devs).
 
-### Prerequisites & Tasks:
+## Prerequisites & Tasks:
 
 - [x] Compile with `-D BUILD_KERNEXTPATCHER=1`.
 - [x] ~~Need to be loaded before boot manager in order to successfully hook ExitBootServices event.~~
 - [x] Read patches property in `\EFI\KernextPatcher.plist`.
-- [x] Adv log with supplied `-KernextPatcherDbg` boot-args / `Preferences`->`Debug`=`TRUE`.
-- [x] Create `\EFI\KernextPatcherLog.txt` log-file with supplied `-KernextPatcherLog` boot-args / `Preferences`->`SaveLogToFile`=`TRUE`.
-- [x] Disable patcher with supplied `-KernextPatcherOff` boot-args / `Preferences`->`Off`=`TRUE`.
 
-### Known bugs:
+## Known bugs:
 
 - [x] ~~Sometimes, it will incorrectly parse BootArgs & set RelocBase.~~
 
-### Directory structure
-```
-.
-└── EFI
-    ├── KernextPatcher.efi
-    ├── KernextPatcher.plist
-    ├── KernextPatcherLog.txt
-    ├── Oz
-    │   ├── Acpi
-    │   │   ├── Dump
-    │   │   └── Load
-    │   │       ├── SSDT-1.aml
-    │   │       └── SSDT-2.aml
-    │   ├── Darwin
-    │   │   └── Extensions
-    │   │       └── Common
-    │   │           └── FakeSMC.kext
-    │   │               └── Contents
-    │   │                   ├── Info.plist
-    │   │                   └── MacOS
-    │   │                       └── FakeSMC
-    │   └── theme.bin
-    └── Ozmosis.efi
-```
+## Installation:
 
-### Install driver with BCFG
+### \#1. Install driver with BCFG
 
 **Start shell and type following commands:**
 
@@ -68,7 +42,7 @@ cd EFI
 bcfg driver add 0 KernextPatcher.efi "KernextPatcher"
 bcfg driver add 1 Ozmosis.efi "Ozmosis"
 ```
-### Install driver into Firmware
+### \#2. Install driver into Firmware
 
 Integrate `99665243-5AED-4D57-92AF-8C785FBC7558.ffs` into your UEFI firmware using [UEFITool](https://github.com/LongSoft/UEFITool) or any other suitable software.
 
@@ -79,7 +53,23 @@ Integrate `99665243-5AED-4D57-92AF-8C785FBC7558.ffs` into your UEFI firmware usi
 166 0000000A ? N N   0   0 KernextPatcher (for Darwin)         MemoryMapped(0xb,0xcdc77000,0xce0c6fff)/FvFile(99665243-5aed-4d57-92af-8c785fbc7558)
 ```
 
-### Configuration
+## Directory structure:
+```
+.
+└── EFI
+    ├── KernextPatcher.efi
+    ├── KernextPatcher.plist
+    ├── KernextPatcherLog.txt
+    └── Ozmosis.efi
+```
+
+## Preferences:
+
+| Boot argument | Preferences | Description |
+| --- | --- | --- |
+| `-KernextPatcherDbg` | Debug | Advanced logging |
+| `-KernextPatcherLog` | SaveLogToFile | Save log to `\EFI\KernextPatcherLog.txt` |
+| `-KernextPatcherOff` | Off | Disable patcher |
 
 **Sample** of `\EFI\KernextPatcher.plist` ([KextsToPatch & KernelToPatch references](https://github.com/cecekpawon/CloverPkg/wiki/Config)):
 ```xml
@@ -157,6 +147,6 @@ Integrate `99665243-5AED-4D57-92AF-8C785FBC7558.ffs` into your UEFI firmware usi
 </plist>
 ```
 
-### Download
+## Download:
 
 Precompiled binaries always can be found [here](https://1drv.ms/f/s!AjxLshYT0HDug0JUmVUbr1B-r0rh).

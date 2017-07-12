@@ -27,6 +27,10 @@
 #include <Protocol/LoadedImage.h>
 #include <Protocol/SimpleFileSystem.h>
 
+
+#define KERNEXTPATCHER_SIGNATURE                    SIGNATURE_64 ('K','E','R','N','E','X','T','P')
+
+
 #ifdef CLOVER_REVISION
 #define KERNEXTPATCHER_REVISION                     CLOVER_REVISION
 #else
@@ -65,7 +69,7 @@
 #define PropCFBundleIdentifierKey                   "<key>" kPropCFBundleIdentifier "</key>"
 #define PropCFBundleVersionKey                      "<key>" kPropCFBundleVersion "</key>"
 
-#define KERNEL_MAX_SIZE                             40000000
+//#define KERNEL_MAX_SIZE                             40000000
 #define MAX_FILE_SIZE                               (1024 * 1024 * 1024)
 
 #define MACH_GET_MAGIC(hdr)                         (((struct mach_header_64 *)(hdr))->magic)
@@ -258,9 +262,13 @@ typedef struct {
 } KERNEL_PATCH;
 
 typedef struct MatchOSes {
-  UINTN   count;
-  CHAR8   *array[100];
+  UINTN     count;
+  CHAR8     *array[100];
 } MatchOSes;
+
+typedef struct {
+  UINT64    Signature;
+} KERNEXTPATCHER_PROTOCOL;
 
 
 //
@@ -268,6 +276,7 @@ typedef struct MatchOSes {
 //
 
 
+EFI_GUID                gKernextPatcherProtocolGuid = { 0xFACA1A9F, 0xEF7F, 0x4DFE, { 0x83, 0x4E, 0x3E, 0x58, 0x20, 0xAE, 0x86, 0x02 } };
 EFI_EVENT               gExitBootServiceEvent = NULL;
 KERNEL_INFO             *gKernelInfo;
 EFI_FILE                *gSelfRootDir;
@@ -275,12 +284,11 @@ UINTN                   gNrKexts;
 KEXT_PATCH              *gKextPatches;
 UINTN                   gNrKernels;
 KERNEL_PATCH            *gKernelPatches;
+UINTN                   gKernelSize = 0;
 EFI_PHYSICAL_ADDRESS    gRelocBase = 0;
-CHAR8                   *gOSVersion = NULL, *gBuildVersion = NULL;
-BOOLEAN                 gSaveLogToFile = FALSE, gOff = FALSE, gDbg = FALSE;
+CHAR8                   *gOSVersion = NULL, *gBuildVersion = NULL, *gBooterOSVersion = NULL;
 
-
-#define DbgLog(...)     do { if (gDbg) MsgLog (__VA_ARGS__); } while (0)
+BOOLEAN                 gSaveLogToFile = TRUE, gOff = FALSE, gDbg = FALSE;
 
 
 //
@@ -337,12 +345,12 @@ KernextPatcherComponentNameGetDriverName (
   OUT CHAR16                        **DriverName
 ) {
   return LookupUnicodeString2 (
-           Language,
-           This->SupportedLanguages,
-           mKernextPatcherDriverNameTable,
-           DriverName,
-           (BOOLEAN)(This == &gKernextPatcherComponentName)
-           );
+            Language,
+            This->SupportedLanguages,
+            mKernextPatcherDriverNameTable,
+            DriverName,
+            (BOOLEAN)(This == &gKernextPatcherComponentName)
+          );
 }
 
 EFI_STATUS
@@ -399,6 +407,30 @@ EFI_DRIVER_BINDING_PROTOCOL   gKernextPatcherDriverBinding = {
   NULL,
   NULL
 };
+
+
+//
+// Helper
+//
+
+VOID
+EFIAPI
+DbgLog (
+  IN CONST CHAR8   *Format,
+  ...
+) {
+  if (gDbg) {
+    VA_LIST   Marker;
+
+    if (Format == NULL) {
+      return;
+    }
+
+    VA_START (Marker, Format);
+    MemLogVA (TRUE, 1, Format, Marker);
+    VA_END (Marker);
+  }
+}
 
 
 //
@@ -478,9 +510,9 @@ GetPropertyString (
 STATIC
 VOID *
 GetDataSetting (
-  IN   TagPtr   Dict,
-  IN   CHAR8    *PropName,
-  OUT  UINTN    *DataLen
+  IN  TagPtr   Dict,
+  IN  CHAR8    *PropName,
+  OUT UINTN    *DataLen
 ) {
   TagPtr    Prop;
   UINT8     *Data = NULL;
@@ -513,36 +545,10 @@ GetDataSetting (
 
 STATIC
 CHAR16 *
-EFIAPI
 DevicePathToStr (
   IN EFI_DEVICE_PATH_PROTOCOL  *DevPath
 ) {
   return ConvertDevicePathToText (DevPath, FALSE, TRUE);
-}
-
-STATIC
-CHAR16 *
-SelfPathToString (
-  IN EFI_DEVICE_PATH    *DevicePath
-) {
-  // find the current directory
-  CHAR16  *FilePathAsString = DevicePathToStr (DevicePath);
-
-  if (FilePathAsString != NULL) {
-    UINTN   i, Len = StrLen (FilePathAsString);
-    //SelfFullDevicePath = FileDevicePath (SelfDeviceHandle, FilePathAsString);
-    for (i = Len; i > 0 && FilePathAsString[i] != '\\'; i--);
-    if (i > 0) {
-      FilePathAsString[i] = 0;
-    } else {
-      FilePathAsString[0] = L'\\';
-      FilePathAsString[1] = 0;
-    }
-  } else {
-    FilePathAsString = AllocateCopyPool (StrSize (L"\\"), L"\\");
-  }
-
-  return FilePathAsString;
 }
 
 CHAR16 *
@@ -564,28 +570,6 @@ Dirname (
 
   return FileName;
 }
-
-/*
-STATIC
-CHAR16 *
-FindExtension (
-  IN CHAR16   *FileName
-) {
-  UINTN   i, len = StrLen (FileName);
-
-  for (i = len; i >= 0; i--) {
-    if (FileName[i] == '.') {
-      return FileName + i + 1;
-    }
-
-    if ((FileName[i] == '/') || (FileName[i] == '\\')) {
-      break;
-    }
-  }
-
-  return FileName;
-}
-*/
 
 STATIC
 EFI_FILE_INFO *
@@ -787,7 +771,7 @@ SaveBooterLog () {
     }
   }
 
-  return EFI_NOT_FOUND;
+  return EFI_ABORTED;
 }
 
 //
@@ -994,7 +978,7 @@ IsPatchNameMatch (
   CHAR8   *BundleIdentifier,
   CHAR8   *Name,
   CHAR8   *InfoPlist,
-  INT32   *IsBundle
+  UINTN   *IsBundle
 ) {
   // Full BundleIdentifier: com.apple.driver.AppleHDA
   *IsBundle = (CountOccurrences (Name, '.') < 2) ? 0 : 1;
@@ -1238,6 +1222,27 @@ FindWildcardPattern (
 }
 
 STATIC
+CHAR8 *
+SearchString (
+  IN  CHAR8     *Source,
+  IN  UINT64    SourceSize,
+  IN  CHAR8     *Search,
+  IN  UINTN     SearchSize
+) {
+  CHAR8   *End = Source + SourceSize;
+
+  while (Source < End) {
+    if (CompareMem (Source, Search, SearchSize) == 0) {
+      return Source;
+    } else {
+      Source++;
+    }
+  }
+
+  return NULL;
+}
+
+STATIC
 UINTN
 SearchAndReplace (
   UINT8     *Source,
@@ -1366,7 +1371,7 @@ SearchAndReplaceTxt (
 
 
 STATIC
-VOID
+UINTN
 AnyKextPatch (
   CHAR8         *BundleIdentifier,
   UINT8         *Driver,
@@ -1416,6 +1421,8 @@ AnyKextPatch (
   }
 
   MsgLog (" | %a : %d replaces done\n", Num ? "Success" : "Error", Num);
+
+  return Num;
 }
 
 STATIC
@@ -1427,9 +1434,8 @@ PatchKext (
   UINT32        InfoPlistSize,
   CHAR8         *BundleIdentifier
 ) {
-  INT32  i, IsBundle = 0;
+  UINTN  i, IsBundle = 0, Num = 0;
 
-  DbgLog ("- %a\n", BundleIdentifier);
 
   for (i = 0; i < gNrKexts; i++) {
     if (
@@ -1440,11 +1446,15 @@ PatchKext (
       continue;
     }
 
-    AnyKextPatch (BundleIdentifier, Driver, DriverSize, InfoPlist, InfoPlistSize, &gKextPatches[i]);
+    Num += AnyKextPatch (BundleIdentifier, Driver, DriverSize, InfoPlist, InfoPlistSize, &gKextPatches[i]);
 
     if (IsBundle) {
       gKextPatches[i].Patched = TRUE;
     }
+  }
+
+  if (!Num) {
+    DbgLog ("- %a\n", BundleIdentifier);
   }
 }
 
@@ -1609,7 +1619,7 @@ KernelUserPatch () {
 
     Num = SearchAndReplace (
       gKernelInfo->Bin,
-      KERNEL_MAX_SIZE,
+      (UINT32)gKernelSize, //KERNEL_MAX_SIZE
       gKernelPatches[i].Data,
       gKernelPatches[i].DataLen,
       gKernelPatches[i].Patch,
@@ -1727,6 +1737,8 @@ InitKernel () {
             //);
           }
         }
+
+        gKernelSize += SegCmd64->filesize;
 
         if (!ISectionIndex) {
           ISectionIndex++; // Start from 1
@@ -2302,9 +2314,9 @@ ParsePatchesPlist (
 
     DictPointer = GetProperty (RootDict, "Preferences");
     if (DictPointer != NULL) {
-      gSaveLogToFile = GetPropertyBool (GetProperty (DictPointer, "SaveLogToFile"), FALSE);
-      gOff = GetPropertyBool (GetProperty (DictPointer, "Off"), FALSE);
-      gDbg = GetPropertyBool (GetProperty (DictPointer, "Debug"), FALSE);
+      gSaveLogToFile = GetPropertyBool (GetProperty (DictPointer, "SaveLogToFile"), gSaveLogToFile);
+      gOff = GetPropertyBool (GetProperty (DictPointer, "Off"), gOff);
+      gDbg = GetPropertyBool (GetProperty (DictPointer, "Debug"), gDbg);
     }
   }
 }
@@ -2338,13 +2350,11 @@ FinishInitRefitLib (
   IN EFI_HANDLE   DeviceHandle
 ) {
   EFI_STATUS                  Status;
-  EFI_DEVICE_PATH_PROTOCOL    *TmpDevicePath;
-  EFI_DEVICE_PATH             *DevicePath;
+  EFI_DEVICE_PATH_PROTOCOL    *TmpDevicePath, *DevicePath;
   UINTN                       DevicePathSize;
   TagPtr                      gConfigDict;
-
-  CHAR16    *SelfDirPath = AllocateZeroPool (SVALUE_MAX_SIZE);
-  EFI_FILE  *SelfDir;
+  EFI_FILE                    *SelfDir;
+  CHAR16                      *SelfDirPath = AllocateZeroPool (SVALUE_MAX_SIZE);
 
   if (gSelfRootDir != NULL) {
     gSelfRootDir->Close (gSelfRootDir);
@@ -2356,22 +2366,24 @@ FinishInitRefitLib (
   DevicePath = AllocateAlignedPages (EFI_SIZE_TO_PAGES (DevicePathSize), 64);
   CopyMem (DevicePath, TmpDevicePath, DevicePathSize);
 
+  SelfDirPath = DevicePathToStr (DevicePath);
+
   if (
     (DevicePathType (DevicePath) == HARDWARE_DEVICE_PATH) &&
     (DevicePathSubType (DevicePath) == HW_MEMMAP_DP)
   ) {
-    DbgLog ("Running from firmware: %s\n", DevicePathToStr (DevicePath));
-    return EFI_LOAD_ERROR;
+    MsgLog ("Running from firmware: '%s'\n", SelfDirPath);
+    Status = EFI_LOAD_ERROR;
+    goto Finish;
   }
 
   gSelfRootDir = EfiLibOpenRoot (DeviceHandle);
   if (gSelfRootDir == NULL) {
-    return EFI_LOAD_ERROR;
+    Status = EFI_LOAD_ERROR;
+    goto Finish;
   }
 
-  SelfDirPath = SelfPathToString (DevicePath);
-
-  Status = gSelfRootDir->Open (gSelfRootDir, &SelfDir, SelfDirPath, EFI_FILE_MODE_READ, 0);
+  Status = gSelfRootDir->Open (gSelfRootDir, &SelfDir, L"\\", EFI_FILE_MODE_READ, 0);
 
   if (EFI_ERROR (Status)) {
     DbgLog ("Error while opening self directory\n");
@@ -2379,10 +2391,12 @@ FinishInitRefitLib (
     Status = LoadUserSettings (gSelfRootDir, &gConfigDict);
 
     if (!EFI_ERROR (Status)) {
-      MsgLog ("Found '%s' : Root = '%s', DevicePath = '%s'\n", KERNEXTPATCHER_PLIST, SelfDirPath, DevicePathToStr (DevicePath));
+      MsgLog ("DevicePath = '%s'\n", SelfDirPath);
       ParsePatchesPlist (gConfigDict);
     }
   }
+
+  Finish:
 
   FreePool (SelfDirPath);
 
@@ -2424,12 +2438,7 @@ ScanVolumes () {
 
     DeviceHandle = Handles[HandleIndex];
 
-    if (!EFI_ERROR (gBS->HandleProtocol (
-                          DeviceHandle,
-                          &gEfiPartTypeSystemPartGuid,
-                          &Instance)
-                   )
-    ) {
+    if (!EFI_ERROR (gBS->HandleProtocol (DeviceHandle, &gEfiPartTypeSystemPartGuid, &Instance))) {
       Status = FinishInitRefitLib (DeviceHandle);
       if (!EFI_ERROR (Status)) {
         break;
@@ -2535,9 +2544,8 @@ GetVersion (
 BOOLEAN
 GetLoadedBooter () {
   EFI_STATUS    Status;
-  UINTN         Index, PIndex, HandleCount;
+  UINTN         Index, PIndex, HandleCount, ProtocolCount;
   EFI_HANDLE    *HandleBuffer, Handle;
-  UINTN         ProtocolCount;
   EFI_GUID      **ProtocolBuffer, *ProtocolID;
   VOID          *ProtocolInterface;
   BOOLEAN       Ret = FALSE;
@@ -2554,13 +2562,13 @@ GetLoadedBooter () {
     //DbgLog ("Handle %02x @ %016x\n", Index, (UINT64)Handle);
 
     Status = gBS->ProtocolsPerHandle (Handle, &ProtocolBuffer, &ProtocolCount);
-    if (!EFI_ERROR(Status)) {
+    if (!EFI_ERROR (Status)) {
       for (PIndex = 0; PIndex < ProtocolCount; PIndex++) {
         ProtocolID = ProtocolBuffer[PIndex];
 
         if (CompareGuid (ProtocolID, &gEfiLoadedImageProtocolGuid)) {
           Status = gBS->HandleProtocol (Handle, ProtocolID, &ProtocolInterface);
-          if (!EFI_ERROR(Status)) {
+          if (!EFI_ERROR (Status)) {
             EFI_DEVICE_PATH     *DevicePath;
             EFI_LOADED_IMAGE    *LoadedImage = (EFI_LOADED_IMAGE *)ProtocolInterface;
             CHAR16              *FilePathText = DevicePathToStr (LoadedImage->FilePath);
@@ -2569,15 +2577,23 @@ GetLoadedBooter () {
               (StriStr (FilePathText, L"boot.efi") != NULL) ||
               (StriStr (FilePathText, L"bootbase.efi") != NULL)
             ) {
-              MsgLog ("Found Booter: ");
-              Status = gBS->HandleProtocol (LoadedImage->DeviceHandle, &gEfiDevicePathProtocolGuid, (VOID **) &DevicePath);
-              if (!EFI_ERROR(Status)) {
-                MsgLog ("%s", DevicePathToStr (DevicePath));
+              gBooterOSVersion = SearchString ((CHAR8 *)LoadedImage->ImageBase, LoadedImage->ImageSize, "Mac OS X ", 9);
+              if (gBooterOSVersion != NULL) {
+                gBooterOSVersion += 9;
+                if (AsciiStrnCmp (gBooterOSVersion, "10.", 3)) {
+                  gBooterOSVersion = NULL;
+                  continue;
+                }
+                MsgLog ("Found Booter (%a): ", gBooterOSVersion);
+                Status = gBS->HandleProtocol (LoadedImage->DeviceHandle, &gEfiDevicePathProtocolGuid, (VOID **) &DevicePath);
+                if (!EFI_ERROR (Status)) {
+                  MsgLog ("%s", DevicePathToStr (DevicePath));
+                }
+                MsgLog ("%s\n", FilePathText);
+                GetVersion (LoadedImage->DeviceHandle, FilePathText);
+                Ret = TRUE;
+                break;
               }
-              MsgLog ("%s\n", FilePathText);
-              GetVersion (LoadedImage->DeviceHandle, FilePathText);
-              Ret = TRUE;
-              break;
             }
           }
         }
@@ -2632,19 +2648,21 @@ EventsInitialize () {
 
   if (!EFI_ERROR (Status)) {
     gBS->RegisterProtocolNotify (
-                         &gEfiStatusCodeRuntimeProtocolGuid,
-                         gExitBootServiceEvent,
-                         &Registration
-                       );
+           &gEfiStatusCodeRuntimeProtocolGuid,
+           gExitBootServiceEvent,
+           &Registration
+         );
   }
 
   return EFI_SUCCESS;
 }
 
-/*
- * Entry point. Installs our StartImage override.
- * All other stuff will be installed from there when boot.efi is started.
-*/
+
+//
+// Entry point
+//
+
+
 EFI_STATUS
 EFIAPI
 KernextPatcherEntrypoint (
@@ -2653,20 +2671,37 @@ KernextPatcherEntrypoint (
 ) {
   EFI_STATUS                Status;
   EFI_TIME                  Now;
-  //KERNEXTPATCHER_PROTOCOL   *KernextPatcher;
-  //EFI_HANDLE                KernextPatcherIHandle;
+  KERNEXTPATCHER_PROTOCOL   *KernextPatcherProtocol;
+  EFI_HANDLE                KernextPatcherIHandle = NULL;
 
-  //
-  // Install driver model protocol(s).
-  //
+  Status = gBS->LocateProtocol (&gKernextPatcherProtocolGuid, NULL, (VOID **)&KernextPatcherProtocol);
+  if (!EFI_ERROR (Status) && (KernextPatcherProtocol->Signature == KERNEXTPATCHER_SIGNATURE)) {
+    return EFI_SUCCESS;
+  }
+
+  KernextPatcherProtocol = AllocateZeroPool (sizeof (KERNEXTPATCHER_PROTOCOL));
+
+  if (KernextPatcherProtocol == NULL)   {
+    DbgLog ("%a: Can not allocate memory for KERNEXTPATCHER_PROTOCOL\n", __FUNCTION__);
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  KernextPatcherProtocol->Signature = KERNEXTPATCHER_SIGNATURE;
+
+  Status = gBS->InstallProtocolInterface (&KernextPatcherIHandle, &gKernextPatcherProtocolGuid, EFI_NATIVE_INTERFACE, &KernextPatcherProtocol);
+  if (EFI_ERROR (Status)) {
+    DbgLog ("%a: error installing KERNEXTPATCHER_PROTOCOL, Status = %r\n", __FUNCTION__, Status);
+    return Status;
+  }
+
   Status = EfiLibInstallDriverBindingComponentName2 (
-            ImageHandle,
-            SystemTable,
-            &gKernextPatcherDriverBinding,
-            ImageHandle,
-            &gKernextPatcherComponentName,
-            &gKernextPatcherComponentName2
-          );
+              ImageHandle,
+              SystemTable,
+              &gKernextPatcherDriverBinding,
+              ImageHandle,
+              &gKernextPatcherComponentName,
+              &gKernextPatcherComponentName2
+            );
 
   gRT->GetTime (&Now, NULL);
 
@@ -2685,25 +2720,6 @@ KernextPatcherEntrypoint (
   if (!EFI_ERROR (Status)) {
     EventsInitialize ();
   }
-
-  /*
-  // install KERNEXTPATCHER_PROTOCOL to new handle
-  KernextPatcher = AllocateZeroPool (sizeof (KERNEXTPATCHER_PROTOCOL));
-
-  if (KernextPatcher == NULL)   {
-    DbgLog ("%a: Can not allocate memory for KERNEXTPATCHER_PROTOCOL\n", __FUNCTION__);
-    return EFI_OUT_OF_RESOURCES;
-  }
-
-  KernextPatcher->Signature = KERNEXTPATCHER_SIGNATURE;
-  KernextPatcherIHandle = NULL; // install to new handle
-  Status = gBS->InstallMultipleProtocolInterfaces (&KernextPatcherIHandle, &gKernextPatcherProtocolGuid, KernextPatcher, NULL);
-
-  if (EFI_ERROR (Status)) {
-    DbgLog ("%a: error installing KERNEXTPATCHER_PROTOCOL, Status = %r\n", __FUNCTION__, Status);
-    return Status;
-  }
-  */
 
   return EFI_SUCCESS;
 }
