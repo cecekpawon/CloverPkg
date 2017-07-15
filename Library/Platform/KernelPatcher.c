@@ -179,8 +179,11 @@ InitKernel (
             //DBG ("%a: Segment = %a, Addr = 0x%x, Size = 0x%x, FileOff = 0x%x\n", __FUNCTION__,
             //  SegCmd64->segname, LinkeditAddr, SegCmd64->vmsize, LinkeditFileOff
             //);
+            KernelInfo->KernelSize = (UINT32)(SegCmd64->fileoff + SegCmd64->filesize);
           }
         }
+
+        KernelInfo->PrelinkedSize += (UINT32)SegCmd64->filesize;
 
         if (!ISectionIndex) {
           ISectionIndex++; // Start from 1
@@ -403,6 +406,8 @@ InitKernel (
   if (KernelInfo->CPUInfoStart && KernelInfo->CPUInfoEnd && (KernelInfo->CPUInfoEnd > KernelInfo->CPUInfoStart)) {
     KernelInfo->CPUInfoSize = (KernelInfo->CPUInfoEnd - KernelInfo->CPUInfoStart);
   }
+
+  DBG ("PrelinkedSize: %d, KernelSize: %d\n", KernelInfo->PrelinkedSize, KernelInfo->KernelSize);
 }
 
 //Slice - FakeCPUID substitution, (c)2014
@@ -732,15 +737,15 @@ KernelUserPatch (
   for (i = 0; i < Entry->KernelAndKextPatches->NrKernels; ++i) {
     DBG ("KernelUserPatch[%02d]: %a", i, Entry->KernelAndKextPatches->KernelPatches[i].Label);
 
-    if (Entry->KernelAndKextPatches->KernelPatches[i].Disabled) {
-      DBG (" | DISABLED!\n");
-      continue;
-    }
-
     /*
+      if (Entry->KernelAndKextPatches->KernelPatches[i].Disabled) {
+        DBG (" | DISABLED!\n");
+        continue;
+      }
+
       Num = SearchAndCount (
         KernelInfo->Bin,
-        KERNEL_MAX_SIZE,
+        gSettings.KernelPatchesWholePrelinked ? KernelInfo->PrelinkedSize : KernelInfo->KernelSize,
         Entry->KernelAndKextPatches->KernelPatches[i].Data,
         Entry->KernelAndKextPatches->KernelPatches[i].DataLen
       );
@@ -753,7 +758,7 @@ KernelUserPatch (
 
     Num = SearchAndReplace (
       KernelInfo->Bin,
-      KERNEL_MAX_SIZE,
+      gSettings.KernelPatchesWholePrelinked ? KernelInfo->PrelinkedSize : KernelInfo->KernelSize,
       Entry->KernelAndKextPatches->KernelPatches[i].Data,
       Entry->KernelAndKextPatches->KernelPatches[i].DataLen,
       Entry->KernelAndKextPatches->KernelPatches[i].Patch,

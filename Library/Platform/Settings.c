@@ -1238,6 +1238,8 @@ FillinKextPatches (
 
     //Patches->KPKernelCpu = GetPropertyBool (GetProperty (DictPointer, "KernelCpu"));
 
+    gSettings.KernelPatchesWholePrelinked = GetPropertyBool (GetProperty (DictPointer, "KernelPatchesWholePrelinked"), FALSE);
+
     Prop = GetProperty (DictPointer, "FakeCPUID");
     if (Prop != NULL) {
       Patches->FakeCPUID = (UINT32)GetPropertyInteger (Prop, 0);

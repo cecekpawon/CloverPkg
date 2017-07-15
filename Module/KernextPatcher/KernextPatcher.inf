@@ -46,6 +46,7 @@
   gEfiBlockIoProtocolGuid AND
   gEfiStatusCodeRuntimeProtocolGuid AND
   gEfiLoadedImageProtocolGuid AND
+  gEfiLoadedImageDevicePathProtocolGuid AND
   gEfiSimpleFileSystemProtocolGuid AND
   #gEfiSimpleTextInputExProtocolGuid AND
   gEfiDiskIoProtocolGuid AND

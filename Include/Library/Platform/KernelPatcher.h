@@ -141,6 +141,10 @@ typedef struct KERNEL_INFO {
   //BOOLEAN               SSSE3,
   BOOLEAN               PatcherInited;
   //EFI_PHYSICAL_ADDRESS  RelocBase;
+
+  UINT32                PrelinkedSize;
+  UINT32                KernelSize;
+
   VOID                  *Bin;
 } KERNEL_INFO;
 
@@ -195,8 +199,6 @@ STATIC CONST UINTN KernelPatchSymbolLookupCount = ARRAY_SIZE (KernelPatchSymbolL
 // kext_patcher.c
 //
 
-#define KERNEL_MAX_SIZE 40000000
-#define FSearchReplace(Source, Size, Search, Replace) SearchAndReplace((UINT8 *)(UINTN)Source, Size, Search, sizeof(Search), Replace, 0)
 #define PropCFBundleIdentifierKey "<key>" kPropCFBundleIdentifier "</key>"
 #define PropCFBundleVersionKey "<key>" kPropCFBundleVersion "</key>"
 

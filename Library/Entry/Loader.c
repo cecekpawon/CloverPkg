@@ -330,7 +330,7 @@ GetDarwinBlessed (
     ((Path = EfiLibPathInfo (Volume->RootDir, &gAppleBlessedOsxFolderInfoGuid)) != NULL)
   ) {
     Ret = FileDevicePathFileToStr (Path);
-    MsgLog ("         Blessed !!\n");
+    DBG ("         Blessed !!\n");
   }
 
   return Ret;
@@ -2459,7 +2459,7 @@ StartLoader (
 #endif
 
   if (OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType)) {
-    CHAR8   *BooterOSVersion = NULL;
+    CHAR8   *BooterOSVersion = NULL, *BooterVersion = NULL;
 
     gSettings.BooterPatchesAllowed = OSFLAG_ISSET (Entry->Flags, OSFLAG_ALLOW_BOOTER_PATCHES);
     gSettings.KextPatchesAllowed = OSFLAG_ISSET (Entry->Flags, OSFLAG_ALLOW_KEXT_PATCHES);
@@ -2475,38 +2475,55 @@ StartLoader (
       BOOT_EFI_HEADER   *BootEfiHeader = ParseBooterHeader (LoadedImage->ImageBase);
 
       if (BootEfiHeader) {
+        INTN    Offset;
+
         // version in boot.efi appears as "Mac OS X 10.?"
         /*
           Start OSName Mac OS X 10.12 End OSName Start OSVendor Apple Inc. End
         */
-        BooterOSVersion = SearchString ((CHAR8 *)LoadedImage->ImageBase + BootEfiHeader->TextOffset, BootEfiHeader->TextSize, "Mac OS X ", 9);
 
-        if (BooterOSVersion != NULL) { // string was found
-          BooterOSVersion += 9; // advance to version location
+        Offset = FindMem ((VOID *)((UINTN)LoadedImage->ImageBase + BootEfiHeader->TextOffset), BootEfiHeader->TextSize, "Mac OS X ", 9);
+        if (Offset >= 0) {
+          Offset += 9;
+          BooterOSVersion = (CHAR8 *)LoadedImage->ImageBase + BootEfiHeader->TextOffset + Offset;
 
           if (
             AsciiStrnCmp (BooterOSVersion, "10.", 3) /* &&
             AsciiStrnCmp (BooterOSVersion, "11.", 3) &&
             AsciiStrnCmp (BooterOSVersion, "12.", 3) */
           ) {
-            DBG ("NO BooterOSVersion\n");
+            DBG ("Unsupported BooterOSVersion\n");
             BooterOSVersion = NULL;
-          } else { // known version was found in image
-            MsgLog ("Found BooterOSVersion: %a\n", BooterOSVersion);
-
-            if (OSX_LT (BooterOSVersion, DARWIN_OS_VER_STR_MINIMUM)) {
-              MsgLog ("Unsupported version\n");
-              return;
+          } else { // known OS version was found in image, now check booter version
+            Offset = FindMem (BooterOSVersion, BootEfiHeader->TextSize - Offset, "version:", 8);
+            if (Offset >= 0) {
+              Offset += 8;
+              BooterVersion = BooterOSVersion + Offset;
+              if (CountOccurrences (BooterVersion, '.') < 2) {
+                DBG ("Unsupported BooterVersion\n");
+                BooterOSVersion = BooterVersion = NULL;
+              }
             }
-
-            PatchBooter (
-              Entry,
-              LoadedImage,
-              BootEfiHeader,
-              BooterOSVersion
-            );
           }
         }
+
+        if (
+          (BooterOSVersion == NULL) ||
+          (BooterVersion == NULL) ||
+          OSX_LT (BooterOSVersion, DARWIN_OS_VER_STR_MINIMUM)
+        ) {
+          //DBG ("Unsupported Booter\n");
+          return;
+        }
+
+        MsgLog ("Found Booter (OS: %a | Ver: %a)\n", BooterOSVersion, BooterVersion);
+
+        PatchBooter (
+          Entry,
+          LoadedImage,
+          BootEfiHeader,
+          BooterOSVersion
+        );
       }
     }
 

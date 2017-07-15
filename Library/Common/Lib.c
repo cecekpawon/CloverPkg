@@ -82,11 +82,20 @@ EFI_UNICODE_COLLATION_PROTOCOL    *mUnicodeCollation = NULL;
 REFIT_VOLUME_GUID       VolumesGUID[256];
 UINTN                   VolumesGUIDCount = 0;
 
+
 BOOLEAN
 MetaiMatch (
   IN CHAR16   *String,
   IN CHAR16   *Pattern
-);
+) {
+  if (!mUnicodeCollation) {
+    // quick fix for driver loading on UEFIs without UnicodeCollation
+    //return FALSE;
+    return TRUE;
+  }
+
+  return mUnicodeCollation->MetaiMatch (mUnicodeCollation, String, Pattern);
+}
 
 /**
  This function converts an input device structure to a Unicode string.
@@ -102,7 +111,7 @@ EFIAPI
 DevicePathToStr (
   IN EFI_DEVICE_PATH_PROTOCOL  *DevPath
 ) {
-  return ConvertDevicePathToText (DevPath, TRUE, TRUE);
+  return ConvertDevicePathToText (DevPath, FALSE, TRUE);
 }
 
 BOOLEAN
@@ -1778,19 +1787,6 @@ MkDir (
 //
 // file name manipulation
 //
-BOOLEAN
-MetaiMatch (
-  IN CHAR16   *String,
-  IN CHAR16   *Pattern
-) {
-  if (!mUnicodeCollation) {
-    // quick fix for driver loading on UEFIs without UnicodeCollation
-    //return FALSE;
-    return TRUE;
-  }
-
-  return mUnicodeCollation->MetaiMatch (mUnicodeCollation, String, Pattern);
-}
 
 EFI_STATUS
 InitializeUnicodeCollationProtocol () {

@@ -14,7 +14,7 @@
 
 ### \#1. Install driver with BCFG
 
-**Start shell and type following commands:**
+**Start shell and type following commands (as needed):**
 
 ```
 # list existing drivers
@@ -30,7 +30,11 @@ Option: 01. Variable: Driver0001
   DevPath - PciRoot(0x0)/Pci(0x1d,0x0)/USB(0x1,0x0)/USB(0x5,0x0)/HD(1,MBR,0x00045ef5,0x1000,0x64000)/\EFI\Ozmosis.efi
   Optional- N
 
-# remove any existing drivers
+# reorder drivers
+
+bcfg driver mv 0 1
+
+# remove existing drivers
 
 bcfg driver rm 0
 ...
@@ -48,9 +52,9 @@ Integrate `99665243-5AED-4D57-92AF-8C785FBC7558.ffs` into your UEFI firmware usi
 
 **Drivers list from Shell**
 ```
-108 00000000 ? N N   0   0 Ozmosis Platform Driver             MemoryMapped(0xb,0xcdc77000,0xce0c6fff)/FvFile(aae65279-0761-41d1-ba13-4a3c1383603f)
+108 00000000 ? N N   0   0 Ozmosis Platform Driver      MemoryMapped(0xb,0xcdc77000,0xce0c6fff)/FvFile(aae65279-0761-41d1-ba13-4a3c1383603f)
 ...
-166 0000000A ? N N   0   0 KernextPatcher (for Darwin)         MemoryMapped(0xb,0xcdc77000,0xce0c6fff)/FvFile(99665243-5aed-4d57-92af-8c785fbc7558)
+166 0000000A ? N N   0   0 KernextPatcher (for Darwin)  MemoryMapped(0xb,0xcdc77000,0xce0c6fff)/FvFile(99665243-5aed-4d57-92af-8c785fbc7558)
 ```
 
 ## Directory structure:
@@ -65,11 +69,12 @@ Integrate `99665243-5AED-4D57-92AF-8C785FBC7558.ffs` into your UEFI firmware usi
 
 ## Preferences:
 
-| Boot argument | Preferences | Description |
-| --- | --- | --- |
-| `-KernextPatcherDbg` | Debug | Advanced logging |
-| `-KernextPatcherLog` | SaveLogToFile | Save log to `\EFI\KernextPatcherLog.txt` |
-| `-KernextPatcherOff` | Off | Disable patcher |
+| Boot argument | Key | Default | Description |
+| --- | --- | --- | --- |
+| `-KernextPatcherDbg` | Debug | FALSE | Advanced logging |
+| `-KernextPatcherLog` | SaveLogToFile | TRUE | Save log to `\EFI\KernextPatcherLog.txt` |
+| `-KernextPatcherOff` | Off | FALSE | Disable patcher |
+|| KernelPatchesWholePrelinked | FALSE | KernelToPatch the whole prelinked / just kernel |
 
 **Sample** of `\EFI\KernextPatcher.plist` ([KextsToPatch & KernelToPatch references](https://github.com/cecekpawon/CloverPkg/wiki/Config)):
 ```xml
@@ -141,6 +146,8 @@ Integrate `99665243-5AED-4D57-92AF-8C785FBC7558.ffs` into your UEFI firmware usi
     <key>SaveLogToFile</key>
     <true/>
     <key>Off</key>
+    <false/>
+    <key>KernelPatchesWholePrelinked</key>
     <false/>
   </dict>
 </dict>

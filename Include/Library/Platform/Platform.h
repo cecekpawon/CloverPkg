@@ -1033,6 +1033,7 @@ typedef struct {
   BOOLEAN                   KextPatchesAllowed;
   BOOLEAN                   KernelPatchesAllowed; //From GUI: Only for user patches, not internal Clover
   BOOLEAN                   BooterPatchesAllowed;
+  BOOLEAN                   KernelPatchesWholePrelinked;
 
   // SysVariables
   CHAR8                     *RtMLB;
