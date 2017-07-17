@@ -870,7 +870,7 @@ BltClearScreen (
   INTN      i, j, x, x1, x2, y, y1, y2,
             BanHeight = ((UGAHeight - LAYOUT_TOTAL_HEIGHT) >> 1) + LAYOUT_BANNER_HEIGHT;
 
-  if (!(GlobalConfig.HideUIFlags & HIDEUI_FLAG_BANNER)) {
+  if (BIT_ISUNSET (GlobalConfig.HideUIFlags, HIDEUI_FLAG_BANNER)) {
     // Banner is used in this theme
     if (!Banner) {
       // Banner is not loaded yet
@@ -923,7 +923,7 @@ BltClearScreen (
 
   if (
     !Banner ||
-    (GlobalConfig.HideUIFlags & HIDEUI_FLAG_BANNER) ||
+    BIT_ISSET (GlobalConfig.HideUIFlags, HIDEUI_FLAG_BANNER) ||
     !IsImageWithinScreenLimits (BannerPlace.XPos, BannerPlace.Width, UGAWidth) ||
     !IsImageWithinScreenLimits (BannerPlace.YPos, BannerPlace.Height, UGAHeight)
   ) {

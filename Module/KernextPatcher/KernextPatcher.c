@@ -12,7 +12,6 @@
 #include <Library/Common/CommonLib.h>
 #include <Library/Common/LoaderUefi.h>
 #include <Library/Common/MemLogLib.h>
-#include <Library/DebugLib.h>
 #include <Library/DevicePathLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/Platform/Plist.h>
@@ -290,6 +289,9 @@ KERNEL_PATCH            *gKernelPatches;
 EFI_PHYSICAL_ADDRESS    gRelocBase = 0;
 CHAR8                   *gOSVersion = NULL, *gBuildVersion = NULL, *gBooterVersion = NULL, *gBooterOSVersion = NULL;
 
+//
+// Preferences
+//
 BOOLEAN                 gPrefSaveLogToFile = TRUE, gPrefOff = FALSE, gPrefDbg = FALSE, gPrefKernelPatchesWholePrelinked  = FALSE;
 
 
@@ -1616,14 +1618,14 @@ KernelUserPatch () {
     MsgLog ("- %a", gKernelPatches[i].Label);
 
     Num = SearchAndReplace (
-      gKernelInfo->Bin,
-      gPrefKernelPatchesWholePrelinked ? gKernelInfo->PrelinkedSize : gKernelInfo->KernelSize,
-      gKernelPatches[i].Data,
-      gKernelPatches[i].DataLen,
-      gKernelPatches[i].Patch,
-      gKernelPatches[i].Wildcard,
-      gKernelPatches[i].Count
-    );
+            gKernelInfo->Bin,
+            gPrefKernelPatchesWholePrelinked ? gKernelInfo->PrelinkedSize : gKernelInfo->KernelSize,
+            gKernelPatches[i].Data,
+            gKernelPatches[i].DataLen,
+            gKernelPatches[i].Patch,
+            gKernelPatches[i].Wildcard,
+            gKernelPatches[i].Count
+          );
 
     if (Num) {
       y++;
@@ -2092,9 +2094,10 @@ KernelAndKextPatcherInit () {
   );
 
   MsgLog ("Cached: %s\n", gKernelInfo->Cached ? L"Yes" : L"No");
-  MsgLog ("%a: End\n", __FUNCTION__);
 
   Finish:
+
+  MsgLog ("%a: End\n", __FUNCTION__);
 
   return (gKernelInfo->A64Bit && gKernelInfo->Cached && (gKernelInfo->Bin != NULL));
 }
@@ -2318,7 +2321,10 @@ ParsePatchesPlist (
       gPrefSaveLogToFile = GetPropertyBool (GetProperty (DictPointer, "SaveLogToFile"), gPrefSaveLogToFile);
       gPrefOff = GetPropertyBool (GetProperty (DictPointer, "Off"), gPrefOff);
       gPrefDbg = GetPropertyBool (GetProperty (DictPointer, "Debug"), gPrefDbg);
-      gPrefKernelPatchesWholePrelinked = GetPropertyBool (GetProperty (DictPointer, "KernelPatchesWholePrelinked"), gPrefKernelPatchesWholePrelinked);
+      gPrefKernelPatchesWholePrelinked = GetPropertyBool (
+                                            GetProperty (DictPointer, "KernelPatchesWholePrelinked"),
+                                            gPrefKernelPatchesWholePrelinked
+                                          );
     }
   }
 }
@@ -2434,7 +2440,15 @@ ScanVolumes () {
 
     DeviceHandle = Handles[HandleIndex];
 
-    if (!EFI_ERROR (gBS->HandleProtocol (DeviceHandle, &gEfiPartTypeSystemPartGuid, &Instance))) {
+    if (
+      !EFI_ERROR (
+        gBS->HandleProtocol (
+          DeviceHandle,
+          &gEfiPartTypeSystemPartGuid,
+          &Instance
+        )
+      )
+    ) {
       Status = FinishInitRefitLib (DeviceHandle);
       if (!EFI_ERROR (Status)) {
         break;
@@ -2483,9 +2497,6 @@ GetVersion (
                 );
 
   if (!EFI_ERROR (Status)) {
-    //
-    // Open the root directory
-    //
     EFI_FILE_HANDLE   RootDir;
 
     Status = Vol->OpenVolume (Vol, &RootDir);
@@ -2496,8 +2507,6 @@ GetVersion (
         CHAR8     *PlistBuffer = NULL;
         UINTN     PlistLen;
         TagPtr    Dict = NULL,  Prop = NULL;
-
-        // found OSX System
 
         Status = LoadFile (RootDir, Plist, (UINT8 **)&PlistBuffer, &PlistLen);
 
@@ -2540,81 +2549,95 @@ GetVersion (
 BOOLEAN
 GetLoadedBooter () {
   EFI_STATUS    Status;
-  UINTN         Index, PIndex, HandleCount, ProtocolCount;
-  EFI_HANDLE    *HandleBuffer, Handle;
-  EFI_GUID      **ProtocolBuffer, *ProtocolID;
-  VOID          *ProtocolInterface;
+  UINTN         Index, HandleCount;
+  EFI_HANDLE    *HandleBuffer;
   BOOLEAN       Ret = FALSE;
 
-  Status = gBS->LocateHandleBuffer (AllHandles, NULL, NULL, &HandleCount, &HandleBuffer);
+  Status = gBS->LocateHandleBuffer (
+                  ByProtocol,
+                  &gEfiLoadedImageProtocolGuid,
+                  NULL,
+                  &HandleCount,
+                  &HandleBuffer
+                );
+
   if (EFI_ERROR (Status)) {
-    Status = EFI_NOT_FOUND;
     return Ret;
   }
 
   for (Index = HandleCount; (Index-- > 0) && !Ret;) {
-    Handle = HandleBuffer[Index];
+    EFI_LOADED_IMAGE_PROTOCOL   *LoadedImage = NULL;
+    EFI_DEVICE_PATH_PROTOCOL    *LoadedImageDevicePath;
+    CHAR16                      *FilePathText;
+    INTN                        Offset;
 
-    //DbgLog ("Handle %02x @ %016x\n", Index, (UINT64)Handle);
+    Status = gBS->OpenProtocol (
+                    HandleBuffer[Index],
+                    &gEfiLoadedImageProtocolGuid,
+                    (VOID **)&LoadedImage,
+                    NULL,
+                    NULL,
+                    EFI_OPEN_PROTOCOL_GET_PROTOCOL
+                  );
 
-    Status = gBS->ProtocolsPerHandle (Handle, &ProtocolBuffer, &ProtocolCount);
-    if (!EFI_ERROR (Status)) {
-      for (PIndex = 0; PIndex < ProtocolCount; PIndex++) {
-        ProtocolID = ProtocolBuffer[PIndex];
+    if (EFI_ERROR (Status)) {
+      continue;
+    }
 
-        if (CompareGuid (ProtocolID, &gEfiLoadedImageProtocolGuid)) {
-          Status = gBS->HandleProtocol (Handle, ProtocolID, &ProtocolInterface);
-          if (!EFI_ERROR (Status)) {
-            EFI_DEVICE_PATH     *DevicePath;
-            EFI_LOADED_IMAGE    *LoadedImage = (EFI_LOADED_IMAGE *)ProtocolInterface;
-            CHAR16              *FilePathText = DevicePathToStr (LoadedImage->FilePath);
-            INTN                Offset;
+    FilePathText = DevicePathToStr (LoadedImage->FilePath);
 
-            if (
-              (StriStr (FilePathText, L"boot.efi") != NULL) ||
-              (StriStr (FilePathText, L"bootbase.efi") != NULL)
-            ) {
-              Offset = FindMem (LoadedImage->ImageBase, LoadedImage->ImageSize, "Mac OS X ", 9);
-              if (Offset >= 0) {
-                Offset += 9;
-                gBooterOSVersion = (CHAR8 *)(LoadedImage->ImageBase) + Offset;
-                if (AsciiStrnCmp (gBooterOSVersion, "10.", 3)) {
-                  gBooterOSVersion = NULL;
-                  continue;
-                }
+    if (
+      (StriStr (FilePathText, L"boot.efi") != NULL) ||
+      (StriStr (FilePathText, L"bootbase.efi") != NULL)
+    ) {
+      Offset = FindMem (LoadedImage->ImageBase, LoadedImage->ImageSize, "Mac OS X ", 9);
+      if (Offset >= 0) {
+        Offset += 9;
 
-                Offset = FindMem (gBooterOSVersion, LoadedImage->ImageSize - Offset, "version:", 8);
-                if (Offset >= 0) {
-                  Offset += 8;
-                  gBooterVersion = gBooterOSVersion + Offset;
-                  if (CountOccurrences (gBooterVersion, '.') < 2) {
-                    gBooterOSVersion = gBooterVersion = NULL;
-                    continue;
-                  }
+        gBooterOSVersion = (CHAR8 *)LoadedImage->ImageBase + Offset;
 
-                  MsgLog ("Found Booter (OS: %a | Ver: %a)\n", gBooterOSVersion, gBooterVersion);
-                  MsgLog ("Booter Path: ");
-                  Status = gBS->HandleProtocol (LoadedImage->DeviceHandle, &gEfiDevicePathProtocolGuid, (VOID **) &DevicePath);
-                  if (!EFI_ERROR (Status)) {
-                    MsgLog ("%s", DevicePathToStr (DevicePath));
-                  }
-                  MsgLog ("%s\n", FilePathText);
+        if (AsciiStrnCmp (gBooterOSVersion, "10.", 3)) {
+          gBooterOSVersion = NULL;
+          continue;
+        }
 
-                  GetVersion (LoadedImage->DeviceHandle, FilePathText);
-                  Ret = TRUE;
-                  break;
-                }
-              }
-            }
+        Offset = FindMem (gBooterOSVersion, LoadedImage->ImageSize - Offset, "version:", 8);
+        if (Offset >= 0) {
+          Offset += 8;
+          gBooterVersion = gBooterOSVersion + Offset;
+
+          if (CountOccurrences (gBooterVersion, '.') < 2) {
+            gBooterOSVersion = gBooterVersion = NULL;
+            continue;
           }
+
+          MsgLog ("Found Booter (OS: %a | Ver: %a)\n", gBooterOSVersion, gBooterVersion);
+          MsgLog ("Booter Path: ");
+
+          Status = gBS->HandleProtocol (
+                      LoadedImage->DeviceHandle,
+                      &gEfiDevicePathProtocolGuid,
+                      (VOID **)&LoadedImageDevicePath
+                    );
+
+          if (!EFI_ERROR (Status)) {
+            MsgLog ("%s", DevicePathToStr (LoadedImageDevicePath));
+          }
+
+          MsgLog ("%s\n", FilePathText);
+
+          GetVersion (LoadedImage->DeviceHandle, FilePathText);
+
+          Ret = TRUE;
+          break;
         }
       }
     }
-
-    FreePool(ProtocolBuffer);
   }
 
-  FreePool (HandleBuffer);
+  if (HandleCount) {
+    FreePool (HandleBuffer);
+  }
 
   return Ret;
 }
@@ -2687,8 +2710,16 @@ KernextPatcherEntrypoint (
   EFI_HANDLE                  KernextPatcherIHandle = NULL;
   EFI_DEVICE_PATH_PROTOCOL    *LoadedImageDevicePath = NULL;
 
-  Status = gBS->LocateProtocol (&gKernextPatcherProtocolGuid, NULL, (VOID **)&KernextPatcherProtocol);
-  if (!EFI_ERROR (Status) && (KernextPatcherProtocol->Signature == KERNEXTPATCHER_SIGNATURE)) {
+  Status = gBS->LocateProtocol (
+                  &gKernextPatcherProtocolGuid,
+                  NULL,
+                  (VOID **)&KernextPatcherProtocol
+                );
+
+  if (
+    !EFI_ERROR (Status) &&
+    (KernextPatcherProtocol->Signature == KERNEXTPATCHER_SIGNATURE)
+  ) {
     return EFI_SUCCESS;
   }
 
@@ -2701,7 +2732,13 @@ KernextPatcherEntrypoint (
 
   KernextPatcherProtocol->Signature = KERNEXTPATCHER_SIGNATURE;
 
-  Status = gBS->InstallProtocolInterface (&KernextPatcherIHandle, &gKernextPatcherProtocolGuid, EFI_NATIVE_INTERFACE, &KernextPatcherProtocol);
+  Status = gBS->InstallProtocolInterface (
+                  &KernextPatcherIHandle,
+                  &gKernextPatcherProtocolGuid,
+                  EFI_NATIVE_INTERFACE,
+                  &KernextPatcherProtocol
+                );
+
   if (EFI_ERROR (Status)) {
     //DbgLog ("%a: error installing KERNEXTPATCHER_PROTOCOL, Status = %r\n", __FUNCTION__, Status);
     return Status;

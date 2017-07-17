@@ -53,6 +53,12 @@
   UefiBootServicesTableLib|MdePkg/Library/UefiBootServicesTableLib/UefiBootServicesTableLib.inf
   UefiLib|MdePkg/Library/UefiLib/UefiLib.inf
   UefiRuntimeServicesTableLib|MdePkg/Library/UefiRuntimeServicesTableLib/UefiRuntimeServicesTableLib.inf
+  !ifdef USB_SUPPORT
+    HiiLib|MdeModulePkg/Library/UefiHiiLib/UefiHiiLib.inf
+    ReportStatusCodeLib|MdePkg/Library/BaseReportStatusCodeLibNull/BaseReportStatusCodeLibNull.inf
+    UefiHiiServicesLib|MdeModulePkg/Library/UefiHiiServicesLib/UefiHiiServicesLib.inf
+    UefiUsbLib|MdePkg/Library/UefiUsbLib/UefiUsbLib.inf
+  !endif
   #
   # Generic Modules
   #
@@ -73,15 +79,6 @@
 
 [Components.X64]
   CloverPkg/Application/Clover/Clover.inf {
-    <Components>
-      # Misc
-      !ifndef EMBED_FSINJECT
-        CloverPkg/Module/FSInject/FSInject.inf
-      !endif
-      !ifndef EMBED_APTIOFIX
-        CloverPkg/Module/OsxAptioFixDrv/OsxAptioFixDrv.inf
-      !endif
-
     <LibraryClasses>
       !ifdef EMBED_FSINJECT
         NULL|CloverPkg/Module/FSInject/FSInject_embed.inf
@@ -95,8 +92,25 @@
     CloverPkg/Module/KernextPatcher/KernextPatcher.inf
   !endif
 
+  !ifndef EMBED_FSINJECT
+    CloverPkg/Module/FSInject/FSInject.inf
+  !endif
+
+  !ifndef EMBED_APTIOFIX
+    CloverPkg/Module/OsxAptioFixDrv/OsxAptioFixDrv.inf
+  !endif
+
   #CloverPkg/Application/bdmesg_efi/bdmesg.inf
   #CloverPkg/Application/Dumpprot/Dumpprot.inf
+
+  !ifdef USB_SUPPORT
+    MdeModulePkg/Bus/Pci/EhciDxe/EhciDxe.inf
+    MdeModulePkg/Bus/Pci/UhciDxe/UhciDxe.inf
+    MdeModulePkg/Bus/Pci/XhciDxe/XhciDxe.inf
+    MdeModulePkg/Bus/Usb/UsbBusDxe/UsbBusDxe.inf
+    MdeModulePkg/Bus/Usb/UsbKbDxe/UsbKbDxe.inf
+    MdeModulePkg/Bus/Usb/UsbMassStorageDxe/UsbMassStorageDxe.inf
+  !endif
 
 [BuildOptions]
   DEFINE BUILD_OPTIONS_GEN = -D DISABLE_NEW_DEPRECATED_INTERFACES $(BUILD_OPTIONS)

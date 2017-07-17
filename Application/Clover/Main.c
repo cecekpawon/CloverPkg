@@ -347,7 +347,7 @@ RefitMain (
 
     if (!gSettings.FastBoot) {
       // fixed other menu entries
-      if (!(GlobalConfig.DisableFlags & HIDEUI_FLAG_TOOLS)) {
+      if (BIT_ISUNSET (GlobalConfig.DisableFlags, HIDEUI_FLAG_TOOLS)) {
         AddCustomTool ();
         if (!gSettings.DisableToolScan) {
           ScanTool ();

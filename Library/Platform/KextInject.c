@@ -249,7 +249,7 @@ LoadKexts (
   //EFI_STATUS      Status;
   UINTN             Index = 0, InjectKextsDirCount = ARRAY_SIZE (InjectKextsDir);
 
-  if ((Entry == 0) || OSFLAG_ISUNSET (Entry->Flags, OSFLAG_WITHKEXTS)) {
+  if ((Entry == 0) || BIT_ISUNSET (Entry->Flags, OSFLAG_WITHKEXTS)) {
     return EFI_NOT_STARTED;
   }
 

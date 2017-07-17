@@ -158,7 +158,7 @@ ScanTool () {
   //Print (L"Scanning for tools...\n");
 
   // look for the EFI shell
-  if (!(GlobalConfig.DisableFlags & HIDEUI_FLAG_SHELL)) {
+  if (BIT_ISUNSET (GlobalConfig.DisableFlags, HIDEUI_FLAG_SHELL)) {
     for (i = 0; i < ShellPathCount; ++i) {
       if (
         AddToolEntry (
@@ -193,12 +193,12 @@ AddCustomTool () {
 
   // Traverse the custom entries
   for (Custom = gSettings.CustomTool; Custom; ++i, Custom = Custom->Next) {
-    if (OSFLAG_ISSET (Custom->Flags, OSFLAG_DISABLED)) {
+    if (BIT_ISSET (Custom->Flags, OSFLAG_DISABLED)) {
       DBG ("Custom tool %d skipped because it is disabled.\n", i);
       continue;
     }
 
-    if (!gSettings.ShowHiddenEntries && OSFLAG_ISSET (Custom->Flags, OSFLAG_HIDDEN)) {
+    if (!gSettings.ShowHiddenEntries && BIT_ISSET (Custom->Flags, OSFLAG_HIDDEN)) {
       DBG ("Custom tool %d skipped because it is hidden.\n", i);
       continue;
     }
@@ -320,7 +320,7 @@ StartTool (
   //SaveBooterLog (SelfRootDir, PREBOOT_LOG);
   ClearScreen (&BlackBackgroundPixel);
   // assumes "Start <title>" as assigned below
-  //BeginExternalScreen (OSFLAG_ISSET (Entry->Flags, OSFLAG_USEGRAPHICS), Entry->me.Title + 6);
+  //BeginExternalScreen (BIT_ISSET (Entry->Flags, OSFLAG_USEGRAPHICS), Entry->me.Title + 6);
 
   //
   // Entry->Flags never set

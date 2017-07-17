@@ -135,7 +135,7 @@ SetColorDepth (
     UINT32  ColorMask = Info->PixelInformation.BlueMask | Info->PixelInformation.GreenMask | Info->PixelInformation.RedMask;
 
     for (i = 0; i < 32; i++, ColorMask >>= 1) {
-      if (ColorMask & 1) {
+      if (BIT_ISSET (ColorMask, 1)) {
         UGAColorDepth += 1;
       }
     }

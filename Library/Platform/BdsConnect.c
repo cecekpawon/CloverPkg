@@ -142,7 +142,7 @@ ScanDeviceHandles (
         if (!EFI_ERROR (Status)) {
           for (OpenInfoIndex = 0; OpenInfoIndex < OpenInfoCount; OpenInfoIndex++) {
             if (OpenInfo[OpenInfoIndex].ControllerHandle == ControllerHandle) {
-              if ((OpenInfo[OpenInfoIndex].Attributes & EFI_OPEN_PROTOCOL_BY_DRIVER) == EFI_OPEN_PROTOCOL_BY_DRIVER) {
+              if (BIT_ISSET (OpenInfo[OpenInfoIndex].Attributes, EFI_OPEN_PROTOCOL_BY_DRIVER)) {
                 for (ChildIndex = 0; ChildIndex < *HandleCount; ChildIndex++) {
                   if ((*HandleBuffer)[ChildIndex] == OpenInfo[OpenInfoIndex].AgentHandle) {
                     (*HandleType)[ChildIndex] |= EFI_HANDLE_TYPE_DEVICE_DRIVER;
@@ -150,7 +150,7 @@ ScanDeviceHandles (
                 }
               }
 
-              if ((OpenInfo[OpenInfoIndex].Attributes & EFI_OPEN_PROTOCOL_BY_CHILD_CONTROLLER) == EFI_OPEN_PROTOCOL_BY_CHILD_CONTROLLER) {
+              if (BIT_ISSET (OpenInfo[OpenInfoIndex].Attributes, EFI_OPEN_PROTOCOL_BY_CHILD_CONTROLLER)) {
                 (*HandleType)[HandleIndex] |= EFI_HANDLE_TYPE_PARENT_HANDLE;
                 for (ChildIndex = 0; ChildIndex < *HandleCount; ChildIndex++) {
                   if ((*HandleBuffer)[ChildIndex] == OpenInfo[OpenInfoIndex].AgentHandle) {
@@ -212,11 +212,11 @@ BdsLibConnectMostlyAllEfi () {
 
     Device = TRUE;
 
-    if (HandleType[Index] & EFI_HANDLE_TYPE_DRIVER_BINDING_HANDLE) {
+    if (BIT_ISSET (HandleType[Index], EFI_HANDLE_TYPE_DRIVER_BINDING_HANDLE)) {
       Device = FALSE;
     }
 
-    if (HandleType[Index] & EFI_HANDLE_TYPE_IMAGE_HANDLE) {
+    if (BIT_ISSET (HandleType[Index], EFI_HANDLE_TYPE_IMAGE_HANDLE)) {
       Device = FALSE;
     }
 
@@ -224,13 +224,13 @@ BdsLibConnectMostlyAllEfi () {
       Parent = FALSE;
 
       for (HandleIndex = 0; HandleIndex < HandleCount; HandleIndex++) {
-        if (HandleType[HandleIndex] & EFI_HANDLE_TYPE_PARENT_HANDLE) {
+        if (BIT_ISSET (HandleType[HandleIndex], EFI_HANDLE_TYPE_PARENT_HANDLE)) {
           Parent = TRUE;
         }
       }
 
       if (!Parent) {
-        if (HandleType[Index] & EFI_HANDLE_TYPE_DEVICE_HANDLE) {
+        if (BIT_ISSET (HandleType[Index], EFI_HANDLE_TYPE_DEVICE_HANDLE)) {
           Status = gBS->HandleProtocol (AllHandleBuffer[Index], &gEfiPciIoProtocolGuid, (VOID *)&PciIo);
           if (!EFI_ERROR (Status)) {
             Status = PciIo->Pci.Read (PciIo,EfiPciIoWidthUint32, 0, sizeof (Pci) / sizeof (UINT32), &Pci);

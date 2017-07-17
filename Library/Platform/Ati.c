@@ -521,7 +521,7 @@ DevpropAddList (
   ATI_VAL   *Val = AllocateZeroPool (sizeof (ATI_VAL));
 
   for (i = 0; DevPropList[i].name != NULL; i++) {
-    if ((DevPropList[i].flags == FLAGTRUE) || (DevPropList[i].flags & Card->flags)) {
+    if ((DevPropList[i].flags == FLAGTRUE) || BIT_ISSET (DevPropList[i].flags, Card->flags)) {
       if (DevPropList[i].get_value && DevPropList[i].get_value (Val, 0)) {
         DevpropAddValue (Card->device, DevPropList[i].name, Val->data, Val->size);
         FreeVal (Val);
@@ -711,7 +711,7 @@ BOOLEAN
 RadeonCardPosted () {
   UINT32  Reg = REG32 (Card->mmio, RADEON_CRTC_GEN_CNTL) | REG32 (Card->mmio, RADEON_CRTC2_GEN_CNTL);
 
-  if (Reg & RADEON_CRTC_EN) {
+  if (BIT_ISSET (Reg, RADEON_CRTC_EN)) {
     return TRUE;
   }
 

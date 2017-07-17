@@ -156,7 +156,7 @@ GetCPUProperties () {
 
   //Calculate Nr of Cores
   gCPUStructure.LogicalPerPackage = 1;
-  if (gCPUStructure.Features & CPUID_FEATURE_HTT) {
+  if (BIT_ISSET (gCPUStructure.Features, CPUID_FEATURE_HTT)) {
     gCPUStructure.LogicalPerPackage = (UINT32)bitfield (gCPUStructure.CPUID[CPUID_1][EBX], 23, 16); //Atom330 = 4
   }
 
@@ -289,7 +289,7 @@ GetCPUProperties () {
         //----test C3 patch
         Msr = AsmReadMsr64 (MSR_PKG_CST_CONFIG_CONTROL); //0xE2
         DBG ("MSR 0xE2: %08x (before patch)\n", Msr);
-        if (Msr & 0x8000) {
+        if (BIT_ISSET (Msr, 0x8000)) {
           DBG (" - is locked, PM patches will be turned on\n");
           NeedPMfix = TRUE;
         }

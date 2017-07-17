@@ -151,7 +151,7 @@ AddListElement (
 ) {
   UINTN   AllocateCount;
 
-  if ((*ElementCount & MAX_ELEMENT_COUNT) == 0) {
+  if (BIT_ISUNSET (*ElementCount, MAX_ELEMENT_COUNT)) {
       AllocateCount = *ElementCount + MAX_ELEMENT_COUNT + 1;
     if (*ElementCount == 0) {
       *ListPtr = AllocatePool (sizeof (VOID *) * AllocateCount);
@@ -1428,7 +1428,7 @@ DeleteFile (
 
     //DBG (" FileInfo attr: %x\n", FileInfo->Attribute);
 
-    if ((FileInfo->Attribute & EFI_FILE_DIRECTORY) == EFI_FILE_DIRECTORY) {
+    if (BIT_ISSET (FileInfo->Attribute, EFI_FILE_DIRECTORY)) {
       // it's directory - return error
       //DBG (" File is DIR\n");
       FreePool (FileInfo);
@@ -1509,11 +1509,11 @@ DirNextEntry (
     if (*DirEntry) {
       // filter results
       if (FilterMode == 1) {    // only return directories
-        if (((*DirEntry)->Attribute & EFI_FILE_DIRECTORY)) {
+        if (BIT_ISSET ((*DirEntry)->Attribute, EFI_FILE_DIRECTORY)) {
           break;
         }
       } else if (FilterMode == 2) {   // only return files
-        if (((*DirEntry)->Attribute & EFI_FILE_DIRECTORY) == 0) {
+        if (BIT_ISUNSET ((*DirEntry)->Attribute, EFI_FILE_DIRECTORY)) {
           break;
         }
       } else {  // no filter or unknown filter -> return everything
@@ -1568,7 +1568,7 @@ DirIterNext (
     }
 
     if (FilePattern != NULL) {
-      if ((DirIter->LastFileInfo->Attribute & EFI_FILE_DIRECTORY)) {
+      if (BIT_ISSET (DirIter->LastFileInfo->Attribute, EFI_FILE_DIRECTORY)) {
         break;
       }
 

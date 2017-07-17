@@ -84,17 +84,17 @@ Headers collection for procedures
 #define WRITEREG32(base, reg, value)  REG32 ((base), (reg)) = value
 
 #define MEDIA_VALID(kind, type) (\
-          ((kind == DISK_KIND_OPTICAL) && (type & VOLTYPE_OPTICAL)) ||\
-          ((kind == DISK_KIND_EXTERNAL) && (type & VOLTYPE_EXTERNAL)) ||\
-          ((kind == DISK_KIND_INTERNAL) && (type & VOLTYPE_INTERNAL)) ||\
-          ((kind == DISK_KIND_FIREWIRE) && (type & VOLTYPE_FIREWIRE))\
+          ((kind == DISK_KIND_OPTICAL)  && BIT_ISSET (type, VOLTYPE_OPTICAL)) ||\
+          ((kind == DISK_KIND_EXTERNAL) && BIT_ISSET (type, VOLTYPE_EXTERNAL)) ||\
+          ((kind == DISK_KIND_INTERNAL) && BIT_ISSET (type, VOLTYPE_INTERNAL)) ||\
+          ((kind == DISK_KIND_FIREWIRE) && BIT_ISSET (type, VOLTYPE_FIREWIRE))\
         )
 
 #define MEDIA_INVALID(kind, type) (\
-          ((kind == DISK_KIND_OPTICAL) && ((type & VOLTYPE_OPTICAL) == 0)) ||\
-          ((kind == DISK_KIND_EXTERNAL) && ((type & VOLTYPE_EXTERNAL) == 0)) ||\
-          ((kind == DISK_KIND_INTERNAL) && ((type & VOLTYPE_INTERNAL) == 0)) ||\
-          ((kind == DISK_KIND_FIREWIRE) && ((type & VOLTYPE_FIREWIRE) == 0))\
+          ((kind == DISK_KIND_OPTICAL)  && BIT_ISUNSET (type, VOLTYPE_OPTICAL)) ||\
+          ((kind == DISK_KIND_EXTERNAL) && BIT_ISUNSET (type, VOLTYPE_EXTERNAL)) ||\
+          ((kind == DISK_KIND_INTERNAL) && BIT_ISUNSET (type, VOLTYPE_INTERNAL)) ||\
+          ((kind == DISK_KIND_FIREWIRE) && BIT_ISUNSET (type, VOLTYPE_FIREWIRE))\
         )
 
 //UINT64 AsciiStrVersionToUint64 (CONST CHAR8 *Version, UINT8 MaxDigitByPart, UINT8 MaxParts);

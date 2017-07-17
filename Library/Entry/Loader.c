@@ -70,6 +70,9 @@ CHAR16  *SupportedOsType[3] = { OSTYPE_DARWIN_STR, OSTYPE_LINUX_STR, OSTYPE_WIND
 #define DARWIN_RECOVERY_LOADER_PATH         DARWIN_RECOVERY_PATH DARWIN_BOOT_EFI
 #define DARWIN_INSTALLER_LOADER_PATH        DARWIN_INSTALLER_PATH DARWIN_BOOT_EFI
 
+#define DARWIN_FIRMWARE_VENDOR              L"Apple"
+#define DARWIN_FIRMWARE_REVISION            0x00010000
+
 #define DARWIN_MACH_KERNEL_PATH             L"/mach_kernel"
 #define DARWIN_KERNEL_PATH                  L"/System/Library/Kernels/kernel"
 
@@ -738,8 +741,8 @@ CreateLoaderEntry (
     while (Custom) {
       // Check if the custom entry is hidden or disabled
       if (
-        (OSFLAG_ISSET (Custom->Flags, OSFLAG_DISABLED) ||
-        (OSFLAG_ISSET (Custom->Flags, OSFLAG_HIDDEN) && !gSettings.ShowHiddenEntries))
+        (BIT_ISSET (Custom->Flags, OSFLAG_DISABLED) ||
+        (BIT_ISSET (Custom->Flags, OSFLAG_HIDDEN) && !gSettings.ShowHiddenEntries))
       ) {
         INTN  VolumeMatch = 0, VolumeTypeMatch = 0, PathMatch = 0, TypeMatch = 0;
 
@@ -844,13 +847,13 @@ CreateLoaderEntry (
   Entry->VolName            = Volume->VolName;
   Entry->DevicePath         = LoaderDevicePath;
   Entry->DevicePathString   = LoaderDevicePathString;
-  Entry->Flags              = OSFLAG_SET (Flags, OSFLAG_USEGRAPHICS);
+  Entry->Flags              = BIT_SET (Flags, OSFLAG_USEGRAPHICS);
 
   if (LoaderOptions) {
-    Entry->LoadOptions      = OSFLAG_ISSET (Flags, OSFLAG_NODEFAULTARGS)
+    Entry->LoadOptions      = BIT_ISSET (Flags, OSFLAG_NODEFAULTARGS)
                                 ? EfiStrDuplicate (LoaderOptions)
                                 : PoolPrint (L"%a %s", gSettings.BootArgs, LoaderOptions);
-  } else if ((AsciiStrLen (gSettings.BootArgs) > 0) && OSFLAG_ISUNSET (Flags, OSFLAG_NODEFAULTARGS)) {
+  } else if ((AsciiStrLen (gSettings.BootArgs) > 0) && BIT_ISUNSET (Flags, OSFLAG_NODEFAULTARGS)) {
     Entry->LoadOptions      = PoolPrint (L"%a", gSettings.BootArgs);
   }
 
@@ -881,7 +884,7 @@ CreateLoaderEntry (
       }
 
       if ((OSType == OSTYPE_DARWIN) && IsDarwinHibernated (Volume)) {
-        Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_HIBERNATED);
+        Entry->Flags = BIT_SET (Entry->Flags, OSFLAG_HIBERNATED);
       }
 
       ShortcutLetter = 'M';
@@ -946,7 +949,7 @@ CreateLoaderEntry (
   //DBG ("Entry->me.Title =%s\n", Entry->me.Title);
   // just an example that UI can show hibernated volume to the user
   // should be better to show it on entry image
-  if (OSFLAG_ISSET (Entry->Flags, OSFLAG_HIBERNATED)) {
+  if (BIT_ISSET (Entry->Flags, OSFLAG_HIBERNATED)) {
     Entry->me.Title = PoolPrint (L"%s (hibernated)", Entry->me.Title);
   }
 
@@ -966,8 +969,8 @@ CreateLoaderEntry (
     Entry->me.Image = Image ? Image : ImageTmp;
 
     // DBG ("HideBadges=%d Volume=%s ", GlobalConfig.HideBadges, Volume->VolName);
-    if (GlobalConfig.HideBadges & HDBADGES_SHOW) {
-      if (GlobalConfig.HideBadges & HDBADGES_SWAP) {
+    if (BIT_ISSET (GlobalConfig.HideBadges, HDBADGES_SHOW)) {
+      if (BIT_ISSET (GlobalConfig.HideBadges, HDBADGES_SWAP)) {
         Entry->me.BadgeImage = CopyScaledImage (Entry->me.DriveImage, GlobalConfig.BadgeScale);
         // DBG (" Show badge as Drive.");
       } else {
@@ -1466,12 +1469,12 @@ AddCustomEntry (
     return;
   }
 
-  if (OSFLAG_ISSET (Custom->Flags, OSFLAG_DISABLED)) {
+  if (BIT_ISSET (Custom->Flags, OSFLAG_DISABLED)) {
     DBG ("Skip custom %sentry %d, disabled.\n", IsSubEntry ? L"sub " : L"", CustomIndex);
     return;
   }
 
-  if (!gSettings.ShowHiddenEntries && OSFLAG_ISSET (Custom->Flags, OSFLAG_HIDDEN)) {
+  if (!gSettings.ShowHiddenEntries && BIT_ISSET (Custom->Flags, OSFLAG_HIDDEN)) {
     DBG ("Skip custom %sentry %d, hidden.\n", IsSubEntry ? L"sub " : L"", CustomIndex);
     return;
   }
@@ -1668,7 +1671,7 @@ AddCustomEntry (
       }
 
       // Check to make sure we should update custom options or not
-      if (FindCustomPath && OSFLAG_ISUNSET (Custom->Flags, OSFLAG_NODEFAULTARGS)) {
+      if (FindCustomPath && BIT_ISUNSET (Custom->Flags, OSFLAG_NODEFAULTARGS)) {
         // Find the init ram image and select root
         CustomOptions = LinuxKernelOptions (
                           Iter->DirHandle,
@@ -1829,7 +1832,7 @@ AddCustomEntry (
           Entry->me.ImageHover = ImageHover;
         }
 
-        if (OSFLAG_ISUNSET (Custom->Flags, OSFLAG_NODEFAULTMENU)) {
+        if (BIT_ISUNSET (Custom->Flags, OSFLAG_NODEFAULTMENU)) {
           AddDefaultMenu (Entry);
         } else if (Custom->SubEntries != NULL) {
           UINTN               CustomSubIndex = 0;
@@ -2461,9 +2464,12 @@ StartLoader (
   if (OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType)) {
     CHAR8   *BooterOSVersion = NULL, *BooterVersion = NULL;
 
-    gSettings.BooterPatchesAllowed = OSFLAG_ISSET (Entry->Flags, OSFLAG_ALLOW_BOOTER_PATCHES);
-    gSettings.KextPatchesAllowed = OSFLAG_ISSET (Entry->Flags, OSFLAG_ALLOW_KEXT_PATCHES);
-    gSettings.KernelPatchesAllowed = OSFLAG_ISSET (Entry->Flags, OSFLAG_ALLOW_KERNEL_PATCHES);
+    gST->FirmwareVendor = EfiStrDuplicate (DARWIN_FIRMWARE_VENDOR);
+    gST->FirmwareRevision = DARWIN_FIRMWARE_REVISION;
+
+    gSettings.BooterPatchesAllowed = BIT_ISSET (Entry->Flags, OSFLAG_ALLOW_BOOTER_PATCHES);
+    gSettings.KextPatchesAllowed = BIT_ISSET (Entry->Flags, OSFLAG_ALLOW_KEXT_PATCHES);
+    gSettings.KernelPatchesAllowed = BIT_ISSET (Entry->Flags, OSFLAG_ALLOW_KERNEL_PATCHES);
 
     Status = gBS->HandleProtocol (
                     ImageHandle,
@@ -2557,7 +2563,7 @@ StartLoader (
     //    (Entry->OSVersionMinor > DARWIN_OS_VER_MINOR_ELCAPITAN)
     //  )
     //) {
-      if (OSFLAG_ISSET (Entry->Flags, OSFLAG_NOSIP)) {
+      if (BIT_ISSET (Entry->Flags, OSFLAG_NOSIP)) {
         gSettings.CsrActiveConfig = (UINT32)DEF_NOSIP_CSR_ACTIVE_CONFIG;
         gSettings.BooterConfig = (UINT16)DEF_NOSIP_BOOTER_CONFIG;
       }
@@ -2571,7 +2577,7 @@ StartLoader (
 
     // Set boot argument for kernel if no caches, this should force kernel loading
     if (
-      OSFLAG_ISSET (Entry->Flags, OSFLAG_NOCACHES) &&
+      BIT_ISSET (Entry->Flags, OSFLAG_NOCACHES) &&
       !BootArgsExists (Entry->LoadOptions, L"Kernel=")
     ) {
       CHAR16  *TempOptions = AddLoadOption (
@@ -2599,24 +2605,24 @@ StartLoader (
     // If KPDebug is true boot in verbose mode to see the debug messages
     // Also: -x | -s
     if (
-      OSFLAG_ISSET (Entry->Flags, OPT_SINGLE_USER) ||
-      OSFLAG_ISSET (Entry->Flags, OPT_SAFE) ||
+      BIT_ISSET (Entry->Flags, OPT_SINGLE_USER) ||
+      BIT_ISSET (Entry->Flags, OPT_SAFE) ||
       (
         (Entry->KernelAndKextPatches != NULL) &&
         (
           Entry->KernelAndKextPatches->KPDebug ||
           gSettings.DebugKP ||
-          OSFLAG_ISSET (Entry->Flags, OSFLAG_DBGPATCHES)
+          BIT_ISSET (Entry->Flags, OSFLAG_DBGPATCHES)
         )
       )
     ) {
-      Entry->Flags = OSFLAG_SET (Entry->Flags, OPT_VERBOSE);
+      Entry->Flags = BIT_SET (Entry->Flags, OPT_VERBOSE);
     }
 
-    Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_USEGRAPHICS);
-    UseGraphicsMode = OSFLAG_ISUNSET (Entry->Flags, OPT_VERBOSE);
+    Entry->Flags = BIT_SET (Entry->Flags, OSFLAG_USEGRAPHICS);
+    UseGraphicsMode = BIT_ISUNSET (Entry->Flags, OPT_VERBOSE);
     if (!UseGraphicsMode) {
-      Entry->Flags = OSFLAG_UNSET (Entry->Flags, OSFLAG_USEGRAPHICS);
+      Entry->Flags = BIT_UNSET (Entry->Flags, OSFLAG_USEGRAPHICS);
     }
 
     //DbgHeader ("RestSetupOSX");
@@ -2638,7 +2644,7 @@ StartLoader (
 
     SetCPUProperties ();
 
-    if (OSFLAG_ISSET (Entry->Flags, OSFLAG_HIBERNATED)) {
+    if (BIT_ISSET (Entry->Flags, OSFLAG_HIBERNATED)) {
       gDoHibernateWake = PrepareHibernation (Entry->Volume);
     }
 
@@ -2781,7 +2787,7 @@ SetFSInjection (
 
   //DbgHeader ("FSInjection");
 
-  if (OSFLAG_ISSET (Entry->Flags, OSFLAG_WITHKEXTS)) {
+  if (BIT_ISSET (Entry->Flags, OSFLAG_WITHKEXTS)) {
     InjectKextsDir[0] = GetCommonKextsDir (DIR_KEXTS_COMMON);
     //InjectKextsDir[1] = GetCommonKextsDir (DIR_KEXTS_COMMON_SLAVE); // Slave
     InjectKextsDir[1] = GetOSVersionKextsDir (Entry->OSVersion);
@@ -2789,7 +2795,7 @@ SetFSInjection (
 
   //check if blocking of caches is needed
   if (
-    !OSFLAG_ISSET (Entry->Flags, OSFLAG_NOCACHES) &&
+    !BIT_ISSET (Entry->Flags, OSFLAG_NOCACHES) &&
     !Entry->KernelAndKextPatches->NrForceKexts &&
     (Entry->KernelAndKextPatches->KPATIConnectorsController == NULL)
   ) {
@@ -2823,7 +2829,7 @@ SetFSInjection (
 
   // check if kext injection is needed
   // (will be done only if caches are blocked or if boot.efi refuses to load kernelcache)
-  if (OSFLAG_ISSET (Entry->Flags, OSFLAG_WITHKEXTS)) {
+  if (BIT_ISSET (Entry->Flags, OSFLAG_WITHKEXTS)) {
     for (Index = 0; Index < InjectKextsDirCount; Index++) {
       if (InjectKextsDir[Index] != NULL) {
         Status = FSInject->Install (
@@ -2867,23 +2873,23 @@ ReadCsrCfg () {
   CHAR16    *csrLog = AllocateZeroPool (Len);
 
   if (gSettings.CsrActiveConfig != 0xFFFF) {
-    if (csrCfg & CSR_ALLOW_UNTRUSTED_KEXTS)
+    if (BIT_ISSET (csrCfg, CSR_ALLOW_UNTRUSTED_KEXTS))
       StrCatS (csrLog, Len, L"CSR_ALLOW_UNTRUSTED_KEXTS");
-    if (csrCfg & CSR_ALLOW_UNRESTRICTED_FS)
+    if (BIT_ISSET (csrCfg, CSR_ALLOW_UNRESTRICTED_FS))
       StrCatS (csrLog, Len, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_UNRESTRICTED_FS"));
-    if (csrCfg & CSR_ALLOW_TASK_FOR_PID)
+    if (BIT_ISSET (csrCfg, CSR_ALLOW_TASK_FOR_PID))
       StrCatS (csrLog, Len, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_TASK_FOR_PID"));
-    if (csrCfg & CSR_ALLOW_KERNEL_DEBUGGER)
+    if (BIT_ISSET (csrCfg, CSR_ALLOW_KERNEL_DEBUGGER))
       StrCatS (csrLog, Len, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_KERNEL_DEBUGGER"));
-    if (csrCfg & CSR_ALLOW_APPLE_INTERNAL)
+    if (BIT_ISSET (csrCfg, CSR_ALLOW_APPLE_INTERNAL))
       StrCatS (csrLog, Len, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_APPLE_INTERNAL"));
-    if (csrCfg & CSR_ALLOW_UNRESTRICTED_DTRACE)
+    if (BIT_ISSET (csrCfg, CSR_ALLOW_UNRESTRICTED_DTRACE))
       StrCatS (csrLog, Len, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_UNRESTRICTED_DTRACE"));
-    if (csrCfg & CSR_ALLOW_UNRESTRICTED_NVRAM)
+    if (BIT_ISSET (csrCfg, CSR_ALLOW_UNRESTRICTED_NVRAM))
       StrCatS (csrLog, Len, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_UNRESTRICTED_NVRAM"));
-    if (csrCfg & CSR_ALLOW_DEVICE_CONFIGURATION)
+    if (BIT_ISSET (csrCfg, CSR_ALLOW_DEVICE_CONFIGURATION))
       StrCatS (csrLog, Len, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_DEVICE_CONFIGURATION"));
-    if (csrCfg & CSR_ALLOW_ANY_RECOVERY_OS)
+    if (BIT_ISSET (csrCfg, CSR_ALLOW_ANY_RECOVERY_OS))
       StrCatS (csrLog, Len, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_ANY_RECOVERY_OS"));
   } else {
     StrCpyS (csrLog, Len, L"NONE (SIP are fully enabled)");

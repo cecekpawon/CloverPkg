@@ -135,6 +135,8 @@ GetNvramVariable (
   //
   UINTN   IntDataSize = 0;
 
+  *DataSize = 0;
+
   Status = gRT->GetVariable (VariableName, VendorGuid, Attributes, &IntDataSize, NULL);
   if (IntDataSize == 0) {
     return NULL;
@@ -144,7 +146,7 @@ GetNvramVariable (
     //
     // Allocate the buffer to return
     //
-    Data = AllocateZeroPool (IntDataSize/* + 1*/);
+    Data = AllocateZeroPool (IntDataSize + 1);
     if (Data != NULL) {
       //
       // Read variable into the allocated buffer.
@@ -936,7 +938,7 @@ SyncBootArgsFromNvram () {
 
   TmpString = GetNvramVariable (L"boot-args", &gEfiAppleBootGuid, NULL, &iNVRAM);
 
-  if (!TmpString || !iNVRAM || ((iNVRAM = AsciiStrLen (TmpString)) == 0)) {
+  if (!iNVRAM || !TmpString || ((iNVRAM = AsciiStrLen (TmpString)) == 0)) {
     return;
   }
 
@@ -945,10 +947,9 @@ SyncBootArgsFromNvram () {
 
   CONSTRAIN_MAX (iNVRAM, AVALUE_MAX_SIZE - 1 - iBootArgs);
 
-  Arg = AllocateZeroPool (iNVRAM);
+  Arg = AllocateZeroPool (iNVRAM + 1);
 
   while ((Index < iNVRAM) && (TmpString[Index] != 0x0)) {
-    ZeroMem (Arg, iNVRAM + 1);
     Index2 = 0;
 
     if (TmpString[Index] != 0x22) {
@@ -957,7 +958,7 @@ SyncBootArgsFromNvram () {
         Arg[Index2++] = TmpString[Index++];
       }
 
-      DBG ("...found arg:%a\n", Arg);
+      DBG ("...found arg: %a\n", Arg);
     } else {
       Index++;
       //DBG ("search quote Index=%d\n", Index);
@@ -993,7 +994,7 @@ SyncBootArgsFromNvram () {
 
       gSettings.BootArgs[Len++] = 0x20;
 
-      for (i = 0; i < Index2; i++) {
+      for (i = 0; ((i < Index2) && (Arg[i] != 0x0)); i++) {
         gSettings.BootArgs[Len++] = Arg[i];
       }
 

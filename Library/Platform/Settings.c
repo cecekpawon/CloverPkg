@@ -677,7 +677,7 @@ FillinCustomEntry (
         }
 
         Entry->Options = PoolPrint (L"%a", Prop->string);
-        Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_NODEFAULTARGS);
+        Entry->Flags = BIT_SET (Entry->Flags, OSFLAG_NODEFAULTARGS);
       }
     }
 
@@ -801,18 +801,18 @@ FillinCustomEntry (
     // - No (show the entry)
     // - Yes (hide the entry but can be show with F3)
     // - Always (always hide the entry)
-    Entry->Flags = OSFLAG_UNSET (Entry->Flags, (OSFLAG_DISABLED + OSFLAG_HIDDEN));
+    Entry->Flags = BIT_UNSET (Entry->Flags, (OSFLAG_DISABLED + OSFLAG_HIDDEN));
     Prop = GetProperty (DictPointer, "Hidden");
     if (Prop != NULL) {
       if (
         (Prop->type == kTagTypeString) &&
         (AsciiStriCmp (Prop->string, "Always") == 0)
       ) {
-        Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_DISABLED);
+        Entry->Flags = BIT_SET (Entry->Flags, OSFLAG_DISABLED);
       } else if (GetPropertyBool (Prop, FALSE)) {
-        Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_HIDDEN);
+        Entry->Flags = BIT_SET (Entry->Flags, OSFLAG_HIDDEN);
       } else {
-        Entry->Flags = OSFLAG_UNSET (Entry->Flags, OSFLAG_HIDDEN);
+        Entry->Flags = BIT_UNSET (Entry->Flags, OSFLAG_HIDDEN);
       }
     }
 
@@ -870,32 +870,32 @@ FillinCustomEntry (
     // OS Specific flags
     if (OSTYPE_IS_DARWIN_GLOB (Entry->Type)) {
       // InjectKexts default values
-      Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_WITHKEXTS);
+      Entry->Flags = BIT_SET (Entry->Flags, OSFLAG_WITHKEXTS);
 
       Prop = GetProperty (DictPointer, "InjectKexts");
       if (Prop != NULL) {
         if (GetPropertyBool (Prop, TRUE)) {
-          Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_WITHKEXTS);
+          Entry->Flags = BIT_SET (Entry->Flags, OSFLAG_WITHKEXTS);
         } else if (
           (Prop->type == kTagTypeString) &&
           (AsciiStriCmp (Prop->string, "Detect") == 0)
         ) {
-          Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_WITHKEXTS);
+          Entry->Flags = BIT_SET (Entry->Flags, OSFLAG_WITHKEXTS);
         } else {
           DBG ("** Warning: unknown custom entry InjectKexts value '%a'\n", Prop->string);
         }
       } else {
         // Use global settings
         if (gSettings.WithKexts) {
-          Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_WITHKEXTS);
+          Entry->Flags = BIT_SET (Entry->Flags, OSFLAG_WITHKEXTS);
         }
       }
 
       // NoCaches default value
-      Entry->Flags = OSFLAG_UNSET (Entry->Flags, OSFLAG_NOCACHES);
+      Entry->Flags = BIT_UNSET (Entry->Flags, OSFLAG_NOCACHES);
 
       if (GetPropertyBool (GetProperty (DictPointer, "NoCaches"), FALSE) || gSettings.NoCaches) {
-        Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_NOCACHES);
+        Entry->Flags = BIT_SET (Entry->Flags, OSFLAG_NOCACHES);
       }
 
       // KernelAndKextPatches
@@ -912,13 +912,13 @@ FillinCustomEntry (
     Prop = GetProperty (DictPointer, "SubEntries");
     if (Prop != NULL) {
       if (Prop->type == kTagTypeFalse) {
-        Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_NODEFAULTMENU);
+        Entry->Flags = BIT_SET (Entry->Flags, OSFLAG_NODEFAULTMENU);
       } else if (Prop->type != kTagTypeTrue) {
         CUSTOM_LOADER_ENTRY   *CustomSubEntry;
         INTN                  i, Count = Prop->size;
         TagPtr                Dict = NULL;
 
-        Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_NODEFAULTMENU);
+        Entry->Flags = BIT_SET (Entry->Flags, OSFLAG_NODEFAULTMENU);
 
         if (Count > 0) {
           for (i = 0; i < Count; i++) {
@@ -1081,18 +1081,18 @@ FillinCustomTool (
     // - No (show the entry)
     // - Yes (hide the entry but can be show with F3)
     // - Always (always hide the entry)
-    Entry->Flags = OSFLAG_UNSET (Entry->Flags, (OSFLAG_DISABLED + OSFLAG_HIDDEN));
+    Entry->Flags = BIT_UNSET (Entry->Flags, (OSFLAG_DISABLED + OSFLAG_HIDDEN));
     Prop = GetProperty (DictPointer, "Hidden");
     if (Prop != NULL) {
       if (
         (Prop->type == kTagTypeString) &&
         (AsciiStriCmp (Prop->string, "Always") == 0)
       ) {
-        Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_DISABLED);
+        Entry->Flags = BIT_SET (Entry->Flags, OSFLAG_DISABLED);
       } else if (GetPropertyBool (Prop, FALSE)) {
-        Entry->Flags = OSFLAG_SET (Entry->Flags, OSFLAG_HIDDEN);
+        Entry->Flags = BIT_SET (Entry->Flags, OSFLAG_HIDDEN);
       } else {
-        Entry->Flags = OSFLAG_UNSET (Entry->Flags, OSFLAG_HIDDEN);
+        Entry->Flags = BIT_UNSET (Entry->Flags, OSFLAG_HIDDEN);
       }
     }
     Ret = TRUE;
@@ -1233,8 +1233,8 @@ FillinKextPatches (
     gSettings.DebugKP = Patches->KPDebug = GetPropertyBool (GetProperty (DictPointer, "Debug"), FALSE);
 
     gSettings.FlagsBits = Patches->KPDebug
-      ? OSFLAG_SET (gSettings.FlagsBits, OSFLAG_DBGPATCHES)
-      : OSFLAG_UNSET (gSettings.FlagsBits, OSFLAG_DBGPATCHES);
+      ? BIT_SET (gSettings.FlagsBits, OSFLAG_DBGPATCHES)
+      : BIT_UNSET (gSettings.FlagsBits, OSFLAG_DBGPATCHES);
 
     //Patches->KPKernelCpu = GetPropertyBool (GetProperty (DictPointer, "KernelCpu"));
 
@@ -2124,7 +2124,7 @@ GetThemeTagSettings (
       GlobalConfig.HideUIFlags |= HIDEUI_FLAG_FUNCS;
     }
 
-    if (!(GlobalConfig.HideUIFlags & HIDEUI_FLAG_FUNCS)) {
+    if (BIT_ISUNSET (GlobalConfig.HideUIFlags, HIDEUI_FLAG_FUNCS)) {
       if (!GetPropertyBool (GetProperty (Dict, "Help"), TRUE)) {
         GlobalConfig.HideUIFlags |= HIDEUI_FLAG_HELP;
       }
@@ -2234,7 +2234,7 @@ GetThemeTagSettings (
 
     Dict2 = GetProperty (Dict, "CharWidth");
     GlobalConfig.CharWidth = GetPropertyInteger (Dict2, DefaultConfig.CharWidth);
-    //if (GlobalConfig.CharWidth & 1) {
+    //if (BIT_ISSET (GlobalConfig.CharWidth, 1)) {
     //  MsgLog ("Warning! Character width %d should be even!\n", GlobalConfig.CharWidth);
     //  GlobalConfig.CharWidth++;
     //}
@@ -3854,7 +3854,7 @@ ParseACPISettings (
 
     Dict = GetProperty (DictPointer, "SSDT");
     if (Dict) {
-      Prop2 = GetProperty (Dict, "Generate");
+      Prop2 = GetProperty (Dict, "GenerateCPUStates");
       if (Prop2 != NULL) {
         if (GetPropertyBool (Prop2, FALSE)) {
           gSettings.GeneratePStates = TRUE;
@@ -4571,7 +4571,7 @@ SetDevices (
         (SlotDevices[i].PCIDevice.class_code[1] == PCI_CLASS_NETWORK_ETHERNET)
       ) {
         //MsgLog ("Ethernet device found\n");
-        if (!(gSettings.FixDsdt & FIX_LAN)) {
+        if (BIT_ISUNSET (gSettings.FixDsdt, FIX_LAN)) {
           MsgLog ("Inject LAN:\n");
 
           TmpDirty = SetupEthernetDevprop (&SlotDevices[i].PCIDevice);

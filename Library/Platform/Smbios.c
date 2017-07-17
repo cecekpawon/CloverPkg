@@ -518,7 +518,7 @@ PatchTableType1 () {
   NewSmbiosTable.Type1->WakeUpType = SystemWakeupTypePowerSwitch;
   //Once = TRUE;
 
-  if ((gSettings.SmUUID.Data3 & 0xF000) != 0) {
+  if (BIT_ISSET (gSettings.SmUUID.Data3, 0xF000) != 0) {
     CopyMem ((VOID *)&NewSmbiosTable.Type1->Uuid, (VOID *)&gSettings.SmUUID, 16);
   }
 
@@ -854,12 +854,12 @@ PatchTableType4 () {
 
     if (Size <= 0x26) {
       NewSmbiosTable.Type4->ProcessorFamily2 = NewSmbiosTable.Type4->ProcessorFamily;
-      ProcChar |= (gCPUStructure.ExtFeatures & CPUID_EXTFEATURE_EM64T) ? 0x04 : 0;
+      ProcChar |= BIT_ISSET(gCPUStructure.ExtFeatures, CPUID_EXTFEATURE_EM64T) ? 0x04 : 0;
       ProcChar |= (gCPUStructure.Cores > 1) ? 0x08 : 0;
       ProcChar |= (gCPUStructure.Cores < gCPUStructure.Threads) ? 0x10 : 0;
-      ProcChar |= (gCPUStructure.ExtFeatures & CPUID_EXTFEATURE_XD) ? 0x20 : 0;
-      ProcChar |= (gCPUStructure.Features & CPUID_FEATURE_VMX) ? 0x40 : 0;
-      ProcChar |= (gCPUStructure.Features & CPUID_FEATURE_EST) ? 0x80 : 0;
+      ProcChar |= BIT_ISSET (gCPUStructure.ExtFeatures, CPUID_EXTFEATURE_XD) ? 0x20 : 0;
+      ProcChar |= BIT_ISSET (gCPUStructure.Features, CPUID_FEATURE_VMX) ? 0x40 : 0;
+      ProcChar |= BIT_ISSET (gCPUStructure.Features, CPUID_FEATURE_EST) ? 0x80 : 0;
       NewSmbiosTable.Type4->ProcessorCharacteristics = ProcChar;
     }
 

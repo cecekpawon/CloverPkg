@@ -751,14 +751,14 @@ CheckForFakeSMC (
 ) {
   if (
     !gSettings.FakeSMCLoaded &&
-    OSFLAG_ISSET (Entry->Flags, OSFLAG_CHECKFAKESMC)/* &&
-    OSFLAG_ISSET (Entry->Flags, OSFLAG_WITHKEXTS)*/
+    BIT_ISSET (Entry->Flags, OSFLAG_CHECKFAKESMC)/* &&
+    BIT_ISSET (Entry->Flags, OSFLAG_WITHKEXTS)*/
   ) {
     if (
       (AsciiStrStr (InfoPlist, "<string>org.netkas.driver.FakeSMC</string>") != NULL) ||
       (AsciiStrStr (InfoPlist, "<string>org.netkas.FakeSMC</string>") != NULL)
     ) {
-      //Entry->Flags = OSFLAG_UNSET (Entry->Flags, OSFLAG_WITHKEXTS);
+      //Entry->Flags = BIT_UNSET (Entry->Flags, OSFLAG_WITHKEXTS);
       gSettings.FakeSMCLoaded = TRUE;
       //DBG ("FakeSMC found\n");
     }

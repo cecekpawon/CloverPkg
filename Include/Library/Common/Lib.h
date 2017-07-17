@@ -114,11 +114,11 @@ typedef struct {
           OSTYPE_COMPARE_IMP(OSTYPE_IS_DARWIN_INSTALLER, type1, type2) || OSTYPE_COMPARE_IMP(OSTYPE_IS_WINDOWS, type1, type2) || \
           OSTYPE_COMPARE_IMP(OSTYPE_IS_LINUX, type1, type2) || OSTYPE_COMPARE_IMP(OSTYPE_IS_OTHER, type1, type2))
 
-#define OSFLAG_ISSET(flags, flag) ((flags & flag) == flag)
-#define OSFLAG_ISUNSET(flags, flag) ((flags & flag) != flag)
-#define OSFLAG_SET(flags, flag) (flags | flag)
-#define OSFLAG_UNSET(flags, flag) (flags & (~flag))
-#define OSFLAG_TOGGLE(flags, flag) (flags ^ flag)
+#define BIT_ISSET(flags, flag) ((flags & flag) == flag)
+#define BIT_ISUNSET(flags, flag) ((flags & flag) != flag)
+#define BIT_SET(flags, flag) (flags | flag)
+#define BIT_UNSET(flags, flag) (flags & (~flag))
+#define BIT_TOGGLE(flags, flag) (flags ^ flag)
 
 #define OSFLAG_USEGRAPHICS              (1 << 0)
 #define OSFLAG_WITHKEXTS                (1 << 1)

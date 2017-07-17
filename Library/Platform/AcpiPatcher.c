@@ -428,20 +428,23 @@ DropTableFromXSDT (
   DBG ("Corrected XSDT length=%d\n", Xsdt->Header.Length);
 }
 
-VOID
+UINTN
 FixAsciiTableHeader (
   CHAR8  *Str,
   UINTN  Len
 ) {
-  UINTN   i = 0;
+  UINTN   i = 0, y = 0;
 
   while ((*Str != 0) && (i++ < Len)) {
-    if ((*Str < 0x20) || (*Str > 0x7F)) {
+    if ((*Str < 0x20) || (*Str > 0x7E)) {
       *Str = 0x3F;
+      y++;
     }
 
     Str++;
   }
+
+  return y;
 }
 
 VOID
@@ -449,7 +452,7 @@ PatchAllSSDT () {
   EFI_STATUS                      Status = EFI_SUCCESS;
   EFI_ACPI_DESCRIPTION_HEADER     *TableEntry;
   EFI_PHYSICAL_ADDRESS            Ssdt = EFI_SYSTEM_TABLE_MAX_ADDRESS;
-  UINTN                           Index;
+  UINTN                           Index, FixedHeaderLen;
   UINT32                          EntryCount, SsdtLen;
   CHAR8                           *BasePtr, *Ptr, Sign[5], OTID[9];
   UINT64                          Entry64;
@@ -483,15 +486,14 @@ PatchAllSSDT () {
         continue;
       }
 
-      if (gSettings.FixDsdt & FIX_HEADER) {
-        //FixAsciiTableHeader ((CHAR8 *)&TableEntry->Signature, sizeof (UINT32));
-        FixAsciiTableHeader ((CHAR8 *)&TableEntry->OemId, ARRAY_SIZE (TableEntry->OemId));
-        FixAsciiTableHeader ((CHAR8 *)&TableEntry->OemTableId, sizeof (UINT64));
-        FixAsciiTableHeader ((CHAR8 *)&TableEntry->CreatorId, sizeof (UINT32));
-      }
+      FixedHeaderLen = 0;
 
-      Ptr = (CHAR8 *)(UINTN)Ssdt;
-      CopyMem (Ptr, (VOID *)TableEntry, SsdtLen);
+      if (BIT_ISSET (gSettings.FixDsdt, FIX_HEADER)) {
+        //FixedHeaderLen += FixAsciiTableHeader ((CHAR8 *)&TableEntry->Signature, sizeof (UINT32));
+        FixedHeaderLen += FixAsciiTableHeader ((CHAR8 *)&TableEntry->OemId, ARRAY_SIZE (TableEntry->OemId));
+        FixedHeaderLen += FixAsciiTableHeader ((CHAR8 *)&TableEntry->OemTableId, sizeof (UINT64));
+        FixedHeaderLen += FixAsciiTableHeader ((CHAR8 *)&TableEntry->CreatorId, sizeof (UINT32));
+      }
 
       // Only patch SSDT
       if (
@@ -501,7 +503,15 @@ PatchAllSSDT () {
       ) {
         MsgLog ("Patching SSDT:\n");
         SsdtLen = PatchBinACPI ((UINT8 *)(UINTN)Ssdt, SsdtLen);
+        FixedHeaderLen++;
       }
+
+      if (!FixedHeaderLen) {
+        continue;
+      }
+
+      Ptr = (CHAR8 *)(UINTN)Ssdt;
+      CopyMem (Ptr, (VOID *)TableEntry, SsdtLen);
 
       CopyMem ((VOID *)BasePtr, &Ssdt, sizeof (UINT64));
       // Finish SSDT patch and resize SSDT Length
@@ -1949,7 +1959,7 @@ PatchACPI (
   //  goto SkipGenStates;
   //}
 
-  if (!(gCPUStructure.Features & CPUID_FEATURE_MSR)) {
+  if (BIT_ISUNSET (gCPUStructure.Features, CPUID_FEATURE_MSR)) {
     MsgLog ("Unsupported CPU: P-States will not be generated !!!\n");
     goto SkipGenStates;
   }

@@ -44,11 +44,11 @@ Check [wiki](../../wiki) for directory, property, format changes.
 
 With GCC49, GCC5, XCODE5, ~~XCLANG~~ & VS2015x86 toolchain, on Darwin & Windows platform.
 
-### Thanks:
+### Thanks to:
 
-To [Clover](https://sourceforge.net/p/cloverefiboot/) and all projects below for lines of code & ideas:
+[Clover](https://sourceforge.net/p/cloverefiboot/) and all projects below for lines of code & ideas:
 
-[EDK2](https://github.com/tianocore/edk2) / [rEFInd](https://sourceforge.net/projects/refind/) / [Bareboot](https://github.com/SunnyKi/bareBoot) / [Revoboot](https://github.com/Piker-Alpha/RevoBoot) / [KernelPatcher](https://public.xzenue.com/diffusion/K/repository/master/) / [Chameleon](http://forge.voodooprojects.org/p/chameleon/) / Ozmosis / [CupertinoNet](https://github.com/CupertinoNet).
+[EDK2](https://github.com/tianocore/edk2) / [rEFInd](https://sourceforge.net/projects/refind/) / [Bareboot](https://github.com/SunnyKi/bareBoot) / [Revoboot](https://github.com/Piker-Alpha/RevoBoot) / [KernelPatcher](https://public.xzenue.com/diffusion/K/repository/master/) / [Chameleon](http://forge.voodooprojects.org/p/chameleon/) / Ozmosis / [CupertinoNet](https://github.com/CupertinoNet) / [UEFI-Bootkit](https://github.com/dude719/UEFI-Bootkit).
 
 
 Enjoy, [wiki](../../wiki) to follow!

@@ -61,7 +61,7 @@ VerboseMessage (
   IN UINTN          Sec,
   IN LOADER_ENTRY   *Entry
 ) {
-  if (OSFLAG_ISSET (Entry->Flags, OPT_VERBOSE)) {
+  if (BIT_ISSET (Entry->Flags, OPT_VERBOSE)) {
     AsciiPrint (Message);
 
     if (Sec > 0) {
@@ -91,7 +91,7 @@ OnExitBootServices (
   VerboseMessage ("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n", 0, Entry);
 
   if (OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType)) {
-    if (OSFLAG_ISUNSET (Entry->Flags, OPT_VERBOSE)) {
+    if (BIT_ISUNSET (Entry->Flags, OPT_VERBOSE)) {
   #if BOOT_GRAY
       hehe (); // Draw dark gray Apple logo.
   #endif

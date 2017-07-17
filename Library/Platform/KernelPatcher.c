@@ -600,6 +600,7 @@ KernelPatchPm (
     Found = Ret = FALSE;
 
     switch (*((UINT64 *)Ptr)) {
+      case 0x00004000000000E2ULL:
       case 0x00003390000000E2ULL:
       case 0x00001390000000E2ULL:
       case 0x00000190000000E2ULL:
@@ -676,7 +677,17 @@ FindBootArgs (
       */
 
 #ifdef NO_NVRAM_SIP
-      gBootArgs->flags = kBootArgsFlagCSRActiveConfig;
+      gBootArgs->flags = 0;
+      gBootArgs->csrActiveConfig = 0;
+
+      // user defined
+      if (gSettings.BooterConfig != 0xFFFF) {
+        gBootArgs->flags = gSettings.BooterConfig;
+      }
+
+      if (gSettings.CsrActiveConfig != 0xFFFF) {
+        gBootArgs->csrActiveConfig = gSettings.CsrActiveConfig;
+      }
 
       switch (Entry->LoaderType) {
         case OSTYPE_DARWIN_RECOVERY:
@@ -685,26 +696,20 @@ FindBootArgs (
           gBootArgs->csrActiveConfig |= DEF_NOSIP_CSR_ACTIVE_CONFIG;
           break;
         default:
-          // user defined?
           break;
       }
 
-      //
-      // user defined
-      //
-
-      if (gSettings.BooterConfig != 0xFFFF) {
-        gBootArgs->flags |= gSettings.BooterConfig;
-      }
-
       if (gSettings.CsrActiveConfig != 0xFFFF) {
-        gBootArgs->csrActiveConfig = gSettings.CsrActiveConfig;
+        gBootArgs->flags |= kBootArgsFlagCSRActiveConfig;
+        if (BIT_ISSET (gBootArgs->csrActiveConfig, CSR_ALLOW_DEVICE_CONFIGURATION)) {
+          gBootArgs->flags |= kBootArgsFlagCSRConfigMode;
+        }
       }
 
-      //gBootArgs->csrCapabilities = CSR_CAPABILITY_UNLIMITED;
+      gBootArgs->csrCapabilities = CSR_CAPABILITY_UNLIMITED;
       //gBootArgs->boot_SMC_plimit = 0;
 
-      gBootArgs->Video/* V1 */.v_display = OSFLAG_ISSET(Entry->Flags, OSFLAG_USEGRAPHICS) ? GRAPHICS_MODE : FB_TEXT_MODE;
+      gBootArgs->Video/* V1 */.v_display = BIT_ISSET (Entry->Flags, OSFLAG_USEGRAPHICS) ? GRAPHICS_MODE : FB_TEXT_MODE;
       gBootArgs->Video/* V1 */.v_width = UGAWidth;
       gBootArgs->Video/* V1 */.v_height = UGAHeight;
       gBootArgs->Video/* V1 */.v_depth = UGAColorDepth;
@@ -757,14 +762,14 @@ KernelUserPatch (
     */
 
     Num = SearchAndReplace (
-      KernelInfo->Bin,
-      gSettings.KernelPatchesWholePrelinked ? KernelInfo->PrelinkedSize : KernelInfo->KernelSize,
-      Entry->KernelAndKextPatches->KernelPatches[i].Data,
-      Entry->KernelAndKextPatches->KernelPatches[i].DataLen,
-      Entry->KernelAndKextPatches->KernelPatches[i].Patch,
-      Entry->KernelAndKextPatches->KernelPatches[i].Wildcard,
-      Entry->KernelAndKextPatches->KernelPatches[i].Count
-    );
+            KernelInfo->Bin,
+            gSettings.KernelPatchesWholePrelinked ? KernelInfo->PrelinkedSize : KernelInfo->KernelSize,
+            Entry->KernelAndKextPatches->KernelPatches[i].Data,
+            Entry->KernelAndKextPatches->KernelPatches[i].DataLen,
+            Entry->KernelAndKextPatches->KernelPatches[i].Patch,
+            Entry->KernelAndKextPatches->KernelPatches[i].Wildcard,
+            Entry->KernelAndKextPatches->KernelPatches[i].Count
+          );
 
     if (Num) {
       y++;
@@ -1025,8 +1030,6 @@ KernelAndKextPatcherInit (
 
   DBG ("%a: Start\n", __FUNCTION__);
 
-  KernelInfo->PatcherInited = TRUE;
-
   // Find bootArgs - we need then for proper detection of kernel Mach-O header
   if (!FindBootArgs (Entry)) {
     DBG ("BootArgs not found - skipping patches!\n");
@@ -1059,9 +1062,13 @@ KernelAndKextPatcherInit (
   );
 
   DBG ("Cached: %s\n", KernelInfo->Cached ? L"Yes" : L"No");
-  DBG ("%a: End\n", __FUNCTION__);
 
   Finish:
+
+  if (!KernelInfo->PatcherInited) {
+    KernelInfo->PatcherInited = TRUE;
+    DBG ("%a: End\n", __FUNCTION__);
+  }
 
   return (KernelInfo->A64Bit && KernelInfo->Cached && (KernelInfo->Bin != NULL));
 }
@@ -1148,7 +1155,7 @@ KernelAndKextsPatcherStart (
   // Kext add
   //
 
-  if (OSFLAG_ISSET (Entry->Flags, OSFLAG_WITHKEXTS)) {
+  if (BIT_ISSET (Entry->Flags, OSFLAG_WITHKEXTS)) {
     UINT32        deviceTreeP, deviceTreeLength;
     EFI_STATUS    Status;
     UINTN         DataSize = 0;

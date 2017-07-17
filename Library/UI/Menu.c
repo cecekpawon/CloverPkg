@@ -710,7 +710,7 @@ EncodeOptions (
 
   for (i = 0; i < OptMenuOptBitNum; i++) {
     if (BootArgsExists (Options, OPT_MENU_OPTBIT[i].Args)) {
-      OptionsBits = (UINT32)OSFLAG_SET (OptionsBits, OPT_MENU_OPTBIT[i].Bit);
+      OptionsBits = (UINT32)BIT_SET (OptionsBits, OPT_MENU_OPTBIT[i].Bit);
     }
   }
 
@@ -739,7 +739,7 @@ DecodeOptions (
       continue;
     }
 
-    State = OSFLAG_ISSET (gSettings.OptionsBits, OPT_MENU_OPTBIT[i].Bit);
+    State = BIT_ISSET (gSettings.OptionsBits, OPT_MENU_OPTBIT[i].Bit);
 
     Entry->LoadOptions = ToggleLoadOptions (
                             State,
@@ -906,9 +906,9 @@ AddOptionEntries (
 
     AddMenuCheck (SubScreen, OPT_MENU_FLAGBIT[i].Title, OPT_MENU_FLAGBIT[i].Bit, mFlagsBits);
 
-    gSettings.FlagsBits = (UINT32)(OSFLAG_ISSET (SubEntry->Flags, OPT_MENU_FLAGBIT[i].Bit)
-      ? OSFLAG_SET (gSettings.FlagsBits, OPT_MENU_FLAGBIT[i].Bit)
-      : OSFLAG_UNSET (gSettings.FlagsBits, OPT_MENU_FLAGBIT[i].Bit));
+    gSettings.FlagsBits = (UINT32)(BIT_ISSET (SubEntry->Flags, OPT_MENU_FLAGBIT[i].Bit)
+      ? BIT_SET (gSettings.FlagsBits, OPT_MENU_FLAGBIT[i].Bit)
+      : BIT_UNSET (gSettings.FlagsBits, OPT_MENU_FLAGBIT[i].Bit));
 
     FlagsOptCount++;
   }
@@ -935,7 +935,7 @@ AddOptionEntries (
 VOID
 DrawFuncIcons () {
   //we should never exclude them
-  //if (!(GlobalConfig.HideUIFlags & HIDEUI_FLAG_FUNCS)) {
+  //if (BIT_ISUNSET (GlobalConfig.HideUIFlags, HIDEUI_FLAG_FUNCS)) {
     MenuEntryOptions.Image = BuiltinIcon (BUILTIN_ICON_FUNC_OPTIONS);
     MenuEntryOptions.ImageHover = GetSmallHover (BUILTIN_ICON_FUNC_OPTIONS);
     AddMenuEntry (&MainMenu, &MenuEntryOptions);
@@ -944,11 +944,11 @@ DrawFuncIcons () {
     AddMenuEntry (&MainMenu, &MenuEntryAbout);
   //}
 
-  if (!(GlobalConfig.HideUIFlags & HIDEUI_FLAG_FUNCS) || (MainMenu.EntryCount == 0)) {
+  if (BIT_ISUNSET (GlobalConfig.HideUIFlags, HIDEUI_FLAG_FUNCS) || (MainMenu.EntryCount == 0)) {
     // We are able to include "real" help button in 2nd row, but confuse how to activate it via theme.plist
     // Check BOOLEAN "Help" entry (HIDEUI_FLAG_HELP) currently reserved for help text on bottom corner.
     // Previously HELP is for ABOUT. Same as SHUTDOWN as EXIT.
-    if (!(GlobalConfig.HideUIFlags & HIDEUI_FLAG_HELP)) {
+    if (BIT_ISUNSET (GlobalConfig.HideUIFlags, HIDEUI_FLAG_HELP)) {
       MenuEntryHelp.Image = BuiltinIcon (BUILTIN_ICON_FUNC_HELP);
       MenuEntryHelp.ImageHover = GetSmallHover (BUILTIN_ICON_FUNC_HELP);
       AddMenuEntry (&MainMenu, &MenuEntryHelp);
@@ -1797,11 +1797,11 @@ RunGenericMenu (
               MenuExit = MENU_EXIT_ENTER;
               break;
             case 'S':
-              gSettings.OptionsBits = OSFLAG_SET (gSettings.OptionsBits, OPT_SINGLE_USER);
+              gSettings.OptionsBits = BIT_SET (gSettings.OptionsBits, OPT_SINGLE_USER);
               MenuExit = MENU_EXIT_ENTER;
               break;
             case 'V':
-              gSettings.OptionsBits = OSFLAG_SET (gSettings.OptionsBits, OPT_VERBOSE);
+              gSettings.OptionsBits = BIT_SET (gSettings.OptionsBits, OPT_VERBOSE);
               MenuExit = MENU_EXIT_ENTER;
               break;
           }
@@ -1992,7 +1992,7 @@ TextMenuStyle (
             break;
 
           case TAG_CHECKBIT:
-            ResultString = PoolPrint (L"%s %s", (((REFIT_INPUT_DIALOG *)Entry)->Item->IValue & Entry->Row) ? L"[+]" : L"[ ]", Entry->Title);
+            ResultString = PoolPrint (L"%s %s", BIT_ISSET (((REFIT_INPUT_DIALOG *)Entry)->Item->IValue, Entry->Row) ? L"[+]" : L"[ ]", Entry->Title);
             break;
 
           default:
@@ -2069,7 +2069,7 @@ TextMenuStyle (
           break;
 
         case TAG_CHECKBIT:
-          ResultString = PoolPrint (L"%s %s", (((REFIT_INPUT_DIALOG *)EntryL)->Item->IValue & EntryL->Row) ? L"[+]" : L"[ ]", EntryL->Title);
+          ResultString = PoolPrint (L"%s %s", BIT_ISSET (((REFIT_INPUT_DIALOG *)EntryL)->Item->IValue, EntryL->Row) ? L"[+]" : L"[ ]", EntryL->Title);
           break;
 
         default:
@@ -2123,7 +2123,7 @@ TextMenuStyle (
           break;
 
         case TAG_CHECKBIT:
-          ResultString = PoolPrint (L"%s %s", (((REFIT_INPUT_DIALOG *)EntryC)->Item->IValue & EntryC->Row) ? L"[+]" : L"[ ]", EntryC->Title);
+          ResultString = PoolPrint (L"%s %s", BIT_ISSET (((REFIT_INPUT_DIALOG *)EntryC)->Item->IValue, EntryC->Row) ? L"[+]" : L"[ ]", EntryC->Title);
           break;
 
         default:
@@ -2417,7 +2417,7 @@ GraphicsMenuStyle (
       // initial painting
       MeasureText (Screen->Title, &ItemWidth, NULL);
 
-      if (!(GlobalConfig.HideUIFlags & HIDEUI_FLAG_MENU_TITLE)) {
+      if (BIT_ISUNSET (GlobalConfig.HideUIFlags, HIDEUI_FLAG_MENU_TITLE)) {
         DrawTextXY (Screen->Title, (UGAWidth >> 1), EntriesPosY - TextHeight * 2, X_IS_CENTER, 0);
       }
 
@@ -2547,7 +2547,7 @@ GraphicsMenuStyle (
               EntriesPosX,
               Entry->Place.YPos,
               0xFFFF,
-              ButtonsImg[(((REFIT_INPUT_DIALOG *)(Entry))->Item->IValue & Entry->Row) ? kCheckboxCheckedImage : kCheckboxImage].Image
+              ButtonsImg[BIT_ISSET (((REFIT_INPUT_DIALOG *)(Entry))->Item->IValue, Entry->Row) ? kCheckboxCheckedImage : kCheckboxImage].Image
             );
             break;
 
@@ -2651,7 +2651,7 @@ GraphicsMenuStyle (
             EntriesPosX,
             EntryL->Place.YPos,
             0xFFFF,
-            ButtonsImg[(((REFIT_INPUT_DIALOG *)EntryL)->Item->IValue & EntryL->Row) ? kCheckboxCheckedImage : kCheckboxImage].Image
+            ButtonsImg[BIT_ISSET (((REFIT_INPUT_DIALOG *)EntryL)->Item->IValue, EntryL->Row) ? kCheckboxCheckedImage : kCheckboxImage].Image
           );
           break;
 
@@ -2739,7 +2739,7 @@ GraphicsMenuStyle (
             EntriesPosX,
             EntryC->Place.YPos,
             0xFFFF,
-            ButtonsImg[(((REFIT_INPUT_DIALOG *)EntryC)->Item->IValue & EntryC->Row) ? kCheckboxCheckedImage : kCheckboxImage].Image
+            ButtonsImg[BIT_ISSET (((REFIT_INPUT_DIALOG *)EntryC)->Item->IValue, EntryC->Row) ? kCheckboxCheckedImage : kCheckboxImage].Image
             );
           break;
 
@@ -2785,7 +2785,7 @@ DrawMainMenuEntry (
 
   MainImage = (
                 (Entry->Tag == TAG_LOADER) &&
-                !(GlobalConfig.HideBadges & HDBADGES_SWAP) &&
+                BIT_ISUNSET (GlobalConfig.HideBadges, HDBADGES_SWAP) &&
                 (Entry->Row == 0)
               )
                 ? Entry->DriveImage
@@ -2814,7 +2814,7 @@ DrawMainMenuEntry (
     BltImageAlpha (
       SelectionImg[kIndicatorImage + (Selected ? 0 : 1)].Image,
       XPos + (GlobalConfig.row0TileSize / 2) - (INDICATOR_SIZE / 2),
-      row0PosY + GlobalConfig.row0TileSize + ((GlobalConfig.HideUIFlags & HIDEUI_FLAG_LABEL)
+      row0PosY + GlobalConfig.row0TileSize + (BIT_ISSET (GlobalConfig.HideUIFlags, HIDEUI_FLAG_LABEL)
         ? 10
         : (FontHeight - TEXT_YMARGIN + 20)),
       &TransparentBackgroundPixel,
@@ -2882,7 +2882,7 @@ DrawMainMenuLabel (
 
   if (
     !GlobalConfig.BootCampStyle &&
-    (GlobalConfig.HideBadges & HDBADGES_INLINE) &&
+    BIT_ISSET (GlobalConfig.HideBadges, HDBADGES_INLINE) &&
     !OldRow &&
     OldTextWidth &&
     (OldTextWidth != TextWidth)
@@ -2902,7 +2902,7 @@ DrawMainMenuLabel (
   //show inline badge
   if (
     !GlobalConfig.BootCampStyle &&
-    (GlobalConfig.HideBadges & HDBADGES_INLINE) &&
+    BIT_ISSET (GlobalConfig.HideBadges, HDBADGES_INLINE) &&
     (Screen->Entries[State->CurrentSelection]->Row == 0)
   ) {
     // Display Inline Badge: small icon before the text
@@ -2954,8 +2954,8 @@ DrawTextCorner (
 
   if (
     // HIDEUI_ALL - included
-    ((TextC == TEXT_CORNER_REVISION) && ((GlobalConfig.HideUIFlags & HIDEUI_FLAG_REVISION_TEXT) != 0)) ||
-    ((TextC == TEXT_CORNER_HELP) && ((GlobalConfig.HideUIFlags & HIDEUI_FLAG_HELP_TEXT) != 0))
+    ((TextC == TEXT_CORNER_REVISION) && (BIT_ISSET (GlobalConfig.HideUIFlags, HIDEUI_FLAG_REVISION_TEXT))) ||
+    ((TextC == TEXT_CORNER_HELP) && (BIT_ISSET (GlobalConfig.HideUIFlags, HIDEUI_FLAG_HELP_TEXT)))
   ) {
     return;
   }
@@ -3027,7 +3027,7 @@ MainMenuStyle (
       row1PosY = GlobalConfig.BootCampStyle
         ? row0PosY + GlobalConfig.row0TileSize +
             GlobalConfig.LayoutButtonOffset + GlobalConfig.TileYSpace + INDICATOR_SIZE +
-            ((GlobalConfig.HideUIFlags & HIDEUI_FLAG_LABEL) ? 15 : (FontHeight + 30))
+            (BIT_ISSET (GlobalConfig.HideUIFlags, HIDEUI_FLAG_LABEL) ? 15 : (FontHeight + 30))
         : row0PosY + EntriesHeight + GlobalConfig.TileYSpace + GlobalConfig.LayoutButtonOffset;
 
       FunctextPosY = row1PosY + GlobalConfig.row1TileSize + GlobalConfig.TileYSpace + GlobalConfig.LayoutTextOffset;
@@ -3084,7 +3084,7 @@ MainMenuStyle (
             );
 
             // create static text for the boot options if the BootCampStyle is used
-            if (GlobalConfig.BootCampStyle && !(GlobalConfig.HideUIFlags & HIDEUI_FLAG_LABEL)) {
+            if (GlobalConfig.BootCampStyle && BIT_ISUNSET (GlobalConfig.HideUIFlags, HIDEUI_FLAG_LABEL)) {
               // clear the screen
               FillRectAreaOfScreen (
                 itemPosX[i - State->FirstVisible] + (GlobalConfig.row0TileSize / 2), textPosY,
@@ -3112,7 +3112,7 @@ MainMenuStyle (
         GlobalConfig.BootCampStyle &&
         (Screen->Entries[State->LastSelection]->Row == 1) &&
         (Screen->Entries[State->CurrentSelection]->Row == 0) &&
-        !(GlobalConfig.HideUIFlags & HIDEUI_FLAG_LABEL)
+        BIT_ISUNSET (GlobalConfig.HideUIFlags, HIDEUI_FLAG_LABEL)
       ) {
         FillRectAreaOfScreen (
           (UGAWidth >> 1), FunctextPosY,
@@ -3127,7 +3127,7 @@ MainMenuStyle (
         GlobalConfig.BootCampStyle &&
         (Screen->Entries[State->LastSelection]->Row == 0) &&
         (Screen->Entries[State->CurrentSelection]->Row == 1) &&
-        !(GlobalConfig.HideUIFlags & HIDEUI_FLAG_LABEL)
+        BIT_ISUNSET (GlobalConfig.HideUIFlags, HIDEUI_FLAG_LABEL)
       ) {
         DrawMainMenuLabel (
           Screen->Entries[State->CurrentSelection]->Title,
@@ -3138,7 +3138,7 @@ MainMenuStyle (
       // something is wrong with the DrawMainMenuLabel or Screen->Entries[State->CurrentSelection]
       // and it's required to create the first selection text from here
       // used for all the entries
-      if (!GlobalConfig.BootCampStyle && !(GlobalConfig.HideUIFlags & HIDEUI_FLAG_LABEL)) {
+      if (!GlobalConfig.BootCampStyle && BIT_ISUNSET (GlobalConfig.HideUIFlags, HIDEUI_FLAG_LABEL)) {
         DrawMainMenuLabel (
           Screen->Entries[State->CurrentSelection]->Title,
           (UGAWidth >> 1), textPosY, Screen, State
@@ -3177,7 +3177,7 @@ MainMenuStyle (
       // create dynamic text for the second row if BootCampStyle is used
       if (
         GlobalConfig.BootCampStyle &&
-        (!(GlobalConfig.HideUIFlags & HIDEUI_FLAG_LABEL)) &&
+        (BIT_ISUNSET (GlobalConfig.HideUIFlags, HIDEUI_FLAG_LABEL)) &&
         (Screen->Entries[State->CurrentSelection]->Row == 1)
       ) {
         DrawMainMenuLabel (
@@ -3187,7 +3187,7 @@ MainMenuStyle (
       }
 
       // create dynamic text for all the entries
-      if (!GlobalConfig.BootCampStyle && !(GlobalConfig.HideUIFlags & HIDEUI_FLAG_LABEL)) {
+      if (!GlobalConfig.BootCampStyle && BIT_ISUNSET (GlobalConfig.HideUIFlags, HIDEUI_FLAG_LABEL)) {
         DrawMainMenuLabel (
           Screen->Entries[State->CurrentSelection]->Title,
           (UGAWidth >> 1), textPosY, Screen, State
@@ -3199,9 +3199,9 @@ MainMenuStyle (
       break;
 
     case MENU_FUNCTION_PAINT_TIMEOUT:
-      i = (GlobalConfig.HideBadges & HDBADGES_INLINE) ? 3 : 1;
+      i = BIT_ISSET (GlobalConfig.HideBadges, HDBADGES_INLINE) ? 3 : 1;
 
-      if (!(GlobalConfig.HideUIFlags & HIDEUI_FLAG_LABEL)) {
+      if (BIT_ISUNSET (GlobalConfig.HideUIFlags, HIDEUI_FLAG_LABEL)) {
         FillRectAreaOfScreen (
           (UGAWidth >> 1), FunctextPosY + TextHeight * i,
           OldTimeoutTextWidth, TextHeight, &TransparentBackgroundPixel, X_IS_CENTER
@@ -3500,7 +3500,7 @@ OptionsMenu (
 
   // FillInputs and ApplyInputs
 
-  OptionMenu.TitleImage = (!(GlobalConfig.HideUIFlags & HIDEUI_FLAG_MENU_TITLE_IMAGE))
+  OptionMenu.TitleImage = (BIT_ISUNSET (GlobalConfig.HideUIFlags, HIDEUI_FLAG_MENU_TITLE_IMAGE))
     ? BuiltinIcon (BUILTIN_ICON_FUNC_OPTIONS)
     : NULL;
 
@@ -3591,7 +3591,7 @@ OptionsMenu (
 
 VOID
 AboutRefit () {
-  if (!(GlobalConfig.HideUIFlags & HIDEUI_FLAG_MENU_TITLE_IMAGE)) {
+  if (BIT_ISUNSET (GlobalConfig.HideUIFlags, HIDEUI_FLAG_MENU_TITLE_IMAGE)) {
     AboutMenu.TitleImage = BuiltinIcon (BUILTIN_ICON_FUNC_ABOUT);
   } else {
     AboutMenu.TitleImage = NULL;
@@ -3643,7 +3643,7 @@ AboutRefit () {
 
 VOID
 HelpRefit () {
-  if (!(GlobalConfig.HideUIFlags & HIDEUI_FLAG_MENU_TITLE_IMAGE)) {
+  if (BIT_ISUNSET (GlobalConfig.HideUIFlags, HIDEUI_FLAG_MENU_TITLE_IMAGE)) {
     HelpMenu.TitleImage = BuiltinIcon (BUILTIN_ICON_FUNC_HELP);
   } else {
     HelpMenu.TitleImage = NULL;

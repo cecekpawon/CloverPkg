@@ -1555,9 +1555,9 @@ FIXDisplay (
       if (k != 0) {
         k += i;
         if (
-          ((DisplayVendor[VCard] == 0x1002) && (gSettings.DropOEM_DSM & DEV_ATI)   != 0) ||
-          ((DisplayVendor[VCard] == 0x10DE) && (gSettings.DropOEM_DSM & DEV_NVIDIA)!= 0) ||
-          ((DisplayVendor[VCard] == 0x8086) && (gSettings.DropOEM_DSM & DEV_INTEL) != 0)
+          ((DisplayVendor[VCard] == 0x1002) && (BIT_ISSET (gSettings.DropOEM_DSM, DEV_ATI))) ||
+          ((DisplayVendor[VCard] == 0x10DE) && (BIT_ISSET (gSettings.DropOEM_DSM, DEV_NVIDIA))) ||
+          ((DisplayVendor[VCard] == 0x8086) && (BIT_ISSET (gSettings.DropOEM_DSM, DEV_INTEL)))
         ) {
           Size = AcpiGetSize (Dsdt, k);
           SizeOffset = - 1 - Size;
@@ -1853,7 +1853,7 @@ AddHDMI (
 
       if (k != 0) {
         k += i;
-        if ((gSettings.DropOEM_DSM & DEV_HDMI) != 0) {
+        if (BIT_ISSET (gSettings.DropOEM_DSM, DEV_HDMI)) {
           Size = AcpiGetSize (Dsdt, k);
           SizeOffset = - 1 - Size;
           Len = MoveData (k - 1, Dsdt, Len, SizeOffset);
@@ -2056,7 +2056,7 @@ FIXNetwork (
 
     if (k != 0) {
       k += i;
-      if ((gSettings.DropOEM_DSM & DEV_LAN) != 0) {
+      if (BIT_ISSET (gSettings.DropOEM_DSM, DEV_LAN)) {
         Size = AcpiGetSize (Dsdt, k);
         SizeOffset = - 1 - Size;
         Len = MoveData (k - 1, Dsdt, Len, SizeOffset);
@@ -2280,7 +2280,7 @@ FIXAirport (
     k = FindMethod (Dsdt + i, Size, "_DSM");
     if (k != 0) {
       k += i;
-      if ((gSettings.DropOEM_DSM & DEV_WIFI) != 0) {
+      if (BIT_ISSET (gSettings.DropOEM_DSM, DEV_WIFI)) {
         Size = AcpiGetSize (Dsdt, k);
         SizeOffset = - 1 - Size;
         Len = MoveData (k - 1, Dsdt, Len, SizeOffset);
@@ -2638,7 +2638,7 @@ AddHDEF (
 
     if (k != 0) {
       k += i;
-      if ((gSettings.DropOEM_DSM & DEV_HDA) != 0) {
+      if (BIT_ISSET (gSettings.DropOEM_DSM, DEV_HDA)) {
         Size = AcpiGetSize (Dsdt, k);
         SizeOffset = - 1 - Size;
         Len = MoveData (k - 1, Dsdt, Len, SizeOffset);
@@ -2760,16 +2760,16 @@ FixBiosDsdt (
 
   // Fix Display
   if (
-    (gSettings.FixDsdt & FIX_DISPLAY) ||
-    (gSettings.FixDsdt & FIX_INTELGFX)
+    (BIT_ISSET (gSettings.FixDsdt, FIX_DISPLAY)) ||
+    (BIT_ISSET (gSettings.FixDsdt, FIX_INTELGFX))
   ) {
     INT32   i;
 
     for (i = 0; i < MAX_NUM_GFX; i++) {
       if (DisplayADR1[i]) {
         if (
-          ((DisplayVendor[i] != 0x8086) && (gSettings.FixDsdt & FIX_DISPLAY)) ||
-          ((DisplayVendor[i] == 0x8086) && (gSettings.FixDsdt & FIX_INTELGFX))
+          ((DisplayVendor[i] != 0x8086) && (BIT_ISSET (gSettings.FixDsdt, FIX_DISPLAY))) ||
+          ((DisplayVendor[i] == 0x8086) && (BIT_ISSET (gSettings.FixDsdt, FIX_INTELGFX)))
         ) {
           DsdtLen = FIXDisplay (Temp, DsdtLen, i);
           DBG ("patch Display #%d of Vendor = 0x%4x in DSDT new way\n", i, DisplayVendor[i]);
@@ -2779,40 +2779,40 @@ FixBiosDsdt (
   }
 
   // Fix Network
-  if (NetworkADR1 && (gSettings.FixDsdt & FIX_LAN)) {
+  if (NetworkADR1 && BIT_ISSET (gSettings.FixDsdt, FIX_LAN)) {
     //DBG ("patch LAN in DSDT \n");
     DsdtLen = FIXNetwork (Temp, DsdtLen);
   }
 
   // Fix Airport
-  if (ArptADR1 && (gSettings.FixDsdt & FIX_WIFI)) {
+  if (ArptADR1 && BIT_ISSET (gSettings.FixDsdt, FIX_WIFI)) {
     //DBG ("patch Airport in DSDT \n");
     DsdtLen = FIXAirport (Temp, DsdtLen);
   }
 
   // HDA HDEF
-  if (HDAFIX && (gSettings.FixDsdt & FIX_HDA)) {
+  if (HDAFIX && BIT_ISSET (gSettings.FixDsdt, FIX_HDA)) {
     DBG ("patch HDEF in DSDT \n");
     DsdtLen = AddHDEF (Temp, DsdtLen);
   }
 
   //Always add MCHC for PM
-  if ((gCPUStructure.Family == 0x06)  && (gSettings.FixDsdt & FIX_MCHC)) {
+  if ((gCPUStructure.Family == 0x06)  && BIT_ISSET (gSettings.FixDsdt, FIX_MCHC)) {
     //DBG ("patch MCHC in DSDT \n");
     DsdtLen = AddMCHC (Temp, DsdtLen);
   }
 
   //add IMEI
-  if ((gSettings.FixDsdt & FIX_MCHC) || (gSettings.FixDsdt & FIX_IMEI)) {
+  if (BIT_ISSET (gSettings.FixDsdt, FIX_MCHC) || BIT_ISSET (gSettings.FixDsdt, FIX_IMEI)) {
     DsdtLen = AddIMEI (Temp, DsdtLen);
   }
 
   //Add HDMI device
-  if (gSettings.FixDsdt & FIX_HDMI) {
+  if (BIT_ISSET (gSettings.FixDsdt, FIX_HDMI)) {
     DsdtLen = AddHDMI (Temp, DsdtLen);
   }
 
-  if (gSettings.FixDsdt & FIX_PNLF) {
+  if (BIT_ISSET (gSettings.FixDsdt, FIX_PNLF)) {
     DsdtLen = AddPNLF (Temp, DsdtLen);
   }
 
