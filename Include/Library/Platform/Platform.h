@@ -1298,6 +1298,11 @@ FillInputs (
 VOID
 ApplyInputs ();
 
+VOID
+ToAppleGuid (
+  IN OUT EFI_GUID   *AppleGuid
+);
+
 BOOLEAN
 IsValidGuidAsciiString (
   IN CHAR8  *Str

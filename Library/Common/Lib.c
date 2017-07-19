@@ -2376,6 +2376,15 @@ TimeCompare (
  return Comparison;
 }
 
+VOID
+ToAppleGuid (
+  IN OUT EFI_GUID   *AppleGuid
+) {
+  (*AppleGuid).Data1 = SwapBytes32 ((*AppleGuid).Data1);
+  (*AppleGuid).Data2 = SwapBytes16 ((*AppleGuid).Data2);
+  (*AppleGuid).Data3 = SwapBytes16 ((*AppleGuid).Data3);
+}
+
 /** Returns TRUE is Str is ascii Guid in format xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx */
 BOOLEAN
 IsValidGuidAsciiString (

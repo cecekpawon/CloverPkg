@@ -130,13 +130,11 @@ SetVariablesForOSX () {
   // firmware Variables
   //
 
-  // As found on a real Mac, the system-id variable solely has the BS flag
-
   SetNvramVariable (
     NvramData[kSystemID].VariableName,
     NvramData[kSystemID].Guid,
     NvramData[kSystemID].Attribute,
-    sizeof (gSettings.SmUUID),
+    sizeof (EFI_GUID),
     &gSettings.SmUUID
   );
 
@@ -216,17 +214,14 @@ SetVariablesForOSX () {
 
   // we should have two UUID: platform and system
   // NO! Only Platform is the best solution
-  /*
   SetOrDeleteNvramVariable (
     NvramData[kPlatformUUID].VariableName,
     NvramData[kPlatformUUID].Guid,
     NvramData[kPlatformUUID].Attribute,
-    16,
+    sizeof (EFI_GUID),
     &gSettings.SmUUID,
-    //(!gSettings.InjectSystemID && gSettings.SmUUIDConfig)
     gSettings.SmUUIDConfig
   );
-  */
 
   SetOrDeleteNvramVariable (
     NvramData[kBacklightLevel].VariableName,

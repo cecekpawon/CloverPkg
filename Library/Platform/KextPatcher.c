@@ -421,18 +421,18 @@ ATIConnectorsPatch (
 }
 
 VOID
-GetTextSection (
+GetTextSegment (
   IN  UINT8         *binary,
   OUT UINT32        *Addr,
   OUT UINT32        *Size,
-  OUT UINT32        *Off,
-  IN  LOADER_ENTRY  *Entry
+  OUT UINT32        *Off
 ) {
   struct  load_command        *LoadCommand;
   struct  segment_command_64  *SegCmd64;
   struct  section_64          *Sect64;
           UINT32              NCmds, CmdSize, BinaryIndex, SectionIndex;
           UINTN               i;
+          BOOLEAN             IsTextSegment = FALSE, Found = FALSE;
 
   if (MACH_GET_MAGIC (binary) != MH_MAGIC_64) {
     return;
@@ -441,6 +441,8 @@ GetTextSection (
   BinaryIndex = sizeof (struct mach_header_64);
 
   NCmds = MACH_GET_NCMDS (binary);
+
+  *Size = 0;
 
   for (i = 0; i < NCmds; i++) {
     LoadCommand = (struct load_command *)(binary + BinaryIndex);
@@ -457,14 +459,22 @@ GetTextSection (
       Sect64 = (struct section_64 *)((UINT8 *)SegCmd64 + SectionIndex);
       SectionIndex += sizeof (struct section_64);
 
+      IsTextSegment = (AsciiStrCmp (Sect64->segname, kTextSegment) == 0);
+
       if (
-        (Sect64->size > 0) &&
-        (AsciiStrCmp (Sect64->segname, kTextSegment) == 0) &&
-        (AsciiStrCmp (Sect64->sectname, kTextTextSection) == 0)
+        IsTextSegment &&
+        (Sect64->size > 0)
       ) {
-        *Addr = (UINT32)Sect64->addr;
-        *Size = (UINT32)Sect64->size;
-        *Off = Sect64->offset;
+        if (!Found) {
+          *Addr = (UINT32)Sect64->addr;
+          *Off = Sect64->offset;
+          Found = TRUE;
+        }
+
+        *Size += (UINT32)Sect64->size;
+      }
+
+      if (!IsTextSegment && Found) {
         //DBG ("%a, %a address 0x%x\n", kTextSegment, kTextTextSection, Off);
         break;
       }
@@ -494,15 +504,14 @@ UINT8   Wrmsr[]       = { 0x0F, 0x30 };
 VOID
 AsusAICPUPMPatch (
   UINT8           *Driver,
-  UINT32          DriverSize,/*
+  UINT32          DriverSize/*,
   CHAR8           *InfoPlist,
-  UINT32          InfoPlistSize,*/
-  LOADER_ENTRY    *Entry
+  UINT32          InfoPlistSize*/
 ) {
   UINTN   Index1 = 0, Index2 = 0, Count = 0;
-  UINT32  Addr, Size, Off;
+  UINT32  Addr = 0, Size = 0, Off = 0;
 
-  GetTextSection (Driver, &Addr, &Size, &Off, Entry);
+  GetTextSegment (Driver, &Addr, &Size, &Off);
 
   DBG ("AsusAICPUPMPatch: driverAddr = %x, driverSize = %x\n", Driver, DriverSize);
 
@@ -579,12 +588,11 @@ AnyKextPatch (
   UINT32        DriverSize,
   CHAR8         *InfoPlist,
   UINT32        InfoPlistSize,
-  KEXT_PATCH    *KextPatch,
-  LOADER_ENTRY  *Entry
+  KEXT_PATCH    *KextPatch
 ) {
   UINTN   Num = 0;
 
-  MsgLog ("- %a (%a) | Addr = %x, Size = %x",
+  MsgLog ("- %a (%a) | Addr = 0x%x, Size = %d",
          BundleIdentifier, KextPatch->Label, Driver, DriverSize);
 
   if (KextPatch->IsPlistPatch) { // Info plist patch
@@ -600,9 +608,9 @@ AnyKextPatch (
             KextPatch->Count
           );
   } else { // kext binary patch
-    UINT32    Addr, Size, Off;
+    UINT32  Addr = 0, Size = 0, Off = 0;;
 
-    GetTextSection (Driver, &Addr, &Size, &Off, Entry);
+    GetTextSegment (Driver, &Addr, &Size, &Off);
 
     MsgLog (" | BinPatch");
 
@@ -705,7 +713,7 @@ PatchKext (
     Entry->KernelAndKextPatches->KPAsusAICPUPM &&
     IsPatchNameMatch (BundleIdentifier, NULL, "com.apple.driver.AppleIntelCPUPowerManagement", &IsBundle)
   ) {
-    AsusAICPUPMPatch (Driver, DriverSize, Entry);
+    AsusAICPUPMPatch (Driver, DriverSize);
     Entry->KernelAndKextPatches->KPAsusAICPUPM = FALSE;
 
   //
@@ -728,8 +736,7 @@ PatchKext (
         DriverSize,
         InfoPlist,
         InfoPlistSize,
-        &Entry->KernelAndKextPatches->KextPatches[i],
-        Entry
+        &Entry->KernelAndKextPatches->KextPatches[i]
       );
 
       if (IsBundle) {
@@ -826,8 +833,7 @@ ExtractKextPropString (
 
 EFI_STATUS
 ParsePrelinkKexts (
-  LOADER_ENTRY    *Entry,
-  CHAR8           *WholePlist
+  CHAR8   *WholePlist
 ) {
   TagPtr        KextsDict, DictPointer;
   EFI_STATUS    Status = ParseXML (WholePlist, 0, &KextsDict);
@@ -973,7 +979,7 @@ PatchPrelinkedKexts (
 
   CheckForFakeSMC (WholePlist, Entry);
 
-  if (!EFI_ERROR (ParsePrelinkKexts (Entry, WholePlist))) {
+  if (!EFI_ERROR (ParsePrelinkKexts (WholePlist))) {
     LIST_ENTRY    *Link;
 
     for (Link = gPrelinkKextList.ForwardLink; Link != &gPrelinkKextList; Link = Link->ForwardLink) {

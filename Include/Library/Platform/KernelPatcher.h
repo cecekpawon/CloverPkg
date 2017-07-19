@@ -310,8 +310,7 @@ AnyKextPatch (
   UINT32        DriverSize,
   CHAR8         *InfoPlist,
   UINT32        InfoPlistSize,
-  KEXT_PATCH    *KextPatch,
-  LOADER_ENTRY  *Entry
+  KEXT_PATCH    *KextPatch
 );
 
 BOOLEAN

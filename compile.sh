@@ -55,7 +55,7 @@ BUILD_OPTIONS=
 
 DEF_REVISION=0
 CUSTOM_CONF_PATH="${CLOVER_PATH}/Conf"
-CLOVER_BUILD_PATH="${WORKSPACE}/Build/Clover/RELEASE_${MYTOOLCHAIN}"
+CLOVER_BUILD_PATH="${WORKSPACE}/Build/CloverPkg/RELEASE_${MYTOOLCHAIN}"
 F_VER_H="${CLOVER_PATH}/Version.h"
 CLOVER_VERSION="2.3k"
 CLOVER_REVISION_SUFFIX=""
@@ -76,9 +76,9 @@ case "${MYTOOLCHAIN}" in
         ln -s "${gMake}" "${gGNUmake}"
       fi
     ;;
-  XCODE5)
-      BUILD_OPTIONS="${BUILD_OPTIONS} -D NO_MSABI_VA_FUNCS"
-    ;;
+  #XCODE5)
+  #    BUILD_OPTIONS="${BUILD_OPTIONS} -D NO_MSABI_VA_FUNCS"
+  #  ;;
 esac
 
 export BUILD_OPTIONS
@@ -89,7 +89,7 @@ cd "${CLOVER_PATH}"
 
 # Gen Version.h
 
-gCloverCmd="build -s -p ${CLOVER_DSC} ${BUILD_OPTIONS} -a X64 -t ${MYTOOLCHAIN} -b RELEASE -n ${NUMBER_OF_PROCESSORS} -j ${CLOVER_LOG}"
+gCloverCmd="build -p ${CLOVER_DSC} ${BUILD_OPTIONS} -a X64 -t ${MYTOOLCHAIN} -b RELEASE -n ${NUMBER_OF_PROCESSORS} -j ${CLOVER_LOG}"
 gCloverCmdStr=""
 for c in $gCloverCmd; do gCloverCmdStr="${gCloverCmdStr} ${c##*/}"; done
 read -rd '' gCloverCmdStr <<< "${gCloverCmdStr}"
@@ -108,6 +108,10 @@ echo "#define EDK2_REVISION \"${EDK2_REVISION}\"" >> "${F_VER_H}"
 echo "#define CLOVER_VERSION \"${CLOVER_VERSION}\"" >> "${F_VER_H}"
 echo "#define CLOVER_REVISION \"${CLOVER_REVISION}\"" >> "${F_VER_H}"
 echo "#define CLOVER_BUILDINFOS_STR \"${gCloverCmdStr}\"" >> "${F_VER_H}"
+
+# clean build
+
+[[ -d "${CLOVER_BUILD_PATH}" ]] && rm -rf "${CLOVER_BUILD_PATH}"
 
 # exec command
 

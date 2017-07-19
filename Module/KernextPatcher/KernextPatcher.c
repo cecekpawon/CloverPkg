@@ -994,7 +994,7 @@ IsPatchNameMatch (
 
 STATIC
 VOID
-GetTextSection (
+GetTextSegment (
   IN  UINT8     *binary,
   OUT UINT32    *Addr,
   OUT UINT32    *Size,
@@ -1003,8 +1003,8 @@ GetTextSection (
   struct  load_command        *LoadCommand;
   struct  segment_command_64  *SegCmd64;
   struct  section_64          *Sect64;
-          UINT32              NCmds, CmdSize, BinaryIndex, SectionIndex;
-          UINTN               i;
+          UINT32              i, NCmds, CmdSize, BinaryIndex, SectionIndex;
+          BOOLEAN             IsTextSegment = FALSE, Found = FALSE;
 
   if (MACH_GET_MAGIC (binary) != MH_MAGIC_64) {
     return;
@@ -1029,15 +1029,23 @@ GetTextSection (
       Sect64 = (struct section_64 *)((UINT8 *)SegCmd64 + SectionIndex);
       SectionIndex += sizeof (struct section_64);
 
+      IsTextSegment = (AsciiStrCmp (Sect64->segname, kTextSegment) == 0);
+
       if (
-        (Sect64->size > 0) &&
-        (AsciiStrCmp (Sect64->segname, kTextSegment) == 0) &&
-        (AsciiStrCmp (Sect64->sectname, kTextTextSection) == 0)
+        IsTextSegment &&
+        (Sect64->size > 0)
       ) {
-        *Addr = (UINT32)(Sect64->addr ? Sect64->addr + gRelocBase : 0);
-        *Size = (UINT32)Sect64->size;
-        *Off = Sect64->offset;
-        //DbgLog ("%a, %a address 0x%x\n", kTextSegment, kTextTextSection, Off);
+        if (!Found) {
+          *Addr = (UINT32)Sect64->addr;
+          *Off = Sect64->offset;
+          Found = TRUE;
+        }
+
+        *Size += (UINT32)Sect64->size;
+      }
+
+      if (!IsTextSegment && Found) {
+        //DBG ("%a, %a address 0x%x\n", kTextSegment, kTextTextSection, Off);
         break;
       }
     }
@@ -1387,7 +1395,7 @@ AnyKextPatch (
 ) {
   UINTN   Num = 0;
 
-  MsgLog ("- %a (%a) | Addr = %x, Size = %x",
+  MsgLog ("- %a (%a) | Addr = 0x%x, Size = %d",
          BundleIdentifier, KextPatch->Label, Driver, DriverSize);
 
   if (KextPatch->IsPlistPatch) { // Info plist patch
@@ -1403,9 +1411,9 @@ AnyKextPatch (
             KextPatch->Count
           );
   } else { // kext binary patch
-    UINT32    Addr, Size, Off;
+    UINT32    Addr = 0, Size = 0, Off = 0;
 
-    GetTextSection (Driver, &Addr, &Size, &Off);
+    GetTextSegment (Driver, &Addr, &Size, &Off);
 
     MsgLog (" | BinPatch");
 
@@ -2596,7 +2604,7 @@ GetLoadedBooter () {
 
         gBooterOSVersion = (CHAR8 *)LoadedImage->ImageBase + Offset;
 
-        if (AsciiStrnCmp (gBooterOSVersion, "10.", 3)) {
+        if (!IS_DIGIT (*gBooterOSVersion) || !IS_DIGIT (*gBooterOSVersion + 1)) {
           gBooterOSVersion = NULL;
           continue;
         }
@@ -2606,7 +2614,7 @@ GetLoadedBooter () {
           Offset += 8;
           gBooterVersion = gBooterOSVersion + Offset;
 
-          if (CountOccurrences (gBooterVersion, '.') < 2) {
+          if (!IS_DIGIT (*gBooterVersion)) {
             gBooterOSVersion = gBooterVersion = NULL;
             continue;
           }

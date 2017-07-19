@@ -2981,6 +2981,7 @@ ParseSMBIOSSettings (
     if (IsValidGuidAsciiString (Prop->string)) {
       AsciiStrToUnicodeStrS(Prop->string, UStr, ARRAY_SIZE (UStr));
       /* Status = */ StrToGuid (UStr, &gSettings.SmUUID);
+      ToAppleGuid (&gSettings.SmUUID);
       gSettings.SmUUIDConfig = TRUE;
     } else {
       DBG ("Error: invalid SmUUID '%a' - should be in the format XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX\n", Prop->string);

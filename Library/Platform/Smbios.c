@@ -487,6 +487,7 @@ GetTableType1 () {
   }
 
   CopyMem ((VOID *)&gSettings.SmUUID, (VOID *)&SmbiosTable.Type1->Uuid, sizeof (EFI_GUID));
+  ToAppleGuid (&gSettings.SmUUID);
   //AsciiStrToUnicodeStr (GetSmbiosString (SmbiosTable, SmbiosTable.Type1->ProductName), gSettings.OEMProduct);
   Str = GetSmbiosString (SmbiosTable, SmbiosTable.Type1->ProductName);
   CopyMem (gSettings.OEMProduct, Str, AsciiTrimStrLen (Str, 64) + 1); //take ending zero
@@ -518,7 +519,7 @@ PatchTableType1 () {
   NewSmbiosTable.Type1->WakeUpType = SystemWakeupTypePowerSwitch;
   //Once = TRUE;
 
-  if (BIT_ISSET (gSettings.SmUUID.Data3, 0xF000) != 0) {
+  if (BIT_ISSET (gSettings.SmUUID.Data3, 0xF000)) {
     CopyMem ((VOID *)&NewSmbiosTable.Type1->Uuid, (VOID *)&gSettings.SmUUID, 16);
   }
 

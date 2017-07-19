@@ -143,9 +143,7 @@ GetKernelVersion (
 #endif
 
 VOID
-InitKernel (
-  IN LOADER_ENTRY   *Entry
-) {
+InitKernel () {
   struct  nlist_64            *SysTabEntry;
   struct  symtab_command      *ComSymTab;
   struct  load_command        *LoadCommand;
@@ -261,7 +259,7 @@ InitKernel (
                 (AsciiStrCmp (Sect64->sectname, kTextConstSection) == 0) ||
                 (AsciiStrCmp (Sect64->sectname, kTextCstringSection) == 0)
               ) {
-                GetKernelVersion (Addr, Size, Entry);
+                GetKernelVersion (Addr, Size);
               }
 #endif
             }
@@ -566,9 +564,7 @@ KernelCPUIDPatch (
 }
 
 BOOLEAN
-KernelPatchPm (
-  IN LOADER_ENTRY   *Entry
-) {
+KernelPatchPm () {
   UINT8     *Ptr = (UINT8 *)KernelInfo->Bin, *End = NULL;
   BOOLEAN   Found = FALSE, Ret = FALSE;
   UINT64    KernelPatchPMNull = 0x0000000000000000ULL;
@@ -1049,7 +1045,7 @@ KernelAndKextPatcherInit (
     goto Finish;
   }
 
-  InitKernel (Entry);
+  InitKernel ();
 
   if (KernelInfo->VersionMajor < DARWIN_KERNEL_VER_MAJOR_MINIMUM) {
     MsgLog ("Unsupported kernel version (%d.%d.%d)\n", KernelInfo->VersionMajor, KernelInfo->VersionMinor, KernelInfo->Revision);
@@ -1131,7 +1127,7 @@ KernelAndKextsPatcherStart (
       goto NoKernelData;
     }
 
-    KernelPatchPm (Entry);
+    KernelPatchPm ();
   }
 
   //

@@ -2493,11 +2493,7 @@ StartLoader (
           Offset += 9;
           BooterOSVersion = (CHAR8 *)LoadedImage->ImageBase + BootEfiHeader->TextOffset + Offset;
 
-          if (
-            AsciiStrnCmp (BooterOSVersion, "10.", 3) /* &&
-            AsciiStrnCmp (BooterOSVersion, "11.", 3) &&
-            AsciiStrnCmp (BooterOSVersion, "12.", 3) */
-          ) {
+          if (!IS_DIGIT (*BooterOSVersion) || !IS_DIGIT (*BooterOSVersion + 1)) {
             DBG ("Unsupported BooterOSVersion\n");
             BooterOSVersion = NULL;
           } else { // known OS version was found in image, now check booter version
@@ -2505,7 +2501,7 @@ StartLoader (
             if (Offset >= 0) {
               Offset += 8;
               BooterVersion = BooterOSVersion + Offset;
-              if (CountOccurrences (BooterVersion, '.') < 2) {
+              if (!IS_DIGIT (*BooterVersion) || !IS_DIGIT (*BooterVersion + 1)) {
                 DBG ("Unsupported BooterVersion\n");
                 BooterOSVersion = BooterVersion = NULL;
               }

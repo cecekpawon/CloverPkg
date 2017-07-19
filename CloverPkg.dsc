@@ -16,11 +16,11 @@
 #
 ##
 [Defines]
-  PLATFORM_NAME                  = Clover
+  PLATFORM_NAME                  = CloverPkg
   PLATFORM_GUID                  = 199E24E0-0989-42aa-87F2-611A8C397E72
   PLATFORM_VERSION               = 0.92
   DSC_SPECIFICATION              = 0x00010006
-  OUTPUT_DIRECTORY               = Build/Clover
+  OUTPUT_DIRECTORY               = Build/CloverPkg
   SUPPORTED_ARCHITECTURES        = X64
   BUILD_TARGETS                  = RELEASE
   SKUID_IDENTIFIER               = DEFAULT

@@ -471,8 +471,7 @@ InjectKexts (
               Drvinfo->executableLength,
               InfoPlist,
               Drvinfo->infoDictLength,
-              &Entry->KernelAndKextPatches->KextPatches[i],
-              Entry
+              &Entry->KernelAndKextPatches->KextPatches[i]
             );
 
             if (IsBundle) {

@@ -436,10 +436,15 @@ FixAsciiTableHeader (
   UINTN   i = 0, y = 0;
 
   while ((*Str != 0) && (i++ < Len)) {
+#if 1
     if ((*Str < 0x20) || (*Str > 0x7E)) {
       *Str = 0x3F;
       y++;
     }
+#else
+    *Str = 'X';
+    y++;
+#endif
 
     Str++;
   }
