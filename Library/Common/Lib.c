@@ -2376,13 +2376,17 @@ TimeCompare (
  return Comparison;
 }
 
-VOID
-ToAppleGuid (
-  IN OUT EFI_GUID   *AppleGuid
+EFI_GUID *
+SwapGuid (
+  IN EFI_GUID   Guid
 ) {
-  (*AppleGuid).Data1 = SwapBytes32 ((*AppleGuid).Data1);
-  (*AppleGuid).Data2 = SwapBytes16 ((*AppleGuid).Data2);
-  (*AppleGuid).Data3 = SwapBytes16 ((*AppleGuid).Data3);
+  IN EFI_GUID  *NewGuid = AllocateCopyPool (sizeof (EFI_GUID), &Guid);
+
+  (*NewGuid).Data1 = SwapBytes32 ((*NewGuid).Data1);
+  (*NewGuid).Data2 = SwapBytes16 ((*NewGuid).Data2);
+  (*NewGuid).Data3 = SwapBytes16 ((*NewGuid).Data3);
+
+  return NewGuid;
 }
 
 /** Returns TRUE is Str is ascii Guid in format xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx */

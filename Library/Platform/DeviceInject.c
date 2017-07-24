@@ -542,16 +542,17 @@ BOOLEAN
 SetupEthernetDevprop (
   PCI_DT    *Dev
 ) {
+  CHAR8           *DevicePath, Compatible[64];
   DevPropDevice   *Device;
   UINT8           Builtin = 0x0;
   BOOLEAN         Injected = FALSE;
   INT32           i;
-  CHAR8           Compatible[64];
 
   if (!gDevPropString) {
     gDevPropString = DevpropCreateString ();
   }
 
+  DevicePath = GetPciDevPath (Dev);
   Device = DevpropAddDevicePci (gDevPropString, Dev);
 
   if (!Device) {
@@ -559,7 +560,7 @@ SetupEthernetDevprop (
     return FALSE;
   }
 
-  MsgLog ("LAN Controller [%04x:%04x]\n", Dev->vendor_id, Dev->device_id);
+  MsgLog (" - LAN Controller [%04x:%04x] | %a\n", Dev->vendor_id, Dev->device_id, DevicePath);
 
   if ((Dev->vendor_id != 0x168c) && (BuiltinSet == 0)) {
     BuiltinSet = 1;
@@ -679,7 +680,7 @@ SetupHdaDevprop (
     return FALSE;
   }
 
-  MsgLog (" - HDA Controller [%04x:%04x] %a\n", Dev->vendor_id, Dev->device_id, DevicePath);
+  MsgLog (" - HDA Controller [%04x:%04x] | %a\n", Dev->vendor_id, Dev->device_id, DevicePath);
 
   if (IsHDMIAudio (Dev->DeviceHandle)) {
     if (gSettings.NrAddProperties != 0xFFFE) {

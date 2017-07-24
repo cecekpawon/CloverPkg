@@ -177,7 +177,7 @@ RefitMain (
     DBG ("UnicodeCollation Status=%r\n", Status);
   }
 
-  GetDefaultConfig (); // Init gSettings
+  InitializeSettings (); // Init gSettings
 
   if (FileExists (SelfRootDir, DEV_MARK)) {
     gSettings.Dev = TRUE;
@@ -297,6 +297,9 @@ RefitMain (
   AfterTool = FALSE;
   gGuiIsReady = TRUE;
 
+  // get boot-args
+  SyncBootArgsFromNvram ();
+
   MainMenu.TimeoutSeconds = (!gSettings.FastBoot && (gSettings.Timeout >= 0)) ? gSettings.Timeout : 0;
 
   DrawLoadMessage (L"Scan Entries");
@@ -310,9 +313,6 @@ RefitMain (
     OptionMenu.EntryCount = 0;
 
     ScanVolumes ();
-
-    // get boot-args
-    SyncBootArgsFromNvram ();
 
     if (!gSettings.FastBoot) {
       CHAR16  *TmpArgs;
@@ -329,7 +329,7 @@ RefitMain (
       gThemeChanged = FALSE;
       MsgLog ("Choosing theme: %s\n", GlobalConfig.Theme);
 
-      TmpArgs = PoolPrint (L"%a ", gSettings.BootArgs);
+      TmpArgs = PoolPrint (L"%a", gSettings.BootArgs);
       gSettings.OptionsBits = EncodeOptions (TmpArgs);
       FreePool (TmpArgs);
 

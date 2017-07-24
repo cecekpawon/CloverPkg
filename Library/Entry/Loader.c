@@ -2551,21 +2551,7 @@ StartLoader (
       MsgLog (" %a\n", Entry->OSVersion);
     }
 
-    if (OSX_GT (Entry->OSVersion, DARWIN_OS_VER_STR_ELCAPITAN)) {
-    //if (
-    //  (Entry->OSVersionMajor > DARWIN_OS_VER_MAJOR_10) ||
-    //  (
-    //    (Entry->OSVersionMajor == DARWIN_OS_VER_MAJOR_10) &&
-    //    (Entry->OSVersionMinor > DARWIN_OS_VER_MINOR_ELCAPITAN)
-    //  )
-    //) {
-      if (BIT_ISSET (Entry->Flags, OSFLAG_NOSIP)) {
-        gSettings.CsrActiveConfig = (UINT32)DEF_NOSIP_CSR_ACTIVE_CONFIG;
-        gSettings.BooterConfig = (UINT16)DEF_NOSIP_BOOTER_CONFIG;
-      }
-
-      ReadCsrCfg ();
-    }
+    ReadCsrCfg (Entry);
 
     FilterKextPatches (Entry);
 
@@ -2630,7 +2616,7 @@ StartLoader (
     SetFSInjection (Entry);
     //PauseForKey (L"SetFSInjection");
 
-    SetVariablesForOSX ();
+    SetVariablesForOSX (Entry);
 
     EventsInitialize (Entry);
 
@@ -2674,14 +2660,12 @@ StartLoader (
     //DBG ("Closing events for Windows\n");
 
     PatchACPI (/* FALSE,*/ Entry->LoaderType);
-    //PauseForKey (L"continue");
 
   } else if (OSTYPE_IS_LINUX_GLOB (Entry->LoaderType)) {
     //DBG ("Closing events for Linux\n");
 
     //FinalizeSmbios ();
     PatchACPI (/* FALSE,*/ Entry->LoaderType);
-    //PauseForKey (L"continue");
   }
 
   SaveOemDsdt (FALSE, Entry->LoaderType);
@@ -2694,6 +2678,31 @@ StartLoader (
     // to reboot into another volume
     RemoveStartupDiskVolume ();
   }
+
+  #if 0
+  if (BIT_ISSET (Entry->Flags, OSFLAG_USEGRAPHICS))           DBG ("- %a\n", "OSFLAG_USEGRAPHICS");
+  if (BIT_ISSET (Entry->Flags, OSFLAG_WITHKEXTS))             DBG ("- %a\n", "OSFLAG_WITHKEXTS");
+  if (BIT_ISSET (Entry->Flags, OSFLAG_CHECKFAKESMC))          DBG ("- %a\n", "OSFLAG_CHECKFAKESMC");
+  if (BIT_ISSET (Entry->Flags, OSFLAG_NOCACHES))              DBG ("- %a\n", "OSFLAG_NOCACHES");
+  if (BIT_ISSET (Entry->Flags, OSFLAG_NODEFAULTARGS))         DBG ("- %a\n", "OSFLAG_NODEFAULTARGS");
+  if (BIT_ISSET (Entry->Flags, OSFLAG_NODEFAULTMENU))         DBG ("- %a\n", "OSFLAG_NODEFAULTMENU");
+  if (BIT_ISSET (Entry->Flags, OSFLAG_HIDDEN))                DBG ("- %a\n", "OSFLAG_HIDDEN");
+  if (BIT_ISSET (Entry->Flags, OSFLAG_DISABLED))              DBG ("- %a\n", "OSFLAG_DISABLED");
+  if (BIT_ISSET (Entry->Flags, OSFLAG_HIBERNATED))            DBG ("- %a\n", "OSFLAG_HIBERNATED");
+  if (BIT_ISSET (Entry->Flags, OSFLAG_NOSIP))                 DBG ("- %a\n", "OSFLAG_NOSIP");
+  if (BIT_ISSET (Entry->Flags, OSFLAG_DBGPATCHES))            DBG ("- %a\n", "OSFLAG_DBGPATCHES");
+  if (BIT_ISSET (Entry->Flags, OSFLAG_ALLOW_KEXT_PATCHES))    DBG ("- %a\n", "OSFLAG_ALLOW_KEXT_PATCHES");
+  if (BIT_ISSET (Entry->Flags, OSFLAG_ALLOW_KERNEL_PATCHES))  DBG ("- %a\n", "OSFLAG_ALLOW_KERNEL_PATCHES");
+  if (BIT_ISSET (Entry->Flags, OSFLAG_ALLOW_BOOTER_PATCHES))  DBG ("- %a\n", "OSFLAG_ALLOW_BOOTER_PATCHES");
+  if (BIT_ISSET (Entry->Flags, OPT_VERBOSE))                  DBG ("- %a\n", "OPT_VERBOSE");
+  if (BIT_ISSET (Entry->Flags, OPT_SINGLE_USER))              DBG ("- %a\n", "OPT_SINGLE_USER");
+  if (BIT_ISSET (Entry->Flags, OPT_SAFE))                     DBG ("- %a\n", "OPT_SAFE");
+  if (BIT_ISSET (Entry->Flags, OPT_QUIET))                    DBG ("- %a\n", "OPT_QUIET");
+  if (BIT_ISSET (Entry->Flags, OPT_SPLASH))                   DBG ("- %a\n", "OPT_SPLASH");
+  if (BIT_ISSET (Entry->Flags, OPT_NOMODESET))                DBG ("- %a\n", "OPT_NOMODESET");
+  if (BIT_ISSET (Entry->Flags, OPT_HDD))                      DBG ("- %a\n", "OPT_HDD");
+  if (BIT_ISSET (Entry->Flags, OPT_CDROM))                    DBG ("- %a\n", "OPT_CDROM");
+  #endif
 
   // re-Unified
   gSettings.OptionsBits = Entry->Flags;
@@ -2863,7 +2872,7 @@ SetFSInjection (
 }
 
 VOID
-ReadCsrCfg () {
+PrintCsrCfg () {
   UINT32    csrCfg = gSettings.CsrActiveConfig & CSR_VALID_FLAGS;
   UINTN     Len = SVALUE_MAX_SIZE;
   CHAR16    *csrLog = AllocateZeroPool (Len);
@@ -2896,4 +2905,70 @@ ReadCsrCfg () {
   }
 
   FreePool (csrLog);
+}
+
+VOID
+ReadCsrCfg (
+  IN LOADER_ENTRY   *Entry
+) {
+  UINT16    FixFlags = 0xFFFF;
+  UINT32    FixCsrActiveConfig = 0xFFFF;
+  BOOLEAN   IsNoSIP = FALSE;
+
+  if (OSX_LT (Entry->OSVersion, DARWIN_OS_VER_STR_ELCAPITAN)) {
+    gSettings.CsrActiveConfig = 0xFFFF;
+    gSettings.BooterConfig = 0xFFFF;
+    return;
+  }
+
+  IsNoSIP = BIT_ISSET (Entry->Flags, OSFLAG_NOSIP);
+
+  if (IsNoSIP) {
+    goto NoSIP;
+  }
+
+  // user defined
+  if (gSettings.BooterConfig != 0xFFFF) {
+    FixFlags = gSettings.BooterConfig;
+  }
+
+  if (gSettings.CsrActiveConfig != 0xFFFF) {
+    FixCsrActiveConfig = gSettings.CsrActiveConfig;
+  }
+
+  switch (Entry->LoaderType) {
+    case OSTYPE_DARWIN_RECOVERY:
+    case OSTYPE_DARWIN_INSTALLER:
+      IsNoSIP = TRUE;
+      break;
+    default:
+      break;
+  }
+
+  NoSIP:
+
+  if (IsNoSIP) {
+    gSettings.BooterConfig = DEF_NOSIP_BOOTER_CONFIG;
+    gSettings.CsrActiveConfig = DEF_NOSIP_CSR_ACTIVE_CONFIG;
+    goto Finish;
+  }
+
+  if (FixCsrActiveConfig != 0xFFFF) {
+    if (FixFlags == 0xFFFF) {
+      FixFlags = 0;
+    }
+
+    FixFlags |= kBootArgsFlagCSRActiveConfig;
+
+    if (BIT_ISSET (FixCsrActiveConfig, CSR_ALLOW_DEVICE_CONFIGURATION)) {
+      FixFlags |= kBootArgsFlagCSRConfigMode;
+    }
+  }
+
+  gSettings.BooterConfig = FixFlags;
+  gSettings.CsrActiveConfig = FixCsrActiveConfig;
+
+  Finish:
+
+  PrintCsrCfg ();
 }

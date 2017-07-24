@@ -201,8 +201,15 @@ Headers collection for procedures
   #define CLOVER_BUILDINFOS_STR "Unknown"
 #endif
 
-#define DEF_NOSIP_CSR_ACTIVE_CONFIG     (CSR_ALLOW_APPLE_INTERNAL + CSR_ALLOW_UNRESTRICTED_NVRAM + CSR_ALLOW_DEVICE_CONFIGURATION + CSR_ALLOW_ANY_RECOVERY_OS)
-#define DEF_NOSIP_BOOTER_CONFIG         (kBootArgsFlagCSRActiveConfig + kBootArgsFlagCSRConfigMode + kBootArgsFlagCSRBoot)
+#define DEF_NOSIP_CSR_ACTIVE_CONFIG     ( \
+                                          CSR_ALLOW_UNTRUSTED_KEXTS | \
+                                          CSR_ALLOW_UNRESTRICTED_FS | \
+                                          CSR_ALLOW_TASK_FOR_PID | \
+                                          CSR_ALLOW_APPLE_INTERNAL | \
+                                          CSR_ALLOW_UNRESTRICTED_DTRACE | \
+                                          CSR_ALLOW_UNRESTRICTED_NVRAM \
+                                        ) // 0x77, 0x67 without CSR_ALLOW_APPLE_INTERNAL
+#define DEF_NOSIP_BOOTER_CONFIG         (kBootArgsFlagCSRActiveConfig /* + kBootArgsFlagCSRConfigMode */ + kBootArgsFlagCSRBoot)
 
 #define DEF_DISK_TEMPLATE               L"$label $platform on $path"
 #define DEF_DARWIN_DISK_TEMPLATE        L"$platform $label $version ($build) on $path"
@@ -898,8 +905,9 @@ typedef struct {
   CHAR8                     ProductName[64];
   CHAR8                     VersionNr[64];
   CHAR8                     SerialNr[64];
-  EFI_GUID                  SmUUID;
-  BOOLEAN                   SmUUIDConfig;
+  EFI_GUID                  OemSystemID;
+  EFI_GUID                  SystemID;
+  EFI_GUID                  PlatformUUID;
   CHAR8                     FamilyName[64];
   CHAR8                     OEMProduct[64];
   CHAR8                     OEMVendor[64];
@@ -984,7 +992,6 @@ typedef struct {
 
   //Injections
   BOOLEAN                   EFIStringInjector;
-  //BOOLEAN                   InjectSystemID;
   BOOLEAN                   NoDefaultProperties;
 
   BOOLEAN                   ReuseFFFF;
@@ -1236,6 +1243,10 @@ FixBiosDsdt (
   BOOLEAN   Patched
 );
 
+
+VOID
+DumpFixBiosDsdt ();
+
 //VOID
 //GetBiosRegions (
 //  EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE   *fadt
@@ -1298,9 +1309,9 @@ FillInputs (
 VOID
 ApplyInputs ();
 
-VOID
-ToAppleGuid (
-  IN OUT EFI_GUID   *AppleGuid
+EFI_GUID *
+SwapGuid (
+  IN EFI_GUID   Guid
 );
 
 BOOLEAN
@@ -1325,7 +1336,7 @@ GetCrc32 (
 );
 
 VOID
-GetDefaultConfig ();
+InitializeSettings ();
 
 VOID
 SyncDefaultSettings ();
@@ -1380,7 +1391,9 @@ SetFSInjection (
 );
 
 VOID
-ReadCsrCfg ();
+ReadCsrCfg (
+  IN LOADER_ENTRY   *Entry
+);
 
 //VOID
 //ParseLoadOptions (
@@ -1486,7 +1499,9 @@ SaveDarwinLog ();
 
 EFI_STATUS
 EFIAPI
-SetVariablesForOSX ();
+SetVariablesForOSX (
+  IN LOADER_ENTRY   *Entry
+);
 
 VOID
 EFIAPI
@@ -1612,6 +1627,9 @@ GetPropertyInteger (
   TagPtr  Prop,
   INTN    Default
 );
+
+VOID
+ReInitializeSettings ();
 
 EFI_STATUS
 SaveSettings ();

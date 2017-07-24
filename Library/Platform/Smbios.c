@@ -191,7 +191,7 @@ GetSmbiosTablesFromConfigTables () {
   EFI_STATUS              Status;
   EFI_PHYSICAL_ADDRESS    *Table;
 
-  Status = EfiGetSystemConfigurationTable (&gEfiSmbiosTableGuid, (VOID **)  &Table);
+  Status = EfiGetSystemConfigurationTable (&gEfiSmbiosTableGuid, (VOID **) &Table);
   if (EFI_ERROR (Status) || Table == NULL) {
     Table = NULL;
   }
@@ -486,8 +486,8 @@ GetTableType1 () {
     return;
   }
 
-  CopyMem ((VOID *)&gSettings.SmUUID, (VOID *)&SmbiosTable.Type1->Uuid, sizeof (EFI_GUID));
-  ToAppleGuid (&gSettings.SmUUID);
+  CopyGuid (&gSettings.OemSystemID, (EFI_GUID *)&SmbiosTable.Type1->Uuid);
+  CopyGuid (&gSettings.SystemID, &gSettings.OemSystemID);
   //AsciiStrToUnicodeStr (GetSmbiosString (SmbiosTable, SmbiosTable.Type1->ProductName), gSettings.OEMProduct);
   Str = GetSmbiosString (SmbiosTable, SmbiosTable.Type1->ProductName);
   CopyMem (gSettings.OEMProduct, Str, AsciiTrimStrLen (Str, 64) + 1); //take ending zero
@@ -519,8 +519,11 @@ PatchTableType1 () {
   NewSmbiosTable.Type1->WakeUpType = SystemWakeupTypePowerSwitch;
   //Once = TRUE;
 
-  if (BIT_ISSET (gSettings.SmUUID.Data3, 0xF000)) {
-    CopyMem ((VOID *)&NewSmbiosTable.Type1->Uuid, (VOID *)&gSettings.SmUUID, 16);
+  if (
+    !CompareGuid (&gSettings.SystemID, &gEfiPartTypeUnusedGuid) &&
+    !CompareGuid (&gSettings.OemSystemID, &gSettings.SystemID)
+  ) {
+    CopyGuid ((EFI_GUID *)&NewSmbiosTable.Type1->Uuid, (EFI_GUID *)&gSettings.SystemID);
   }
 
   if (AsciiTrimStrLen (gSettings.ManufactureName, 64) > 0) {

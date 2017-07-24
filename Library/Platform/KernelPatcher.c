@@ -663,46 +663,35 @@ FindBootArgs (
       KernelInfo->Bin = (VOID *)(UINTN)(KernelInfo->Slide + 0x00200000);
 
       /*
-      DBG ("Found gBootArgs at 0x%08x, DevTree at %p\n", Ptr, dtRoot);
+      DBG ("Found gBootArgs at 0x%08x, DevTree at %p\n", Ptr, gDtRoot);
       //DBG ("gBootArgs->kaddr = 0x%08x and gBootArgs->ksize =  0x%08x\n", gBootArgs->kaddr, gBootArgs->ksize);
       //DBG ("gBootArgs->efiMode = 0x%02x\n", gBootArgs->efiMode);
-      DBG ("gBootArgs->CommandLine = %a\n", gBootArgs->CommandLine);
+      DBG ("gBootArgs->CommandLine = '%a'\n", gBootArgs->CommandLine);
       DBG ("gBootArgs->flags = 0x%x\n", gBootArgs->flags);
       DBG ("gBootArgs->kslide = 0x%x\n", gBootArgs->kslide);
       DBG ("gBootArgs->bootMemStart = 0x%x\n", gBootArgs->bootMemStart);
       */
 
 #ifdef NO_NVRAM_SIP
-      gBootArgs->flags = 0;
-      gBootArgs->csrActiveConfig = 0;
+      if (OSX_GE (Entry->OSVersion, DARWIN_OS_VER_STR_ELCAPITAN)) {
+        gBootArgs->flags = 0;
+        gBootArgs->csrActiveConfig = 0;
 
-      // user defined
-      if (gSettings.BooterConfig != 0xFFFF) {
-        gBootArgs->flags = gSettings.BooterConfig;
-      }
-
-      if (gSettings.CsrActiveConfig != 0xFFFF) {
-        gBootArgs->csrActiveConfig = gSettings.CsrActiveConfig;
-      }
-
-      switch (Entry->LoaderType) {
-        case OSTYPE_DARWIN_RECOVERY:
-        case OSTYPE_DARWIN_INSTALLER:
-          gBootArgs->flags |= DEF_NOSIP_BOOTER_CONFIG;
-          gBootArgs->csrActiveConfig |= DEF_NOSIP_CSR_ACTIVE_CONFIG;
-          break;
-        default:
-          break;
-      }
-
-      if (gSettings.CsrActiveConfig != 0xFFFF) {
-        gBootArgs->flags |= kBootArgsFlagCSRActiveConfig;
-        if (BIT_ISSET (gBootArgs->csrActiveConfig, CSR_ALLOW_DEVICE_CONFIGURATION)) {
-          gBootArgs->flags |= kBootArgsFlagCSRConfigMode;
+        // user defined
+        if (gSettings.BooterConfig != 0xFFFF) {
+          gBootArgs->flags = gSettings.BooterConfig;
         }
+
+        if (gSettings.CsrActiveConfig != 0xFFFF) {
+          gBootArgs->csrActiveConfig = gSettings.CsrActiveConfig;
+        }
+
+        gBootArgs->csrCapabilities = CSR_CAPABILITY_UNLIMITED;
       }
 
-      gBootArgs->csrCapabilities = CSR_CAPABILITY_UNLIMITED;
+      DeleteNvramVariable (NvramData[kCsrActiveConfig].VariableName, NvramData[kCsrActiveConfig].Guid);
+      DeleteNvramVariable (NvramData[kBootercfg].VariableName, NvramData[kBootercfg].Guid);
+
       //gBootArgs->boot_SMC_plimit = 0;
 
       gBootArgs->Video/* V1 */.v_display = BIT_ISSET (Entry->Flags, OSFLAG_USEGRAPHICS) ? GRAPHICS_MODE : FB_TEXT_MODE;
@@ -711,9 +700,6 @@ FindBootArgs (
       gBootArgs->Video/* V1 */.v_depth = UGAColorDepth;
       gBootArgs->Video/* V1 */.v_rowBytes = UGABytesPerRow;
       gBootArgs->Video/* V1 */.v_baseAddr = /* (UINT32) */UGAFrameBufferBase;
-
-      DeleteNvramVariable (L"csr-active-config", &gEfiAppleBootGuid);
-      DeleteNvramVariable (L"bootercfg", &gEfiAppleBootGuid);
 #endif
 
       Ret = TRUE;

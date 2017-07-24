@@ -925,10 +925,13 @@ RemoveStartupDiskVolume () {
 
 VOID
 SyncBootArgsFromNvram () {
-  CHAR8   *TmpString, *Arg = NULL;
+  CHAR8   *TmpString, *Arg = NULL, *tBootArgs;
   UINTN   iNVRAM = 0, iBootArgs = 0, Index = 0, Index2, Len, i;
 
   DbgHeader ("SyncBootArgsFromNvram");
+
+  tBootArgs = gSettings.BootArgs;
+  AsciiTrimSpaces (&tBootArgs);
 
   iBootArgs = AsciiStrLen (gSettings.BootArgs);
 
@@ -937,6 +940,8 @@ SyncBootArgsFromNvram () {
   }
 
   TmpString = GetNvramVariable (L"boot-args", &gEfiAppleBootGuid, NULL, &iNVRAM);
+
+  AsciiTrimSpaces (&TmpString);
 
   if (!iNVRAM || !TmpString || ((iNVRAM = AsciiStrLen (TmpString)) == 0)) {
     return;

@@ -496,6 +496,7 @@ ApplyInputs () {
   EFI_STATUS    Status = EFI_NOT_FOUND;
   BOOLEAN       NeedSave = TRUE;
   CHAR16        *ch;
+  CHAR8         *tBootArgs;
   INTN          i = 0;
 
   for (i = 0; i < OptMenuItemsNum; i++) {
@@ -505,7 +506,7 @@ ApplyInputs () {
 
     switch (i) {
       case mBootArgs:
-        ZeroMem (&gSettings.BootArgs, AVALUE_MAX_SIZE);
+        ZeroMem (&gSettings.BootArgs, ARRAY_SIZE (gSettings.BootArgs));
         gBootChanged = TRUE;
         ch = InputItems[i].SValue;
 
@@ -515,7 +516,10 @@ ApplyInputs () {
           }
         } while (*(++ch));
 
-        AsciiSPrint (gSettings.BootArgs, ARRAY_SIZE (gSettings.BootArgs), "%s ", InputItems[i].SValue);
+        AsciiSPrint (gSettings.BootArgs, ARRAY_SIZE (gSettings.BootArgs), "%s", InputItems[i].SValue);
+        tBootArgs = gSettings.BootArgs;
+        AsciiTrimSpaces (&tBootArgs);
+        gSettings.OptionsBits = EncodeOptions (PoolPrint (L"%a", gSettings.BootArgs));
         break;
 
       case mConfigs:
@@ -540,7 +544,7 @@ ApplyInputs () {
                     FreePool (gSettings.ConfigName);
                   }
 
-                  gSettings.ConfigName = PoolPrint (aTmp->FileName);
+                  gSettings.ConfigName = EfiStrDuplicate (aTmp->FileName);
                 }
               }
 
@@ -710,6 +714,7 @@ EncodeOptions (
 
   for (i = 0; i < OptMenuOptBitNum; i++) {
     if (BootArgsExists (Options, OPT_MENU_OPTBIT[i].Args)) {
+      DBG ("- %s\n", OPT_MENU_OPTBIT[i].Title);
       OptionsBits = (UINT32)BIT_SET (OptionsBits, OPT_MENU_OPTBIT[i].Bit);
     }
   }

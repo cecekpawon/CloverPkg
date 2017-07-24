@@ -2710,6 +2710,24 @@ AddHDEF (
 }
 
 VOID
+DumpFixBiosDsdt () {
+  INTN      i, Count = 0;
+
+  if (gSettings.FixDsdt != 0xFFFF) {
+    MsgLog ("DsdtFixMask: 0x%08x:", gSettings.FixDsdt);
+
+    for (i = 0; i < OptMenuDSDTBitNum; i++) {
+      if (BIT_ISSET (gSettings.FixDsdt, OPT_MENU_DSDTBIT[i].Bit)) {
+        MsgLog (" %a%a", Count ? "| " : "", OPT_MENU_DSDTBIT[i].Title);
+        Count++;
+      }
+    }
+
+    MsgLog ("\n");
+  }
+}
+
+VOID
 FixBiosDsdt (
   UINT8     *Temp,
   BOOLEAN   Patched

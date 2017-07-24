@@ -2976,15 +2976,23 @@ ParseSMBIOSSettings (
     AsciiStrCpyS (gSettings.SerialNr, ARRAY_SIZE (gSettings.SerialNr), Prop->string);
   }
 
-  Prop = GetProperty (DictPointer, "SmUUID");
+  Prop = GetProperty (DictPointer, "SystemID");
   if ((Prop != NULL) && (Prop->type == kTagTypeString)) {
     if (IsValidGuidAsciiString (Prop->string)) {
       AsciiStrToUnicodeStrS(Prop->string, UStr, ARRAY_SIZE (UStr));
-      /* Status = */ StrToGuid (UStr, &gSettings.SmUUID);
-      ToAppleGuid (&gSettings.SmUUID);
-      gSettings.SmUUIDConfig = TRUE;
+      StrToGuid (UStr, &gSettings.SystemID);
     } else {
-      DBG ("Error: invalid SmUUID '%a' - should be in the format XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX\n", Prop->string);
+      DBG ("Error: invalid SystemID: '%a' - should be in the format XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX\n", Prop->string);
+    }
+  }
+
+  Prop = GetProperty (DictPointer, "PlatformUUID");
+  if ((Prop != NULL) && (Prop->type == kTagTypeString)) {
+    if (IsValidGuidAsciiString (Prop->string)) {
+      AsciiStrToUnicodeStrS(Prop->string, UStr, ARRAY_SIZE (UStr));
+      StrToGuid (UStr, &gSettings.PlatformUUID);
+    } else {
+      DBG ("Error: invalid PlatformUUID: '%a' - should be in the format XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX\n", Prop->string);
     }
   }
 
@@ -4017,7 +4025,6 @@ ParseRtVariablesSettings (
 
   DictPointer = GetProperty (CurrentDict, "RtVariables");
   if (DictPointer != NULL) {
-    // ROM: <data>bin data</data> or <string>base 64 encoded bin data</string>
     Prop = GetProperty (DictPointer, "ROM");
     if (Prop != NULL) {
       GetLegacyLanAddress = FALSE;
@@ -4059,7 +4066,9 @@ ParseRtVariablesSettings (
   }
 
   if (gSettings.RtROM == NULL) {
-    gSettings.RtROM = (UINT8 *)&gSettings.SmUUID.Data4[2];
+    gSettings.RtROM = CompareGuid (&gSettings.PlatformUUID, &gEfiPartTypeUnusedGuid)
+                        ? (UINT8 *)&gSettings.SystemID.Data4[2]
+                        : (UINT8 *)&gSettings.PlatformUUID.Data4[2];
     gSettings.RtROMLen = 6;
   }
 
@@ -4595,7 +4604,7 @@ SetDevices (
           (SlotDevices[i].PCIDevice.vendor_id != 0X10DE)
         ) {
           MsgLog ("Inject HDA:\n");
-          TmpDirty    = SetupHdaDevprop (&SlotDevices[i].PCIDevice);
+          TmpDirty = SetupHdaDevprop (&SlotDevices[i].PCIDevice);
           StringDirty |= TmpDirty;
         }
       }
@@ -4617,7 +4626,7 @@ SetDevices (
                   );
 
     if (!EFI_ERROR (Status)) {
-      mProperties       = (UINT8 *)(UINTN)BufferPtr;
+      mProperties = (UINT8 *)(UINTN)BufferPtr;
       gDeviceProperties = (VOID *)DevpropGenerateString (gDevPropString);
       gDeviceProperties[gDevPropStringLength] = 0;
       //DBG (gDeviceProperties);
@@ -4639,9 +4648,12 @@ EFI_STATUS
 GetUserSettings (
   IN TagPtr     Dict
 ) {
+  EFI_STATUS    Status = EFI_BAD_BUFFER_SIZE;
+
   if (Dict != NULL) {
-    //DBG ("Loading main settings\n");
     DbgHeader ("GetUserSettings");
+
+    ReInitializeSettings ();
 
     ParseBootSettings (Dict);
 
@@ -4665,11 +4677,12 @@ GetUserSettings (
 
     SaveSettings ();
 
-    return EFI_SUCCESS;
+    Status = EFI_SUCCESS;
   }
 
   //DBG ("config.plist read and return %r\n", Status);
-  return EFI_BAD_BUFFER_SIZE;
+
+  return Status;
 }
 
 EFI_STATUS
@@ -4709,14 +4722,8 @@ LoadUserSettings (
 }
 
 VOID
-GetDefaultConfig () {
-  CopyMem (&GlobalConfig, &DefaultConfig, sizeof (REFIT_CONFIG));
-
-  ZeroMem ((VOID *)&gGraphics, ARRAY_SIZE (gGraphics) * sizeof (GFX_PROPERTIES));
-
-  ZeroMem ((VOID *)&gSettings, sizeof (SETTINGS_DATA));
-
-  gSettings.Timeout = -1;
+ReInitializeSettings () {
+  ZeroMem (&gSettings.BootArgs, ARRAY_SIZE (gSettings.BootArgs));
 
   gSettings.WithKexts = TRUE;
   gSettings.FakeSMCOverrides = TRUE;
@@ -4729,25 +4736,52 @@ GetDefaultConfig () {
 
   gSettings.FlagsBits = OSFLAG_DEFAULTS;
 
-  ZeroMem (gSettings.DarwinDiskTemplate, ARRAY_SIZE (gSettings.DarwinDiskTemplate));
-  ZeroMem (gSettings.DarwinRecoveryDiskTemplate, ARRAY_SIZE (gSettings.DarwinRecoveryDiskTemplate));
-  ZeroMem (gSettings.DarwinInstallerDiskTemplate, ARRAY_SIZE (gSettings.DarwinInstallerDiskTemplate));
-  ZeroMem (gSettings.LinuxDiskTemplate, ARRAY_SIZE (gSettings.LinuxDiskTemplate));
-  //ZeroMem (gSettings.AndroidDiskTemplate, ARRAY_SIZE (gSettings.AndroidDiskTemplate));
-  ZeroMem (gSettings.WindowsDiskTemplate, ARRAY_SIZE (gSettings.WindowsDiskTemplate));
+  //gSettings.DefaultBackgroundColor = 0x80000000; //the value to delete the variable
+
+  gSettings.CsrActiveConfig = 0xFFFF;
+  gSettings.BooterConfig = 0xFFFF;
+  gSettings.PlatformFeature = 0xFFFF;
+  gSettings.DebugLog = FALSE;
+  gSettings.DebugKP = FALSE;
+  gSettings.DebugDSDT = FALSE;
+
+  if (gGuiIsReady) {
+    CopyGuid (&gSettings.SystemID, &gSettings.OemSystemID);
+  } else {
+    CopyGuid (&gSettings.SystemID, &gEfiPartTypeUnusedGuid);
+  }
+
+  CopyGuid (&gSettings.PlatformUUID, &gEfiPartTypeUnusedGuid);
+}
+
+VOID
+InitializeSettings () {
+  CopyMem (&GlobalConfig, &DefaultConfig, sizeof (REFIT_CONFIG));
+
+  ZeroMem ((VOID *)&gGraphics, ARRAY_SIZE (gGraphics) * sizeof (GFX_PROPERTIES));
+
+  ZeroMem ((VOID *)&gSettings, sizeof (SETTINGS_DATA));
 
   StrCpyS (gSettings.DsdtName, ARRAY_SIZE (gSettings.DsdtName), DSDT_NAME);
 
-  gSettings.BacklightLevel       = 0xFFFF; //0x0503; -- the value from MBA52
-  gSettings.TrustSMBIOS          = TRUE;
+  gSettings.Timeout = -1;
+  gSettings.XMPDetection = -1;
+  gSettings.BacklightLevel = 0xFFFF; //0x0503; -- the value from MBA52
+  gSettings.TrustSMBIOS = TRUE;
+  gSettings.QPI = 0xFFFF;
 
-  //gSettings.DefaultBackgroundColor = 0x80000000; //the value to delete the variable
+  /*
+    ZeroMem (gSettings.DarwinDiskTemplate, ARRAY_SIZE (gSettings.DarwinDiskTemplate));
+    ZeroMem (gSettings.DarwinRecoveryDiskTemplate, ARRAY_SIZE (gSettings.DarwinRecoveryDiskTemplate));
+    ZeroMem (gSettings.DarwinInstallerDiskTemplate, ARRAY_SIZE (gSettings.DarwinInstallerDiskTemplate));
+    ZeroMem (gSettings.LinuxDiskTemplate, ARRAY_SIZE (gSettings.LinuxDiskTemplate));
+    //ZeroMem (gSettings.AndroidDiskTemplate, ARRAY_SIZE (gSettings.AndroidDiskTemplate));
+    ZeroMem (gSettings.WindowsDiskTemplate, ARRAY_SIZE (gSettings.WindowsDiskTemplate));
+  */
 
-  gSettings.CsrActiveConfig      = 0xFFFF;
-  gSettings.BooterConfig         = 0xFFFF;
-  gSettings.QPI                  = 0xFFFF;
-  gSettings.PlatformFeature      = 0xFFFF;
-  gSettings.XMPDetection         = -1;
+  CopyGuid (&gSettings.SystemID, &gEfiPartTypeUnusedGuid);
+
+  ReInitializeSettings ();
 
   //gLanguage = english;
 }

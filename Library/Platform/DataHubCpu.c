@@ -123,7 +123,9 @@ LogDataHub (
 // Sets the volatile and non-volatile variables used by OS X
 EFI_STATUS
 EFIAPI
-SetVariablesForOSX () {
+SetVariablesForOSX (
+  IN LOADER_ENTRY   *Entry
+) {
   // The variable names used should be made global constants to prevent them being allocated multiple times
 
   //
@@ -135,7 +137,7 @@ SetVariablesForOSX () {
     NvramData[kSystemID].Guid,
     NvramData[kSystemID].Attribute,
     sizeof (EFI_GUID),
-    &gSettings.SmUUID
+    SwapGuid (gSettings.SystemID)
   );
 
   SetOrDeleteNvramVariable (
@@ -219,8 +221,8 @@ SetVariablesForOSX () {
     NvramData[kPlatformUUID].Guid,
     NvramData[kPlatformUUID].Attribute,
     sizeof (EFI_GUID),
-    &gSettings.SmUUID,
-    gSettings.SmUUIDConfig
+    SwapGuid (gSettings.PlatformUUID),
+    !CompareGuid (&gSettings.PlatformUUID, &gEfiPartTypeUnusedGuid)
   );
 
   SetOrDeleteNvramVariable (
@@ -240,7 +242,11 @@ SetVariablesForOSX () {
     NvramData[kCsrActiveConfig].Attribute,
     sizeof (gSettings.CsrActiveConfig),
     &gSettings.CsrActiveConfig,
-    (!gSettings.CsrActiveConfig || (gSettings.CsrActiveConfig != 0xFFFF))
+    (
+      OSX_GE (Entry->OSVersion, DARWIN_OS_VER_STR_ELCAPITAN) &&
+      gSettings.CsrActiveConfig &&
+      (gSettings.CsrActiveConfig != 0xFFFF)
+    )
   );
 
   SetOrDeleteNvramVariable (
@@ -249,7 +255,11 @@ SetVariablesForOSX () {
     NvramData[kBootercfg].Attribute,
     sizeof (gSettings.BooterConfig),
     &gSettings.BooterConfig,
-    (!gSettings.BooterConfig || (gSettings.BooterConfig != 0xFFFF))
+    (
+      OSX_GE (Entry->OSVersion, DARWIN_OS_VER_STR_ELCAPITAN) &&
+      gSettings.BooterConfig &&
+      (gSettings.BooterConfig != 0xFFFF)
+    )
   );
 #endif
 
@@ -280,9 +290,9 @@ SetupDataForOSX () {
     LogDataHub (&gEfiMiscSubClassGuid,  L"Model",                 gSettings.ProductName,        ARRAY_SIZE (gSettings.ProductName));
     LogDataHub (&gEfiMiscSubClassGuid,  L"SystemSerialNumber",    gSettings.SerialNr,           ARRAY_SIZE (gSettings.SerialNr));
 
-    //if (gSettings.SmUUIDConfig) {
-    //  LogDataHub (&gEfiMiscSubClassGuid,  L"system-id", &gSettings.SmUUID, sizeof (EFI_GUID));
-    //}
+    if (CompareGuid (&gSettings.PlatformUUID, &gEfiPartTypeUnusedGuid)) {
+      LogDataHub (&gEfiMiscSubClassGuid,  L"system-id", &gSettings.SystemID, sizeof (EFI_GUID));
+    }
 
     //LogDataHub (&gEfiMiscSubClassGuid, L"clovergui-revision", &Revision, sizeof (UINT32));
 
