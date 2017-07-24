@@ -16,6 +16,8 @@
 // VirtualBox OSE distribution. VirtualBox OSE is distributed in the
 // hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
 
+#include <Library/Platform/Platform.h>
+
 #ifndef DEBUG_ALL
 #ifndef DEBUG_DATAHUB
 #define DEBUG_DATAHUB -1
@@ -28,8 +30,6 @@
 #endif
 
 #define DBG(...) DebugLog (DEBUG_DATAHUB, __VA_ARGS__)
-
-#include <Library/Platform/Platform.h>
 
 #define EFI_CPU_DATA_MAXIMUM_LENGTH   0x100
 
@@ -291,7 +291,12 @@ SetupDataForOSX () {
     LogDataHub (&gEfiMiscSubClassGuid,  L"SystemSerialNumber",    gSettings.SerialNr,           ARRAY_SIZE (gSettings.SerialNr));
 
     if (CompareGuid (&gSettings.PlatformUUID, &gEfiPartTypeUnusedGuid)) {
-      LogDataHub (&gEfiMiscSubClassGuid,  L"system-id", &gSettings.SystemID, sizeof (EFI_GUID));
+      LogDataHub (
+        &gEfiMiscSubClassGuid,
+        L"system-id",
+        CompareGuid (&gSettings.SystemID, &gEfiPartTypeUnusedGuid) ? &gSettings.OemSystemID : &gSettings.SystemID,
+        sizeof (EFI_GUID)
+      );
     }
 
     //LogDataHub (&gEfiMiscSubClassGuid, L"clovergui-revision", &Revision, sizeof (UINT32));
