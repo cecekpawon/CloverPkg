@@ -829,6 +829,80 @@ ExtractKextPropString (
   }
 }
 
+//
+// Prevent prelinked kext being loaded by kernel:
+//
+// [+] Kernel will refuse to load prelinked kext with invalid / inexistence "CFBundleIdentifier".
+//     By simply renaming "CFBundleIdentifier" key to something invalid (ex: "_FBundleIdentifier")
+//     will feed this purpose.
+// [-] Zeroing prelinked kext size (in "_PrelinkExecutableSize") will also work, with some extra risks:
+//     Prelinked kext entry with ID / IDREF attribute will potentially screw up other entries
+//     refer to / by those ID, which totally bad / unnecessary.
+//
+
+VOID
+BlockListedKextCaches (
+  CHAR8   *Plist
+) {
+  CHAR8   *Value;
+
+  Value = AsciiStrStr (Plist, PropCFBundleIdentifierKey);
+  if (Value == NULL) {
+    return;
+  }
+
+  Value += 5; // skip "<key>"
+  *(Value) = '_'; // apply prefix
+}
+
+BOOLEAN
+IsKextInBlockCachesList (
+  CHAR8   *KextBundleIdentifier
+) {
+  BOOLEAN   Ret = FALSE;
+
+  if (gSettings.BlockKextCachesCount) {
+    INT32  i, IsBundle = 0;
+
+    for (i = 0; i < gSettings.BlockKextCachesCount; i++) {
+      if (IsPatchNameMatch (gSettings.BlockKextCaches[i], KextBundleIdentifier, KextBundleIdentifier, &IsBundle)) {
+        Ret = TRUE;
+        break;
+      }
+    }
+  }
+
+  return Ret;
+}
+
+//
+// Iterates over kexts in kernelcache
+// and calls PatchKext () for each.
+//
+// PrelinkInfo section contains following plist, without spaces:
+// <dict>
+//   <key>_PrelinkInfoDictionary</key>
+//   <array>
+//     <!-- start of kext Info.plist -->
+//     <dict>
+//       <key>CFBundleName</key>
+//       <string>MAC Framework Pseudoextension</string>
+//       <key>_PrelinkExecutableLoadAddr</key>
+//       <integer size="64">0xffffff7f8072f000</integer>
+//       <!-- Kext size -->
+//       <key>_PrelinkExecutableSize</key>
+//       <integer size="64">0x3d0</integer>
+//       <!-- Kext address -->
+//       <key>_PrelinkExecutableSourceAddr</key>
+//       <integer size="64">0xffffff80009a3000</integer>
+//       ...
+//     </dict>
+//     <!-- start of next kext Info.plist -->
+//     <dict>
+//       ...
+//     </dict>
+//       ...
+
 #ifdef LAZY_PARSE_KEXT_PLIST
 
 EFI_STATUS
@@ -919,19 +993,31 @@ ParsePrelinkKexts (
 
         Prop = GetProperty (Dict, kPropCFBundleIdentifier);
         if ((Prop != NULL) && (Prop->type == kTagTypeString)) {
-          // To speed up process sure we can apply all patches here immediately.
-          // By saving all kexts data into list could be useful for other purposes, I hope.
-          PRELINKKEXTLIST   *nKext = AllocateZeroPool (sizeof (PRELINKKEXTLIST));
+          CHAR8   *InfoPlist = WholePlist + Dict->offset, SavedValue;
 
-          if (nKext) {
-            nKext->Signature = PRELINKKEXTLIST_SIGNATURE;
-            nKext->BundleIdentifier = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
-            nKext->Address = iPrelinkExecutableSourceKey;
-            nKext->Size = iPrelinkExecutableSizeKey;
-            nKext->Offset = Dict->offset;
-            nKext->Taglen = Dict->taglen;
-            InsertTailList (&gPrelinkKextList, (LIST_ENTRY *)(((UINT8 *)nKext) + OFFSET_OF (PRELINKKEXTLIST, Link)));
+          SavedValue = InfoPlist[Dict->taglen];
+          InfoPlist[Dict->taglen] = '\0';
+
+          if (IsKextInBlockCachesList (Prop->string)) {
+            DBG ("Blocking KextCaches: %a\n", Prop->string);
+            BlockListedKextCaches (InfoPlist);
+          } else {
+            // To speed up process sure we can apply all patches here immediately.
+            // By saving all kexts data into list could be useful for other purposes, I hope.
+            PRELINKKEXTLIST   *nKext = AllocateZeroPool (sizeof (PRELINKKEXTLIST));
+
+            if (nKext) {
+              nKext->Signature = PRELINKKEXTLIST_SIGNATURE;
+              nKext->BundleIdentifier = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
+              nKext->Address = iPrelinkExecutableSourceKey;
+              nKext->Size = iPrelinkExecutableSizeKey;
+              nKext->Offset = Dict->offset;
+              nKext->Taglen = Dict->taglen;
+              InsertTailList (&gPrelinkKextList, (LIST_ENTRY *)(((UINT8 *)nKext) + OFFSET_OF (PRELINKKEXTLIST, Link)));
+            }
           }
+
+          InfoPlist[Dict->taglen] = SavedValue;
         }
       }
 
@@ -944,33 +1030,6 @@ ParsePrelinkKexts (
   return IsListEmpty (&gPrelinkKextList) ? EFI_UNSUPPORTED : EFI_SUCCESS;
 }
 
-//
-// Iterates over kexts in kernelcache
-// and calls PatchKext () for each.
-//
-// PrelinkInfo section contains following plist, without spaces:
-// <dict>
-//   <key>_PrelinkInfoDictionary</key>
-//   <array>
-//     <!-- start of kext Info.plist -->
-//     <dict>
-//       <key>CFBundleName</key>
-//       <string>MAC Framework Pseudoextension</string>
-//       <key>_PrelinkExecutableLoadAddr</key>
-//       <integer size="64">0xffffff7f8072f000</integer>
-//       <!-- Kext size -->
-//       <key>_PrelinkExecutableSize</key>
-//       <integer size="64">0x3d0</integer>
-//       <!-- Kext address -->
-//       <key>_PrelinkExecutableSourceAddr</key>
-//       <integer size="64">0xffffff80009a3000</integer>
-//       ...
-//     </dict>
-//     <!-- start of next kext Info.plist -->
-//     <dict>
-//       ...
-//     </dict>
-//       ...
 VOID
 PatchPrelinkedKexts (
   LOADER_ENTRY    *Entry
@@ -1034,6 +1093,7 @@ PatchPrelinkedKexts (
 // This func is hard to read and debug and probably not reliable,
 // but it seems it works.
 //
+STATIC
 UINT64
 GetPlistHexValue (
   CHAR8     *Plist,
@@ -1155,6 +1215,14 @@ PatchPrelinkedKexts (
         SavedValue = *InfoPlistEnd;
         *InfoPlistEnd = '\0';
 
+        ExtractKextPropString (KextBundleIdentifier, ARRAY_SIZE (KextBundleIdentifier), PropCFBundleIdentifierKey, InfoPlistStart);
+
+        if (IsKextInBlockCachesList (KextBundleIdentifier)) {
+          DBG ("Blocking KextCaches: %a\n", KextBundleIdentifier);
+          BlockListedKextCaches (InfoPlistStart);
+          goto Next;
+        }
+
         // get kext address from _PrelinkExecutableSourceAddr
         // truncate to 32 bit to get physical addr
         KextAddr = (UINT32)GetPlistHexValue (InfoPlistStart, kPrelinkExecutableSourceKey, WholePlist);
@@ -1163,8 +1231,6 @@ PatchPrelinkedKexts (
         KextAddr += KernelInfo->Slide;
 
         KextSize = (UINT32)GetPlistHexValue (InfoPlistStart, kPrelinkExecutableSizeKey, WholePlist);
-
-        ExtractKextPropString (KextBundleIdentifier, ARRAY_SIZE (KextBundleIdentifier), PropCFBundleIdentifierKey, InfoPlistStart);
 
         // patch it
         PatchKext (
@@ -1175,6 +1241,8 @@ PatchPrelinkedKexts (
           KextBundleIdentifier,
           Entry
         );
+
+        Next:
 
         // return saved char
         *InfoPlistEnd = SavedValue;
@@ -1197,12 +1265,12 @@ VOID
 PatchLoadedKexts (
   LOADER_ENTRY    *Entry
 ) {
-          CHAR8                             *PropName, SavedValue, *InfoPlist;
-          DTEntry                           MMEntry;
-          BooterKextFileInfo                *KextFileInfo;
-          DeviceTreeBuffer                  *PropEntry;
-  struct  OpaqueDTPropertyIterator          OPropIter;
-          DTPropertyIterator                PropIter = &OPropIter;
+          CHAR8                       *PropName, SavedValue, *InfoPlist;
+          DTEntry                     MMEntry;
+          BooterKextFileInfo          *KextFileInfo;
+          DeviceTreeBuffer            *PropEntry;
+  struct  OpaqueDTPropertyIterator    OPropIter;
+          DTPropertyIterator          PropIter = &OPropIter;
 
   if (!gDtRoot) {
     return;

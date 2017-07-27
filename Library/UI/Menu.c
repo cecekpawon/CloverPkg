@@ -1724,12 +1724,9 @@ RunGenericMenu (
            MenuExit = MENU_EXIT_HIDE_TOGGLE;
            break;
 
-
-#if DUMP_TABLE
         case SCAN_F4:
           SaveOemTables ();
           break;
-#endif
 
         case SCAN_F5:
           SaveOemDsdt (TRUE, 0); //full patch
@@ -3321,12 +3318,12 @@ REFIT_MENU_ENTRY *
 SubMenuAcpi () {
   REFIT_MENU_ENTRY    *Entry = NULL;
   REFIT_MENU_SCREEN   *SubScreen = NULL;
-  CHAR8               Sign[5], OTID[9];
+  CHAR8               Signature[ACPI_NAME_SIZE + 1], OemTableId[ACPI_OEM_TABLE_ID_SIZE + 1];
   INTN                i = 0;
   S_FILES             *aTmp = aDSDTs;
 
-  Sign[4] = 0;
-  OTID[8] = 0;
+  Signature[ACPI_NAME_SIZE] = 0;
+  OemTableId[ACPI_OEM_TABLE_ID_SIZE] = 0;
 
   CreateHeaderEntries (&Entry, &SubScreen, L"ACPI", SCREEN_TABLES, 'A');
 
@@ -3348,8 +3345,8 @@ SubMenuAcpi () {
 
   AddSeparator (SubScreen, "DSDT Fixes");
 
-  for (i = 0; i < OptMenuDSDTBitNum; i++) {
-    AddMenuCheck (SubScreen, PoolPrint (L"%a", OPT_MENU_DSDTBIT[i].Title), OPT_MENU_DSDTBIT[i].Bit, mDSDTFix);
+  for (i = 0; i < OptFixDSDTBitNum; i++) {
+    AddMenuCheck (SubScreen, PoolPrint (L"%a", AFIXDSDT[i].Title), AFIXDSDT[i].Bit, mDSDTFix);
   }
 
   AddSeparator (SubScreen, "Drop Table");
@@ -3358,14 +3355,14 @@ SubMenuAcpi () {
     ACPI_DROP_TABLE   *DropTable = gSettings.ACPIDropTables;
 
     while (DropTable) {
-      CopyMem ((CHAR8 *)&Sign, (CHAR8 *)&(DropTable->Signature), 4);
-      CopyMem ((CHAR8 *)&OTID, (CHAR8 *)&(DropTable->TableId), 8);
+      CopyMem ((CHAR8 *)&Signature, (CHAR8 *)&(DropTable->Signature), ACPI_NAME_SIZE);
+      CopyMem ((CHAR8 *)&OemTableId, (CHAR8 *)&(DropTable->TableId), ACPI_OEM_TABLE_ID_SIZE);
 
       //MsgLog ("adding to menu %a (%x) %a (%lx) L=%d (0x%x)\n",
-      //       Sign, DropTable->Signature,
-      //       OTID, DropTable->TableId,
+      //       Signature, DropTable->Signature,
+      //       OemTableId, DropTable->TableId,
       //       DropTable->Length, DropTable->Length);
-      AddMenuBOOL (SubScreen, PoolPrint (L"Drop \"%4.4a\" \"%8.8a\" %d", Sign, OTID, DropTable->Length), &(DropTable->MenuItem), 0);
+      AddMenuBOOL (SubScreen, PoolPrint (L"Drop \"%-4a\" \"%-8a\" %d", Signature, OemTableId, DropTable->Length), &(DropTable->MenuItem), 0);
       DropTable = DropTable->Next;
     }
   }
@@ -3662,9 +3659,7 @@ HelpRefit () {
         AddMenuInfo (&HelpMenu, L"F1 / H - This help");
         AddMenuInfo (&HelpMenu, PoolPrint (L"F2  - Save '%s' into '%s'", Basename (PREBOOT_LOG), DIR_MISC));
         AddMenuInfo (&HelpMenu, L"F3  - Show hidden entries");
-#if DUMP_TABLE
         AddMenuInfo (&HelpMenu, PoolPrint (L"F4  - Save oem DSDT into '%s'", DIR_ACPI_ORIGIN));
-#endif
         AddMenuInfo (&HelpMenu, PoolPrint (L"F5  - Save patched DSDT into '%s'", DIR_ACPI_PATCHED));
         AddMenuInfo (&HelpMenu, PoolPrint (L"F6  - Save VideoBios into '%s'", DIR_MISC));
         AddMenuInfo (&HelpMenu, L"F9  - Switch screen mode");

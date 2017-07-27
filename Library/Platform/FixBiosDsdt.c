@@ -400,14 +400,13 @@ InsertScore (
   AcpiCPUScore[Ind] = 0;
 }
 
-STATIC
+//STATIC
 VOID
 FindCPU (
-  UINT8     *Dsdt,
-  UINT32    Length
+  UINT8   *Dsdt
 ) {
   UINT32      i, k, Size, SBSIZE = 0, SBADR = 0,
-              Off, j1;
+              Off, j1, Length = ((EFI_ACPI_DESCRIPTION_HEADER *)Dsdt)->Length;
   BOOLEAN     SBFound = FALSE;
 
   if (AcpiCPUScore) {
@@ -2716,9 +2715,9 @@ DumpFixBiosDsdt () {
   if (gSettings.FixDsdt != 0xFFFF) {
     MsgLog ("DsdtFixMask: 0x%08x:", gSettings.FixDsdt);
 
-    for (i = 0; i < OptMenuDSDTBitNum; i++) {
-      if (BIT_ISSET (gSettings.FixDsdt, OPT_MENU_DSDTBIT[i].Bit)) {
-        MsgLog (" %a%a", Count ? "| " : "", OPT_MENU_DSDTBIT[i].Title);
+    for (i = 0; i < OptFixDSDTBitNum; i++) {
+      if (BIT_ISSET (gSettings.FixDsdt, AFIXDSDT[i].Bit)) {
+        MsgLog (" %a%a", Count ? "| " : "", AFIXDSDT[i].Title);
         Count++;
       }
     }
@@ -2734,7 +2733,7 @@ FixBiosDsdt (
 ) {
   UINT32    DsdtLen;
 
-  if (!Temp) {
+  if (!Temp || Patched) {
     return;
   }
 
@@ -2755,13 +2754,13 @@ FixBiosDsdt (
   CheckHardware ();
 
   //arbitrary fixes
-  if (!Patched && (gSettings.PatchDsdtNum > 0) && gSettings.PatchDsdt) {
+  if (/*!Patched &&*/ (gSettings.PatchDsdtNum > 0) && gSettings.PatchDsdt) {
     MsgLog ("Patching DSDT:\n");
     DsdtLen = PatchBinACPI (Temp, DsdtLen);
   }
 
   // find ACPI CPU name and hardware address
-  FindCPU (Temp, DsdtLen);
+  //FindCPU (Temp, DsdtLen);
 
   if (!gSettings.FixDsdt) {
     //return;
@@ -2842,7 +2841,7 @@ FixBiosDsdt (
   Temp[6] = (UINT8)((DsdtLen & 0x00FF0000) >> 16);
   Temp[7] = (UINT8)((DsdtLen & 0xFF000000) >> 24);
 
-  CopyMem ((UINT8 *)((EFI_ACPI_DESCRIPTION_HEADER *)Temp)->OemId, (UINT8 *)BiosVendor, 6);
+  CopyMem ((UINT8 *)((EFI_ACPI_DESCRIPTION_HEADER *)Temp)->OemId, (UINT8 *)AsciiStrToUpper(BiosVendor), ACPI_OEM_ID_SIZE);
   //DBG ("orgBiosDsdtLen = 0x%08x\n", orgBiosDsdtLen);
   ((EFI_ACPI_DESCRIPTION_HEADER *)Temp)->Checksum = 0;
   ((EFI_ACPI_DESCRIPTION_HEADER *)Temp)->Checksum = (UINT8)(256 - Checksum8 (Temp, DsdtLen));

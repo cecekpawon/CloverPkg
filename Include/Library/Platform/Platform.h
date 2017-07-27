@@ -602,16 +602,21 @@ typedef struct {
 #define AML_CHUNK_ARG2          0x6A
 #define AML_CHUNK_ARG3          0x6B
 
-#define FIX_MCHC        bit (0)
-#define FIX_DISPLAY     bit (1)
-#define FIX_LAN         bit (2)
-#define FIX_WIFI        bit (3)
-#define FIX_HDA         bit (4)
-#define FIX_INTELGFX    bit (5)
-#define FIX_PNLF        bit (6)
-#define FIX_HDMI        bit (7)
-#define FIX_IMEI        bit (8)
-#define FIX_HEADER      bit (9)
+#define FIX_MCHC                bit (0)
+#define FIX_DISPLAY             bit (1)
+#define FIX_LAN                 bit (2)
+#define FIX_WIFI                bit (3)
+#define FIX_HDA                 bit (4)
+#define FIX_INTELGFX            bit (5)
+#define FIX_PNLF                bit (6)
+#define FIX_HDMI                bit (7)
+#define FIX_IMEI                bit (8)
+#define FIX_HEADER              bit (9)
+
+#define ACPI_NAME_SIZE          4
+#define ACPI_OEM_ID_SIZE        6
+#define ACPI_OEM_TABLE_ID_SIZE  8
+#define ACPI_RSDP_SIG_SIZE      8
 
 typedef struct ACPI_DROP_TABLE {
           UINT32            Signature;
@@ -879,13 +884,7 @@ typedef enum {
 typedef struct {
   CHAR8   *Title;
   UINTN   Bit;
-} DEVICES_BIT_K;
-
-typedef struct {
-  CHAR8   *Title;
-  CHAR8   *OptLabel;
-  UINTN   Bit;
-} OPT_MENU_BIT_K;
+} OPT_BITS;
 
 // Settings.c
 // Micky1979: Next five functions (+ needed struct) are to split a string like "10.10.5,10.7,10.11.6,10.8.x"
@@ -1056,8 +1055,12 @@ typedef struct {
   INTN                      BlackListCount;
   CHAR16                    **BlackList;
 
+  //Kexts
+  INTN                      BlockKextCachesCount;
+  CHAR8                     **BlockKextCaches;
+
   //BlackListed kexts
-  CHAR16                    BlockKexts[64];
+  CHAR16                    BlockKexts[64]; // FSInject business
 
   //SMC keys
   CHAR8                     RPlt[8];
@@ -1191,11 +1194,11 @@ extern CHAR16                           *gToolPath;
 extern UINTN                            ACPIDropTablesNum;
 extern UINTN                            ACPIPatchedAMLNum;
 
-extern DEVICES_BIT_K                    ADEVICES[];
+extern OPT_BITS                         ADEVICES[];
 extern INTN                             OptDevicesBitNum;
 
-extern OPT_MENU_BIT_K                   OPT_MENU_DSDTBIT[];
-extern INTN                             OptMenuDSDTBitNum;
+extern OPT_BITS                         AFIXDSDT[];
+extern INTN                             OptFixDSDTBitNum;
 
 extern CONST CHAR16                     *OsxPathLCaches[];
 extern CONST UINTN                      OsxPathLCachesCount;
@@ -1243,6 +1246,10 @@ FixBiosDsdt (
   BOOLEAN   Patched
 );
 
+VOID
+FindCPU (
+  UINT8   *Dsdt
+);
 
 VOID
 DumpFixBiosDsdt ();
@@ -1587,10 +1594,8 @@ SaveOemDsdt (
   UINT8     OSType
 );
 
-#if DUMP_TABLE
 VOID
 SaveOemTables ();
-#endif
 
 UINT32
 FixAny (

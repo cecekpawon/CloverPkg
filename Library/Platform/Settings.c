@@ -98,7 +98,7 @@ REFIT_CONFIG   DefaultConfig = {
 
 REFIT_CONFIG   GlobalConfig;
 
-DEVICES_BIT_K   ADEVICES[] = {
+OPT_BITS   ADEVICES[] = {
   { "ATI",        DEV_ATI },
   { "NVidia",     DEV_NVIDIA },
   { "IntelGFX",   DEV_INTEL },
@@ -116,20 +116,20 @@ DEVICES_BIT_K   ADEVICES[] = {
 
 INTN    OptDevicesBitNum = ARRAY_SIZE (ADEVICES);
 
-OPT_MENU_BIT_K OPT_MENU_DSDTBIT[] = {
-  { "Add HDMI",       "AddHDMI",        FIX_HDMI },
-  { "Add MCHC",       "AddMCHC",        FIX_MCHC },
-  { "Add PNLF",       "AddPNLF",        FIX_PNLF },
-  { "Fix Airport",    "FixAirport",     FIX_WIFI },
-  { "Fix Display",    "FixDisplay",     FIX_DISPLAY },
-  { "Fix IMEI",       "AddIMEI",        FIX_IMEI },
-  { "Fix IntelGFX",   "FixIntelGFX",    FIX_INTELGFX },
-  { "Fix LAN",        "FixLAN",         FIX_LAN },
-  { "Fix Sound",      "FixHDA",         FIX_HDA },
-  { "Fix Header",     "FixHeader",      FIX_HEADER },
+OPT_BITS    AFIXDSDT[] = {
+  { "FIX_HDMI",      FIX_HDMI },
+  { "FIX_MCHC",      FIX_MCHC },
+  { "FIX_PNLF",      FIX_PNLF },
+  { "FIX_WIFI",      FIX_WIFI },
+  { "FIX_DISPLAY",   FIX_DISPLAY },
+  { "FIX_IMEI",      FIX_IMEI },
+  { "FIX_INTELGFX",  FIX_INTELGFX },
+  { "FIX_LAN",       FIX_LAN },
+  { "FIX_HDA",       FIX_HDA },
+  { "FIX_HEADER",    FIX_HEADER }
 };
 
-INTN    OptMenuDSDTBitNum = ARRAY_SIZE (OPT_MENU_DSDTBIT);
+INTN    OptFixDSDTBitNum = ARRAY_SIZE (AFIXDSDT);
 
 CHAR16    *InjectKextsDir[2] = { NULL/*, NULL*/, NULL };
 
@@ -3754,9 +3754,9 @@ ParseACPISettings (
 
           gSettings.FixDsdt = 0;
 
-          for (i = 0; i < OptMenuDSDTBitNum; ++i) {
-            if (GetPropertyBool (GetProperty (Prop, OPT_MENU_DSDTBIT[i].OptLabel), FALSE)) {
-              gSettings.FixDsdt |= OPT_MENU_DSDTBIT[i].Bit;
+          for (i = 0; i < OptFixDSDTBitNum; ++i) {
+            if (GetPropertyBool (GetProperty (Prop, AFIXDSDT[i].Title), FALSE)) {
+              gSettings.FixDsdt |= AFIXDSDT[i].Bit;
             }
           }
         }
@@ -4089,6 +4089,7 @@ ParseSystemParametersSettings (
       goto SkipInitialBoot;
     }
 
+    // TODO: Will remove this prop soon. You don't have to install if you don't want to :(((
     Prop = GetProperty (DictPointer, "DisableDrivers");
     if (Prop != NULL) {
       INTN   i, Count = Prop->size;
@@ -4114,6 +4115,30 @@ ParseSystemParametersSettings (
     gSettings.WithKexts = GetPropertyBool (GetProperty (DictPointer, "InjectKexts"), TRUE);
     gSettings.NoCaches = GetPropertyBool (GetProperty (DictPointer, "NoCaches"), FALSE);
     gSettings.FakeSMCOverrides = GetPropertyBool (GetProperty (DictPointer, "FakeSMCOverrides"), TRUE);
+
+    Prop = GetProperty (DictPointer, "BlockKextCaches");
+    if (Prop != NULL) {
+      INTN   i, Count = Prop->size;
+
+      if (Count > 0) {
+        while (gSettings.BlockKextCachesCount) {
+          FreePool (gSettings.BlockKextCaches[gSettings.BlockKextCachesCount--]);
+        }
+
+        gSettings.BlockKextCachesCount = 0;
+        gSettings.BlockKextCaches = AllocateZeroPool (Count * sizeof (CHAR8 *));
+
+        for (i = 0; i < Count; i++) {
+          if (
+              !EFI_ERROR (GetElement (Prop, i, Count, &Prop)) &&
+              (Prop != NULL) &&
+              (Prop->type == kTagTypeString)
+          ) {
+            gSettings.BlockKextCaches[gSettings.BlockKextCachesCount++] = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
+          }
+        }
+      }
+    }
 
     if (GetLegacyLanAddress) {
       Prop = GetProperty (DictPointer, "MacAddress");

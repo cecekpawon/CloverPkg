@@ -870,6 +870,21 @@ AsciiStrToLower (
 
 CHAR8 *
 EFIAPI
+AsciiStrToUpper (
+  IN CHAR8   *Str
+) {
+  CHAR8   *Tmp = AllocateCopyPool (AsciiStrSize (Str), Str);
+  INTN      i;
+
+  for (i = 0; Tmp[i]; i++) {
+    Tmp[i] = TO_AUPPER (Tmp[i]);
+  }
+
+  return Tmp;
+}
+
+CHAR8 *
+EFIAPI
 AsciiStriStr (
   IN CHAR8    *String,
   IN CHAR8    *SearchString

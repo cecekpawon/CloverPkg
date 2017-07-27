@@ -1,4 +1,4 @@
-/*
+ /*
  *  aml_generator.h
  *  Chameleon
  *
@@ -11,6 +11,10 @@
 #define _AML_GENERATOR_H
 
 #include <Library/Platform/Platform.h>
+
+#define XXXX_SIGN     SIGNATURE_32 ('X','X','X','X')
+//#define APIC_SIGN     SIGNATURE_32 ('A','P','I','C')
+//#define SLIC_SIGN     SIGNATURE_32 ('S','L','I','C')
 
 BOOLEAN     AmlAddToParent      (AML_CHUNK *Parent, AML_CHUNK *Node);
 AML_CHUNK   *AmlCreateNode      (AML_CHUNK *Parent);
@@ -42,15 +46,13 @@ AML_CHUNK   *AmlAddReturn       (AML_CHUNK *Parent);
 
 UINT32      AcpiGetSize         (UINT8 *Buffer, UINT32 Adr);
 
-typedef     EFI_ACPI_DESCRIPTION_HEADER SSDT_TABLE;
-
-SSDT_TABLE *
+EFI_ACPI_DESCRIPTION_HEADER *
 GeneratePssSsdt (
   UINT8   FirstID,
   UINTN   Number
 );
 
-SSDT_TABLE *
+EFI_ACPI_DESCRIPTION_HEADER *
 GenerateCstSsdt (
   EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE   *Fadt,
   UINT8                                       FirstID,

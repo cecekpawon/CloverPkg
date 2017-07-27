@@ -247,6 +247,12 @@ AsciiStrToLower (
 
 CHAR8 *
 EFIAPI
+AsciiStrToUpper (
+  IN CHAR8   *Str
+);
+
+CHAR8 *
+EFIAPI
 AsciiStriStr (
   IN CHAR8  *String,
   IN CHAR8  *SearchString

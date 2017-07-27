@@ -48,7 +48,7 @@ CHAR8 PluginType[] = {
   0x65, 0x00,
 };
 
-SSDT_TABLE *
+EFI_ACPI_DESCRIPTION_HEADER *
 GeneratePssSsdt (
   UINT8   FirstID,
   UINTN   Number
@@ -150,9 +150,9 @@ GeneratePssSsdt (
     //
 
     if (PStatesCount > 0) {
-      SSDT_TABLE    *Ssdt;
-      AML_CHUNK     *Scope, *Method, *Pack, *MetPSS, *MetPPC,
-                    *NamePCT, *PackPCT, *MetPCT, *Root = AmlCreateNode (NULL);
+      EFI_ACPI_DESCRIPTION_HEADER   *Ssdt;
+      AML_CHUNK                     *Scope, *Method, *Pack, *MetPSS, *MetPPC,
+                                    *NamePCT, *PackPCT, *MetPCT, *Root = AmlCreateNode (NULL);
 
       AmlAddBuffer (Root, (CHAR8 *)&PssSsdtHeader[0], sizeof (PssSsdtHeader)); // SSDT header
 
@@ -227,7 +227,7 @@ GeneratePssSsdt (
 
       AmlCalculateSize (Root);
 
-      Ssdt = (SSDT_TABLE *)AllocateZeroPool (Root->Size);
+      Ssdt = (EFI_ACPI_DESCRIPTION_HEADER *)AllocateZeroPool (Root->Size);
       AmlWriteNode (Root, (VOID *)Ssdt, 0);
       Ssdt->Length = Root->Size;
       Ssdt->Checksum = 0;
@@ -246,19 +246,19 @@ GeneratePssSsdt (
   return NULL;
 }
 
-SSDT_TABLE *
+EFI_ACPI_DESCRIPTION_HEADER *
 GenerateCstSsdt (
   EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE   *Fadt,
   UINT8                                       FirstID,
   UINTN                                       Number
 ) {
-  BOOLEAN       C2Enabled, C3Enabled;
-  UINT8         CStatesCount;
-  UINT32        AcpiCPUPBlk;
-  CHAR8         Name2[31], Name0[31], Name1[31];
-  AML_CHUNK     *Root, *Scope, *Name, *Pack, *Tmpl, *Met;
-  UINTN         i;
-  SSDT_TABLE    *Ssdt;
+  BOOLEAN                       C2Enabled, C3Enabled;
+  UINT8                         CStatesCount;
+  UINT32                        AcpiCPUPBlk;
+  CHAR8                         Name2[31], Name0[31], Name1[31];
+  AML_CHUNK                     *Root, *Scope, *Name, *Pack, *Tmpl, *Met;
+  UINTN                         i;
+  EFI_ACPI_DESCRIPTION_HEADER   *Ssdt;
 
   if (!Fadt) {
     return NULL;
@@ -358,7 +358,7 @@ GenerateCstSsdt (
 
   AmlCalculateSize (Root);
 
-  Ssdt = (SSDT_TABLE *)AllocateZeroPool (Root->Size);
+  Ssdt = (EFI_ACPI_DESCRIPTION_HEADER *)AllocateZeroPool (Root->Size);
 
   AmlWriteNode (Root, (VOID *)Ssdt, 0);
 
