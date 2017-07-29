@@ -85,8 +85,6 @@ export BUILD_OPTIONS
 
 cd "${CLOVER_PATH}"
 
-[[ -d "${CLOVER_BUILD_PATH}" ]] && rm -rf "${CLOVER_BUILD_PATH}"
-
 # Gen Version.h
 
 gCloverCmd="build -p ${CLOVER_DSC} ${BUILD_OPTIONS} -a X64 -t ${MYTOOLCHAIN} -b RELEASE -n ${NUMBER_OF_PROCESSORS} -j ${CLOVER_LOG}"

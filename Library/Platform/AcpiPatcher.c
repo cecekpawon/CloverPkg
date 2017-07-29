@@ -59,7 +59,7 @@ FindAcpiRsdPtr () {
 
   for (Index = 0; Index < gST->NumberOfTableEntries; Index++) {
     if (CompareGuid (&gST->ConfigurationTable[Index].VendorGuid, &gEfiAcpi20TableGuid)) {
-      return (EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_POINTER*)gST->ConfigurationTable[Index].VendorTable;
+      return (EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_POINTER *)gST->ConfigurationTable[Index].VendorTable;
     }
   }
 
@@ -89,7 +89,7 @@ GetFadt () {
   RsdPtr = FindAcpiRsdPtr ();
 
   if (RsdPtr != NULL) {
-    DBG ("Found UEFI Acpi %d.0 RSDP at %p\n", RsdPtr->Revision, RsdPtr);
+    DBG ("Found UEFI Acpi %d RSDP at %p\n", RsdPtr->Revision, RsdPtr);
 
     if (RsdPtr->Revision > 0) {
       // xsdt priority
@@ -234,7 +234,7 @@ GetAcpiTablesList () {
   GetFadt (); // this is a first call to acpi, we need it to make a pointer to Xsdt
 
   if (Xsdt) {
-    DBG ("From XSDT: %p\n", TableEntry);
+    DBG ("From XSDT: %p\n", Xsdt);
 
     EntryCount = (Xsdt->Header.Length - sizeof (EFI_ACPI_DESCRIPTION_HEADER)) / sizeof (UINT64);
     BasePtr = (CHAR8 *)(&(Xsdt->Entry));
@@ -1219,7 +1219,7 @@ SaveOemTables () {
   Status = EfiGetSystemConfigurationTable (&gEfiAcpi20TableGuid, &RsdPtr);
 
   if (RsdPtr != NULL) {
-    DBG ("Found UEFI Acpi 2.0 RSDP at %p\n", RsdPtr);
+    DBG ("Found UEFI Acpi %d RSDP at %p\n", ((EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_POINTER *)RsdPtr)->Revision, RsdPtr);
     // if tables already saved, then just print to log
     DumpTables (RsdPtr, Saved ? NULL : DIR_ACPI_ORIGIN);
     Saved = TRUE;

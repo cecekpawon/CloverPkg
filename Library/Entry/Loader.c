@@ -100,8 +100,8 @@ STATIC CHAR16   *OSXInstallerPaths[] = {
   L"\\Mac OS X Install Data" DARWIN_BOOT_EFI,
   L"\\macOS Install Data" DARWIN_BOOT_EFI,
   L"\\macOS Install Data\\Locked Files\\Boot Files" DARWIN_BOOT_EFI,
-  DARWIN_IA_PATH DARWIN_BOOT_EFI,
-  DARWIN_INSTALLER_PATH DARWIN_BOOT_EFI,
+  DARWIN_INSTALLER_IA_PATH,
+  DARWIN_INSTALLER_LOADER_PATH,
   DARWIN_INSTALLER_LOADERBASE_PATH
 };
 
@@ -135,9 +135,9 @@ typedef struct {
 } ANDX86_PATH_DATA;
 
 STATIC ANDX86_PATH_DATA AndroidEntryData[] = {
-  { L"\\EFI\\remixos\\grubx64.efi", L"Remix",   L"remix,grub,linux",    { L"\\isolinux\\isolinux.bin",  L"\\initrd.img",          L"\\kernel" } },
-  { L"\\EFI\\boot\\grubx64.efi",    L"Phoenix", L"phoenix,grub,linux",  { L"\\phoenix\\kernel",         L"\\phoenix\\initrd.img", L"\\phoenix\\ramdisk.img" } },
-  { L"\\EFI\\boot\\bootx64.efi",    L"Chrome",  L"chrome,grub,linux",   { L"\\syslinux\\vmlinuz.A",     L"\\syslinux\\vmlinuz.B", L"\\syslinux\\ldlinux.sys" } },
+  { L"\\EFI\\remixos\\grubx64.efi",   L"Remix",   L"remix,grub,linux",    { L"\\isolinux\\isolinux.bin",  L"\\initrd.img",          L"\\kernel" } },
+  { L"\\EFI\\boot\\grubx64.efi",      L"Phoenix", L"phoenix,grub,linux",  { L"\\phoenix\\kernel",         L"\\phoenix\\initrd.img", L"\\phoenix\\ramdisk.img" } },
+  { L"\\EFI\\boot\\bootx64.efi",      L"Chrome",  L"chrome,grub,linux",   { L"\\syslinux\\vmlinuz.A",     L"\\syslinux\\vmlinuz.B", L"\\syslinux\\ldlinux.sys" } },
 };
 
 STATIC CONST UINTN AndroidEntryDataCount = ARRAY_SIZE (AndroidEntryData);
@@ -177,13 +177,15 @@ STATIC
 BOOLEAN
 IsBootExists (
   IN CHAR16   *Path,
-  IN CHAR16   **Lists
+  IN CHAR16   **Lists,
+  IN INTN     Count
 ) {
-  INTN      Count = ARRAY_SIZE (Lists), Index = 0;
+  INTN      Index = 0;
   BOOLEAN   Found = FALSE;
 
   while (!Found && (Index < Count)) {
-    Found = (StriCmp (Path, Lists[Index++]) == 0);
+    // BlessedPath is a full devicepath, that may contain a valid one from given Lists as sub string to compare with.
+    Found = (StriStr (Path, Lists[Index++]) != NULL);
   }
 
   return Found;
@@ -197,13 +199,13 @@ GetOSTypeFromPath (
     return OSTYPE_OTHER;
   }
 
-  if (IsBootExists (Path, OSXInstallerPaths)) {
+  if (IsBootExists (Path, OSXInstallerPaths, OSXInstallerPathsCount)) {
     return OSTYPE_DARWIN_INSTALLER;
   } else if (StriCmp (Path, DARWIN_RECOVERY_LOADER_PATH) == 0) {
     return OSTYPE_DARWIN_RECOVERY;
   } else if (StriCmp (Path, DARWIN_LOADER_PATH) == 0) {
     return OSTYPE_DARWIN;
-  } else if (IsBootExists (Path, WINEFIPaths)) {
+  } else if (IsBootExists (Path, WINEFIPaths, WINEFIPathsCount)) {
     return OSTYPE_WINEFI;
   } else if (StrniCmp (Path, LINUX_FULL_LOADER_PATH, StrSize (LINUX_FULL_LOADER_PATH)) == 0) {
     return OSTYPE_LINEFI;
@@ -819,6 +821,21 @@ CreateLoaderEntry (
   }
 
   if (OSTYPE_IS_DARWIN_GLOB (OSType)) {
+    // At first init, if (PartitionType != PARTITION_TYPE_RECOVERY) BlessedPath should marked as OSTYPE_DARWIN.
+    // We do filtering once more here, to determine whether BlessedPath is OSTYPE_DARWIN_INSTALLER or not.
+    if (
+      (Volume->BlessedPath != NULL) &&
+      OSTYPE_IS_DARWIN (OSType) &&
+      IsBootExists (Volume->BlessedPath, OSXInstallerPaths, OSXInstallerPathsCount)
+    ) {
+      OSType = OSTYPE_DARWIN_INSTALLER;
+      if (LoaderTitle != NULL) {
+        FreePool (LoaderTitle);
+      }
+
+      LoaderTitle = EfiStrDuplicate (L"Installer");
+    }
+
     GetDarwinVersion (OSType, Volume, &OSVersion, &OSBuildVersion);
 
     if (OSVersion == NULL) {
@@ -853,7 +870,9 @@ CreateLoaderEntry (
     Entry->LoadOptions      = BIT_ISSET (Flags, OSFLAG_NODEFAULTARGS)
                                 ? EfiStrDuplicate (LoaderOptions)
                                 : PoolPrint (L"%a %s", gSettings.BootArgs, LoaderOptions);
-  } else if ((AsciiStrLen (gSettings.BootArgs) > 0) && BIT_ISUNSET (Flags, OSFLAG_NODEFAULTARGS)) {
+  }
+
+  else if ((AsciiStrLen (gSettings.BootArgs) > 0) && BIT_ISUNSET (Flags, OSFLAG_NODEFAULTARGS)) {
     Entry->LoadOptions      = PoolPrint (L"%a", gSettings.BootArgs);
   }
 
@@ -868,7 +887,7 @@ CreateLoaderEntry (
   OSIconName = NULL;
   ShortcutLetter = 0;
 
-  switch (OSType) {
+  switch (Entry->LoaderType) {
     case OSTYPE_DARWIN:
     case OSTYPE_DARWIN_RECOVERY:
     case OSTYPE_DARWIN_INSTALLER:
@@ -883,7 +902,7 @@ CreateLoaderEntry (
         OSIconName = GetOSIconName (DarwinOSVersion);
       }
 
-      if ((OSType == OSTYPE_DARWIN) && IsDarwinHibernated (Volume)) {
+      if (OSTYPE_IS_DARWIN (Entry->LoaderType) && IsDarwinHibernated (Volume)) {
         Entry->Flags = BIT_SET (Entry->Flags, OSFLAG_HIBERNATED);
       }
 

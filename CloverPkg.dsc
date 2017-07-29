@@ -53,17 +53,17 @@
   UefiBootServicesTableLib|MdePkg/Library/UefiBootServicesTableLib/UefiBootServicesTableLib.inf
   UefiLib|MdePkg/Library/UefiLib/UefiLib.inf
   UefiRuntimeServicesTableLib|MdePkg/Library/UefiRuntimeServicesTableLib/UefiRuntimeServicesTableLib.inf
-  !ifdef USB_SUPPORT
-    HiiLib|MdeModulePkg/Library/UefiHiiLib/UefiHiiLib.inf
-    ReportStatusCodeLib|MdePkg/Library/BaseReportStatusCodeLibNull/BaseReportStatusCodeLibNull.inf
-    UefiHiiServicesLib|MdeModulePkg/Library/UefiHiiServicesLib/UefiHiiServicesLib.inf
-    UefiUsbLib|MdePkg/Library/UefiUsbLib/UefiUsbLib.inf
-  !endif
   #
   # Generic Modules
   #
   NetLib|MdeModulePkg/Library/DxeNetLib/DxeNetLib.inf
   PcdLib|MdePkg/Library/BasePcdLibNull/BasePcdLibNull.inf
+  !ifdef USB_SUPPORT
+    HiiLib|MdeModulePkg/Library/UefiHiiLib/UefiHiiLib.inf
+    ReportStatusCodeLib|MdePkg/Library/BaseReportStatusCodeLibNull/BaseReportStatusCodeLibNull.inf
+    UefiHiiServicesLib|MdeModulePkg/Library/UefiHiiServicesLib/UefiHiiServicesLib.inf
+  !endif
+  UefiUsbLib|MdePkg/Library/UefiUsbLib/UefiUsbLib.inf
   #
   # Misc
   #

@@ -1318,7 +1318,6 @@ PatchLoadedKexts (
           }
         }
 #else
-
         ExtractKextPropString (KextBundleIdentifier, ARRAY_SIZE (KextBundleIdentifier), PropCFBundleIdentifierKey, InfoPlist);
 
         PatchKext (

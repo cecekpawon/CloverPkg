@@ -3670,8 +3670,10 @@ ParseACPISettings (
               }
             }
 
+            MsgLog ("\"");
+
             Signature = SIGNATURE_32 (s1, s2, s3, s4);
-            DBG ("\" (%8.8X)", Signature);
+            DBG (" (%8.8X)", Signature);
           }
 
           // Get the table ids to drop
@@ -3689,8 +3691,10 @@ ParseACPISettings (
               }
             }
 
+            MsgLog ("\"");
+
             CopyMem (&TableId, (CHAR8 *)&Id[0], 8);
-            MsgLog ("\" (%16.16lX)", TableId);
+            DBG (" (%16.16lX)", TableId);
           }
 
           // Get the table len to drop
