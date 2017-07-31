@@ -1239,14 +1239,15 @@ SaveOemDsdt (
   EFI_ACPI_2_0_FIXED_ACPI_DESCRIPTION_TABLE   *FadtPointer = NULL;
   EFI_PHYSICAL_ADDRESS                        Dsdt = EFI_SYSTEM_TABLE_MAX_ADDRESS;
 
-  UINTN     Pages, DsdtLen = 0;
+  UINTN     Pages, DsdtLen = 0, BiosDsdt;
   UINT8     *Buffer = NULL;
-  UINT64    BiosDsdt;
-  CHAR16    *OsSubdir = NULL,
-            *OriginDsdtFixed = PoolPrint (DIR_ACPI_ORIGIN L"\\" DSDT_PATCHED_NAME, gSettings.FixDsdt),
-            *FixedDsdt = AllocateZeroPool (SVALUE_MAX_SIZE);
+  CHAR16    *OsSubdir = NULL, *OriginDsdtFixed = NULL, *FixedDsdt = NULL;
 
   if (!FullPatch) {
+    if (!gSettings.FixDsdt) {
+      goto Finish;
+    }
+
     if (OSTYPE_IS_DARWIN_GLOB (OSType)) {
       OsSubdir = OSTYPE_DARWIN_STR;
     } else if (OSTYPE_IS_LINUX_GLOB (OSType)) {
@@ -1257,7 +1258,8 @@ SaveOemDsdt (
       goto Finish;
     }
 
-    FixedDsdt = PoolPrint (DIR_ACPI_PATCHED L"\\%s\\" DSDT_PATCHED_NAME, OsSubdir, gSettings.FixDsdt);
+    FixedDsdt = AllocateZeroPool (SVALUE_MAX_SIZE);
+    UnicodeSPrint (FixedDsdt, SVALUE_MAX_SIZE, DIR_ACPI_PATCHED L"\\%s\\" DSDT_PATCHED_NAME, OsSubdir, gSettings.FixDsdt);
 
     if (FileExists (SelfRootDir, FixedDsdt)) {
       goto Finish;
@@ -1303,21 +1305,27 @@ SaveOemDsdt (
     if (FullPatch) {
       FixBiosDsdt (Buffer, FALSE);
       DsdtLen = ((EFI_ACPI_DESCRIPTION_HEADER *)Buffer)->Length;
-    } else if (!StrLen (FixedDsdt)) {
+    } else if (!FixedDsdt) {
       goto Finish;
     }
+
+    OriginDsdtFixed = AllocateZeroPool (SVALUE_MAX_SIZE);
+    UnicodeSPrint (OriginDsdtFixed, SVALUE_MAX_SIZE, DIR_ACPI_ORIGIN L"\\" DSDT_PATCHED_NAME, gSettings.FixDsdt);
 
     Status = SaveFile (SelfRootDir, FullPatch ? OriginDsdtFixed : FixedDsdt, Buffer, DsdtLen);
 
     MsgLog ("Saving DSDT to: %s ... %r\n", FullPatch ? OriginDsdtFixed : FixedDsdt, Status);
 
     gBS->FreePages (Dsdt, Pages);
+
+    FreePool (OriginDsdtFixed);
   }
 
   Finish:
 
-  FreePool (OriginDsdtFixed);
-  FreePool (FixedDsdt);
+  if (FixedDsdt) {
+    FreePool (FixedDsdt);
+  }
 }
 
 EFI_STATUS
@@ -1381,7 +1389,7 @@ PatchACPI (
     DBG ("old FADT length=%x\n", oldLength);
     CopyMem ((UINT8 *)NewFadt, (UINT8 *)FadtPointer, oldLength); // old data
     NewFadt->Header.Length = 0xF4;
-    CopyMem ((UINT8 *)NewFadt->Header.OemId, (UINT8 *)AsciiStrToUpper(BiosVendor), ACPI_OEM_ID_SIZE);
+    CopyMem ((UINT8 *)NewFadt->Header.OemId, (UINT8 *)AsciiStrToUpper (DARWIN_SYSTEM_VENDOR), ACPI_OEM_ID_SIZE);
     NewFadt->Header.Revision = EFI_ACPI_4_0_FIXED_ACPI_DESCRIPTION_TABLE_REVISION;
     NewFadt->Reserved0 = 0; // ACPIspec said it should be 0, while 1 is possible, but no more
 

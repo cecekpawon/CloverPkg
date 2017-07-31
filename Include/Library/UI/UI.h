@@ -71,7 +71,7 @@
 #define HIDEUI_FLAG_REVISION_TEXT               (0x4000)
 #define HIDEUI_FLAG_HELP_TEXT                   (0x5000)
 
-#define HIDEUI_ALL                              (0XFFFF & (~VOLTYPE_INTERNAL))
+#define HIDEUI_ALL                              (0xFFFF & (~VOLTYPE_INTERNAL))
 
 #define HDBADGES_SWAP                           (1 << 0)
 #define HDBADGES_SHOW                           (1 << 1)

@@ -1015,7 +1015,7 @@ PatchTableType9 () {
   // real PC -> PCI, real Mac -> PCIe
 
   for (Index = 0; Index < DEV_INDEX_MAX; Index++) {
-    if (SlotDevices[Index].Valid) {
+    if (SlotDevices[Index].Valid && SlotDevices[Index].SlotType) {
       INTN    Dev, Func;
 
       ZeroMem ((VOID *)NewSmbiosTable.Type9, MAX_TABLE_SIZE);

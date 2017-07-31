@@ -2841,7 +2841,7 @@ FixBiosDsdt (
   Temp[6] = (UINT8)((DsdtLen & 0x00FF0000) >> 16);
   Temp[7] = (UINT8)((DsdtLen & 0xFF000000) >> 24);
 
-  CopyMem ((UINT8 *)((EFI_ACPI_DESCRIPTION_HEADER *)Temp)->OemId, (UINT8 *)AsciiStrToUpper(BiosVendor), ACPI_OEM_ID_SIZE);
+  CopyMem ((UINT8 *)((EFI_ACPI_DESCRIPTION_HEADER *)Temp)->OemId, (UINT8 *)AsciiStrToUpper (DARWIN_SYSTEM_VENDOR), ACPI_OEM_ID_SIZE);
   //DBG ("orgBiosDsdtLen = 0x%08x\n", orgBiosDsdtLen);
   ((EFI_ACPI_DESCRIPTION_HEADER *)Temp)->Checksum = 0;
   ((EFI_ACPI_DESCRIPTION_HEADER *)Temp)->Checksum = (UINT8)(256 - Checksum8 (Temp, DsdtLen));

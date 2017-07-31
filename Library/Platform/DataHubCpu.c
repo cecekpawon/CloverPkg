@@ -234,8 +234,7 @@ SetVariablesForOSX (
     (gMobile && (gSettings.BacklightLevel != 0xFFFF))
   );
 
-#ifndef NO_NVRAM_SIP
-  //Hack for recovery by Asgorath
+  // Hack for recovery by Asgorath
   SetOrDeleteNvramVariable (
     NvramData[kCsrActiveConfig].VariableName,
     NvramData[kCsrActiveConfig].Guid,
@@ -261,7 +260,6 @@ SetVariablesForOSX (
       (gSettings.BooterConfig != 0xFFFF)
     )
   );
-#endif
 
   return EFI_SUCCESS;
 }

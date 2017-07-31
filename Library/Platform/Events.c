@@ -110,6 +110,17 @@ OnExitBootServices (
     if (OSTYPE_IS_DARWIN (Entry->LoaderType)) {
       SaveDarwinLog ();
     }
+
+    // Store prev boot-args (if any) after being used by boot.efi
+    if (gSettings.BootArgsNVRAM) {
+      SetNvramVariable (
+        NvramData[kBootArgs].VariableName,
+        NvramData[kBootArgs].Guid,
+        NvramData[kBootArgs].Attribute,
+        AsciiStrLen (gSettings.BootArgsNVRAM),
+        gSettings.BootArgsNVRAM
+      );
+    }
   }
 }
 

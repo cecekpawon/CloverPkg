@@ -70,9 +70,6 @@ CHAR16  *SupportedOsType[3] = { OSTYPE_DARWIN_STR, OSTYPE_LINUX_STR, OSTYPE_WIND
 #define DARWIN_RECOVERY_LOADER_PATH         DARWIN_RECOVERY_PATH DARWIN_BOOT_EFI
 #define DARWIN_INSTALLER_LOADER_PATH        DARWIN_INSTALLER_PATH DARWIN_BOOT_EFI
 
-#define DARWIN_FIRMWARE_VENDOR              L"Apple"
-#define DARWIN_FIRMWARE_REVISION            0x00010000
-
 #define DARWIN_MACH_KERNEL_PATH             L"/mach_kernel"
 #define DARWIN_KERNEL_PATH                  L"/System/Library/Kernels/kernel"
 
@@ -2570,7 +2567,7 @@ StartLoader (
       MsgLog (" %a\n", Entry->OSVersion);
     }
 
-    ReadCsrCfg (Entry);
+    SetupBooterCsrCfg (Entry);
 
     FilterKextPatches (Entry);
 
@@ -2728,6 +2725,32 @@ StartLoader (
   DecodeOptions (Entry);
 
   MsgLog ("LoadOptions: %s\n", Entry->LoadOptions);
+
+  // Temporary store our LoadOptions to be used by boot.efi
+  if (OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType)) {
+    UINTN   BootArgsLen = 0;
+    CHAR8   BootArgsTmp[AVALUE_MAX_SIZE];
+
+    ZeroMem (BootArgsTmp, ARRAY_SIZE (BootArgsTmp));
+    UnicodeStrToAsciiStrS (Entry->LoadOptions, BootArgsTmp, ARRAY_SIZE (BootArgsTmp));
+    BootArgsLen = AsciiStrLen (BootArgsTmp);
+
+    // If system has no boot-args or identical with our LoadOptions, then we can skip it.
+    if (gSettings.BootArgsNVRAM && (AsciiStrCmp (gSettings.BootArgsNVRAM, BootArgsTmp) == 0)) {
+      FreePool (gSettings.BootArgsNVRAM);
+      gSettings.BootArgsNVRAM = NULL;
+    }
+
+    if (gSettings.BootArgsNVRAM && BootArgsLen) {
+      SetNvramVariable (
+        NvramData[kBootArgs].VariableName,
+        NvramData[kBootArgs].Guid,
+        NvramData[kBootArgs].Attribute,
+        BootArgsLen,
+        BootArgsTmp
+      );
+    }
+  }
 
   ClosingEventAndLog (Entry);
 
@@ -2891,43 +2914,95 @@ SetFSInjection (
 }
 
 VOID
-PrintCsrCfg () {
-  UINT32    csrCfg = gSettings.CsrActiveConfig & CSR_VALID_FLAGS;
+PrintBooterConfig () {
   UINTN     Len = SVALUE_MAX_SIZE;
-  CHAR16    *csrLog = AllocateZeroPool (Len);
+  CHAR16    *StrLog = AllocateZeroPool (Len);
 
-  if (gSettings.CsrActiveConfig != 0xFFFF) {
-    if (BIT_ISSET (csrCfg, CSR_ALLOW_UNTRUSTED_KEXTS))
-      StrCatS (csrLog, Len, L"CSR_ALLOW_UNTRUSTED_KEXTS");
-    if (BIT_ISSET (csrCfg, CSR_ALLOW_UNRESTRICTED_FS))
-      StrCatS (csrLog, Len, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_UNRESTRICTED_FS"));
-    if (BIT_ISSET (csrCfg, CSR_ALLOW_TASK_FOR_PID))
-      StrCatS (csrLog, Len, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_TASK_FOR_PID"));
-    if (BIT_ISSET (csrCfg, CSR_ALLOW_KERNEL_DEBUGGER))
-      StrCatS (csrLog, Len, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_KERNEL_DEBUGGER"));
-    if (BIT_ISSET (csrCfg, CSR_ALLOW_APPLE_INTERNAL))
-      StrCatS (csrLog, Len, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_APPLE_INTERNAL"));
-    if (BIT_ISSET (csrCfg, CSR_ALLOW_UNRESTRICTED_DTRACE))
-      StrCatS (csrLog, Len, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_UNRESTRICTED_DTRACE"));
-    if (BIT_ISSET (csrCfg, CSR_ALLOW_UNRESTRICTED_NVRAM))
-      StrCatS (csrLog, Len, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_UNRESTRICTED_NVRAM"));
-    if (BIT_ISSET (csrCfg, CSR_ALLOW_DEVICE_CONFIGURATION))
-      StrCatS (csrLog, Len, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_DEVICE_CONFIGURATION"));
-    if (BIT_ISSET (csrCfg, CSR_ALLOW_ANY_RECOVERY_OS))
-      StrCatS (csrLog, Len, PoolPrint (L"%a%a", StrLen (csrLog) ? " | " : "", "CSR_ALLOW_ANY_RECOVERY_OS"));
+  if (gSettings.BooterConfig != 0xFFFF) {
+    if (BIT_ISSET (gSettings.BooterConfig, kBootArgsFlagRebootOnPanic)) {
+      StrCatS (StrLog, Len, L"RebootOnPanic");
+    }
+    if (BIT_ISSET (gSettings.BooterConfig, kBootArgsFlagHiDPI)) {
+      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "HiDPI"));
+    }
+    if (BIT_ISSET (gSettings.BooterConfig, kBootArgsFlagBlack)) {
+      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "Black"));
+    }
+    if (BIT_ISSET (gSettings.BooterConfig, kBootArgsFlagCSRActiveConfig)) {
+      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "CSRActiveConfig"));
+    }
+    if (BIT_ISSET (gSettings.BooterConfig, kBootArgsFlagCSRConfigMode)) {
+      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "CSRConfigMode"));
+    }
+    if (BIT_ISSET (gSettings.BooterConfig, kBootArgsFlagCSRBoot)) {
+      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "CSRBoot"));
+    }
+    if (BIT_ISSET (gSettings.BooterConfig, kBootArgsFlagBlackBg)) {
+      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "BlackBg"));
+    }
+    if (BIT_ISSET (gSettings.BooterConfig, kBootArgsFlagLoginUI)) {
+      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "LoginUI"));
+    }
+    if (BIT_ISSET (gSettings.BooterConfig, kBootArgsFlagInstallUI)) {
+      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "InstallUI"));
+    }
   } else {
-    StrCpyS (csrLog, Len, L"NONE (SIP are fully enabled)");
+    StrCpyS (StrLog, Len, L"NONE");
   }
 
-  if (StrLen (csrLog)) {
-    MsgLog ("CSR_CFG: %s\n", csrLog);
+  if (StrLen (StrLog)) {
+    MsgLog ("BooterConfig: (%s)\n", StrLog);
   }
 
-  FreePool (csrLog);
+  FreePool (StrLog);
 }
 
 VOID
-ReadCsrCfg (
+PrintCsrActiveConfig () {
+  UINTN     Len = SVALUE_MAX_SIZE;
+  CHAR16    *StrLog = AllocateZeroPool (Len);
+
+  if (gSettings.CsrActiveConfig != 0xFFFF) {
+    if (BIT_ISSET (gSettings.CsrActiveConfig, CSR_ALLOW_UNTRUSTED_KEXTS)) {
+      StrCatS (StrLog, Len, L"UNTRUSTED_KEXTS");
+    }
+    if (BIT_ISSET (gSettings.CsrActiveConfig, CSR_ALLOW_UNRESTRICTED_FS)) {
+      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "UNRESTRICTED_FS"));
+    }
+    if (BIT_ISSET (gSettings.CsrActiveConfig, CSR_ALLOW_TASK_FOR_PID)) {
+      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "TASK_FOR_PID"));
+    }
+    if (BIT_ISSET (gSettings.CsrActiveConfig, CSR_ALLOW_KERNEL_DEBUGGER)) {
+      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "KERNEL_DEBUGGER"));
+    }
+    if (BIT_ISSET (gSettings.CsrActiveConfig, CSR_ALLOW_APPLE_INTERNAL)) {
+      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "APPLE_INTERNAL"));
+    }
+    if (BIT_ISSET (gSettings.CsrActiveConfig, CSR_ALLOW_UNRESTRICTED_DTRACE)) {
+      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "UNRESTRICTED_DTRACE"));
+    }
+    if (BIT_ISSET (gSettings.CsrActiveConfig, CSR_ALLOW_UNRESTRICTED_NVRAM)) {
+      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "UNRESTRICTED_NVRAM"));
+    }
+    if (BIT_ISSET (gSettings.CsrActiveConfig, CSR_ALLOW_DEVICE_CONFIGURATION)) {
+      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "DEVICE_CONFIGURATION"));
+    }
+    if (BIT_ISSET (gSettings.CsrActiveConfig, CSR_ALLOW_ANY_RECOVERY_OS)) {
+      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "ANY_RECOVERY_OS"));
+    }
+  } else {
+    StrCpyS (StrLog, Len, L"NONE");
+  }
+
+  if (StrLen (StrLog)) {
+    MsgLog ("CsrActiveConfig: (%s)\n", StrLog);
+  }
+
+  FreePool (StrLog);
+}
+
+VOID
+SetupBooterCsrCfg (
   IN LOADER_ENTRY   *Entry
 ) {
   UINT16    FixFlags = 0xFFFF;
@@ -2940,19 +3015,17 @@ ReadCsrCfg (
     return;
   }
 
+  if (
+    (!gSettings.BooterConfig || (gSettings.BooterConfig == 0xFFFF)) &&
+    (!gSettings.CsrActiveConfig || (gSettings.CsrActiveConfig == 0xFFFF))
+  ) {
+    goto Finish;
+  }
+
   IsNoSIP = BIT_ISSET (Entry->Flags, OSFLAG_NOSIP);
 
   if (IsNoSIP) {
     goto NoSIP;
-  }
-
-  // user defined
-  if (gSettings.BooterConfig != 0xFFFF) {
-    FixFlags = gSettings.BooterConfig;
-  }
-
-  if (gSettings.CsrActiveConfig != 0xFFFF) {
-    FixCsrActiveConfig = gSettings.CsrActiveConfig;
   }
 
   switch (Entry->LoaderType) {
@@ -2961,6 +3034,14 @@ ReadCsrCfg (
       IsNoSIP = TRUE;
       break;
     default:
+      // user defined
+      if (gSettings.BooterConfig && (gSettings.BooterConfig != 0xFFFF)) {
+        FixFlags = gSettings.BooterConfig;
+      }
+
+      if (gSettings.CsrActiveConfig && (gSettings.CsrActiveConfig != 0xFFFF)) {
+        FixCsrActiveConfig = gSettings.CsrActiveConfig;
+      }
       break;
   }
 
@@ -2971,6 +3052,12 @@ ReadCsrCfg (
     gSettings.CsrActiveConfig = DEF_NOSIP_CSR_ACTIVE_CONFIG;
     goto Finish;
   }
+
+  #if BOOT_GRAY
+    if (FixFlags && (FixFlags != 0xFFFF)) {
+      BIT_UNSET (FixFlags, (kBootArgsFlagBlack | kBootArgsFlagBlackBg));
+    }
+  #endif
 
   if (FixCsrActiveConfig != 0xFFFF) {
     if (FixFlags == 0xFFFF) {
@@ -2989,5 +3076,6 @@ ReadCsrCfg (
 
   Finish:
 
-  PrintCsrCfg ();
+  PrintBooterConfig ();
+  PrintCsrActiveConfig ();
 }

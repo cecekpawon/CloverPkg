@@ -4332,7 +4332,7 @@ GetDevices () {
               gSettings.HasGraphics->Ati = TRUE;
               break;
 
-            case 0X10DE:
+            case 0x10DE:
               MsgLog (" (Nvidia)");
 
               gfx->Vendor = GfxNvidia;
@@ -4559,7 +4559,7 @@ SetDevices (
             }
             break;
 
-          case 0X10DE:
+          case 0x10DE:
             MsgLog (" Nvidia\n");
             if (gSettings.InjectNVidia) {
               TmpDirty = SetupNvidiaDevprop (&SlotDevices[i].PCIDevice);
@@ -4630,7 +4630,7 @@ SetDevices (
         //no HDMI injection
         if (
           (SlotDevices[i].PCIDevice.vendor_id != 0x1002) &&
-          (SlotDevices[i].PCIDevice.vendor_id != 0X10DE)
+          (SlotDevices[i].PCIDevice.vendor_id != 0x10DE)
         ) {
           MsgLog ("Inject HDA:\n");
           TmpDirty = SetupHdaDevprop (&SlotDevices[i].PCIDevice);

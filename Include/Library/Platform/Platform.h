@@ -201,6 +201,12 @@ Headers collection for procedures
   #define CLOVER_BUILDINFOS_STR "Unknown"
 #endif
 
+
+#define DARWIN_SYSTEM_VENDOR            "Apple Inc."
+#define DARWIN_SYSTEM_VERSION           "1.0"
+#define DARWIN_FIRMWARE_VENDOR          L"Apple"
+#define DARWIN_FIRMWARE_REVISION        0x00010000
+
 #define DEF_NOSIP_CSR_ACTIVE_CONFIG     ( \
                                           CSR_ALLOW_UNTRUSTED_KEXTS | \
                                           CSR_ALLOW_UNRESTRICTED_FS | \
@@ -235,6 +241,7 @@ typedef enum {
   kFirmwareFeaturesMask,
   kSBoardID,
   kSystemSerialNumber,
+  kBootArgs,
   kPlatformUUID,
   kBacklightLevel,
   kCsrActiveConfig,
@@ -248,6 +255,7 @@ typedef struct NVRAM_DATA {
   CHAR16      *VariableName;
   EFI_GUID    *Guid;
   UINT32      Attribute;
+  UINT8       Reset;
 } NVRAM_DATA;
 
 #define CPUID_MODEL_SANDYBRIDGE       0x2A
@@ -948,6 +956,7 @@ typedef struct {
   // OS parameters
   //CHAR8                     Language[16];
   CHAR8                     BootArgs[256];
+  CHAR8                     *BootArgsNVRAM;
   //CHAR16                    CustomUuid[40];
   CHAR16                    *DefaultVolume;
   BOOLEAN                   NeverHibernate;
@@ -1135,7 +1144,6 @@ extern BOOLEAN                          gGuiIsReady;
 //extern UINT32                         gCpuSpeed;  //kHz
 //extern UINT16                         gCPUtype;
 extern UINT64                           TurboMsr;
-extern CHAR8                            *BiosVendor;
 extern EFI_GUID                         *gEfiBootDeviceGuid;
 extern EFI_DEVICE_PATH_PROTOCOL         *gEfiBootDeviceData;
 extern CHAR8                            *AppleBoardSN;
@@ -1398,7 +1406,7 @@ SetFSInjection (
 );
 
 VOID
-ReadCsrCfg (
+SetupBooterCsrCfg (
   IN LOADER_ENTRY   *Entry
 );
 

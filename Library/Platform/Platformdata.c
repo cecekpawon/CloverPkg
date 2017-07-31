@@ -10,12 +10,8 @@ CHAR8   *DefaultMemEntry        = "N/A";
 
 CHAR8   *DefaultSerial          = "CT288GT9VT6";
 
-CHAR8   *BiosVendor             = "Apple Inc.";
-
-UINT32  gFwFeatures             = 0XE807E136;
-UINT32  gFwFeaturesMask         = 0XFF1FFF3F;
-
-#define APPLE_SYSTEM_VERSION    "1.0"
+UINT32  gFwFeatures             = 0xE807E136;
+UINT32  gFwFeaturesMask         = 0xFF1FFF3F;
 
 typedef struct {
   CHAR8   *AppleFirmwareVersion, *AppleBoardID, *AppleProductName, *AppleSerialNumber, *SmcPlatform;
@@ -111,24 +107,24 @@ SetDMISettingsForModel (
   MACHINE_TYPES   Model,
   BOOLEAN         Redefine
 ) {
-  AsciiStrCpyS (gSettings.VendorName,           ARRAY_SIZE (gSettings.VendorName), BiosVendor);
+  AsciiStrCpyS (gSettings.VendorName,           ARRAY_SIZE (gSettings.VendorName), DARWIN_SYSTEM_VENDOR);
   AsciiStrCpyS (gSettings.RomVersion,           ARRAY_SIZE (gSettings.RomVersion), MAC_MODELS[Model].AppleFirmwareVersion);
   AsciiStrCpyS (gSettings.ReleaseDate,          ARRAY_SIZE (gSettings.ReleaseDate), GetAppleReleaseDate (MAC_MODELS[Model].AppleFirmwareVersion));
-  AsciiStrCpyS (gSettings.ManufactureName,      ARRAY_SIZE (gSettings.ManufactureName), BiosVendor);
+  AsciiStrCpyS (gSettings.ManufactureName,      ARRAY_SIZE (gSettings.ManufactureName), DARWIN_SYSTEM_VENDOR);
 
   if (Redefine) {
     AsciiStrCpyS (gSettings.ProductName,        ARRAY_SIZE (gSettings.ProductName), MAC_MODELS[Model].AppleProductName);
   }
 
-  AsciiStrCpyS (gSettings.VersionNr,            ARRAY_SIZE (gSettings.VersionNr), APPLE_SYSTEM_VERSION);
+  AsciiStrCpyS (gSettings.VersionNr,            ARRAY_SIZE (gSettings.VersionNr), DARWIN_SYSTEM_VERSION);
   AsciiStrCpyS (gSettings.SerialNr,             ARRAY_SIZE (gSettings.SerialNr), MAC_MODELS[Model].AppleSerialNumber);
   AsciiStrCpyS (gSettings.FamilyName,           ARRAY_SIZE (gSettings.FamilyName), GetAppleFamilies (MAC_MODELS[Model].AppleProductName));
-  AsciiStrCpyS (gSettings.BoardManufactureName, ARRAY_SIZE (gSettings.BoardManufactureName), BiosVendor);
+  AsciiStrCpyS (gSettings.BoardManufactureName, ARRAY_SIZE (gSettings.BoardManufactureName), DARWIN_SYSTEM_VENDOR);
   AsciiStrCpyS (gSettings.BoardSerialNumber,    ARRAY_SIZE (gSettings.BoardSerialNumber), AppleBoardSN);
   AsciiStrCpyS (gSettings.BoardNumber,          ARRAY_SIZE (gSettings.BoardNumber), MAC_MODELS[Model].AppleBoardID);
   AsciiStrCpyS (gSettings.BoardVersion,         ARRAY_SIZE (gSettings.BoardVersion), MAC_MODELS[Model].AppleProductName);
   AsciiStrCpyS (gSettings.LocationInChassis,    ARRAY_SIZE (gSettings.LocationInChassis), AppleBoardLocation);
-  AsciiStrCpyS (gSettings.ChassisManufacturer,  ARRAY_SIZE (gSettings.ChassisManufacturer), BiosVendor);
+  AsciiStrCpyS (gSettings.ChassisManufacturer,  ARRAY_SIZE (gSettings.ChassisManufacturer), DARWIN_SYSTEM_VENDOR);
   AsciiStrCpyS (gSettings.ChassisAssetTag,      ARRAY_SIZE (gSettings.ChassisAssetTag), GetAppleChassisAsset (gSettings.ProductName));
 
   gSettings.BoardType = BaseBoardTypeProcessorMemoryModule;

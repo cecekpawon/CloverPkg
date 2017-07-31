@@ -35,24 +35,25 @@ CHAR16                      *gEfiBootLoaderPath;
 EFI_GUID                    *gEfiBootDeviceGuid;
 
 CONST NVRAM_DATA   NvramData[] = {
-  { kSystemID,              L"system-id",              &gEfiAppleNvramGuid, NVRAM_ATTR_BS },
+  { kSystemID,              L"system-id",              &gEfiAppleNvramGuid, NVRAM_ATTR_BS, 1 },
 
-  { kMLB,                   L"MLB",                    &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS },
-  { kHWMLB,                 L"HW_MLB",                 &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS },
-  { kROM,                   L"ROM",                    &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS },
-  { kHWROM,                 L"HW_ROM",                 &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS },
-  { kFirmwareFeatures,      L"FirmwareFeatures",       &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS },
-  { kFirmwareFeaturesMask,  L"FirmwareFeaturesMask",   &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS },
-  { kSBoardID,              L"HW_BID",                 &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS },
-  { kSystemSerialNumber,    L"SSN",                    &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS },
+  { kMLB,                   L"MLB",                    &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  { kHWMLB,                 L"HW_MLB",                 &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  { kROM,                   L"ROM",                    &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  { kHWROM,                 L"HW_ROM",                 &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  { kFirmwareFeatures,      L"FirmwareFeatures",       &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  { kFirmwareFeaturesMask,  L"FirmwareFeaturesMask",   &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  { kSBoardID,              L"HW_BID",                 &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  { kSystemSerialNumber,    L"SSN",                    &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
 
-  { kPlatformUUID,          L"platform-uuid",          &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV },
-  { kBacklightLevel,        L"backlight-level",        &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV },
-  { kCsrActiveConfig,       L"csr-active-config",      &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV },
-  { kBootercfg,             L"bootercfg" /* -once */,  &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV },
+  { kBootArgs,              L"boot-args",              &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 0 },
+  { kPlatformUUID,          L"platform-uuid",          &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
+  { kBacklightLevel,        L"backlight-level",        &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
+  { kCsrActiveConfig,       L"csr-active-config",      &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
+  { kBootercfg,             L"bootercfg" /* -once */,  &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
 
-  { kCloverConfig,          L"Clover.Config",          &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV },
-  { kCloverTheme,           L"Clover.Theme",           &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV }
+  { kCloverConfig,          L"Clover.Config",          &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
+  { kCloverTheme,           L"Clover.Theme",           &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 }
 };
 
 #if 0
@@ -274,7 +275,7 @@ ResetNvram () {
   EFI_STATUS    Status;
   UINTN         Index, NvramDataCount = ARRAY_SIZE (NvramData);
 
-  for (Index = 0; Index < NvramDataCount; Index++) {
+  for (Index = 0; (Index < NvramDataCount) && NvramData[Index].Reset; Index++) {
     Status = DeleteNvramVariable (NvramData[Index].VariableName, NvramData[Index].Guid);
   }
 
@@ -949,6 +950,11 @@ SyncBootArgsFromNvram () {
 
   DBG ("Setting BootArgs: %a\n", gSettings.BootArgs);
   DBG ("Found boot-args in NVRAM: %a, size=%d\n", TmpString, iNVRAM);
+
+  // Save system boot-args to be used later by boot.efi.
+  if (AsciiStrCmp (gSettings.BootArgs, TmpString) != 0) {
+    gSettings.BootArgsNVRAM = AllocateCopyPool (AsciiStrSize (TmpString), TmpString);
+  }
 
   CONSTRAIN_MAX (iNVRAM, AVALUE_MAX_SIZE - 1 - iBootArgs);
 
