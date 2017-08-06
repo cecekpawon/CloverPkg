@@ -13,8 +13,6 @@
 
 #define DBG(...) DebugLog (DEBUG_SCAN_DRIVER, __VA_ARGS__)
 
-DRIVERS_FLAGS   gDriversFlags = { FALSE, FALSE, FALSE, FALSE, FALSE };  //the initializer is not needed for global variables
-
 UINTN
 ScanDriverDir (
   IN  CHAR16        *Path,
@@ -57,22 +55,22 @@ ScanDriverDir (
 
     if (
       (
-        gDriversFlags.FSInjectEmbedded &&
+        gDriversFlags->FSInjectEmbedded &&
         (StriStr (DirEntry->FileName, L"FSInject") != NULL)
       ) ||
       (
-        (gDriversFlags.AptioFixEmbedded || gDriversFlags.AptioFixLoaded) &&
+        (gDriversFlags->AptioFixEmbedded || gDriversFlags->AptioFixLoaded) &&
         (
           (StriStr (DirEntry->FileName, L"AptioFix") != NULL) ||
           (StriStr (DirEntry->FileName, L"LowMemFix") != NULL)
         )
       ) ||
       (
-        gDriversFlags.HFSLoaded &&
+        gDriversFlags->HFSLoaded &&
         (StriStr (DirEntry->FileName, L"HFS") != NULL)
       ) ||
       (
-        gDriversFlags.APFSLoaded &&
+        gDriversFlags->APFSLoaded &&
         (StriStr (DirEntry->FileName, L"APFS") != NULL)
       )
     ) {
@@ -95,23 +93,24 @@ ScanDriverDir (
     NumLoad++;
 
     if (StriStr (Str, L"HFS") != NULL) {
-      gDriversFlags.HFSLoaded = TRUE;
+      gDriversFlags->HFSLoaded = TRUE;
     }
 
     if (StriStr (Str, L"APFS") != NULL) {
-      gDriversFlags.APFSLoaded = TRUE;
+      gDriversFlags->APFSLoaded = TRUE;
     }
 
     // either AptioFix, AptioFix2 or LowMemFix
     if (
-      !gDriversFlags.AptioFixEmbedded && !gDriversFlags.AptioFixLoaded &&
+      !gDriversFlags->AptioFixEmbedded && !gDriversFlags->AptioFixLoaded &&
       (
         (StriStr (DirEntry->FileName, L"AptioFix") != NULL) ||
         (StriStr (DirEntry->FileName, L"LowMemFix") != NULL)
       )
     ) {
       DBG ("- AptioFix driver loaded\n");
-      gDriversFlags.AptioFixLoaded = TRUE;
+      gDriversFlags->AptioFixLoaded = TRUE;
+      gDriversFlags->AptioFixVersion = (StriStr (DirEntry->FileName, L"AptioFix2") != NULL) ? 2 : 1; // Lame check
     }
 
     if (
@@ -176,12 +175,12 @@ DisconnectSomeDevices () {
   CHAR16                            *DriverName;
   UINTN                             HandleCount, Index, Index2, ControllerHandleCount;
 
-  if (gDriversFlags.HFSLoaded || gDriversFlags.APFSLoaded) {
-    if (gDriversFlags.HFSLoaded) {
+  if (gDriversFlags->HFSLoaded || gDriversFlags->APFSLoaded) {
+    if (gDriversFlags->HFSLoaded) {
       DBG ("- HFS+ driver loaded\n");
     }
 
-    if (gDriversFlags.APFSLoaded) {
+    if (gDriversFlags->APFSLoaded) {
       DBG ("- APFS driver loaded\n");
     }
 
@@ -251,11 +250,8 @@ DisconnectSomeDevices () {
 
 VOID
 LoadDrivers () {
-  EFI_HANDLE          *DriversToConnect = NULL;
-  UINTN               DriversToConnectNum = 0, NumLoad = 0;
-
-  EFI_STATUS          Status;
-  APTIOFIX_PROTOCOL   *AptioFix;
+  EFI_HANDLE    *DriversToConnect = NULL;
+  UINTN         DriversToConnectNum = 0, NumLoad = 0;
 
   DbgHeader ("LoadDrivers");
 
@@ -272,14 +268,6 @@ LoadDrivers () {
       DisconnectSomeDevices ();
 
       BdsLibConnectAllDriversToAllControllers ();
-    }
-
-    if (!gDriversFlags.AptioFixLoaded) {
-      Status = EfiLibLocateProtocol (&gAptioFixProtocolGuid, (VOID **)&AptioFix);
-      if (!EFI_ERROR (Status) && (AptioFix->Signature == APTIOFIX_SIGNATURE)) {
-        DBG ("- AptioFix driver loaded\n");
-        gDriversFlags.AptioFixLoaded = TRUE;
-      }
     }
   }
 }

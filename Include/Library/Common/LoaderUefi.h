@@ -249,28 +249,28 @@ typedef struct Boot_Video Boot_Video;
 #define kBootArgsEfiMode64      64
 
 /* Bitfields for boot_args->flags */
-#define kBootArgsFlagRebootOnPanic      (1 << 0)
-#define kBootArgsFlagHiDPI              (1 << 1)
-#define kBootArgsFlagBlack              (1 << 2)
-#define kBootArgsFlagCSRActiveConfig    (1 << 3)
-#define kBootArgsFlagCSRConfigMode      (1 << 4)
-#define kBootArgsFlagCSRBoot            (1 << 5)
-#define kBootArgsFlagBlackBg            (1 << 6)
-#define kBootArgsFlagLoginUI            (1 << 7)
-#define kBootArgsFlagInstallUI          (1 << 8)
+#define kBootArgsFlagRebootOnPanic        BIT0
+#define kBootArgsFlagHiDPI                BIT1
+#define kBootArgsFlagBlack                BIT2
+#define kBootArgsFlagCSRActiveConfig      BIT3
+#define kBootArgsFlagCSRConfigMode        BIT4
+#define kBootArgsFlagCSRBoot              BIT5
+#define kBootArgsFlagBlackBg              BIT6
+#define kBootArgsFlagLoginUI              BIT7
+#define kBootArgsFlagInstallUI            BIT8
 
 /* Rootless configuration flags */
-#define CSR_ALLOW_UNTRUSTED_KEXTS       (1 << 0)
-#define CSR_ALLOW_UNRESTRICTED_FS       (1 << 1)
-#define CSR_ALLOW_TASK_FOR_PID          (1 << 2)
-#define CSR_ALLOW_KERNEL_DEBUGGER       (1 << 3)
-#define CSR_ALLOW_APPLE_INTERNAL        (1 << 4)
-//#define CSR_ALLOW_DESTRUCTIVE_DTRACE    (1 << 5) /* name deprecated */
-#define CSR_ALLOW_UNRESTRICTED_DTRACE   (1 << 5)
-#define CSR_ALLOW_UNRESTRICTED_NVRAM    (1 << 6)
-#define CSR_ALLOW_DEVICE_CONFIGURATION  (1 << 7)
-#define CSR_ALLOW_ANY_RECOVERY_OS       (1 << 8)
+#define CSR_ALLOW_UNTRUSTED_KEXTS         BIT0
+#define CSR_ALLOW_UNRESTRICTED_FS         BIT1
+#define CSR_ALLOW_TASK_FOR_PID            BIT2
+#define CSR_ALLOW_KERNEL_DEBUGGER         BIT3
+#define CSR_ALLOW_APPLE_INTERNAL          BIT4
+#define CSR_ALLOW_UNRESTRICTED_DTRACE     BIT5
+#define CSR_ALLOW_UNRESTRICTED_NVRAM      BIT6
+#define CSR_ALLOW_DEVICE_CONFIGURATION    BIT7
+#define CSR_ALLOW_ANY_RECOVERY_OS         BIT8
 
+#if 0
 #define CSR_VALID_FLAGS (CSR_ALLOW_UNTRUSTED_KEXTS | \
                          CSR_ALLOW_UNRESTRICTED_FS | \
                          CSR_ALLOW_TASK_FOR_PID | \
@@ -280,11 +280,12 @@ typedef struct Boot_Video Boot_Video;
                          CSR_ALLOW_UNRESTRICTED_NVRAM | \
                          CSR_ALLOW_DEVICE_CONFIGURATION | \
                          CSR_ALLOW_ANY_RECOVERY_OS)
+#endif
 
 /* CSR capabilities that a booter can give to the system */
-#define CSR_CAPABILITY_UNLIMITED        (1 << 0)
-#define CSR_CAPABILITY_CONFIG           (1 << 1)
-#define CSR_CAPABILITY_APPLE_INTERNAL   (1 << 2)
+#define CSR_CAPABILITY_UNLIMITED          BIT0
+#define CSR_CAPABILITY_CONFIG             BIT1
+#define CSR_CAPABILITY_APPLE_INTERNAL     BIT2
 
 #define CSR_VALID_CAPABILITIES (CSR_CAPABILITY_UNLIMITED | CSR_CAPABILITY_CONFIG | CSR_CAPABILITY_APPLE_INTERNAL)
 

@@ -1418,7 +1418,7 @@ InitAnime (
     //DBG (" free screen\n");
     if (Screen->Film) {
       //free images in the film
-      INTN  i;
+      UINTN  i;
 
       for (i = 0; i <= Screen->Frames; i++) { //really there are N + 1 frames
         // free only last occurrence of repeated frames

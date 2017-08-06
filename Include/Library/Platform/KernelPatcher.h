@@ -140,7 +140,7 @@ typedef struct KERNEL_INFO {
   BOOLEAN               A64Bit;
   //BOOLEAN               SSSE3,
   BOOLEAN               PatcherInited;
-  //EFI_PHYSICAL_ADDRESS  RelocBase;
+  EFI_PHYSICAL_ADDRESS  RelocBase;
 
   UINT32                PrelinkedSize;
   UINT32                KernelSize;

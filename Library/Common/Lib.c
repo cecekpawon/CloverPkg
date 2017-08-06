@@ -79,8 +79,11 @@ EFI_UNICODE_COLLATION_PROTOCOL    *mUnicodeCollation = NULL;
 
 #define                 MAX_ELEMENT_COUNT 8
 
-REFIT_VOLUME_GUID       VolumesGUID[256];
+REFIT_VOLUME_GUID       **VolumesGUID = NULL;
 UINTN                   VolumesGUIDCount = 0;
+
+EFI_GUID                **VenMediaGUID = NULL;
+UINTN                   VenMediaGUIDCount = 0;
 
 
 BOOLEAN
@@ -168,9 +171,9 @@ AddListElement (
 VOID
 FreeList (
   IN OUT VOID   ***ListPtr,
-  IN OUT INTN   *ElementCount
+  IN OUT UINTN  *ElementCount
 ) {
-  INTN i;
+  UINTN   i;
 
   if ((*ElementCount > 0) && (**ListPtr != NULL)) {
     for (i = 0; i < *ElementCount; i++) {
@@ -180,7 +183,11 @@ FreeList (
       }
     }
 
-    FreePool (*ListPtr);
+    if ((*ListPtr) != NULL) {
+      FreePool (*ListPtr);
+    }
+
+    *ElementCount = 0;
   }
 }
 
@@ -415,13 +422,13 @@ ScanVolumeBootCode (
 STATIC
 EFI_STATUS
 ReadGPT (
-  IN OUT REFIT_VOLUME           *Volume
+  IN OUT REFIT_VOLUME   *Volume
 ) {
-  EFI_STATUS                        Status = EFI_SUCCESS;
-  EFI_DISK_IO_PROTOCOL              *DiskIo;
-  EFI_PARTITION_TABLE_HEADER        *PartHdr;
-  EFI_PARTITION_ENTRY               *PartEntry, *Entry;
-  UINT32                            MediaId, BlockSize, Index;
+  EFI_STATUS                    Status = EFI_SUCCESS;
+  EFI_DISK_IO_PROTOCOL          *DiskIo;
+  EFI_PARTITION_TABLE_HEADER    *PartHdr;
+  EFI_PARTITION_ENTRY           *PartEntry, *Entry;
+  UINT32                        MediaId, BlockSize, Index;
 
   Status = gBS->HandleProtocol (
                   Volume->DeviceHandle,
@@ -448,22 +455,22 @@ ReadGPT (
         (PartHdr->MyLBA != PRIMARY_PART_HEADER_LBA) ||
         (PartHdr->SizeOfPartitionEntry < sizeof (EFI_PARTITION_ENTRY))
       ) {
-        DBG ("Invalid EFI partition table header\n");
+        DBG ("         Invalid EFI partition table header\n");
         FreePool (PartHdr);
         return EFI_LOAD_ERROR;
       }
 
-      DBG ("Read partition entries:\n");
+      DBG ("         Read partition entries:\n");
 
       PartEntry = AllocatePool (PartHdr->NumberOfPartitionEntries * PartHdr->SizeOfPartitionEntry);
       if (PartEntry == NULL) {
         return EFI_BUFFER_TOO_SMALL;
       }
 
-      DBG ("BlockSize                :%d\n", BlockSize);
-      DBG ("PartitionEntryLBA        :%x\n", PartHdr->PartitionEntryLBA);
-      DBG ("NumberOfPartitionEntries :%d\n", PartHdr->NumberOfPartitionEntries);
-      DBG ("SizeOfPartitionEntry     :%d\n", PartHdr->SizeOfPartitionEntry);
+      DBG ("         BlockSize                : %d\n", BlockSize);
+      DBG ("         PartitionEntryLBA        : %x\n", PartHdr->PartitionEntryLBA);
+      DBG ("         NumberOfPartitionEntries : %d\n", PartHdr->NumberOfPartitionEntries);
+      DBG ("         SizeOfPartitionEntry     : %d\n", PartHdr->SizeOfPartitionEntry);
 
       Status = DiskIo->ReadDisk (
                          DiskIo,
@@ -474,7 +481,7 @@ ReadGPT (
                        );
 
       if (EFI_ERROR (Status)) {
-        DBG (" Partition Entry ReadDisk error\n");
+        DBG ("           Partition Entry ReadDisk error\n");
         return EFI_DEVICE_ERROR;
       }
 
@@ -482,17 +489,19 @@ ReadGPT (
         Entry = (EFI_PARTITION_ENTRY *) ((UINT8 *) PartEntry + Index * PartHdr->SizeOfPartitionEntry);
         if ((Entry->StartingLBA == 0) && (Entry->EndingLBA == 0)) {
           break;
-        }
+        } else {
+          REFIT_VOLUME_GUID   *TmpVolumesGUID = AllocateZeroPool (sizeof (REFIT_VOLUME_GUID));
 
-        DBG (" Partition            :%d\n", Index);
-        DBG (" PartitionTypeGUID    :%g\n", Entry->PartitionTypeGUID);
-        DBG (" UniquePartitionGUID  :%g\n", Entry->UniquePartitionGUID);
-        DBG (" StartingLBA          :%d\n", Entry->StartingLBA);
-        DBG (" EndingLBA            :%d\n", Entry->EndingLBA);
+          DBG ("           Partition              : %d\n", Index);
+          DBG ("           PartitionTypeGUID      : %g\n", Entry->PartitionTypeGUID);
+          DBG ("           UniquePartitionGUID    : %g\n", Entry->UniquePartitionGUID);
+          DBG ("           StartingLBA            : %d\n", Entry->StartingLBA);
+          DBG ("           EndingLBA              : %d\n", Entry->EndingLBA);
 
-        if (VolumesGUIDCount < ARRAY_SIZE (VolumesGUID)) {
-          CopyGuid (&VolumesGUID[VolumesGUIDCount].PartitionTypeGUID, &Entry->PartitionTypeGUID);
-          CopyGuid (&VolumesGUID[VolumesGUIDCount++].UniquePartitionGUID, &Entry->UniquePartitionGUID);
+          CopyGuid (&TmpVolumesGUID->PartitionTypeGUID, &Entry->PartitionTypeGUID);
+          CopyGuid (&TmpVolumesGUID->UniquePartitionGUID, &Entry->UniquePartitionGUID);
+
+          AddListElement ((VOID ***)&VolumesGUID, &VolumesGUIDCount, TmpVolumesGUID);
         }
       }
     }
@@ -660,8 +669,11 @@ ScanVolume (
         (DevicePathSubType (DevicePath) == MEDIA_VENDOR_DP) &&
         (CompareGuid ((EFI_GUID *)((UINT8 *)DevicePath + 0x04), &gAppleVenMediaGuid))
       ) {
+        CopyGuid (&Volume->PartitionTypeGUID, &gAppleAPFSVolumeGuid);
         CopyGuid (&Volume->VenMediaGUID, (EFI_GUID *)((UINT8 *)DevicePath + 0x14));
-        //DBG (" ---> VenMediaGUID :%g\n", &Volume->VenMediaGUID);
+        Volume->PartitionType = PARTITION_TYPE_APFS_VOLUME;
+        //DBG (" ---> [VenMediaGUID]: %g\n", &Volume->VenMediaGUID);
+        AddListElement ((VOID ***)&VenMediaGUID, &VenMediaGUIDCount, &Volume->VenMediaGUID);
       }
     }
 
@@ -941,10 +953,10 @@ ScanVolumes () {
     return;
   }
 
-  MsgLog ("Found %d volumes with blockIO:\n", HandleCount);
+  FreeList ((VOID ***)&VolumesGUID, &VolumesGUIDCount);
+  FreeList ((VOID ***)&VenMediaGUID, &VenMediaGUIDCount);
 
-  VolumesGUIDCount = 0;
-  ZeroMem (&VolumesGUID, ARRAY_SIZE (VolumesGUID) * sizeof (REFIT_VOLUME_GUID));
+  MsgLog ("Found %d volumes with blockIO:\n", HandleCount);
 
   // first pass: collect information about all handles
   for (HandleIndex = 0; HandleIndex < HandleCount; HandleIndex++) {
@@ -962,21 +974,23 @@ ScanVolumes () {
 
     Volume->Hidden = FALSE; // default to not hidden
 
+    CopyGuid (&Volume->PartitionTypeGUID, &gEfiPartTypeUnusedGuid);
     CopyGuid (&Volume->VenMediaGUID, &gEfiPartTypeUnusedGuid);
 
     Status = ScanVolume (Volume);
     if (!EFI_ERROR (Status)) {
-      if (ReadGPT (Volume) == EFI_LOAD_ERROR) { /////////////
+      if (ReadGPT (Volume) == EFI_LOAD_ERROR) {
         Guid = FindGPTPartitionGuidInDevicePath (Volume->DevicePath);
         for (Index = 0; Index < VolumesGUIDCount; Index++) {
-          if (CompareGuid (&VolumesGUID[Index].UniquePartitionGUID, Guid)) {
-            CopyGuid (&Volume->PartitionTypeGUID, &VolumesGUID[Index].PartitionTypeGUID);
-            //DBG (" ---> PartitionTypeGUID :%g\n", &Volume->PartitionTypeGUID);
+          if (CompareGuid (&VolumesGUID[Index]->UniquePartitionGUID, Guid)) {
+            CopyGuid (&Volume->PartitionTypeGUID, &VolumesGUID[Index]->PartitionTypeGUID);
+            //DBG (" ---> [PartitionTypeGUID]: %g\n", &Volume->PartitionTypeGUID);
           }
         }
       }
 
       AddListElement ((VOID ***)&Volumes, &VolumesCount, Volume);
+
       for (HVi = 0; HVi < gSettings.HVCount; HVi++) {
         if (
           StriStr (Volume->DevicePathString, gSettings.HVHideStrings[HVi]) ||
@@ -1822,40 +1836,38 @@ CHAR16 *
 Basename (
   IN CHAR16   *Path
 ) {
-  CHAR16  *FileName = Path;
-
   if (Path != NULL) {
-    UINTN   i, len = StrLen (Path);
+    UINTN   i, Len = StrLen (Path);
 
-    for (i = len; i > 0; i--) {
+    for (i = Len; i > 0; i--) {
       if (Path[i - 1] == '\\' || Path[i - 1] == '/') {
-        FileName = Path + i;
-        break;
+        return AllocateCopyPool (((Len - i) + 1) * sizeof (CHAR16), Path + i);
       }
     }
   }
 
-  return FileName;
+  return Path;
 }
 
 CHAR16 *
 Dirname (
   IN CHAR16   *Path
 ) {
-  CHAR16  *FileName = Path;
-
   if (Path != NULL) {
-    UINTN   i, len = StrLen (Path);
+    UINTN   i, Len = StrLen (Path);
 
-    for (i = len; i >= 0; i--) {
-      if ((FileName[i] == '\\') || (FileName[i] == '/')) {
-        FileName[i] = 0;
-        break;
+    for (i = Len; i >= 0; i--) {
+      if ((Path[i] == '\\') || (Path[i] == '/')) {
+        CHAR16  *DirName = AllocateCopyPool (i * sizeof (CHAR16), Path);
+
+        DirName[i] = 0;
+
+        return DirName;
       }
     }
   }
 
-  return FileName;
+  return Path;
 }
 
 CHAR16 *
@@ -1865,12 +1877,12 @@ ReplaceExtension (
 ) {
   CHAR16  *NewExtension = Extension ? EfiStrDuplicate (Extension) : L"";
   UINTN   i,
-          len = StrSize (Path),
-          slen = len + StrSize (NewExtension) + 1;
+          Len = StrSize (Path),
+          NewLen = Len + StrSize (NewExtension) + 1;
 
-  Path = ReallocatePool (StrSize (Path), slen, Path);
+  Path = ReallocatePool (StrSize (Path), NewLen, Path);
 
-  for (i = len; i >= 0; i--) {
+  for (i = Len; i >= 0; i--) {
     if (Path[i] == '.') {
       Path[i] = 0;
       break;
@@ -1881,7 +1893,7 @@ ReplaceExtension (
     }
   }
 
-  StrCatS (Path, slen, NewExtension);
+  StrCatS (Path, NewLen, NewExtension);
 
   return Path;
 }
@@ -1890,9 +1902,9 @@ CHAR16 *
 FindExtension (
   IN CHAR16   *FileName
 ) {
-  UINTN   i, len = StrLen (FileName);
+  UINTN   i, Len = StrLen (FileName);
 
-  for (i = len; i >= 0; i--) {
+  for (i = Len; i >= 0; i--) {
     if (FileName[i] == '.') {
       return FileName + i + 1;
     }
@@ -2497,12 +2509,6 @@ WaitForInputEventPoll (
 
     UpdateAnime (Screen, &(Screen->FilmPlace));
 
-    /*
-    if ((INTN)gItemID < Screen->EntryCount) {
-      UpdateAnime (Screen->Entries[gItemID]->SubScreen, &(Screen->Entries[gItemID]->Place));
-    }
-    */
-
     TimeoutRemain--;
   }
 
@@ -2581,9 +2587,36 @@ ResetClover () {
   gBS->Stall (1 * 1000000);
   ClearScreen (&RedBackgroundPixel);
   gBS->Stall (1 * 1000000);
+  ClearScreen (&BlackBackgroundPixel);
 
   DestroyGeneratedACPI ();
   ResetNvram ();
+}
+
+VOID
+DumpBitsConfig (
+  CHAR8       *Label,
+  UINT32      Bits,
+  OPT_BITS    *BitsArray,
+  UINT8       NumArray
+) {
+  UINT8     i, Count = 0;
+  UINTN     Len = SVALUE_MAX_SIZE;
+  CHAR16    *StrLog = AllocateZeroPool (Len);
+
+  if (Bits != 0xFFFF) {
+    for (i = 0; i < NumArray; i++) {
+      if (BIT_ISSET (Bits, BitsArray[i].Bit)) {
+        StrCatS (StrLog, Len, PoolPrint (L"%a%a", Count++ ? " | " : "", BitsArray[i].Title));
+      }
+    }
+  } else {
+    StrCpyS (StrLog, Len, L"NONE");
+  }
+
+  MsgLog ("%a (0x%04x): (%s)\n", Label, Bits, StrLog);
+
+  FreePool (StrLog);
 }
 
 // EOF

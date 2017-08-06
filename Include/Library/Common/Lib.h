@@ -120,30 +120,29 @@ typedef struct {
 #define BIT_UNSET(flags, flag) (flags & (~flag))
 #define BIT_TOGGLE(flags, flag) (flags ^ flag)
 
-#define OSFLAG_USEGRAPHICS              (1 << 0)
-#define OSFLAG_WITHKEXTS                (1 << 1)
-#define OSFLAG_CHECKFAKESMC             (1 << 2)
-#define OSFLAG_NOCACHES                 (1 << 3)
-#define OSFLAG_NODEFAULTARGS            (1 << 4)
-#define OSFLAG_NODEFAULTMENU            (1 << 5)
-#define OSFLAG_HIDDEN                   (1 << 6)
-#define OSFLAG_DISABLED                 (1 << 7)
-#define OSFLAG_HIBERNATED               (1 << 8)
-#define OSFLAG_NOSIP                    (1 << 9)
-#define OSFLAG_DBGPATCHES               (1 << 10)
-#define OSFLAG_ALLOW_KEXT_PATCHES       (1 << 11)
-#define OSFLAG_ALLOW_KERNEL_PATCHES     (1 << 12)
-#define OSFLAG_ALLOW_BOOTER_PATCHES     (1 << 13)
+#define OSFLAG_USEGRAPHICS              BIT0
+#define OSFLAG_WITHKEXTS                BIT1
+#define OSFLAG_CHECKFAKESMC             BIT2
+#define OSFLAG_NOCACHES                 BIT3
+#define OSFLAG_NODEFAULTARGS            BIT4
+#define OSFLAG_NODEFAULTMENU            BIT5
+#define OSFLAG_HIDDEN                   BIT6
+#define OSFLAG_DISABLED                 BIT7
+#define OSFLAG_NOSIP                    BIT8
+#define OSFLAG_DBGPATCHES               BIT9
+#define OSFLAG_ALLOW_KEXT_PATCHES       BIT10
+#define OSFLAG_ALLOW_KERNEL_PATCHES     BIT11
+#define OSFLAG_ALLOW_BOOTER_PATCHES     BIT12
 
-#define OPT_VERBOSE                     (1 << 14)
-#define OPT_SINGLE_USER                 (1 << 15)
-#define OPT_SAFE                        (1 << 16)
+#define OPT_VERBOSE                     BIT13
+#define OPT_SINGLE_USER                 BIT14
+#define OPT_SAFE                        BIT15
 
-#define OPT_QUIET                       (1 << 17)
-#define OPT_SPLASH                      (1 << 18)
-#define OPT_NOMODESET                   (1 << 19)
-#define OPT_HDD                         (1 << 20)
-#define OPT_CDROM                       (1 << 21)
+#define OPT_QUIET                       BIT16
+#define OPT_SPLASH                      BIT17
+#define OPT_NOMODESET                   BIT18
+#define OPT_HDD                         BIT19
+#define OPT_CDROM                       BIT20
 
 #define VOLTYPE_OPTICAL                 (0x0001)
 #define VOLTYPE_EXTERNAL                (0x0002)
@@ -153,8 +152,9 @@ typedef struct {
 #define PARTITION_TYPE_UNKNOWN          (0)
 #define PARTITION_TYPE_HFS              (1)
 #define PARTITION_TYPE_RECOVERY         (2)
-#define PARTITION_TYPE_APFS             (3)
-#define PARTITION_TYPE_KERNELCOREDUMP   (4)
+#define PARTITION_TYPE_APFS_CONTAINER   (3)
+#define PARTITION_TYPE_APFS_VOLUME      (4)
+#define PARTITION_TYPE_KERNELCOREDUMP   (5)
 
 #define OSFLAG_DEFAULTS                 (\
                                           OSFLAG_USEGRAPHICS          | \
@@ -199,7 +199,7 @@ typedef struct {
   EFI_GUID              PartitionTypeGUID;
   EFI_GUID              VenMediaGUID;
   CHAR16                *BlessedPath;
-  UINT64                SleepImageOffset;
+  CHAR16                *BooterDir;
 } REFIT_VOLUME;
 
 typedef struct {
@@ -414,6 +414,9 @@ extern REFIT_VOLUME       *SelfVolume;
 extern REFIT_VOLUME       **Volumes;
 extern UINTN              VolumesCount;
 
+extern EFI_GUID           **VenMediaGUID;
+extern UINTN              VenMediaGUIDCount;
+
 EFI_STATUS
 InitRefitLib (
   IN EFI_HANDLE     ImageHandle
@@ -447,8 +450,8 @@ AddListElement (
 
 VOID
 FreeList (
-  IN OUT VOID     ***ListPtr,
-  IN OUT INTN     *ElementCount
+  IN OUT VOID   ***ListPtr,
+  IN OUT UINTN  *ElementCount
 );
 
 VOID

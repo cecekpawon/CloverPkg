@@ -8,7 +8,6 @@
 
 extern EFI_PHYSICAL_ADDRESS   gRelocBase;
 extern EFI_PHYSICAL_ADDRESS   gSysTableRtArea;
-extern BOOLEAN                gHibernateWake;
 extern UINTN                  gLastMemoryMapSize;
 extern EFI_MEMORY_DESCRIPTOR  *gLastMemoryMap;
 extern UINTN                  gLastDescriptorSize;
@@ -53,6 +52,23 @@ DefragmentRuntimeServices (
   IN BOOLEAN                SkipOurSysTableRtArea
 );
 
+#if APTIOFIX_VER == 1
+
+EFI_STATUS
+KernelEntryFromMachOPatchJump (
+  VOID    *MachOImage,
+  UINTN   SlideAddr
+);
+
+/** Fixes stuff for booting with relocation block. Called when boot.efi jumps to kernel. */
+UINTN
+FixBootingWithRelocBlock (
+  UINTN     bootArgs,
+  BOOLEAN   ModeX64
+);
+
+#else
+
 /** Fixes stuff for booting without relocation block. Called when boot.efi jumps to kernel. */
 UINTN
 FixBootingWithoutRelocBlock (
@@ -60,9 +76,4 @@ FixBootingWithoutRelocBlock (
   BOOLEAN   ModeX64
 );
 
-/** Fixes stuff for hibernate wake booting without relocation block. Called when boot.efi jumps to kernel. */
-UINTN
-FixHibernateWakeWithoutRelocBlock (
-  UINTN     imageHeaderPage,
-  BOOLEAN   ModeX64
-);
+#endif

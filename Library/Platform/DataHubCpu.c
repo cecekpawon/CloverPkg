@@ -123,9 +123,9 @@ LogDataHub (
 // Sets the volatile and non-volatile variables used by OS X
 EFI_STATUS
 EFIAPI
-SetVariablesForOSX (
-  IN LOADER_ENTRY   *Entry
-) {
+SetVariablesForOSX () {
+  //UINT8   BlackMode = 1;
+
   // The variable names used should be made global constants to prevent them being allocated multiple times
 
   //
@@ -133,44 +133,44 @@ SetVariablesForOSX (
   //
 
   SetNvramVariable (
-    NvramData[kSystemID].VariableName,
-    NvramData[kSystemID].Guid,
-    NvramData[kSystemID].Attribute,
+    NvramData[kNvSystemID].VariableName,
+    NvramData[kNvSystemID].Guid,
+    NvramData[kNvSystemID].Attribute,
     sizeof (EFI_GUID),
     SwapGuid (gSettings.SystemID)
   );
 
   SetOrDeleteNvramVariable (
-    NvramData[kMLB].VariableName,
-    NvramData[kMLB].Guid,
-    NvramData[kMLB].Attribute,
+    NvramData[kNvMLB].VariableName,
+    NvramData[kNvMLB].Guid,
+    NvramData[kNvMLB].Attribute,
     AsciiStrLen (gSettings.RtMLB),
     gSettings.RtMLB,
     (gSettings.RtMLB && (AsciiStrLen (gSettings.RtMLB) == 17))
   );
 
   SetOrDeleteNvramVariable (
-    NvramData[kHWMLB].VariableName,
-    NvramData[kHWMLB].Guid,
-    NvramData[kHWMLB].Attribute,
+    NvramData[kNvHWMLB].VariableName,
+    NvramData[kNvHWMLB].Guid,
+    NvramData[kNvHWMLB].Attribute,
     AsciiStrLen (gSettings.RtMLB),
     gSettings.RtMLB,
     (gSettings.RtMLB && (AsciiStrLen (gSettings.RtMLB) == 17))
   );
 
   SetOrDeleteNvramVariable (
-    NvramData[kROM].VariableName,
-    NvramData[kROM].Guid,
-    NvramData[kROM].Attribute,
+    NvramData[kNvROM].VariableName,
+    NvramData[kNvROM].Guid,
+    NvramData[kNvROM].Attribute,
     gSettings.RtROMLen,
     gSettings.RtROM,
     (gSettings.RtROM != NULL)
   );
 
   SetOrDeleteNvramVariable (
-    NvramData[kHWROM].VariableName,
-    NvramData[kHWROM].Guid,
-    NvramData[kHWROM].Attribute,
+    NvramData[kNvHWROM].VariableName,
+    NvramData[kNvHWROM].Guid,
+    NvramData[kNvHWROM].Attribute,
     gSettings.RtROMLen,
     gSettings.RtROM,
     (gSettings.RtROM != NULL)
@@ -179,36 +179,45 @@ SetVariablesForOSX (
   // Force store variables with default / fallback value
 
   SetNvramVariable (
-    NvramData[kFirmwareFeatures].VariableName,
-    NvramData[kFirmwareFeatures].Guid,
-    NvramData[kFirmwareFeatures].Attribute,
+    NvramData[kNvFirmwareFeatures].VariableName,
+    NvramData[kNvFirmwareFeatures].Guid,
+    NvramData[kNvFirmwareFeatures].Attribute,
     sizeof (gFwFeatures),
     &gFwFeatures
   );
 
   SetNvramVariable (
-    NvramData[kFirmwareFeaturesMask].VariableName,
-    NvramData[kFirmwareFeaturesMask].Guid,
-    NvramData[kFirmwareFeaturesMask].Attribute,
+    NvramData[kNvFirmwareFeaturesMask].VariableName,
+    NvramData[kNvFirmwareFeaturesMask].Guid,
+    NvramData[kNvFirmwareFeaturesMask].Attribute,
     sizeof (gFwFeaturesMask),
     &gFwFeaturesMask
   );
 
   SetNvramVariable (
-    NvramData[kSBoardID].VariableName,
-    NvramData[kSBoardID].Guid,
-    NvramData[kSBoardID].Attribute,
+    NvramData[kNvSBoardID].VariableName,
+    NvramData[kNvSBoardID].Guid,
+    NvramData[kNvSBoardID].Attribute,
     AsciiStrLen(gSettings.BoardNumber),
     gSettings.BoardNumber
   );
 
   SetNvramVariable (
-    NvramData[kSystemSerialNumber].VariableName,
-    NvramData[kSystemSerialNumber].Guid,
-    NvramData[kSystemSerialNumber].Attribute,
+    NvramData[kNvSystemSerialNumber].VariableName,
+    NvramData[kNvSystemSerialNumber].Guid,
+    NvramData[kNvSystemSerialNumber].Attribute,
     AsciiStrLen(gSettings.SerialNr),
     gSettings.SerialNr
   );
+
+  //SetOrDeleteNvramVariable (
+  //  NvramData[kNvBlackMode].VariableName,
+  //  NvramData[kNvBlackMode].Guid,
+  //  NvramData[kNvBlackMode].Attribute,
+  //  sizeof (UINT8),
+  //  &BlackMode,
+  //  TRUE
+  //);
 
   //
   // OS X non-volatile Variables
@@ -217,18 +226,18 @@ SetVariablesForOSX (
   // we should have two UUID: platform and system
   // NO! Only Platform is the best solution
   SetOrDeleteNvramVariable (
-    NvramData[kPlatformUUID].VariableName,
-    NvramData[kPlatformUUID].Guid,
-    NvramData[kPlatformUUID].Attribute,
+    NvramData[kNvPlatformUUID].VariableName,
+    NvramData[kNvPlatformUUID].Guid,
+    NvramData[kNvPlatformUUID].Attribute,
     sizeof (EFI_GUID),
     SwapGuid (gSettings.PlatformUUID),
     !CompareGuid (&gSettings.PlatformUUID, &gEfiPartTypeUnusedGuid)
   );
 
   SetOrDeleteNvramVariable (
-    NvramData[kBacklightLevel].VariableName,
-    NvramData[kBacklightLevel].Guid,
-    NvramData[kBacklightLevel].Attribute,
+    NvramData[kNvBacklightLevel].VariableName,
+    NvramData[kNvBacklightLevel].Guid,
+    NvramData[kNvBacklightLevel].Attribute,
     sizeof (gSettings.BacklightLevel),
     &gSettings.BacklightLevel,
     (gMobile && (gSettings.BacklightLevel != 0xFFFF))
@@ -236,30 +245,31 @@ SetVariablesForOSX (
 
   // Hack for recovery by Asgorath
   SetOrDeleteNvramVariable (
-    NvramData[kCsrActiveConfig].VariableName,
-    NvramData[kCsrActiveConfig].Guid,
-    NvramData[kCsrActiveConfig].Attribute,
+    NvramData[kNvCsrActiveConfig].VariableName,
+    NvramData[kNvCsrActiveConfig].Guid,
+    NvramData[kNvCsrActiveConfig].Attribute,
     sizeof (gSettings.CsrActiveConfig),
     &gSettings.CsrActiveConfig,
     (
-      OSX_GE (Entry->OSVersion, DARWIN_OS_VER_STR_ELCAPITAN) &&
       gSettings.CsrActiveConfig &&
       (gSettings.CsrActiveConfig != 0xFFFF)
     )
   );
 
   SetOrDeleteNvramVariable (
-    NvramData[kBootercfg].VariableName,
-    NvramData[kBootercfg].Guid,
-    NvramData[kBootercfg].Attribute,
+    NvramData[kNvBootercfg].VariableName,
+    NvramData[kNvBootercfg].Guid,
+    NvramData[kNvBootercfg].Attribute,
     sizeof (gSettings.BooterConfig),
     &gSettings.BooterConfig,
     (
-      OSX_GE (Entry->OSVersion, DARWIN_OS_VER_STR_ELCAPITAN) &&
       gSettings.BooterConfig &&
       (gSettings.BooterConfig != 0xFFFF)
     )
   );
+
+  DeleteNvramVariable (NvramData[kNvBootSwitchVar].VariableName, NvramData[kNvBootSwitchVar].Guid);
+  DeleteNvramVariable (NvramData[kNvRecoveryBootMode].VariableName, NvramData[kNvRecoveryBootMode].Guid); // ICloud Lock?
 
   return EFI_SUCCESS;
 }

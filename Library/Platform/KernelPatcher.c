@@ -102,6 +102,18 @@ FilterKernelPatches (
 }
 
 /*
+  KernelInfo->RelocBase will normally be 0
+  but if OsxAptioFixDrv is used, then it will be > 0
+*/
+VOID
+SetKernelRelocBase () {
+  UINTN   DataSize = sizeof (KernelInfo->RelocBase);
+
+  gRT->GetVariable (APTIOFIX_RELOCBASE_VARIABLE_NAME, &(APTIOFIX_RELOCBASE_VARIABLE_GUID), NULL, &DataSize, &KernelInfo->RelocBase);
+  DeleteNvramVariable (APTIOFIX_RELOCBASE_VARIABLE_NAME, &(APTIOFIX_RELOCBASE_VARIABLE_GUID)); // clean up the temporary variable
+}
+
+/*
   bareBoot: https://github.com/SunnyKi/bareBoot
 */
 
@@ -192,7 +204,7 @@ InitKernel () {
           SectionIndex += sizeof (struct section_64);
 
           if (Sect64->size > 0) {
-            Addr = (UINT32)(Sect64->addr ? Sect64->addr : 0);
+            Addr = (UINT32)(Sect64->addr ? Sect64->addr + KernelInfo->RelocBase : 0);
             Size = (UINT32)Sect64->size;
             Off = Sect64->offset;
 
@@ -291,8 +303,8 @@ InitKernel () {
     UINT32    PatchLocation;
 
     Cnt = 0;
-    SymBin = (UINT8 *)(UINTN)(LinkeditAddr + (SymOff - LinkeditFileOff));
-    StrBin = (UINT8 *)(UINTN)(LinkeditAddr + (StrOff - LinkeditFileOff));
+    SymBin = (UINT8 *)(UINTN)(LinkeditAddr + (SymOff - LinkeditFileOff) + KernelInfo->RelocBase);
+    StrBin = (UINT8 *)(UINTN)(LinkeditAddr + (StrOff - LinkeditFileOff) + KernelInfo->RelocBase);
 
     //DBG ("%a: symaddr = 0x%x, straddr = 0x%x\n", __FUNCTION__, SymBin, StrBin);
 
@@ -302,7 +314,7 @@ InitKernel () {
       if (SysTabEntry->n_value) {
         SymbolName = (CHAR8 *)(StrBin + SysTabEntry->n_un.n_strx);
         Addr = (UINT32)SysTabEntry->n_value;
-        PatchLocation = Addr - (UINT32)(UINTN)KernelInfo->Bin;
+        PatchLocation = Addr - (UINT32)(UINTN)KernelInfo->Bin + (UINT32)KernelInfo->RelocBase;
 
         if (SysTabEntry->n_sect == KernelInfo->TextIndex) {
           if (AsciiStrCmp (SymbolName, KernelPatchSymbolLookup[kLoadEXEStart].Name) == 0) {
@@ -660,7 +672,7 @@ FindBootArgs (
       // for ML: gBootArgs->kslide + 0x00200000
       // for older versions: just 0x200000
       // for AptioFix booting - it's always at 0x200000
-      KernelInfo->Bin = (VOID *)(UINTN)(KernelInfo->Slide + 0x00200000);
+      KernelInfo->Bin = (VOID *)(UINTN)(KernelInfo->Slide + KernelInfo->RelocBase + 0x00200000);
 
       /*
       DBG ("Found gBootArgs at 0x%08x, DevTree at %p\n", Ptr, gDtRoot);
@@ -673,7 +685,11 @@ FindBootArgs (
       */
 
 #ifdef NO_NVRAM_SIP
-      if (OSX_GE (Entry->OSVersion, DARWIN_OS_VER_STR_ELCAPITAN)) {
+      if (
+        //OSX_GE (Entry->OSVersion, DARWIN_OS_VER_STR_ELCAPITAN) ||
+        (gSettings.BooterConfig != 0xFFFF) ||
+        (gSettings.CsrActiveConfig != 0xFFFF)
+      ) {
         gBootArgs->flags = 0;
         gBootArgs->csrActiveConfig = 0;
 
@@ -689,8 +705,8 @@ FindBootArgs (
         gBootArgs->csrCapabilities = CSR_CAPABILITY_UNLIMITED;
       }
 
-      DeleteNvramVariable (NvramData[kCsrActiveConfig].VariableName, NvramData[kCsrActiveConfig].Guid);
-      DeleteNvramVariable (NvramData[kBootercfg].VariableName, NvramData[kBootercfg].Guid);
+      DeleteNvramVariable (NvramData[kNvBootercfg].VariableName, NvramData[kNvBootercfg].Guid);
+      DeleteNvramVariable (NvramData[kNvCsrActiveConfig].VariableName, NvramData[kNvCsrActiveConfig].Guid);
 
       //gBootArgs->boot_SMC_plimit = 0;
 
@@ -1011,6 +1027,10 @@ KernelAndKextPatcherInit (
   }
 
   DBG ("%a: Start\n", __FUNCTION__);
+
+  SetKernelRelocBase ();
+
+  DBG ("RelocBase = %lx\n", KernelInfo->RelocBase);
 
   // Find bootArgs - we need then for proper detection of kernel Mach-O header
   if (!FindBootArgs (Entry)) {

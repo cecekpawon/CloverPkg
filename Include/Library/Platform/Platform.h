@@ -126,8 +126,6 @@ Headers collection for procedures
 #define CONFIG_THEME_FILENAME     L"theme"
 #define CONFIG_THEME_RANDOM       L"random"
 #define CONFIG_THEME_EMBEDDED     L"embedded"
-//#define CONFIG_THEME_CHRISTMAS    L"christmas"
-//#define CONFIG_THEME_NEWYEAR      L"newyear"
 
 #define DIR_CLOVER                L"\\EFI\\CLOVER"
 
@@ -165,7 +163,7 @@ Headers collection for procedures
 
 #define DSDT_NAME                 L"DSDT.aml"
 #define DSDT_PATCHED_NAME         DSDT_CLOVER_PREFIX L"%x.aml"
-#define DSDT_DUMP_LOG             L"DumpLog.txt"
+#define DSDT_DUMP_LOG             L"DSDTDump.log"
 
 #define SSDT_PSTATES_NAME         SSDT_CLOVER_PREFIX L"PStates.aml"
 #define SSDT_CSTATES_NAME         SSDT_CLOVER_PREFIX L"CStates.aml"
@@ -232,22 +230,26 @@ Headers collection for procedures
 #define NVRAM_ATTR_RT_BS_NV  (NVRAM_ATTR_RT_BS | EFI_VARIABLE_NON_VOLATILE)
 
 typedef enum {
-  kSystemID,
-  kMLB,
-  kHWMLB,
-  kROM,
-  kHWROM,
-  kFirmwareFeatures,
-  kFirmwareFeaturesMask,
-  kSBoardID,
-  kSystemSerialNumber,
-  kBootArgs,
-  kPlatformUUID,
-  kBacklightLevel,
-  kCsrActiveConfig,
-  kBootercfg,
-  kCloverConfig,
-  kCloverTheme
+  kNvSystemID,
+  kNvMLB,
+  kNvHWMLB,
+  kNvROM,
+  kNvHWROM,
+  kNvFirmwareFeatures,
+  kNvFirmwareFeaturesMask,
+  kNvSBoardID,
+  kNvSystemSerialNumber,
+  //kNvBlackMode,
+  //kNvUIScale,
+  kNvBootArgs,
+  kNvPlatformUUID,
+  kNvBacklightLevel,
+  kNvCsrActiveConfig,
+  kNvBootercfg,
+  kNvBootSwitchVar,
+  kNvRecoveryBootMode,
+  kNvCloverConfig,
+  kNvCloverTheme
 } NVRAM_KEY;
 
 typedef struct NVRAM_DATA {
@@ -610,16 +612,16 @@ typedef struct {
 #define AML_CHUNK_ARG2          0x6A
 #define AML_CHUNK_ARG3          0x6B
 
-#define FIX_MCHC                bit (0)
-#define FIX_DISPLAY             bit (1)
-#define FIX_LAN                 bit (2)
-#define FIX_WIFI                bit (3)
-#define FIX_HDA                 bit (4)
-#define FIX_INTELGFX            bit (5)
-#define FIX_PNLF                bit (6)
-#define FIX_HDMI                bit (7)
-#define FIX_IMEI                bit (8)
-#define FIX_HEADER              bit (9)
+#define FIX_MCHC                BIT0
+#define FIX_DISPLAY             BIT1
+#define FIX_LAN                 BIT2
+#define FIX_WIFI                BIT3
+#define FIX_HDA                 BIT4
+#define FIX_INTELGFX            BIT5
+#define FIX_PNLF                BIT6
+#define FIX_HDMI                BIT7
+#define FIX_IMEI                BIT8
+#define FIX_HEADER              BIT9
 
 #define ACPI_NAME_SIZE          4
 #define ACPI_OEM_ID_SIZE        6
@@ -879,13 +881,14 @@ typedef struct {
   BOOLEAN   AptioFixEmbedded;
   BOOLEAN   FSInjectEmbedded;
   BOOLEAN   AptioFixLoaded;
+  INT32     AptioFixVersion;
   BOOLEAN   HFSLoaded;
   BOOLEAN   APFSLoaded;
 } DRIVERS_FLAGS;
 
 typedef enum {
   english = 0,  //en
-  //indonesian, //id
+  //djawa, //dj
   //something else? add, please
 } LANGUAGES;
 
@@ -959,7 +962,6 @@ typedef struct {
   CHAR8                     *BootArgsNVRAM;
   //CHAR16                    CustomUuid[40];
   CHAR16                    *DefaultVolume;
-  BOOLEAN                   NeverHibernate;
   BOOLEAN                   FastBoot;
   BOOLEAN                   NoEarlyProgress;
   BOOLEAN                   TextOnly;
@@ -1139,7 +1141,6 @@ extern APPLE_SMBIOS_STRUCTURE_POINTER   SmbiosTable;
 extern GFX_PROPERTIES                   gGraphics[];
 extern UINTN                            NGFX;
 extern BOOLEAN                          gMobile;
-extern BOOLEAN                          gDoHibernateWake;
 extern BOOLEAN                          gGuiIsReady;
 //extern UINT32                         gCpuSpeed;  //kHz
 //extern UINT16                         gCPUtype;
@@ -1153,7 +1154,7 @@ extern EFI_BOOT_SERVICES                *gBS;
 extern SETTINGS_DATA                    gSettings;
 extern LANGUAGES                        gLanguage;
 //extern BOOLEAN                        gFirmwareClover;
-extern DRIVERS_FLAGS                    gDriversFlags;
+extern DRIVERS_FLAGS                    *gDriversFlags;
 extern UINT32                           gFwFeatures;
 extern UINT32                           gFwFeaturesMask;
 extern CPU_STRUCTURE                    gCPUStructure;
@@ -1203,10 +1204,16 @@ extern UINTN                            ACPIDropTablesNum;
 extern UINTN                            ACPIPatchedAMLNum;
 
 extern OPT_BITS                         ADEVICES[];
-extern INTN                             OptDevicesBitNum;
+extern UINT8                            OptDevicesBitNum;
 
 extern OPT_BITS                         AFIXDSDT[];
-extern INTN                             OptFixDSDTBitNum;
+extern UINT8                            OptFixDSDTBitNum;
+
+extern OPT_BITS                         ABOOTERCFG[];
+extern UINT8                            OptBooterCfgBitNum;
+
+extern OPT_BITS                         ACSRCFG[];
+extern UINT8                            OptCsrCfgBitNum;
 
 extern CONST CHAR16                     *OsxPathLCaches[];
 extern CONST UINTN                      OsxPathLCachesCount;
@@ -1258,9 +1265,6 @@ VOID
 FindCPU (
   UINT8   *Dsdt
 );
-
-VOID
-DumpFixBiosDsdt ();
 
 //VOID
 //GetBiosRegions (
@@ -1469,6 +1473,14 @@ VOID
 ResetClover ();
 
 VOID
+DumpBitsConfig (
+  CHAR8       *Label,
+  UINT32      Bits,
+  OPT_BITS    *BitsArray,
+  UINT8       NumArray
+);
+
+VOID
 SyncBootArgsFromNvram ();
 
 EFI_STATUS
@@ -1514,9 +1526,7 @@ SaveDarwinLog ();
 
 EFI_STATUS
 EFIAPI
-SetVariablesForOSX (
-  IN LOADER_ENTRY   *Entry
-);
+SetVariablesForOSX ();
 
 VOID
 EFIAPI
@@ -1732,23 +1742,6 @@ VOID
 CopyKernelAndKextPatches (
   IN OUT KERNEL_AND_KEXT_PATCHES   *Dst,
   IN     KERNEL_AND_KEXT_PATCHES   *Src
-);
-
-//
-// Hibernate.c
-//
-/** Returns TRUE if given OSX on given volume is hibernated
- *  (/private/var/vm/sleepimage exists and it's modification time is close to volume modification time).
- */
-BOOLEAN
-IsDarwinHibernated (
-  IN REFIT_VOLUME *Volume
-);
-
-/** Prepares nvram vars needed for boot.efi to wake from hibernation. */
-BOOLEAN
-PrepareHibernation (
-  IN REFIT_VOLUME *Volume
 );
 
 UINT8 GetOSTypeFromPath (

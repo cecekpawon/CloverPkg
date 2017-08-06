@@ -45,7 +45,6 @@
   ../../Library/Platform/Events.c
   ../../Library/Platform/FixBiosDsdt.c
   ../../Library/Platform/Gma.c
-  ../../Library/Platform/Hibernate.c
   ../../Library/Platform/KernelPatcher.c
   ../../Library/Platform/KextInject.c
   ../../Library/Platform/KextPatcher.c
@@ -92,6 +91,7 @@
 
 [Guids]
   gAppleAPFSPartGuid
+  gAppleAPFSVolumeGuid
   gAppleBlessedOsxFolderInfoGuid
   gAppleBlessedSystemFileInfoGuid
   gAppleBlessedSystemFolderInfoGuid

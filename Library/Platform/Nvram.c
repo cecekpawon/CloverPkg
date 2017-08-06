@@ -35,25 +35,28 @@ CHAR16                      *gEfiBootLoaderPath;
 EFI_GUID                    *gEfiBootDeviceGuid;
 
 CONST NVRAM_DATA   NvramData[] = {
-  { kSystemID,              L"system-id",              &gEfiAppleNvramGuid, NVRAM_ATTR_BS, 1 },
+  { kNvSystemID,              L"system-id",              &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  { kNvMLB,                   L"MLB",                    &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  { kNvHWMLB,                 L"HW_MLB",                 &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  { kNvROM,                   L"ROM",                    &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  { kNvHWROM,                 L"HW_ROM",                 &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  { kNvFirmwareFeatures,      L"FirmwareFeatures",       &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  { kNvFirmwareFeaturesMask,  L"FirmwareFeaturesMask",   &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  { kNvSBoardID,              L"HW_BID",                 &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  { kNvSystemSerialNumber,    L"SSN",                    &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  //{ kNvBlackMode,             L"BlackMode",              &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  //{ kNvUIScale,               L"UIScale",                &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
 
-  { kMLB,                   L"MLB",                    &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
-  { kHWMLB,                 L"HW_MLB",                 &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
-  { kROM,                   L"ROM",                    &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
-  { kHWROM,                 L"HW_ROM",                 &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
-  { kFirmwareFeatures,      L"FirmwareFeatures",       &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
-  { kFirmwareFeaturesMask,  L"FirmwareFeaturesMask",   &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
-  { kSBoardID,              L"HW_BID",                 &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
-  { kSystemSerialNumber,    L"SSN",                    &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  { kNvBootArgs,              L"boot-args",              &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 0 },
+  { kNvPlatformUUID,          L"platform-uuid",          &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
+  { kNvBacklightLevel,        L"backlight-level",        &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
+  { kNvCsrActiveConfig,       L"csr-active-config",      &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
+  { kNvBootercfg,             L"bootercfg" /* -once */,  &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
+  { kNvBootSwitchVar,         L"boot-switch-vars",       &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
+  { kNvRecoveryBootMode,      L"recovery-boot-mode",     &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
 
-  { kBootArgs,              L"boot-args",              &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 0 },
-  { kPlatformUUID,          L"platform-uuid",          &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
-  { kBacklightLevel,        L"backlight-level",        &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
-  { kCsrActiveConfig,       L"csr-active-config",      &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
-  { kBootercfg,             L"bootercfg" /* -once */,  &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
-
-  { kCloverConfig,          L"Clover.Config",          &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
-  { kCloverTheme,           L"Clover.Theme",           &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 }
+  { kNvCloverConfig,          L"Clover.Config",          &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
+  { kNvCloverTheme,           L"Clover.Theme",           &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 }
 };
 
 #if 0
@@ -275,8 +278,10 @@ ResetNvram () {
   EFI_STATUS    Status;
   UINTN         Index, NvramDataCount = ARRAY_SIZE (NvramData);
 
-  for (Index = 0; (Index < NvramDataCount) && NvramData[Index].Reset; Index++) {
-    Status = DeleteNvramVariable (NvramData[Index].VariableName, NvramData[Index].Guid);
+  for (Index = 0; Index < NvramDataCount; Index++) {
+    if (NvramData[Index].Reset) {
+      Status = DeleteNvramVariable (NvramData[Index].VariableName, NvramData[Index].Guid);
+    }
   }
 
   return Status;
@@ -628,7 +633,7 @@ INTN
 FindStartupDiskVolume (
   REFIT_MENU_SCREEN   *MenuScreen
 ) {
-  INTN              Index;
+  UINTN             Index;
   LOADER_ENTRY      *LoaderEntry;
   REFIT_VOLUME      *Volume, *DiskVolume;
   BOOLEAN           IsPartitionVolume;
@@ -663,7 +668,7 @@ FindStartupDiskVolume (
   //
   if (gEfiBootLoaderPath != NULL) {
     DBG ("   - searching for that partition and loader '%s'\n", gEfiBootLoaderPath);
-    for (Index = 0; ((Index < (INTN)MenuScreen->EntryCount) && (MenuScreen->Entries[Index]->Row == 0)); ++Index) {
+    for (Index = 0; ((Index < MenuScreen->EntryCount) && (MenuScreen->Entries[Index]->Row == 0)); ++Index) {
       if (MenuScreen->Entries[Index]->Tag == TAG_LOADER) {
         LoaderEntry = (LOADER_ENTRY *)MenuScreen->Entries[Index];
         Volume = LoaderEntry->Volume;
@@ -690,7 +695,7 @@ FindStartupDiskVolume (
     //
     DBG ("   - searching again, but comparing Media dev path nodes\n");
 
-    for (Index = 0; ((Index < (INTN)MenuScreen->EntryCount) && (MenuScreen->Entries[Index]->Row == 0)); ++Index) {
+    for (Index = 0; ((Index < MenuScreen->EntryCount) && (MenuScreen->Entries[Index]->Row == 0)); ++Index) {
       if (MenuScreen->Entries[Index]->Tag == TAG_LOADER) {
         LoaderEntry = (LOADER_ENTRY *)MenuScreen->Entries[Index];
         Volume = LoaderEntry->Volume;
@@ -718,7 +723,7 @@ FindStartupDiskVolume (
   //
   if (IsPartitionVolume) {
     DBG ("   - searching for that partition\n");
-    for (Index = 0; ((Index < (INTN)MenuScreen->EntryCount) && (MenuScreen->Entries[Index]->Row == 0)); ++Index) {
+    for (Index = 0; ((Index < MenuScreen->EntryCount) && (MenuScreen->Entries[Index]->Row == 0)); ++Index) {
       Volume = NULL;
 
       if (MenuScreen->Entries[Index]->Tag == TAG_LOADER) {
@@ -739,7 +744,7 @@ FindStartupDiskVolume (
     //
     DBG ("   - searching again, but comparing Media dev path nodes\n");
 
-    for (Index = 0; ((Index < (INTN)MenuScreen->EntryCount) && (MenuScreen->Entries[Index]->Row == 0)); ++Index) {
+    for (Index = 0; ((Index < MenuScreen->EntryCount) && (MenuScreen->Entries[Index]->Row == 0)); ++Index) {
       Volume = NULL;
 
       if (MenuScreen->Entries[Index]->Tag == TAG_LOADER) {
@@ -765,7 +770,7 @@ FindStartupDiskVolume (
   DiskVolume = NULL;
   DBG ("   - searching for that disk\n");
 
-  for (Index = 0; Index < (INTN)VolumesCount; ++Index) {
+  for (Index = 0; Index < VolumesCount; ++Index) {
     Volume = Volumes[Index];
 
     if (BootVolumeDevicePathEqual (gEfiBootVolume, Volume->DevicePath)) {
@@ -786,7 +791,7 @@ FindStartupDiskVolume (
   // search for first entry with win loader or win partition on that disk
   //
   DBG ("   - searching for first entry with win loader or win partition on that disk\n");
-  for (Index = 0; ((Index < (INTN)MenuScreen->EntryCount) && (MenuScreen->Entries[Index]->Row == 0)); ++Index) {
+  for (Index = 0; ((Index < MenuScreen->EntryCount) && (MenuScreen->Entries[Index]->Row == 0)); ++Index) {
     if (MenuScreen->Entries[Index]->Tag == TAG_LOADER) {
       LoaderEntry = (LOADER_ENTRY *)MenuScreen->Entries[Index];
       Volume = LoaderEntry->Volume;
@@ -816,7 +821,7 @@ FindStartupDiskVolume (
 
   DBG ("   - searching for any entry from disk '%s'\n", DiskVolume->VolName);
 
-  for (Index = 0; ((Index < (INTN)MenuScreen->EntryCount) && (MenuScreen->Entries[Index]->Row == 0)); ++Index) {
+  for (Index = 0; ((Index < MenuScreen->EntryCount) && (MenuScreen->Entries[Index]->Row == 0)); ++Index) {
     if (MenuScreen->Entries[Index]->Tag == TAG_LOADER) {
       LoaderEntry = (LOADER_ENTRY *)MenuScreen->Entries[Index];
       Volume = LoaderEntry->Volume;

@@ -216,18 +216,18 @@ struct REFIT_MENU_SCREEN {
   UINTN             ID;
   CHAR16            *Title;
   EG_IMAGE          *TitleImage;
-  INTN              InfoLineCount;
+  UINTN             InfoLineCount;
   CHAR16            **InfoLines;
-  INTN              EntryCount;
+  UINTN             EntryCount;
   REFIT_MENU_ENTRY  **Entries;
-  INTN              TimeoutSeconds;
+  UINTN             TimeoutSeconds;
   CHAR16            *TimeoutText;
   CHAR16            *Theme;
   BOOLEAN           AnimeRun;
   BOOLEAN           Once;
   UINT64            LastDraw;
-  INTN              CurrentFrame;
-  INTN              Frames;
+  UINTN             CurrentFrame;
+  UINTN             Frames;
   UINTN             FrameTime; //ms
   EG_RECT           FilmPlace;
   EG_IMAGE          **Film;

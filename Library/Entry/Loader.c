@@ -84,14 +84,6 @@ CHAR16  *SupportedOsType[3] = { OSTYPE_DARWIN_STR, OSTYPE_LINUX_STR, OSTYPE_WIND
 
 #define STR_S_UNKNOWN                       L"Unknown"
 
-CHAR16    *DarwinSystemPlists[] = {
-  DARWIN_CORE_SERVICES DARWIN_SYSTEM_VER_PLIST, // OS X Regular
-  DARWIN_CORE_SERVICES DARWIN_SERVER_VER_PLIST  // OS X Server
-};
-
-CHAR16    *DarwinInstallerSystemPlists      = DARWIN_IA_PATH DARWIN_SYSTEM_VER_PLIST;
-CHAR16    *DarwinRecoverySystemPlists       = DARWIN_RECOVERY_PATH DARWIN_SYSTEM_VER_PLIST;
-
 STATIC CHAR16   *OSXInstallerPaths[] = {
   L"\\OS X Install Data" DARWIN_BOOT_EFI,
   L"\\Mac OS X Install Data" DARWIN_BOOT_EFI,
@@ -102,7 +94,7 @@ STATIC CHAR16   *OSXInstallerPaths[] = {
   DARWIN_INSTALLER_LOADERBASE_PATH
 };
 
-STATIC CONST UINTN OSXInstallerPathsCount = ARRAY_SIZE(OSXInstallerPaths);
+STATIC CONST UINTN OSXInstallerPathsCount = ARRAY_SIZE (OSXInstallerPaths);
 
 // Linux loader path data
 typedef struct {
@@ -332,7 +324,7 @@ GetDarwinBlessed (
     ((Path = EfiLibPathInfo (Volume->RootDir, &gAppleBlessedOsxFolderInfoGuid)) != NULL)
   ) {
     Ret = FileDevicePathFileToStr (Path);
-    DBG ("         Blessed !!\n");
+    DBG ("        Blessed !!\n");
   }
 
   return Ret;
@@ -547,7 +539,7 @@ CheckDarwinVersion (
 ) {
   EFI_STATUS    Status = EFI_INCOMPATIBLE_VERSION;
   CHAR8         *PlistBuffer = NULL;
-  UINTN         PlistLen, i = 0, Count = ARRAY_SIZE (DarwinSystemPlists);
+  UINTN         PlistLen = 0;
   TagPtr        Dict = NULL,  Prop = NULL;
 
   if (*OSVersion != NULL) {
@@ -560,25 +552,9 @@ CheckDarwinVersion (
     *BuildVersion = NULL;
   }
 
-  if (Plist != NULL) {
-    goto Next;
+  if (!FileExists (RootDir, Plist)) {
+    return FALSE;
   }
-
-  // Detect exact version for Mac OS X Regular/Server
-  for (i = 0; i < Count; i++) {
-    if (FileExists (RootDir, DarwinSystemPlists[i])) {
-      Plist = AllocateCopyPool (StrSize (DarwinSystemPlists[i]), DarwinSystemPlists[i]);
-      break;
-    }
-  }
-
-  if (Plist == NULL) {
-    goto Finish;
-  }
-
-  Next:
-
-  // found OSX System
 
   Status = LoadFile (RootDir, Plist, (UINT8 **)&PlistBuffer, &PlistLen);
 
@@ -596,11 +572,7 @@ CheckDarwinVersion (
     if ((Prop != NULL) && (Prop->type == kTagTypeString)) {
       *BuildVersion = AllocateCopyPool (AsciiStrSize (Prop->string), Prop->string);
     }
-  }
 
-  Finish:
-
-  if (PlistBuffer != NULL) {
     FreePool (PlistBuffer);
   }
 
@@ -614,50 +586,12 @@ GetDarwinVersion (
   OUT CHAR8         **OSVersion,
   OUT CHAR8         **BuildVersion
 ) {
-  if (!Volume->RootDir) {
-    return;
-  }
-
-  switch (OSType) {
-    case OSTYPE_DARWIN:
-      if (
-        gSettings.Dev ||
-        (
-          CompareGuid (&Volume->VenMediaGUID, &gEfiPartTypeUnusedGuid) &&
-          (Volume->PartitionType == PARTITION_TYPE_HFS)
-        )
-      ) {
-        CheckDarwinVersion (Volume->RootDir, OSVersion, BuildVersion, NULL);
-      } else {
-        UINTN   i = 0, Count = ARRAY_SIZE (DarwinSystemPlists);
-        // Detect exact version for Mac OS X Regular/Server
-        for (i = 0; i < Count; i++) {
-          if (CheckDarwinVersion (Volume->RootDir, OSVersion, BuildVersion, PoolPrint (L"\\%g%s", &Volume->VenMediaGUID, DarwinSystemPlists[i]))) {
-            break;
-          }
-        }
+  if (Volume->RootDir && Volume->BooterDir) {
+    if (!CheckDarwinVersion (Volume->RootDir, OSVersion, BuildVersion, PoolPrint (L"%s%s", DARWIN_CORE_SERVICES, DARWIN_SYSTEM_VER_PLIST))) {
+      if (!CheckDarwinVersion (Volume->RootDir, OSVersion, BuildVersion, PoolPrint (L"%s%s", Volume->BooterDir, DARWIN_SYSTEM_VER_PLIST))) {
+        CheckDarwinVersion (Volume->RootDir, OSVersion, BuildVersion, PoolPrint (L"%s%s", Volume->BooterDir, DARWIN_SERVER_VER_PLIST));
       }
-      break;
-
-    case OSTYPE_DARWIN_RECOVERY:
-      if (
-        gSettings.Dev ||
-        (
-          CompareGuid (&Volume->VenMediaGUID, &gEfiPartTypeUnusedGuid) &&
-          (Volume->PartitionType == PARTITION_TYPE_RECOVERY)
-        )
-      ) {
-        CheckDarwinVersion (Volume->RootDir, OSVersion, BuildVersion, DarwinRecoverySystemPlists);
-      } else {
-        CheckDarwinVersion (Volume->RootDir, OSVersion, BuildVersion, PoolPrint (L"\\%g%s", &Volume->VenMediaGUID, DARWIN_SERVER_VER_PLIST));
-      }
-      break;
-
-    case OSTYPE_DARWIN_INSTALLER:
-      if (!CheckDarwinVersion (Volume->RootDir, OSVersion, BuildVersion, DarwinInstallerSystemPlists)) {
-        CheckDarwinVersion (Volume->RootDir, OSVersion, BuildVersion, NULL);
-      }
-      break;
+    }
   }
 }
 
@@ -681,7 +615,7 @@ CreateLoaderEntry (
   CHAR16            *LoaderDevicePathString, ShortcutLetter,
                     *OSIconName, *HoverImage, *OSIconNameHover = NULL;
   LOADER_ENTRY      *Entry;
-  INTN              i;
+  UINTN             i;
   CHAR8             *Indent = "    ",
                     *OSVersion = NULL, *OSBuildVersion = NULL;
   EG_IMAGE          *ImageTmp;
@@ -818,21 +752,6 @@ CreateLoaderEntry (
   }
 
   if (OSTYPE_IS_DARWIN_GLOB (OSType)) {
-    // At first init, if (PartitionType != PARTITION_TYPE_RECOVERY) BlessedPath should marked as OSTYPE_DARWIN.
-    // We do filtering once more here, to determine whether BlessedPath is OSTYPE_DARWIN_INSTALLER or not.
-    if (
-      (Volume->BlessedPath != NULL) &&
-      OSTYPE_IS_DARWIN (OSType) &&
-      IsBootExists (Volume->BlessedPath, OSXInstallerPaths, OSXInstallerPathsCount)
-    ) {
-      OSType = OSTYPE_DARWIN_INSTALLER;
-      if (LoaderTitle != NULL) {
-        FreePool (LoaderTitle);
-      }
-
-      LoaderTitle = EfiStrDuplicate (L"Installer");
-    }
-
     GetDarwinVersion (OSType, Volume, &OSVersion, &OSBuildVersion);
 
     if (OSVersion == NULL) {
@@ -899,10 +818,6 @@ CreateLoaderEntry (
         OSIconName = GetOSIconName (DarwinOSVersion);
       }
 
-      if (OSTYPE_IS_DARWIN (Entry->LoaderType) && IsDarwinHibernated (Volume)) {
-        Entry->Flags = BIT_SET (Entry->Flags, OSFLAG_HIBERNATED);
-      }
-
       ShortcutLetter = 'M';
       if ((Entry->VolName == NULL) || (StrLen (Entry->VolName) == 0)) {
         // else no sense to override it with dubious name
@@ -960,13 +875,6 @@ CreateLoaderEntry (
                           : (LoaderTitle != NULL) ? LoaderTitle : Basename (LoaderPath),
                         Entry->VolName // path
                       );
-  }
-
-  //DBG ("Entry->me.Title =%s\n", Entry->me.Title);
-  // just an example that UI can show hibernated volume to the user
-  // should be better to show it on entry image
-  if (BIT_ISSET (Entry->Flags, OSFLAG_HIBERNATED)) {
-    Entry->me.Title = PoolPrint (L"%s (hibernated)", Entry->me.Title);
   }
 
   Entry->me.ShortcutLetter = (Hotkey == 0) ? ShortcutLetter : Hotkey;
@@ -1147,16 +1055,52 @@ AddLoaderEntry (
   IN UINT8          Flags
 ) {
   LOADER_ENTRY    *Entry;
-  INTN             HVi;
+  INTN            HVi;
 
   if (
     (LoaderPath == NULL) ||
     (Volume == NULL) ||
     (Volume->RootDir == NULL) ||
-    ((Volume->BlessedPath == NULL) && !FileExists (Volume->RootDir, LoaderPath))
+    !FileExists (Volume->RootDir, LoaderPath)
   ) {
     //MsgLog ("        --> [xxx] LoaderPath: %s\n", LoaderPath);
+    if (Volume->BlessedPath != NULL) {
+      FreePool (Volume->BlessedPath);
+      Volume->BlessedPath = NULL;
+    }
+
     return FALSE;
+  }
+
+  // At first init, if (PartitionType != PARTITION_TYPE_RECOVERY) BlessedPath should marked as OSTYPE_DARWIN.
+  // We do filtering once more here, to determine whether BlessedPath is OSTYPE_DARWIN_INSTALLER or not.
+  // Also check for Preboot & Recovery APFS Volume.
+  if (
+    (Volume->BlessedPath != NULL) &&
+    OSTYPE_IS_DARWIN (OSType)
+  ) {
+    if (IsBootExists (Volume->BlessedPath, OSXInstallerPaths, OSXInstallerPathsCount)) {
+      OSType = OSTYPE_DARWIN_INSTALLER;
+
+      if (LoaderTitle != NULL) {
+        FreePool (LoaderTitle);
+      }
+
+      LoaderTitle = EfiStrDuplicate (L"Installer");
+    } else if (!CompareGuid (&Volume->VenMediaGUID, &gEfiPartTypeUnusedGuid)) {
+      /*
+      if (StrCmp (L"Preboot", Volume->VolName) == 0) {
+        OSType = OSTYPE_DARWIN_APFS_PREBOOT;
+      } else */ if (StrCmp (L"Recovery", Volume->VolName) == 0) {
+        OSType = OSTYPE_DARWIN_RECOVERY;
+
+        if (LoaderTitle != NULL) {
+          FreePool (LoaderTitle);
+        }
+
+        LoaderTitle = EfiStrDuplicate (L"Recovery");
+      }
+    }
   }
 
   MsgLog ("        - %s\n", LoaderPath);
@@ -1169,6 +1113,8 @@ AddLoaderEntry (
       return FALSE;
     }
   }
+
+  Volume->BooterDir = EfiStrDuplicate (Dirname (LoaderPath));
 
   Entry = CreateLoaderEntry (
             LoaderPath,
@@ -1220,6 +1166,55 @@ AddLoaderEntry (
   return FALSE;
 }
 
+BOOLEAN
+ScanApfsLoader (
+  REFIT_VOLUME    *Volume
+) {
+  UINTN       TmpVenMediaGUIDIndex, Index;
+  EFI_GUID    *TmpVenMediaGUID;
+  BOOLEAN     ValidLoader = FALSE, IsPreboot = FALSE, IsRecovery = FALSE, IsVM = FALSE;
+
+  if (
+    (Volume->PartitionType != PARTITION_TYPE_APFS_VOLUME) ||
+    (CompareGuid (&Volume->VenMediaGUID, &gEfiPartTypeUnusedGuid))
+  ) {
+    return ValidLoader;
+  }
+
+  //DBG ("        --> [VenMediaGUID]: %g\n", &Volume->VenMediaGUID);
+
+  IsPreboot = (StrCmp (L"Preboot", Volume->VolName) == 0);
+  IsRecovery = (StrCmp (L"Recovery", Volume->VolName) == 0);
+  IsVM = (StrCmp (L"VM", Volume->VolName) == 0);
+
+  if (
+    !IsPreboot && !IsRecovery && !IsVM &&
+    (EFI_ERROR (GetRootUUID (Volume)) || IsFirstRootUUID (Volume))
+  ) {
+    ValidLoader = AddLoaderEntry (DARWIN_LOADER_PATH, NULL, L"MacOS", Volume, NULL, OSTYPE_DARWIN, 0);
+  }
+
+  if (!ValidLoader) {
+    for (TmpVenMediaGUIDIndex = 0; (TmpVenMediaGUIDIndex < VenMediaGUIDCount) && !ValidLoader; TmpVenMediaGUIDIndex++) {
+      TmpVenMediaGUID = VenMediaGUID[TmpVenMediaGUIDIndex];
+
+      //DBG ("        --> [TmpVenMediaGUID]: %g\n", TmpVenMediaGUID);
+
+      if (IsRecovery) {
+        ValidLoader = AddLoaderEntry (PoolPrint (L"\\%g%s", TmpVenMediaGUID, DARWIN_BOOT_EFI), NULL, L"Recovery", Volume, NULL, OSTYPE_DARWIN_RECOVERY, 0);
+      } else {
+        Index = 0;
+
+        while (!ValidLoader && (Index < OSXInstallerPathsCount)) {
+          ValidLoader = AddLoaderEntry (PoolPrint (L"\\%g%s", TmpVenMediaGUID, OSXInstallerPaths[Index++]), NULL, L"Installer", Volume, NULL, OSTYPE_DARWIN_INSTALLER, 0);
+        }
+      }
+    }
+  }
+
+  return ValidLoader;
+}
+
 VOID
 ScanLoader () {
   UINTN         VolumeIndex, Index;
@@ -1267,7 +1262,7 @@ ScanLoader () {
     }
 
     if ((PartIsAPFS = CompareGuid (&Volume->PartitionTypeGUID, &gAppleAPFSPartGuid)) == TRUE) {
-      Volume->PartitionType = PARTITION_TYPE_APFS;
+      Volume->PartitionType = PARTITION_TYPE_APFS_CONTAINER;
     }
 
     if ((PartIsKernelCoreDump = CompareGuid (&Volume->PartitionTypeGUID, &gAppleKernelCoreDumpPartGuid)) == TRUE) {
@@ -1276,20 +1271,26 @@ ScanLoader () {
 
     Volume->BlessedPath = GetDarwinBlessed (Volume);
 
-    ValidLoader = AddLoaderEntry (
-                    Volume->BlessedPath,
-                    NULL,
-                    PartIsRecovery ? L"Recovery" : L"MacOS",
-                    Volume,
-                    NULL,
-                    PartIsRecovery ? OSTYPE_DARWIN_RECOVERY : OSTYPE_DARWIN,
-                    0
-                  );
+    if (Volume->BlessedPath) {
+      ValidLoader = AddLoaderEntry (
+                      Volume->BlessedPath,
+                      NULL,
+                      PartIsRecovery ? L"Recovery" : L"MacOS",
+                      Volume,
+                      NULL,
+                      PartIsRecovery ? OSTYPE_DARWIN_RECOVERY : OSTYPE_DARWIN,
+                      0
+                    );
+    }
 
     if (gSettings.Dev || !ValidLoader) {
       if (
-        (gSettings.Dev || CompareGuid (&Volume->VenMediaGUID, &gEfiPartTypeUnusedGuid)) &&
-        (gSettings.Dev || (PartIsHFS || PartIsRecovery))
+        gSettings.Dev ||
+        (
+          (Volume->PartitionType != PARTITION_TYPE_APFS_VOLUME) &&
+          (CompareGuid (&Volume->VenMediaGUID, &gEfiPartTypeUnusedGuid)) &&
+          (PartIsHFS || PartIsRecovery)
+        )
       ) {
         if (gSettings.Dev || PartIsRecovery) {
           ValidLoader = AddLoaderEntry (DARWIN_RECOVERY_LOADER_PATH, NULL, L"Recovery", Volume, NULL, OSTYPE_DARWIN_RECOVERY, 0);
@@ -1307,16 +1308,7 @@ ScanLoader () {
           }
         }
       } else {
-        //MsgLog ("        --> [PartitionTypeGUID] : %g\n", &Volume->PartitionTypeGUID);
-        //MsgLog ("        --> [VenMediaGUID] : %g\n", &Volume->VenMediaGUID);
-        // This block are have no sense at this time :(((
-        ValidLoader = AddLoaderEntry (PoolPrint (L"\\%g%s", &Volume->VenMediaGUID, DARWIN_BOOT_EFI), NULL, L"Recovery", Volume, NULL, OSTYPE_DARWIN_RECOVERY, 0);
-        if (!ValidLoader) {
-          ValidLoader = AddLoaderEntry (PoolPrint (L"\\%g%s", &Volume->VenMediaGUID, DARWIN_INSTALLER_LOADER_PATH), NULL, L"Installer", Volume, NULL, OSTYPE_DARWIN_INSTALLER, 0);
-          if (!ValidLoader) {
-            ValidLoader = AddLoaderEntry (PoolPrint (L"\\%g%s", &Volume->VenMediaGUID, DARWIN_LOADER_PATH), NULL, L"MacOS", Volume, NULL, OSTYPE_DARWIN, 0);
-          }
-        }
+        ValidLoader = ScanApfsLoader (Volume);
       }
     }
 
@@ -2414,6 +2406,19 @@ StartEFIImage (
 }
 
 VOID
+CheckAptioFix () {
+  EFI_STATUS          Status;
+  APTIOFIX_PROTOCOL   *AptioFix;
+
+  Status = EfiLibLocateProtocol (&gAptioFixProtocolGuid, (VOID **)&AptioFix);
+  if (!EFI_ERROR (Status) && (AptioFix->Signature == APTIOFIX_SIGNATURE)) {
+    DBG ("- AptioFix driver loaded\n");
+    gDriversFlags->AptioFixLoaded = TRUE;
+    gDriversFlags->AptioFixVersion = AptioFix->Version;
+  }
+}
+
+VOID
 StartLoader (
   IN LOADER_ENTRY   *Entry
 ) {
@@ -2567,6 +2572,8 @@ StartLoader (
       MsgLog (" %a\n", Entry->OSVersion);
     }
 
+    CheckAptioFix ();
+
     SetupBooterCsrCfg (Entry);
 
     FilterKextPatches (Entry);
@@ -2632,7 +2639,7 @@ StartLoader (
     SetFSInjection (Entry);
     //PauseForKey (L"SetFSInjection");
 
-    SetVariablesForOSX (Entry);
+    SetVariablesForOSX ();
 
     EventsInitialize (Entry);
 
@@ -2642,13 +2649,8 @@ StartLoader (
 
     SetCPUProperties ();
 
-    if (BIT_ISSET (Entry->Flags, OSFLAG_HIBERNATED)) {
-      gDoHibernateWake = PrepareHibernation (Entry->Volume);
-    }
-
     if (
-      gDriversFlags.AptioFixLoaded &&
-      !gDoHibernateWake &&
+      gDriversFlags->AptioFixLoaded &&
       !BootArgsExists (Entry->LoadOptions, L"slide=")
     ) {
       // Add slide=0 argument for ML+ if not present
@@ -2658,12 +2660,7 @@ StartLoader (
       Entry->LoadOptions = TempOptions;
     }
 
-    //DBG ("LoadKexts\n");
-    // LoadKexts writes to DataHub, where large writes can prevent hibernate wake
-    // (happens when several kexts present in Clover's kexts dir)
-    if (!gDoHibernateWake) {
-      LoadKexts (Entry);
-    }
+    LoadKexts (Entry);
 
     if (!Entry->LoadOptions) {
       CHAR16  *TempOptions = AddLoadOption (Entry->LoadOptions, L" ");
@@ -2704,7 +2701,6 @@ StartLoader (
   if (BIT_ISSET (Entry->Flags, OSFLAG_NODEFAULTMENU))         DBG ("- %a\n", "OSFLAG_NODEFAULTMENU");
   if (BIT_ISSET (Entry->Flags, OSFLAG_HIDDEN))                DBG ("- %a\n", "OSFLAG_HIDDEN");
   if (BIT_ISSET (Entry->Flags, OSFLAG_DISABLED))              DBG ("- %a\n", "OSFLAG_DISABLED");
-  if (BIT_ISSET (Entry->Flags, OSFLAG_HIBERNATED))            DBG ("- %a\n", "OSFLAG_HIBERNATED");
   if (BIT_ISSET (Entry->Flags, OSFLAG_NOSIP))                 DBG ("- %a\n", "OSFLAG_NOSIP");
   if (BIT_ISSET (Entry->Flags, OSFLAG_DBGPATCHES))            DBG ("- %a\n", "OSFLAG_DBGPATCHES");
   if (BIT_ISSET (Entry->Flags, OSFLAG_ALLOW_KEXT_PATCHES))    DBG ("- %a\n", "OSFLAG_ALLOW_KEXT_PATCHES");
@@ -2743,9 +2739,9 @@ StartLoader (
 
     if (gSettings.BootArgsNVRAM && BootArgsLen) {
       SetNvramVariable (
-        NvramData[kBootArgs].VariableName,
-        NvramData[kBootArgs].Guid,
-        NvramData[kBootArgs].Attribute,
+        NvramData[kNvBootArgs].VariableName,
+        NvramData[kNvBootArgs].Guid,
+        NvramData[kNvBootArgs].Attribute,
         BootArgsLen,
         BootArgsTmp
       );
@@ -2914,132 +2910,41 @@ SetFSInjection (
 }
 
 VOID
-PrintBooterConfig () {
-  UINTN     Len = SVALUE_MAX_SIZE;
-  CHAR16    *StrLog = AllocateZeroPool (Len);
-
-  if (gSettings.BooterConfig != 0xFFFF) {
-    if (BIT_ISSET (gSettings.BooterConfig, kBootArgsFlagRebootOnPanic)) {
-      StrCatS (StrLog, Len, L"RebootOnPanic");
-    }
-    if (BIT_ISSET (gSettings.BooterConfig, kBootArgsFlagHiDPI)) {
-      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "HiDPI"));
-    }
-    if (BIT_ISSET (gSettings.BooterConfig, kBootArgsFlagBlack)) {
-      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "Black"));
-    }
-    if (BIT_ISSET (gSettings.BooterConfig, kBootArgsFlagCSRActiveConfig)) {
-      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "CSRActiveConfig"));
-    }
-    if (BIT_ISSET (gSettings.BooterConfig, kBootArgsFlagCSRConfigMode)) {
-      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "CSRConfigMode"));
-    }
-    if (BIT_ISSET (gSettings.BooterConfig, kBootArgsFlagCSRBoot)) {
-      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "CSRBoot"));
-    }
-    if (BIT_ISSET (gSettings.BooterConfig, kBootArgsFlagBlackBg)) {
-      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "BlackBg"));
-    }
-    if (BIT_ISSET (gSettings.BooterConfig, kBootArgsFlagLoginUI)) {
-      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "LoginUI"));
-    }
-    if (BIT_ISSET (gSettings.BooterConfig, kBootArgsFlagInstallUI)) {
-      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "InstallUI"));
-    }
-  } else {
-    StrCpyS (StrLog, Len, L"NONE");
-  }
-
-  if (StrLen (StrLog)) {
-    MsgLog ("BooterConfig: (%s)\n", StrLog);
-  }
-
-  FreePool (StrLog);
-}
-
-VOID
-PrintCsrActiveConfig () {
-  UINTN     Len = SVALUE_MAX_SIZE;
-  CHAR16    *StrLog = AllocateZeroPool (Len);
-
-  if (gSettings.CsrActiveConfig != 0xFFFF) {
-    if (BIT_ISSET (gSettings.CsrActiveConfig, CSR_ALLOW_UNTRUSTED_KEXTS)) {
-      StrCatS (StrLog, Len, L"UNTRUSTED_KEXTS");
-    }
-    if (BIT_ISSET (gSettings.CsrActiveConfig, CSR_ALLOW_UNRESTRICTED_FS)) {
-      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "UNRESTRICTED_FS"));
-    }
-    if (BIT_ISSET (gSettings.CsrActiveConfig, CSR_ALLOW_TASK_FOR_PID)) {
-      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "TASK_FOR_PID"));
-    }
-    if (BIT_ISSET (gSettings.CsrActiveConfig, CSR_ALLOW_KERNEL_DEBUGGER)) {
-      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "KERNEL_DEBUGGER"));
-    }
-    if (BIT_ISSET (gSettings.CsrActiveConfig, CSR_ALLOW_APPLE_INTERNAL)) {
-      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "APPLE_INTERNAL"));
-    }
-    if (BIT_ISSET (gSettings.CsrActiveConfig, CSR_ALLOW_UNRESTRICTED_DTRACE)) {
-      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "UNRESTRICTED_DTRACE"));
-    }
-    if (BIT_ISSET (gSettings.CsrActiveConfig, CSR_ALLOW_UNRESTRICTED_NVRAM)) {
-      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "UNRESTRICTED_NVRAM"));
-    }
-    if (BIT_ISSET (gSettings.CsrActiveConfig, CSR_ALLOW_DEVICE_CONFIGURATION)) {
-      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "DEVICE_CONFIGURATION"));
-    }
-    if (BIT_ISSET (gSettings.CsrActiveConfig, CSR_ALLOW_ANY_RECOVERY_OS)) {
-      StrCatS (StrLog, Len, PoolPrint (L"%a%a", StrLen (StrLog) ? " | " : "", "ANY_RECOVERY_OS"));
-    }
-  } else {
-    StrCpyS (StrLog, Len, L"NONE");
-  }
-
-  if (StrLen (StrLog)) {
-    MsgLog ("CsrActiveConfig: (%s)\n", StrLog);
-  }
-
-  FreePool (StrLog);
-}
-
-VOID
 SetupBooterCsrCfg (
   IN LOADER_ENTRY   *Entry
 ) {
   UINT16    FixFlags = 0xFFFF;
   UINT32    FixCsrActiveConfig = 0xFFFF;
-  BOOLEAN   IsNoSIP = FALSE;
+  BOOLEAN   DisableSIP = FALSE;
 
   if (OSX_LT (Entry->OSVersion, DARWIN_OS_VER_STR_ELCAPITAN)) {
-    gSettings.CsrActiveConfig = 0xFFFF;
-    gSettings.BooterConfig = 0xFFFF;
-    return;
-  }
-
-  if (
-    (!gSettings.BooterConfig || (gSettings.BooterConfig == 0xFFFF)) &&
-    (!gSettings.CsrActiveConfig || (gSettings.CsrActiveConfig == 0xFFFF))
-  ) {
     goto Finish;
   }
 
-  IsNoSIP = BIT_ISSET (Entry->Flags, OSFLAG_NOSIP);
+  DisableSIP = BIT_ISSET (Entry->Flags, OSFLAG_NOSIP);
 
-  if (IsNoSIP) {
+  if (DisableSIP) {
     goto NoSIP;
   }
+
+  CONSTRAIN_MAX (gSettings.BooterConfig, FixFlags);
+  CONSTRAIN_MAX (gSettings.CsrActiveConfig, FixCsrActiveConfig);
 
   switch (Entry->LoaderType) {
     case OSTYPE_DARWIN_RECOVERY:
     case OSTYPE_DARWIN_INSTALLER:
-      IsNoSIP = TRUE;
+      if (!gSettings.CsrActiveConfig || (gSettings.CsrActiveConfig == FixCsrActiveConfig)) {
+        DisableSIP = TRUE;
+      }
       break;
+
     default:
       // user defined
-      if (gSettings.BooterConfig && (gSettings.BooterConfig != 0xFFFF)) {
+      if (gSettings.BooterConfig && (gSettings.BooterConfig != FixFlags)) {
         FixFlags = gSettings.BooterConfig;
       }
 
-      if (gSettings.CsrActiveConfig && (gSettings.CsrActiveConfig != 0xFFFF)) {
+      if (gSettings.CsrActiveConfig && (gSettings.CsrActiveConfig != FixCsrActiveConfig)) {
         FixCsrActiveConfig = gSettings.CsrActiveConfig;
       }
       break;
@@ -3047,35 +2952,48 @@ SetupBooterCsrCfg (
 
   NoSIP:
 
-  if (IsNoSIP) {
-    gSettings.BooterConfig = DEF_NOSIP_BOOTER_CONFIG;
-    gSettings.CsrActiveConfig = DEF_NOSIP_CSR_ACTIVE_CONFIG;
-    goto Finish;
+  if (DisableSIP) {
+    FixFlags = DEF_NOSIP_BOOTER_CONFIG;
+    FixCsrActiveConfig = DEF_NOSIP_CSR_ACTIVE_CONFIG;
   }
 
-  #if BOOT_GRAY
-    if (FixFlags && (FixFlags != 0xFFFF)) {
-      BIT_UNSET (FixFlags, (kBootArgsFlagBlack | kBootArgsFlagBlackBg));
-    }
-  #endif
+  switch (gDriversFlags->AptioFixVersion) {
+    case 1:
+      if (!DisableSIP) {
+        FixCsrActiveConfig = BIT_SET (((FixCsrActiveConfig == 0xFFFF) ? 0 : FixCsrActiveConfig), (CSR_ALLOW_APPLE_INTERNAL | CSR_ALLOW_UNRESTRICTED_NVRAM));
+      }
+      break;
+
+    case 2:
+      if (FixCsrActiveConfig && (FixCsrActiveConfig != 0xFFFF)) {
+        FixCsrActiveConfig = BIT_UNSET (FixCsrActiveConfig, CSR_ALLOW_UNRESTRICTED_NVRAM);
+      }
+      break;
+  }
 
   if (FixCsrActiveConfig != 0xFFFF) {
     if (FixFlags == 0xFFFF) {
       FixFlags = 0;
     }
 
-    FixFlags |= kBootArgsFlagCSRActiveConfig;
+    FixFlags = BIT_SET (FixFlags, kBootArgsFlagCSRActiveConfig);
 
     if (BIT_ISSET (FixCsrActiveConfig, CSR_ALLOW_DEVICE_CONFIGURATION)) {
-      FixFlags |= kBootArgsFlagCSRConfigMode;
+      FixFlags = BIT_SET (FixFlags, kBootArgsFlagCSRConfigMode);
     }
   }
+
+  Finish:
+
+  #if BOOT_GRAY
+    if (FixFlags && (FixFlags != 0xFFFF)) {
+      FixFlags = BIT_UNSET (FixFlags, (kBootArgsFlagBlack | kBootArgsFlagBlackBg));
+    }
+  #endif
 
   gSettings.BooterConfig = FixFlags;
   gSettings.CsrActiveConfig = FixCsrActiveConfig;
 
-  Finish:
-
-  PrintBooterConfig ();
-  PrintCsrActiveConfig ();
+  DumpBitsConfig ("BooterConfig", (UINT32)gSettings.BooterConfig, ABOOTERCFG, OptBooterCfgBitNum);
+  DumpBitsConfig ("CsrActiveConfig", gSettings.CsrActiveConfig, ACSRCFG, OptCsrCfgBitNum);
 }

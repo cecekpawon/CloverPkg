@@ -34,6 +34,7 @@ The main goals is to bring some of outstanding Ozmosis features into Clover. Str
 - [x] No 'OEM' setting folder support.
 - [x] Remove huge built-in injection properties.
 - [x] No FileVault support.
+- [x] No Hibernate support.
 - [x] No AMD CPU support.
 
 ### Migrations:

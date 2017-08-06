@@ -25,16 +25,17 @@
   MemLogLib
 
 [Sources]
-  OsxAptioFixDrv.c
-  BootFixes.c
-  BootArgs.c
-  VMem.c
-  Lib.c
   AsmFuncsX64.asm | MSFT
   AsmFuncsX64.nasm | GCC
+  BootArgs.c
+  BootFixes.c
+  Lib.c
+  OsxAptioFixDrv.c
+  VMem.c
 
 [Guids]
-  gEfiAppleBootGuid
+  #gEfiAppleBootGuid
+  gEfiGlobalVariableGuid
 
 [Protocols]
   gAptioFixProtocolGuid

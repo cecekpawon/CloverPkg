@@ -14,8 +14,6 @@
 
 #include <Library/Platform/DeviceTree.h>
 
-#include <Library/Common/Hibernate.h>
-
 #include "BootFixes.h"
 #include "AsmFuncs.h"
 #include "VMem.h"
@@ -228,6 +226,72 @@ KernelEntryPatchJump (
 
   return Status;
 }
+
+#if APTIOFIX_VER == 1
+/** Reads kernel entry from Mach-O load command and patches it with jump to MyAsmJumpFromKernel. */
+EFI_STATUS
+KernelEntryFromMachOPatchJump (
+  VOID    *MachOImage,
+  UINTN   SlideAddr
+) {
+  UINTN         KernelEntry;
+
+  //DBG ("KernelEntryFromMachOPatchJump: MachOImage = %p, SlideAddr = %x\n", MachOImage, SlideAddr);
+
+  KernelEntry = MachOGetEntryAddress (MachOImage);
+  //DBG ("KernelEntryFromMachOPatchJump: KernelEntry = %x\n", KernelEntry);
+
+  if (KernelEntry == 0) {
+    return EFI_NOT_FOUND;
+  }
+
+  if (SlideAddr > 0) {
+    KernelEntry += SlideAddr;
+    //DBG ("KernelEntryFromMachOPatchJump: Slided KernelEntry = %x\n", KernelEntry);
+  }
+
+  return KernelEntryPatchJump ((UINT32)KernelEntry);
+}
+#endif
+
+#if 0
+/** Patches kernel entry point with HLT - used for testing to cause system halt. */
+EFI_STATUS
+KernelEntryPatchHalt (
+  UINT32    KernelEntry
+) {
+  EFI_STATUS  Status = EFI_SUCCESS;
+  UINT8       *p;
+
+  //DBG ("KernelEntryPatchHalt KernelEntry (reloc): %lx (%lx)", KernelEntry, KernelEntry + gRelocBase);
+  p = (UINT8 *)(UINTN) KernelEntry;
+  *p= 0xf4; // HLT instruction
+  PrintSample2 (p, 4);
+  //DBG ("\n");
+
+  return Status;
+}
+
+/** Patches kernel entry point with zeros - used for testing to cause restart. */
+EFI_STATUS
+KernelEntryPatchZero (
+  UINT32    KernelEntry
+) {
+  EFI_STATUS  Status = EFI_SUCCESS;
+  UINT8       *p;
+
+  Status = EFI_SUCCESS;
+
+  //DBG ("KernelEntryPatchZero KernelEntry (reloc): %lx (%lx)", KernelEntry, KernelEntry + gRelocBase);
+  p = (UINT8 *)(UINTN) KernelEntry;
+  //*p= 0xf4;
+  p[0]= 0; p[1]= 0; p[2]= 0; p[3]= 0; // invalid instruction
+  PrintSample2 (p, 4);
+  //DBG ("\n");
+
+  return Status;
+}
+#endif
 
 //
 // Boot fixes
@@ -601,91 +665,58 @@ DevTreeFix (
   }
 }
 
-/** boot.efi zerod original RT areas after they were relocated to new place.
- *  This breaks sleep on some UEFIs and we'll return the content back.
- *  We'll find previous RT areas by reusing gVirtualMemoryMap.
- *
- * If MemoryMap is passed also (it is in regular boot), then we'll
- * mark original RT areas as ACPI NVS. Without that I can not do more
- * then one hibernate/wake cycle.
- * It seems that my UEFI contains something needed for sleep in those
- * RT areas and system needs it to stay on that place. It would be good to know
- * what is happening here.
- */
-VOID
-ReturnPreviousRTAreasContent (
-   IN UINTN                   MemoryMapSize,
-   IN EFI_MEMORY_DESCRIPTOR   *MemoryMap
+#if APTIOFIX_VER == 1
+
+/** Fixes stuff when booting with relocation block. Called when boot.efi jumps to kernel. */
+UINTN
+FixBootingWithRelocBlock (
+  UINTN     bootArgs,
+  BOOLEAN   ModeX64
 ) {
-  UINTN                   NumEntries, NumEntries2, Index, Index2, BlockSize;
-  EFI_MEMORY_DESCRIPTOR   *Desc, *Desc2;
-  EFI_PHYSICAL_ADDRESS    NewPhysicalStart;
+  VOID                    *pBootArgs = (VOID *)bootArgs;
+  InternalBootArgs        *BA;
+  UINTN                   MemoryMapSize, DescriptorSize;
+  EFI_MEMORY_DESCRIPTOR   *MemoryMap;
+  UINT32                  DescriptorVersion;
 
-  Desc = gVirtualMemoryMap;
-  NumEntries = gVirtualMapSize / gVirtualMapDescriptorSize;
+  BootArgsPrint (pBootArgs);
 
-  NumEntries2 = MemoryMapSize / gVirtualMapDescriptorSize;
+  BA = GetBootArgs (pBootArgs);
 
-  for (Index = 0; Index < NumEntries; Index++) {
-    if ((Desc->Attribute & EFI_MEMORY_RUNTIME) != 0) {
-      if ((Desc->Type == EfiRuntimeServicesCode) || (Desc->Type == EfiRuntimeServicesData)) {
-        // Desc->VirtualStart contains virtual address of new area
-        // and physical address for new area can be find from it.
-        NewPhysicalStart = Desc->VirtualStart & 0x7FFFFFFFFF;
-        BlockSize = EFI_PAGES_TO_SIZE ((UINTN)Desc->NumberOfPages);
-        //DBG ("-Copy %p <- %p, size=0x%lx\n", (VOID *)(UINTN)Desc->PhysicalStart, (VOID *)(UINTN)NewPhysicalStart, BlockSize);
-        CopyMem ((VOID *)(UINTN)Desc->PhysicalStart, (VOID *)(UINTN)NewPhysicalStart, BlockSize);
+  MemoryMapSize = *BA->MemoryMapSize;
+  MemoryMap = (EFI_MEMORY_DESCRIPTOR *)(UINTN)(*BA->MemoryMap);
+  DescriptorSize = *BA->MemoryMapDescriptorSize;
+  DescriptorVersion = *BA->MemoryMapDescriptorVersion;
 
-        // if full memory map is passed then mark old RT block in OSX MemMap as ACPI NVS in it
-        if (MemoryMap) {
-          Desc2 = MemoryMap;
-          for (Index2 = 0; Index2 < NumEntries2; Index2++) {
-            if (Desc->PhysicalStart == Desc2->PhysicalStart) {
-              Desc2->Type = EfiACPIMemoryNVS;
-              //Desc2->Type = EfiReservedMemoryType;
-            }
+  // make memmap smaller
+  ShrinkMemMap (&MemoryMapSize, MemoryMap, DescriptorSize, DescriptorVersion);
 
-            Desc2 = NEXT_MEMORY_DESCRIPTOR (Desc2, gVirtualMapDescriptorSize);
-          }
-        }
-      }
-    }
+  *BA->MemoryMapSize = (UINT32)MemoryMapSize;
 
-    Desc = NEXT_MEMORY_DESCRIPTOR (Desc, gVirtualMapDescriptorSize);
-  }
+  // fix runtime stuff
+  RuntimeServicesFix (BA);
+
+  // fix some values in dev tree
+  DevTreeFix (BA);
+
+  // fix boot args
+  BootArgsFix (BA, gRelocBase);
+
+  BootArgsPrint (pBootArgs);
+
+  bootArgs = bootArgs - gRelocBase;
+  //pBootArgs = (VOID *)bootArgs;
+
+  // set vars for copying kernel
+  // note: *BA->kaddr is fixed in BootArgsFix () and points to real kaddr
+  AsmKernelImageStartReloc = *BA->kaddr + (UINT32)gRelocBase;
+  AsmKernelImageStart = *BA->kaddr;
+  AsmKernelImageSize = *BA->ksize;
+
+  return bootArgs;
 }
 
-/** Marks RT_code and RT_data as normal memory.
- *  Used to avoid OSX marking RT_code regions as non-writable.
- *  Needed because some buggy UEFIs RT drivers uses static variables instead of
- *  runtime pool memory and then writing to such variables causes GPT in OSX.
- */
-VOID
-RemoveRTFlagMappings (
-  IN UINTN                    MemoryMapSize,
-  IN UINTN                    DescriptorSize,
-  IN UINT32                   DescriptorVersion,
-  IN EFI_MEMORY_DESCRIPTOR    *MemoryMap
-) {
-  UINTN                   NumEntries, Index;
-  EFI_MEMORY_DESCRIPTOR   *Desc;
-
-  Desc = MemoryMap;
-  NumEntries = MemoryMapSize / DescriptorSize;
-
-  for (Index = 0; Index < NumEntries; Index++) {
-    // assign virtual addresses to all EFI_MEMORY_RUNTIME marked pages (including MMIO)
-    if ((Desc->Attribute & EFI_MEMORY_RUNTIME) != 0) {
-      if ((Desc->Type == EfiRuntimeServicesCode) || (Desc->Type == EfiRuntimeServicesData)) {
-        //DBG ("RemoveRTFlagMappings: %lx (%x) -> %lx\n", Desc->VirtualStart, Desc->NumberOfPages, Desc->PhysicalStart);
-        Desc->Attribute = Desc->Attribute & (~EFI_MEMORY_RUNTIME);
-        Desc->Type = EfiConventionalMemory;
-      }
-    }
-
-    Desc = NEXT_MEMORY_DESCRIPTOR (Desc, DescriptorSize);
-  }
-}
+#else
 
 /** Fixes stuff when booting without relocation block. Called when boot.efi jumps to kernel. */
 UINTN
@@ -743,45 +774,4 @@ FixBootingWithoutRelocBlock (
   return bootArgs;
 }
 
-/** Fixes stuff when waking from hibernate without relocation block. Called when boot.efi jumps to kernel. */
-UINTN
-FixHibernateWakeWithoutRelocBlock (
-  UINTN     imageHeaderPage,
-  BOOLEAN   ModeX64
-) {
-  IOHibernateImageHeader  *ImageHeader;
-  IOHibernateHandoff      *Handoff;
-
-  ImageHeader = (IOHibernateImageHeader *)(UINTN)(imageHeaderPage << EFI_PAGE_SHIFT);
-
-  // Pass our relocated copy of system table
-  ImageHeader->systemTableOffset = (UINT32)(UINTN)(gRelocatedSysTableRtArea - ImageHeader->runtimePages);
-
-  // we need to remove memory map handoff. my system restarts if we leave it there
-  // if mem map handoff is not present, then kernel will not map those new rt pages
-  // and that is what we need on our faulty UEFIs.
-  // it's the equivalent to RemoveRTFlagMappings () in normal boot.
-  Handoff = (IOHibernateHandoff *)(UINTN)(ImageHeader->handoffPages << EFI_PAGE_SHIFT);
-  while (Handoff->type != kIOHibernateHandoffTypeEnd) {
-    if (Handoff->type == kIOHibernateHandoffTypeMemoryMap) {
-      Handoff->type = kIOHibernateHandoffType;
-      break;
-    }
-
-    Handoff = (IOHibernateHandoff *)(UINTN)((UINTN)Handoff + sizeof (Handoff) + Handoff->bytecount);
-  }
-
-  // boot.efi zeroed original RT areas, but we need to return them back
-  // to fix sleep on some UEFIs
-  //ReturnPreviousRTAreasContent (0, NULL);
-
-  // Restore original kernel entry code
-  CopyMem ((VOID *)(UINTN)AsmKernelEntry, (VOID *)gOrigKernelCode, gOrigKernelCodeSize);
-
-  // no need to copy anything here
-  AsmKernelImageStartReloc = 0x100000;
-  AsmKernelImageStart = 0x100000;
-  AsmKernelImageSize = 0;
-
-  return imageHeaderPage;
-}
+#endif

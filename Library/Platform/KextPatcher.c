@@ -1046,7 +1046,7 @@ PatchPrelinkedKexts (
       CHAR8             *InfoPlist = AllocateCopyPool (sKext->Taglen, WholePlist + sKext->Offset);
 
       //UINT32            kextBinAddress = (UINT32)sKext->Address - KernelInfo->PrelinkTextAddr + KernelInfo->PrelinkTextOff; // meklort
-      //UINT32            kextBinAddress = (UINT32)sKext->Address + KernelInfo->Slide;
+      //UINT32            kextBinAddress = (UINT32)sKext->Address + KernelInfo->Slide + (UINT32)KernelInfo->RelocBase;
 
       InfoPlist[sKext->Taglen] = '\0';
 
@@ -1058,7 +1058,9 @@ PatchPrelinkedKexts (
             (UINT32)sKext->Address +
             // KextAddr is always relative to 0x200000
             // and if KernelSlide is != 0 then KextAddr must be adjusted
-            KernelInfo->Slide
+            KernelInfo->Slide +
+            // and adjust for AptioFixDrv's KernelRelocBase
+            (UINT32)KernelInfo->RelocBase /* kextBinAddress */
           ),
         (UINT32)sKext->Size,
         InfoPlist,
@@ -1229,6 +1231,8 @@ PatchPrelinkedKexts (
         // KextAddr is always relative to 0x200000
         // and if KernelSlide is != 0 then KextAddr must be adjusted
         KextAddr += KernelInfo->Slide;
+        // and adjust for AptioFixDrv's KernelRelocBase
+        KextAddr += (UINT32)KernelInfo->RelocBase;
 
         KextSize = (UINT32)GetPlistHexValue (InfoPlistStart, kPrelinkExecutableSizeKey, WholePlist);
 

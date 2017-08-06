@@ -53,6 +53,8 @@ MYTOOLCHAIN=GCC5 # GCC49 GCC5 XCODE5
 #BUILD_OPTIONS="-D EMBED_APTIOFIX -D EMBED_FSINJECT"
 BUILD_OPTIONS=
 
+CLEAN_BUILD=1
+
 DEF_REVISION=0
 CUSTOM_CONF_PATH="${CLOVER_PATH}/Conf"
 CLOVER_BUILD_PATH="${WORKSPACE}/Build/CloverPkg/RELEASE_${MYTOOLCHAIN}"
@@ -108,8 +110,9 @@ echo "#define CLOVER_REVISION \"${CLOVER_REVISION}\"" >> "${F_VER_H}"
 echo "#define CLOVER_BUILDINFOS_STR \"${gCloverCmdStr}\"" >> "${F_VER_H}"
 
 # clean build
-
-[[ -d "${CLOVER_BUILD_PATH}" ]] && rm -rf "${CLOVER_BUILD_PATH}"
+if [[ $CLEAN_BUILD -eq 1 ]]; then
+  [[ -d "${CLOVER_BUILD_PATH}" ]] && rm -rf "${CLOVER_BUILD_PATH}"
+fi
 
 # exec command
 

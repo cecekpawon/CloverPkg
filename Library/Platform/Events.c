@@ -22,26 +22,15 @@ ClosingEventAndLog (
   IN LOADER_ENTRY   *Entry
 ) {
   //EFI_STATUS    Status;
-  BOOLEAN       CloseBootServiceEvent = TRUE;
+  BOOLEAN   CloseBootServiceEvent = TRUE;
 
   //MsgLog ("Closing Event & Log\n");
 
   if (OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType)) {
-    if (gDoHibernateWake) {
-      // When doing hibernate wake, save to DataHub only up to initial size of log
-    } else {
-      // delete boot-switch-vars if exists
-      /*Status = */gRT->SetVariable (
-                          L"boot-switch-vars", &gEfiAppleBootGuid,
-                          NVRAM_ATTR_RT_BS_NV,
-                          0, NULL
-                        );
-
-      CloseBootServiceEvent = FALSE;
-    }
+    CloseBootServiceEvent = FALSE;
 
     if (OSTYPE_IS_DARWIN (Entry->LoaderType)) {
-      SetupBooterLog (/*!gDoHibernateWake*/);
+      SetupBooterLog ();
     }
   }
 
@@ -80,14 +69,6 @@ OnExitBootServices (
 
   //DBG ("ExitBootServices called\n");
 
-  /*
-  if (gDoHibernateWake) {
-    gST->ConOut->OutputString (gST->ConOut, L"wake!!!");
-    gBS->Stall (5 * 1000000);     // 5 seconds delay
-    return;
-  }
-  */
-
   VerboseMessage ("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n", 0, Entry);
 
   if (OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType)) {
@@ -114,9 +95,9 @@ OnExitBootServices (
     // Store prev boot-args (if any) after being used by boot.efi
     if (gSettings.BootArgsNVRAM) {
       SetNvramVariable (
-        NvramData[kBootArgs].VariableName,
-        NvramData[kBootArgs].Guid,
-        NvramData[kBootArgs].Attribute,
+        NvramData[kNvBootArgs].VariableName,
+        NvramData[kNvBootArgs].Guid,
+        NvramData[kNvBootArgs].Attribute,
         AsciiStrLen (gSettings.BootArgsNVRAM),
         gSettings.BootArgsNVRAM
       );

@@ -235,7 +235,6 @@ OPT_MENU_OPTBIT_K OPT_MENU_OPTBIT[] = {
 INTN    OptMenuOptBitNum = ARRAY_SIZE (OPT_MENU_OPTBIT);
 
 OPT_MENU_OPTBIT_K OPT_MENU_FLAGBIT[] = {
-  { 0,                      L"Hibernate wake",        NULL,   OSFLAG_HIBERNATED,            OSTYPE_DARWIN },
   { 0,                      L"Without caches",        NULL,   OSFLAG_NOCACHES,              OSTYPE_DARWIN },
   { 0,                      L"With injected kexts",   NULL,   OSFLAG_WITHKEXTS,             OSTYPE_DARWIN },
   { 0,                      L"Disable SIP",           NULL,   OSFLAG_NOSIP,                 OSTYPE_DARWIN },
@@ -769,7 +768,7 @@ AddMenuInfoLine (
   IN REFIT_MENU_SCREEN  *Screen,
   IN CHAR16             *InfoLine
 ) {
-  AddListElement ((VOID ***)&(Screen->InfoLines), (UINTN *)&(Screen->InfoLineCount), InfoLine);
+  AddListElement ((VOID ***)&(Screen->InfoLines), &Screen->InfoLineCount, InfoLine);
 }
 
 VOID
@@ -777,7 +776,7 @@ AddMenuEntry (
   IN REFIT_MENU_SCREEN  *Screen,
   IN REFIT_MENU_ENTRY   *Entry
 ) {
-  AddListElement ((VOID ***)&(Screen->Entries), (UINTN *)&(Screen->EntryCount), Entry);
+  AddListElement ((VOID ***)&(Screen->Entries), &Screen->EntryCount, Entry);
 }
 
 VOID
@@ -821,7 +820,7 @@ VOID
 FreeMenu (
   IN REFIT_MENU_SCREEN    *Screen
 ) {
-  INTN                i;
+  UINTN               i;
   REFIT_MENU_ENTRY    *Tentry = NULL;
 
   //TODO - here we must FreePool for a list of Entries, Screens, Input
@@ -871,7 +870,7 @@ FindMenuShortcutEntry (
   IN REFIT_MENU_SCREEN    *Screen,
   IN CHAR16               Shortcut
 ) {
-  INTN  i;
+  UINTN  i;
 
   if (IS_DIGIT (Shortcut) || IS_ALFA (Shortcut)) {
     for (i = 0; i < Screen->EntryCount; i++) {
@@ -3319,7 +3318,7 @@ SubMenuAcpi () {
   REFIT_MENU_ENTRY    *Entry = NULL;
   REFIT_MENU_SCREEN   *SubScreen = NULL;
   CHAR8               Signature[ACPI_NAME_SIZE + 1], OemTableId[ACPI_OEM_TABLE_ID_SIZE + 1];
-  INTN                i = 0;
+  UINT8               i = 0;
   S_FILES             *aTmp = aDSDTs;
 
   Signature[ACPI_NAME_SIZE] = 0;

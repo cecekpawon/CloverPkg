@@ -52,8 +52,7 @@
 // variables
 
 BOOLEAN                 gGuiIsReady = FALSE,
-                        gThemeNeedInit = TRUE,
-                        gDoHibernateWake = FALSE;
+                        gThemeNeedInit = TRUE;
 
 // Splash -->
 CHAR16                  **LoadMessages;
@@ -161,14 +160,6 @@ RefitMain (
     gST->FirmwareRevision & ((1 << 16) - 1)
   );
 
-#if EMBED_FSINJECT
-  gDriversFlags.FSInjectEmbedded = TRUE;
-#endif
-
-#if EMBED_APTIOFIX
-  gDriversFlags.AptioFixEmbedded = TRUE;
-#endif
-
   // disable EFI watchdog timer
   gBS->SetWatchdogTimer (0x0000, 0x0000, 0x0000, NULL);
 
@@ -214,7 +205,7 @@ RefitMain (
 
   Status = EFI_LOAD_ERROR;
 
-  NvramConfig = GetNvramVariable (NvramData[kCloverConfig].VariableName, NvramData[kCloverConfig].Guid, NULL, &Size);
+  NvramConfig = GetNvramVariable (NvramData[kNvCloverConfig].VariableName, NvramData[kNvCloverConfig].Guid, NULL, &Size);
   if (NvramConfig != NULL) {
     Size = AsciiStrSize (NvramConfig) * sizeof (CHAR16);
     gSettings.ConfigName = AllocateZeroPool (Size);
@@ -312,6 +303,7 @@ RefitMain (
     MainMenu.EntryCount = 0;
     OptionMenu.EntryCount = 0;
 
+    FreeList ((VOID ***)&Volumes, &VolumesCount);
     ScanVolumes ();
 
     if (!gSettings.FastBoot) {
@@ -364,7 +356,7 @@ RefitMain (
 
     DBG ("DefaultIndex=%d and MainMenu.EntryCount=%d\n", DefaultIndex, MainMenu.EntryCount);
 
-    DefaultEntry = ((DefaultIndex >= 0) && (DefaultIndex < MainMenu.EntryCount))
+    DefaultEntry = ((DefaultIndex >= 0) && ((UINTN)DefaultIndex < MainMenu.EntryCount))
       ? MainMenu.Entries[DefaultIndex]
       : NULL;
 

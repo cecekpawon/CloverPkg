@@ -27,6 +27,7 @@ UINTN                             ACPIDropTablesNum = 0, ACPIPatchedAMLNum = 0,
 SETTINGS_DATA                     gSettings;
 LANGUAGES                         gLanguage = english;
 GFX_PROPERTIES                    gGraphics[5]; //no more then 4 graphics cards + iGPU
+DRIVERS_FLAGS                     *gDriversFlags;
 SLOT_DEVICE                       SlotDevices[DEV_INDEX_MAX], SmbiosSlotDevices[DEV_INDEX_MAX]; //assume DEV_XXX, Arpt=6
 EFI_EDID_DISCOVERED_PROTOCOL      *EdidDiscovered;
 UINT8                             *gEDID = NULL,
@@ -114,7 +115,7 @@ OPT_BITS   ADEVICES[] = {
   { "IDE",        DEV_IDE },
 };
 
-INTN    OptDevicesBitNum = ARRAY_SIZE (ADEVICES);
+UINT8    OptDevicesBitNum = ARRAY_SIZE (ADEVICES);
 
 OPT_BITS    AFIXDSDT[] = {
   { "FIX_HDMI",      FIX_HDMI },
@@ -129,7 +130,35 @@ OPT_BITS    AFIXDSDT[] = {
   { "FIX_HEADER",    FIX_HEADER }
 };
 
-INTN    OptFixDSDTBitNum = ARRAY_SIZE (AFIXDSDT);
+UINT8    OptFixDSDTBitNum = ARRAY_SIZE (AFIXDSDT);
+
+OPT_BITS    ABOOTERCFG[] = {
+  { "RebootOnPanic",          kBootArgsFlagRebootOnPanic },
+  { "HiDPI",                  kBootArgsFlagHiDPI },
+  { "Black",                  kBootArgsFlagBlack },
+  { "CSRActiveConfig",        kBootArgsFlagCSRActiveConfig },
+  { "CSRConfigMode",          kBootArgsFlagCSRConfigMode },
+  { "CSRBoot",                kBootArgsFlagCSRBoot },
+  { "BlackBg",                kBootArgsFlagBlackBg },
+  { "LoginUI",                kBootArgsFlagLoginUI },
+  { "InstallUI",              kBootArgsFlagInstallUI }
+};
+
+UINT8    OptBooterCfgBitNum = ARRAY_SIZE (ABOOTERCFG);
+
+OPT_BITS    ACSRCFG[] = {
+  { "UNTRUSTED_KEXTS",        CSR_ALLOW_UNTRUSTED_KEXTS },
+  { "UNRESTRICTED_FS",        CSR_ALLOW_UNRESTRICTED_FS },
+  { "TASK_FOR_PID",           CSR_ALLOW_TASK_FOR_PID },
+  { "KERNEL_DEBUGGER",        CSR_ALLOW_KERNEL_DEBUGGER },
+  { "APPLE_INTERNAL",         CSR_ALLOW_APPLE_INTERNAL },
+  { "UNRESTRICTED_DTRACE",    CSR_ALLOW_UNRESTRICTED_DTRACE },
+  { "UNRESTRICTED_NVRAM",     CSR_ALLOW_UNRESTRICTED_NVRAM },
+  { "DEVICE_CONFIGURATION",   CSR_ALLOW_DEVICE_CONFIGURATION },
+  { "ANY_RECOVERY_OS",        CSR_ALLOW_ANY_RECOVERY_OS }
+};
+
+UINT8    OptCsrCfgBitNum = ARRAY_SIZE (ACSRCFG);
 
 CHAR16    *InjectKextsDir[2] = { NULL/*, NULL*/, NULL };
 
@@ -2435,7 +2464,7 @@ InitTheme (
 
     // Try theme from nvram
     if ((ThemeDict == NULL) && UseThemeDefinedInNVRam) {
-      NvramTheme = GetNvramVariable (NvramData[kCloverTheme].VariableName, NvramData[kCloverTheme].Guid, NULL, &Size);
+      NvramTheme = GetNvramVariable (NvramData[kNvCloverTheme].VariableName, NvramData[kNvCloverTheme].Guid, NULL, &Size);
       if (NvramTheme != NULL) {
         TestTheme = PoolPrint (L"%a", NvramTheme);
         if (StriCmp (TestTheme, CONFIG_THEME_EMBEDDED) == 0) {
@@ -2737,8 +2766,6 @@ ParseBootSettings (
     SkipInitialBoot:
 
     gSettings.DebugLog = GetPropertyBool (GetProperty (DictPointer, "DebugLog"), FALSE);
-
-    gSettings.NeverHibernate = GetPropertyBool (GetProperty (DictPointer, "NeverHibernate"), FALSE);
   }
 }
 
@@ -3754,7 +3781,7 @@ ParseACPISettings (
         //DBG ("Fixes will override DSDT fix mask %08x!\n", gSettings.FixDsdt);
 
         if (Prop->type == kTagTypeDict) {
-          INTN    i;
+          UINT8    i;
 
           gSettings.FixDsdt = 0;
 
@@ -4791,22 +4818,23 @@ InitializeSettings () {
 
   ZeroMem ((VOID *)&gSettings, sizeof (SETTINGS_DATA));
 
+  gDriversFlags = AllocateZeroPool (sizeof (DRIVERS_FLAGS));
+
+  #if EMBED_FSINJECT
+    gDriversFlags->FSInjectEmbedded = TRUE;
+  #endif
+
+  #if EMBED_APTIOFIX
+    gDriversFlags->AptioFixEmbedded = TRUE;
+  #endif
+
   StrCpyS (gSettings.DsdtName, ARRAY_SIZE (gSettings.DsdtName), DSDT_NAME);
 
   gSettings.Timeout = -1;
   gSettings.XMPDetection = -1;
-  gSettings.BacklightLevel = 0xFFFF; //0x0503; -- the value from MBA52
+  gSettings.BacklightLevel = 0xFFFF;
   gSettings.TrustSMBIOS = TRUE;
   gSettings.QPI = 0xFFFF;
-
-  /*
-    ZeroMem (gSettings.DarwinDiskTemplate, ARRAY_SIZE (gSettings.DarwinDiskTemplate));
-    ZeroMem (gSettings.DarwinRecoveryDiskTemplate, ARRAY_SIZE (gSettings.DarwinRecoveryDiskTemplate));
-    ZeroMem (gSettings.DarwinInstallerDiskTemplate, ARRAY_SIZE (gSettings.DarwinInstallerDiskTemplate));
-    ZeroMem (gSettings.LinuxDiskTemplate, ARRAY_SIZE (gSettings.LinuxDiskTemplate));
-    //ZeroMem (gSettings.AndroidDiskTemplate, ARRAY_SIZE (gSettings.AndroidDiskTemplate));
-    ZeroMem (gSettings.WindowsDiskTemplate, ARRAY_SIZE (gSettings.WindowsDiskTemplate));
-  */
 
   CopyGuid (&gSettings.SystemID, &gEfiPartTypeUnusedGuid);
 
