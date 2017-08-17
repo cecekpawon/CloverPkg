@@ -46,8 +46,8 @@
 #include <Library/MemoryAllocationLib.h>
 #include <Library/PrintLib.h>
 
-#include <Library/Common/MemLogLib.h>
 #include <Library/Common/CommonLib.h>
+#include <Library/Common/MemLogLib.h>
 
 #ifndef DEBUG_ALL
 #ifndef DEBUG_COMMON
@@ -60,25 +60,11 @@
 #define DEBUG_COMMON DEBUG_ALL
 #endif
 
-//#define DBG(...) DebugLog (DEBUG_COMMON, __VA_ARGS__)
-
 #if DEBUG_COMMON > 0
 #define DBG(...) MemLog (TRUE, 1, __VA_ARGS__)
 #else
 #define DBG(...)
 #endif
-
-CONST CHAR16 *OsxPathLCaches[] = {
-   L"\\System\\Library\\Caches\\com.apple.kext.caches\\Startup\\kernelcache",
-   L"\\System\\Library\\Caches\\com.apple.kext.caches\\Startup\\Extensions.mkext",
-   L"\\System\\Library\\Extensions.mkext",
-   L"\\com.apple.recovery.boot\\kernelcache",
-   L"\\com.apple.recovery.boot\\Extensions.mkext",
-   L"\\.IABootFiles\\kernelcache"
-};
-
-CONST   UINTN OsxPathLCachesCount = ARRAY_SIZE (OsxPathLCaches);
-CHAR8   *OsVerUndetected = "10.10.10";  //longer string
 
 //--> Base64
 

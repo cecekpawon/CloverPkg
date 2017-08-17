@@ -220,10 +220,10 @@ MemLogInit () {
 VOID
 EFIAPI
 MemLogVA (
-  IN  CONST BOOLEAN   Timing,
-  IN  CONST INTN      DebugMode,
-  IN  CONST CHAR8     *Format,
-  IN  VA_LIST         Marker
+  IN  CONST BOOLEAN     Timing,
+  IN  CONST INTN        DebugMode,
+  IN  CONST CHAR8       *Format,
+  IN        VA_LIST     Marker
 ) {
   EFI_STATUS      Status;
   UINTN           DataWritten;
@@ -322,9 +322,9 @@ MemLogVA (
 VOID
 EFIAPI
 MemLog (
-  IN  CONST BOOLEAN Timing,
-  IN  CONST INTN    DebugMode,
-  IN  CONST CHAR8   *Format,
+  IN  CONST BOOLEAN   Timing,
+  IN  CONST INTN      DebugMode,
+  IN  CONST CHAR8     *Format,
   ...
 ) {
   VA_LIST   Marker;

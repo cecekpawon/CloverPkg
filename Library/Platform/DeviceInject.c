@@ -22,17 +22,16 @@
 #define DBG(...) DebugLog (DEBUG_INJECT, __VA_ARGS__)
 
 DevPropString   *gDevPropString = NULL;
-//UINT8           *stringdata    = NULL;
 UINT32          gDevPropStringLength   = 0;
 UINT32          gDevicesNumber = 1;
 UINT32          BuiltinSet    = 0;
-UINT32          mPropSize = 0;
-UINT8           *mProperties = NULL;
-CHAR8           *gDeviceProperties = NULL;
+UINT32          gmPropSize = 0;
+UINT8           *gmProperties = NULL;
+CHAR8           *gmDeviceProperties = NULL;
 
-UINT32          cPropSize = 0;
-UINT8           *cProperties = NULL;
-CHAR8           *cDeviceProperties = NULL;
+UINT32          gcPropSize = 0;
+UINT8           *gcProperties = NULL;
+CHAR8           *gcDeviceProperties = NULL;
 
 #define DEVICE_PROPERTIES_SIGNATURE SIGNATURE_64 ('A','P','P','L','E','D','E','V')
 
@@ -47,10 +46,10 @@ EFI_STATUS
 );
 
 struct _APPLE_GETVAR_PROTOCOL {
-  UINT64    Sign;
-  EFI_STATUS (EFIAPI *Unknown1)(IN VOID *);
-  EFI_STATUS (EFIAPI *Unknown2)(IN VOID *);
-  EFI_STATUS (EFIAPI *Unknown3)(IN VOID *);
+  UINT64                                  Sign;
+  EFI_STATUS                              (EFIAPI *Unknown1)(IN VOID *);
+  EFI_STATUS                              (EFIAPI *Unknown2)(IN VOID *);
+  EFI_STATUS                              (EFIAPI *Unknown3)(IN VOID *);
   APPLE_GETVAR_PROTOCOL_GET_DEVICE_PROPS  GetDevProps;
   APPLE_GETVAR_PROTOCOL_GET_DEVICE_PROPS  GetDevProps1;
 };
@@ -64,7 +63,7 @@ GetDeviceProps (
   IN OUT UINT32                  *BufferSize
 );
 
-APPLE_GETVAR_PROTOCOL mDeviceProperties = {
+APPLE_GETVAR_PROTOCOL   mDeviceProperties = {
   DEVICE_PROPERTIES_SIGNATURE,
   NULL,
   NULL,
@@ -96,23 +95,23 @@ GetDeviceProps (
   IN     CHAR8                   *Buffer,
   IN OUT UINT32                  *BufferSize
 ) {
-  if (gSettings.EFIStringInjector && (cProperties != NULL) && (cPropSize > 1)) {
-    if (*BufferSize < cPropSize) {
-      *BufferSize = cPropSize;
+  if (gSettings.EFIStringInjector && (gcProperties != NULL) && (gcPropSize > 1)) {
+    if (*BufferSize < gcPropSize) {
+      *BufferSize = gcPropSize;
       return EFI_BUFFER_TOO_SMALL;
     }
 
-    *BufferSize = cPropSize;
-    CopyMem (Buffer, cProperties,  cPropSize);
+    *BufferSize = gcPropSize;
+    CopyMem (Buffer, gcProperties,  gcPropSize);
     return EFI_SUCCESS;
-  } else if (/* !gSettings.EFIStringInjector && */ (mProperties != NULL) && (mPropSize > 1)) {
-    if (*BufferSize < mPropSize) {
-      *BufferSize = mPropSize;
+  } else if (/* !gSettings.EFIStringInjector && */ (gmProperties != NULL) && (gmPropSize > 1)) {
+    if (*BufferSize < gmPropSize) {
+      *BufferSize = gmPropSize;
       return EFI_BUFFER_TOO_SMALL;
     }
 
-    *BufferSize = mPropSize;
-    CopyMem (Buffer, mProperties,  mPropSize);
+    *BufferSize = gmPropSize;
+    CopyMem (Buffer, gmProperties,  gmPropSize);
     return EFI_SUCCESS;
   }
 
@@ -153,7 +152,7 @@ GetScreenInfo (
   *BaseAddress = (UINT64)mGraphicsOutput->Mode->FrameBufferBase;
   *Width = (UINT32)mGraphicsOutput->Mode->Info->HorizontalResolution;
   *Height = (UINT32)mGraphicsOutput->Mode->Info->VerticalResolution;
-  *ColorDepth = UGAColorDepth /* 32 */;
+  *ColorDepth = GlobalConfig.UGAColorDepth /* 32 */;
   *ByterPerRow = (UINT32)(mGraphicsOutput->Mode->Info->PixelsPerScanLine * 32) >> 3;
 
   //  Print (L"  Screen info: FBsize=%lx FBaddr=%lx W=%d H=%d\n",
@@ -445,12 +444,12 @@ DevpropAddValue (
 
 CHAR8 *
 DevpropGenerateString (
-  DevPropString     *StringBuf
+  DevPropString   *StringBuf
 ) {
-  UINTN   Len = StringBuf->length * 2;
-  INT32   i = 0;
-  UINT32  x = 0;
-  CHAR8   *Buffer = (CHAR8 *)AllocatePool (Len + 1), *Ptr = Buffer;
+  UINTN     Len = StringBuf->length * 2;
+  INT32     i = 0;
+  UINT32    x = 0;
+  CHAR8     *Buffer = (CHAR8 *)AllocatePool (Len + 1), *Ptr = Buffer;
 
   //DBG ("DevpropGenerateString\n");
   if (!Buffer) {
@@ -642,11 +641,11 @@ IsHDMIAudio (
 
   if (!EFI_ERROR (Status)) {
     // iterate over all GFX devices and check for sibling
-    for (Index = 0; Index < NGFX; Index++) {
+    for (Index = 0; Index < gSettings.NGFX; Index++) {
       if (
-        (gGraphics[Index].Segment == Segment) &&
-        (gGraphics[Index].Bus == Bus) &&
-        (gGraphics[Index].Device == Device)
+        (gSettings.Graphics[Index].Segment == Segment) &&
+        (gSettings.Graphics[Index].Bus == Bus) &&
+        (gSettings.Graphics[Index].Device == Device)
       ) {
         return TRUE;
       }

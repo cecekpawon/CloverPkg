@@ -12,7 +12,7 @@
 
 #include <Library/Platform/Platform.h>
 
-#define XXXX_SIGN     SIGNATURE_32 ('X','X','X','X')
+//#define XXXX_SIGN     SIGNATURE_32 ('X','X','X','X')
 //#define APIC_SIGN     SIGNATURE_32 ('A','P','I','C')
 //#define SLIC_SIGN     SIGNATURE_32 ('S','L','I','C')
 

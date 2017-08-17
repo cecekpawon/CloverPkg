@@ -51,39 +51,34 @@
 
 // variables
 
-#define MAX_FILE_SIZE   (1024 * 1024 * 1024)
+#define MAX_FILE_SIZE             (1024 * 1024 * 1024)
+#define MAX_ELEMENT_COUNT         8
 
-EFI_HANDLE              SelfImageHandle;
-EFI_HANDLE              SelfDeviceHandle;
-EFI_LOADED_IMAGE        *SelfLoadedImage;
-EFI_FILE                *SelfRootDir;
-EFI_FILE                *SelfDir;
-CHAR16                  *SelfDirPath;
-EFI_DEVICE_PATH         *SelfDevicePath;
-EFI_DEVICE_PATH         *SelfFullDevicePath;
-EFI_FILE                *ThemeDir = NULL;
-CHAR16                  *ThemePath;
-BOOLEAN                 gThemeChanged = FALSE;
-BOOLEAN                 gBootChanged = FALSE;
-BOOLEAN                 gThemeOptionsChanged = FALSE;
+EFI_HANDLE                        gSelfImageHandle;
+EFI_HANDLE                        SelfDeviceHandle;
+EFI_LOADED_IMAGE                  *gSelfLoadedImage;
+EFI_FILE                          *gSelfRootDir;
+EFI_FILE                          *gSelfDir;
+CHAR16                            *SelfDirPath;
+EFI_DEVICE_PATH                   *SelfDevicePath;
+EFI_DEVICE_PATH                   *gSelfFullDevicePath;
+EFI_FILE                          *gThemeDir = NULL;
+CHAR16                            *gThemePath;
+BOOLEAN                           gThemeChanged = FALSE;
+BOOLEAN                           gBootChanged = FALSE;
+BOOLEAN                           gThemeOptionsChanged = FALSE;
 
-//EFI_FILE                *OemThemeDir = NULL;
+REFIT_VOLUME                      *gSelfVolume = NULL;
+REFIT_VOLUME                      **gVolumes = NULL;
+UINTN                             gVolumesCount = 0;
 
-REFIT_VOLUME            *SelfVolume = NULL;
-REFIT_VOLUME            **Volumes = NULL;
-UINTN                   VolumesCount = 0;
-//
-// Unicode collation protocol interface
-//
 EFI_UNICODE_COLLATION_PROTOCOL    *mUnicodeCollation = NULL;
 
-#define                 MAX_ELEMENT_COUNT 8
+REFIT_VOLUME_GUID                 **gVolumesGUID = NULL;
+UINTN                             gVolumesGUIDCount = 0;
 
-REFIT_VOLUME_GUID       **VolumesGUID = NULL;
-UINTN                   VolumesGUIDCount = 0;
-
-EFI_GUID                **VenMediaGUID = NULL;
-UINTN                   VenMediaGUIDCount = 0;
+EFI_GUID                          **gVenMediaGUID = NULL;
+UINTN                             gVenMediaGUIDCount = 0;
 
 
 BOOLEAN
@@ -120,10 +115,13 @@ DevicePathToStr (
 BOOLEAN
 IsEmbeddedTheme () {
   if (!GlobalConfig.Theme || (StriCmp (GlobalConfig.Theme, CONFIG_THEME_EMBEDDED) == 0)) {
-    ThemeDir = NULL;
+    if (gThemeDir != NULL) {
+      gThemeDir->Close (gThemeDir);
+      gThemeDir = NULL;
+    }
   }
 
-  return (ThemeDir == NULL);
+  return (gThemeDir == NULL);
 }
 
 /*
@@ -166,7 +164,6 @@ AddListElement (
   (*ListPtr)[*ElementCount] = NewElement;
   (*ElementCount)++;
 }
-
 
 VOID
 FreeList (
@@ -501,7 +498,7 @@ ReadGPT (
           CopyGuid (&TmpVolumesGUID->PartitionTypeGUID, &Entry->PartitionTypeGUID);
           CopyGuid (&TmpVolumesGUID->UniquePartitionGUID, &Entry->UniquePartitionGUID);
 
-          AddListElement ((VOID ***)&VolumesGUID, &VolumesGUIDCount, TmpVolumesGUID);
+          AddListElement ((VOID ***)&gVolumesGUID, &gVolumesGUIDCount, TmpVolumesGUID);
         }
       }
     }
@@ -673,7 +670,7 @@ ScanVolume (
         CopyGuid (&Volume->VenMediaGUID, (EFI_GUID *)((UINT8 *)DevicePath + 0x14));
         Volume->PartitionType = PARTITION_TYPE_APFS_VOLUME;
         //DBG (" ---> [VenMediaGUID]: %g\n", &Volume->VenMediaGUID);
-        AddListElement ((VOID ***)&VenMediaGUID, &VenMediaGUIDCount, &Volume->VenMediaGUID);
+        AddListElement ((VOID ***)&gVenMediaGUID, &gVenMediaGUIDCount, &Volume->VenMediaGUID);
       }
     }
 
@@ -838,10 +835,6 @@ ScanVolume (
     }
   }
 
-  //NOTE: Sothor - We will find icon names later once we have found boot.efi on the volume
-  //here we set Volume->IconName (tiger,leo,snow,lion,cougar, etc)
-  //Status = GetOSVersion (Volume);
-
   return EFI_SUCCESS;
 }
 
@@ -914,7 +907,7 @@ ScanExtendedPartition (
           Volume->HasBootCode = FALSE;
         }
 
-        AddListElement ((VOID ***)&Volumes, &VolumesCount, Volume);
+        AddListElement ((VOID ***)&gVolumes, &gVolumesCount, Volume);
       }
     }
   }
@@ -940,6 +933,8 @@ ScanVolumes () {
   //DBG ("Scanning volumes...\n");
   DbgHeader ("ScanVolumes");
 
+  FreeList ((VOID ***)&gVolumes, &gVolumesCount);
+
   // get all BlockIo handles
   Status = gBS->LocateHandleBuffer (
                   ByProtocol,
@@ -953,8 +948,8 @@ ScanVolumes () {
     return;
   }
 
-  FreeList ((VOID ***)&VolumesGUID, &VolumesGUIDCount);
-  FreeList ((VOID ***)&VenMediaGUID, &VenMediaGUIDCount);
+  FreeList ((VOID ***)&gVolumesGUID, &gVolumesGUIDCount);
+  FreeList ((VOID ***)&gVenMediaGUID, &gVenMediaGUIDCount);
 
   MsgLog ("Found %d volumes with blockIO:\n", HandleCount);
 
@@ -967,7 +962,7 @@ ScanVolumes () {
     Volume->PartitionType = PARTITION_TYPE_UNKNOWN;
 
     if (Volume->DeviceHandle == SelfDeviceHandle) {
-      SelfVolume = Volume;
+      gSelfVolume = Volume;
     }
 
     MsgLog (" - [%02d]: Volume:", HandleIndex);
@@ -981,15 +976,15 @@ ScanVolumes () {
     if (!EFI_ERROR (Status)) {
       if (ReadGPT (Volume) == EFI_LOAD_ERROR) {
         Guid = FindGPTPartitionGuidInDevicePath (Volume->DevicePath);
-        for (Index = 0; Index < VolumesGUIDCount; Index++) {
-          if (CompareGuid (&VolumesGUID[Index]->UniquePartitionGUID, Guid)) {
-            CopyGuid (&Volume->PartitionTypeGUID, &VolumesGUID[Index]->PartitionTypeGUID);
+        for (Index = 0; Index < gVolumesGUIDCount; Index++) {
+          if (CompareGuid (&gVolumesGUID[Index]->UniquePartitionGUID, Guid)) {
+            CopyGuid (&Volume->PartitionTypeGUID, &gVolumesGUID[Index]->PartitionTypeGUID);
             //DBG (" ---> [PartitionTypeGUID]: %g\n", &Volume->PartitionTypeGUID);
           }
         }
       }
 
-      AddListElement ((VOID ***)&Volumes, &VolumesCount, Volume);
+      AddListElement ((VOID ***)&gVolumes, &gVolumesCount, Volume);
 
       for (HVi = 0; HVi < gSettings.HVCount; HVi++) {
         if (
@@ -1009,7 +1004,7 @@ ScanVolumes () {
       //DBG ("  Volume '%s', LegacyOS '%s', LegacyIcon (s) '%s', GUID = %g\n",
       //Volume->VolName, Volume->LegacyOS->Na -me ? Volume->LegacyOS->Name : L"", Volume->LegacyOS->IconName, Guid);
 
-      if (SelfVolume == Volume) {
+      if (gSelfVolume == Volume) {
         MsgLog ("         This is SelfVolume !!\n");
       }
 
@@ -1024,8 +1019,8 @@ ScanVolumes () {
   //DBG ("Found %d volumes\n", VolumesCount);
 
   // second pass: relate partitions and whole disk devices
-  for (VolumeIndex = 0; VolumeIndex < VolumesCount; VolumeIndex++) {
-    Volume = Volumes[VolumeIndex];
+  for (VolumeIndex = 0; VolumeIndex < gVolumesCount; VolumeIndex++) {
+    Volume = gVolumes[VolumeIndex];
 
     // check MBR partition table for extended partitions
     if (
@@ -1051,12 +1046,12 @@ ScanVolumes () {
       (Volume->WholeDiskBlockIO != NULL) &&
       (Volume->BlockIO != Volume->WholeDiskBlockIO)
     ) {
-      for (VolumeIndex2 = 0; VolumeIndex2 < VolumesCount; VolumeIndex2++) {
+      for (VolumeIndex2 = 0; VolumeIndex2 < gVolumesCount; VolumeIndex2++) {
         if (
-          (Volumes[VolumeIndex2]->BlockIO == Volume->WholeDiskBlockIO) &&
-          (Volumes[VolumeIndex2]->BlockIOOffset == 0)
+          (gVolumes[VolumeIndex2]->BlockIO == Volume->WholeDiskBlockIO) &&
+          (gVolumes[VolumeIndex2]->BlockIOOffset == 0)
         ) {
-          WholeDiskVolume = Volumes[VolumeIndex2];
+          WholeDiskVolume = gVolumes[VolumeIndex2];
         }
       }
     }
@@ -1140,8 +1135,8 @@ UninitVolumes () {
   REFIT_VOLUME    *Volume;
   UINTN           VolumeIndex;
 
-  for (VolumeIndex = 0; VolumeIndex < VolumesCount; VolumeIndex++) {
-    Volume = Volumes[VolumeIndex];
+  for (VolumeIndex = 0; VolumeIndex < gVolumesCount; VolumeIndex++) {
+    Volume = gVolumes[VolumeIndex];
 
     if (Volume->RootDir != NULL) {
       Volume->RootDir->Close (Volume->RootDir);
@@ -1155,12 +1150,12 @@ UninitVolumes () {
     FreePool (Volume);
   }
 
-  if (Volumes != NULL) {
-    FreePool (Volumes);
-    Volumes = NULL;
+  if (gVolumes != NULL) {
+    FreePool (gVolumes);
+    gVolumes = NULL;
   }
 
-  VolumesCount = 0;
+  gVolumesCount = 0;
 }
 
 VOID
@@ -1171,8 +1166,8 @@ ReinitVolumes () {
   EFI_DEVICE_PATH         *RemainingDevicePath;
   EFI_HANDLE              DeviceHandle, WholeDiskHandle;
 
-  for (VolumeIndex = 0; VolumeIndex < VolumesCount; VolumeIndex++) {
-    Volume = Volumes[VolumeIndex];
+  for (VolumeIndex = 0; VolumeIndex < gVolumesCount; VolumeIndex++) {
+    Volume = gVolumes[VolumeIndex];
 
     if (!Volume) {
       continue;
@@ -1223,7 +1218,7 @@ ReinitVolumes () {
     }
   }
 
-  VolumesCount = VolumesFound;
+  gVolumesCount = VolumesFound;
 }
 
 REFIT_VOLUME *
@@ -1237,13 +1232,13 @@ FindVolumeByName (
     return NULL;
   }
 
-  for (VolumeIndex = 0; VolumeIndex < VolumesCount; VolumeIndex++) {
-    Volume = Volumes[VolumeIndex];
+  for (VolumeIndex = 0; VolumeIndex < gVolumesCount; VolumeIndex++) {
+    Volume = gVolumes[VolumeIndex];
     if (!Volume) {
       continue;
     }
 
-    if (Volume->VolName && StrCmp (Volume->VolName,VolName) == 0) {
+    if (Volume->VolName && (StrCmp (Volume->VolName, VolName) == 0)) {
       return Volume;
     }
   }
@@ -1256,17 +1251,17 @@ EFI_STATUS
 FinishInitRefitLib () {
   EFI_STATUS      Status;
 
-  if (SelfRootDir == NULL) {
-    SelfRootDir = EfiLibOpenRoot (SelfLoadedImage->DeviceHandle);
-    if (SelfRootDir != NULL) {
-      SelfDeviceHandle = SelfLoadedImage->DeviceHandle;
+  if (gSelfRootDir == NULL) {
+    gSelfRootDir = EfiLibOpenRoot (gSelfLoadedImage->DeviceHandle);
+    if (gSelfRootDir != NULL) {
+      SelfDeviceHandle = gSelfLoadedImage->DeviceHandle;
     } else {
       return EFI_LOAD_ERROR;
     }
   }
 
-  /*Status  = */  SelfRootDir->Open (SelfRootDir, &ThemeDir, ThemePath,    EFI_FILE_MODE_READ, 0);
-  Status    =     SelfRootDir->Open (SelfRootDir, &SelfDir,  SelfDirPath,  EFI_FILE_MODE_READ, 0);
+  /*Status  = */  gSelfRootDir->Open (gSelfRootDir, &gThemeDir, gThemePath,    EFI_FILE_MODE_READ, 0);
+  Status    =     gSelfRootDir->Open (gSelfRootDir, &gSelfDir,  SelfDirPath,  EFI_FILE_MODE_READ, 0);
 
   CheckFatalError (Status, L"while opening our installation directory");
 
@@ -1282,19 +1277,19 @@ InitRefitLib (
   UINTN                       i, DevicePathSize;
   EFI_DEVICE_PATH_PROTOCOL    *TmpDevicePath;
 
-  SelfImageHandle = ImageHandle;
+  gSelfImageHandle = ImageHandle;
 
   Status = gBS->HandleProtocol (
-                  SelfImageHandle,
+                  gSelfImageHandle,
                   &gEfiLoadedImageProtocolGuid,
-                  (VOID **)&SelfLoadedImage
+                  (VOID **)&gSelfLoadedImage
                 );
 
   if (CheckFatalError (Status, L"while getting a LoadedImageProtocol handle")) {
     return Status;
   }
 
-  SelfDeviceHandle = SelfLoadedImage->DeviceHandle;
+  SelfDeviceHandle = gSelfLoadedImage->DeviceHandle;
   TmpDevicePath = DevicePathFromHandle (SelfDeviceHandle);
   DevicePathSize = GetDevicePathSize (TmpDevicePath);
   SelfDevicePath = AllocateAlignedPages (EFI_SIZE_TO_PAGES (DevicePathSize), 64);
@@ -1303,10 +1298,10 @@ InitRefitLib (
   //DBG ("SelfDevicePath=%s @%x\n", FileDevicePathToStr (SelfDevicePath), SelfDeviceHandle);
 
   // find the current directory
-  FilePathAsString = FileDevicePathToStr (SelfLoadedImage->FilePath);
+  FilePathAsString = FileDevicePathToStr (gSelfLoadedImage->FilePath);
 
   if (FilePathAsString != NULL) {
-    SelfFullDevicePath = FileDevicePath (SelfDeviceHandle, FilePathAsString);
+    gSelfFullDevicePath = FileDevicePath (SelfDeviceHandle, FilePathAsString);
     for (i = StrLen (FilePathAsString); i > 0 && FilePathAsString[i] != '\\'; i--);
     if (i > 0) {
       FilePathAsString[i] = 0;
@@ -1329,19 +1324,19 @@ VOID
 UninitRefitLib () {
   // called before running external programs to close open file handles
 
-  if (SelfDir != NULL) {
-    SelfDir->Close (SelfDir);
-    SelfDir = NULL;
+  if (gSelfDir != NULL) {
+    gSelfDir->Close (gSelfDir);
+    gSelfDir = NULL;
   }
 
-  if (ThemeDir != NULL) {
-    ThemeDir->Close (ThemeDir);
-    ThemeDir = NULL;
+  if (gThemeDir != NULL) {
+    gThemeDir->Close (gThemeDir);
+    gThemeDir = NULL;
   }
 
-  if (SelfRootDir != NULL) {
-    SelfRootDir->Close (SelfRootDir);
-    SelfRootDir = NULL;
+  if (gSelfRootDir != NULL) {
+    gSelfRootDir->Close (gSelfRootDir);
+    gSelfRootDir = NULL;
   }
 
   UninitVolumes ();
@@ -1378,17 +1373,17 @@ ReinitRefitLib () {
   CheckError (Status, L"while reopening our self handle");
   //DBG ("new SelfHandle=%x\n", NewSelfHandle);
 
-  SelfRootDir = EfiLibOpenRoot (NewSelfHandle);
+  gSelfRootDir = EfiLibOpenRoot (NewSelfHandle);
 
-  if (SelfRootDir == NULL) {
-    DBG ("SelfRootDir can't be reopened\n");
+  if (gSelfRootDir == NULL) {
+    DBG ("gSelfRootDir can't be reopened\n");
     return EFI_NOT_FOUND;
   }
 
   SelfDeviceHandle = NewSelfHandle;
 
-  /*Status  = */  SelfRootDir->Open (SelfRootDir, &ThemeDir, ThemePath,    EFI_FILE_MODE_READ, 0);
-  Status    =     SelfRootDir->Open (SelfRootDir, &SelfDir,  SelfDirPath,  EFI_FILE_MODE_READ, 0);
+  /*Status  = */  gSelfRootDir->Open (gSelfRootDir, &gThemeDir, gThemePath,    EFI_FILE_MODE_READ, 0);
+  Status    =     gSelfRootDir->Open (gSelfRootDir, &gSelfDir,  SelfDirPath,  EFI_FILE_MODE_READ, 0);
 
   CheckFatalError (Status, L"while reopening our installation directory");
 
@@ -2443,7 +2438,7 @@ TimeDiff (
   UINT64  t0,
   UINT64  t1
 ) {
-  return DivU64x64Remainder ((t1 - t0), DivU64x32 (gCPUStructure.TSCFrequency, 1000), 0);
+  return DivU64x64Remainder ((t1 - t0), DivU64x32 (gSettings.CPUStructure.TSCFrequency, 1000), 0);
 }
 
 //set Timeout in ms
@@ -2457,7 +2452,7 @@ WaitFor2EventWithTsc (
   UINTN           Index;
   EFI_EVENT       WaitList[2];
   UINT64          t0, t1,
-                  Delta = DivU64x64Remainder (MultU64x64 (Timeout, gCPUStructure.TSCFrequency), 1000, NULL);
+                  Delta = DivU64x64Remainder (MultU64x64 (Timeout, gSettings.CPUStructure.TSCFrequency), 1000, NULL);
 
   if (Timeout != 0) {
     t0 = AsmReadTsc ();
@@ -2552,14 +2547,14 @@ DestroyGeneratedACPI () {
   REFIT_DIR_ITER      DirIter;
   EFI_FILE_INFO       *DirEntry;
   CHAR16              *AcpiPath = AllocateZeroPool (SVALUE_MAX_SIZE);
-  UINTN               PathIndex, PathCount = ARRAY_SIZE (SupportedOsType);
+  UINTN               PathIndex, PathCount = ARRAY_SIZE (gSupportedOsType);
 
   //DbgHeader ("DestroyGeneratedAML");
 
   for (PathIndex = 0; PathIndex < PathCount; PathIndex++) {
-    AcpiPath = PoolPrint (DIR_ACPI_PATCHED L"\\%s", SupportedOsType[PathIndex]);
+    AcpiPath = PoolPrint (DIR_ACPI_PATCHED L"\\%s", gSupportedOsType[PathIndex]);
 
-    DirIterOpen (SelfRootDir, AcpiPath, &DirIter);
+    DirIterOpen (gSelfRootDir, AcpiPath, &DirIter);
 
     while (DirIterNext (&DirIter, 2, L"*.aml", &DirEntry)) {
       if (
@@ -2569,7 +2564,7 @@ DestroyGeneratedACPI () {
           (StriStr (DirEntry->FileName, SSDT_CLOVER_PREFIX) != NULL)
         )
       ) {
-        DeleteFile (SelfRootDir, PoolPrint (L"%s\\%s", AcpiPath, DirEntry->FileName));
+        DeleteFile (gSelfRootDir, PoolPrint (L"%s\\%s", AcpiPath, DirEntry->FileName));
       }
     }
 
@@ -2581,13 +2576,13 @@ DestroyGeneratedACPI () {
 
 VOID
 ResetClover () {
-  ClearScreen (&BlueBackgroundPixel);
+  ClearScreen (&gBlueBackgroundPixel);
   gBS->Stall (1 * 1000000);
-  ClearScreen (&GreenBackgroundPixel);
+  ClearScreen (&gGreenBackgroundPixel);
   gBS->Stall (1 * 1000000);
-  ClearScreen (&RedBackgroundPixel);
+  ClearScreen (&gRedBackgroundPixel);
   gBS->Stall (1 * 1000000);
-  ClearScreen (&BlackBackgroundPixel);
+  ClearScreen (&gBlackBackgroundPixel);
 
   DestroyGeneratedACPI ();
   ResetNvram ();
@@ -2604,7 +2599,7 @@ DumpBitsConfig (
   UINTN     Len = SVALUE_MAX_SIZE;
   CHAR16    *StrLog = AllocateZeroPool (Len);
 
-  if (Bits != 0xFFFF) {
+  if (Bits && (Bits != 0xFFFF)) {
     for (i = 0; i < NumArray; i++) {
       if (BIT_ISSET (Bits, BitsArray[i].Bit)) {
         StrCatS (StrLog, Len, PoolPrint (L"%a%a", Count++ ? " | " : "", BitsArray[i].Title));

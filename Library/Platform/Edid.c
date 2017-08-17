@@ -15,6 +15,8 @@
 
 #define DBG(...) DebugLog (DEBUG_EDID, __VA_ARGS__)
 
+EFI_EDID_DISCOVERED_PROTOCOL     *EdidDiscovered;
+
 EFI_STATUS
 EFIAPI
 GetEdidImpl (
@@ -83,7 +85,7 @@ GetEdidDiscovered () {
   EFI_STATUS    Status;
   UINTN         i, j, N;
 
-  gEDID = NULL;
+  gSettings.EDID = NULL;
 
   Status = gBS->LocateProtocol (&gEfiEdidDiscoveredProtocolGuid, NULL, (VOID **)&EdidDiscovered);
 
@@ -96,12 +98,12 @@ GetEdidDiscovered () {
       return EFI_NOT_FOUND;
     }
 
-    gEDID = AllocateAlignedPages (EFI_SIZE_TO_PAGES (N), 128);
+    gSettings.EDID = AllocateAlignedPages (EFI_SIZE_TO_PAGES (N), 128);
     if (!gSettings.CustomEDID) {
-      gSettings.CustomEDID = gEDID; //copy pointer but data if no CustomEDID
+      gSettings.CustomEDID = gSettings.EDID; //copy pointer but data if no CustomEDID
     }
 
-    CopyMem (gEDID, EdidDiscovered->Edid, N);
+    CopyMem (gSettings.EDID, EdidDiscovered->Edid, N);
 
     for (i = 0; i < N; i += 16) {
       DBG ("%03d | ", i);

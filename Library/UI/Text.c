@@ -51,8 +51,8 @@
 
 #define DBG(...) DebugLog (DEBUG_TEXT, __VA_ARGS__)
 
-EG_IMAGE    *FontImage = NULL, *FontImageHover = NULL;
-INTN        FontWidth = 9, FontHeight = 18, TextHeight = 19;
+EG_IMAGE    *gFontImage = NULL, *gFontImageHover = NULL;
+INTN        gFontWidth = 9, gFontHeight = 18, gTextHeight = 19;
 
 //
 // Text rendering
@@ -65,11 +65,11 @@ MeasureText (
   OUT INTN      *Height
 ) {
   if (Width != NULL) {
-    *Width = StrLen (Text) * ((FontWidth > GlobalConfig.CharWidth) ? FontWidth : GlobalConfig.CharWidth);
+    *Width = StrLen (Text) * ((gFontWidth > GlobalConfig.CharWidth) ? gFontWidth : GlobalConfig.CharWidth);
   }
 
   if (Height != NULL) {
-    *Height = FontHeight;
+    *Height = gFontHeight;
   }
 }
 
@@ -81,24 +81,24 @@ LoadFontImage (
   EG_IMAGE    *NewImage = NULL, *NewFontImage;
   INTN        ImageWidth, ImageHeight, x, y, Ypos, j;
   EG_PIXEL    *PixelPtr, FirstPixel;
-  CHAR16      *FontPath, *CommonFontDir = DIR_FONTS;
+  CHAR16      *FontPath;
 
   if (IsEmbeddedTheme ()) {
     DBG ("Using embedded font\n");
     goto F_EMBEDDED;
   } else {
-    NewImage = LoadImage (ThemeDir, GlobalConfig.FontFileName);
+    NewImage = LoadImage (gThemeDir, GlobalConfig.FontFileName);
     DBG ("Loading font from ThemeDir: %a\n", NewImage ? "Success" : "Error");
   }
 
   if (NewImage) {
     goto F_THEME;
   } else {
-    FontPath = PoolPrint (L"%s\\%s", CommonFontDir, GlobalConfig.FontFileName);
-    NewImage = LoadImage (SelfRootDir, FontPath);
+    FontPath = PoolPrint (L"%s\\%s", DIR_FONTS, GlobalConfig.FontFileName);
+    NewImage = LoadImage (gSelfRootDir, FontPath);
 
     if (NewImage) {
-      DBG ("font %s loaded from common font dir %s\n", GlobalConfig.FontFileName, CommonFontDir);
+      DBG ("font %s loaded from common font dir %s\n", GlobalConfig.FontFileName, DIR_FONTS);
       FreePool (FontPath);
       goto F_THEME;
     }
@@ -150,12 +150,12 @@ LoadFontImage (
     return NULL;
   }
 
-  FontWidth = ImageWidth / Cols;
-  FontHeight = ImageHeight / Rows;
+  gFontWidth = ImageWidth / Cols;
+  gFontHeight = ImageHeight / Rows;
   FirstPixel = *PixelPtr;
 
   for (y = 0; y < Rows; y++) {
-    for (j = 0; j < FontHeight; j++) {
+    for (j = 0; j < gFontHeight; j++) {
       Ypos = ((j * Rows) + y) * ImageWidth;
       for (x = 0; x < ImageWidth; x++) {
         if (
@@ -201,24 +201,24 @@ PrepareFont () {
   // load the font
   DBG ("Load font image type %d\n", GlobalConfig.Font);
 
-  FontImage = LoadFontImage (GlobalConfig.CharRows, GlobalConfig.CharCols);
+  gFontImage = LoadFontImage (GlobalConfig.CharRows, GlobalConfig.CharCols);
 
-  if (FontImage) {
-    FontImageHover = CopyImage (FontImage);
+  if (gFontImage) {
+    gFontImageHover = CopyImage (gFontImage);
 
     switch (GlobalConfig.Font) {
       case FONT_ALFA:
       case FONT_LOAD:
         if (GlobalConfig.Font == FONT_LOAD) {
-          PaintFont (FontImage, TextPixel);
+          PaintFont (gFontImage, TextPixel);
         }
 
-        PaintFont (FontImageHover, TextPixelHover);
+        PaintFont (gFontImageHover, TextPixelHover);
         break;
 
       case FONT_GRAY:
-        PaintFont (FontImage, TextPixelHover);
-        PaintFont (FontImageHover, TextPixel);
+        PaintFont (gFontImage, TextPixelHover);
+        PaintFont (gFontImageHover, TextPixel);
         break;
 
       //case FONT_RAW:
@@ -227,8 +227,8 @@ PrepareFont () {
         break;
     }
 
-    TextHeight = FontHeight + TEXT_YMARGIN * 2;
-    DBG (" - Font %d prepared WxH=%dx%d CharWidth=%d\n", GlobalConfig.Font, FontWidth, FontHeight, GlobalConfig.CharWidth);
+    gTextHeight = gFontHeight + TEXT_YMARGIN * 2;
+    DBG (" - Font %d prepared WxH=%dx%d CharWidth=%d\n", GlobalConfig.Font, gFontWidth, gFontHeight, GlobalConfig.CharWidth);
   } else {
     DBG (" - Failed to load font\n");
   }
@@ -243,16 +243,16 @@ RenderText (
   IN      INTN       Cursor,
   IN      BOOLEAN    Selected
 ) {
-  EG_PIXEL        *BufferPtr, *FontPixelData, *FirstPixelBuf;
-  INTN            BufferLineWidth, BufferLineOffset, FontLineOffset, i,
-                  TextLength, RealWidth = 0/*, NewTextLength = 0 */;
-  UINT16          c, c1;
-  UINTN           Shift = 0, LeftSpace, RightSpace;
+  EG_PIXEL    *BufferPtr, *FontPixelData, *FirstPixelBuf;
+  INTN        BufferLineWidth, BufferLineOffset, FontLineOffset, i,
+              TextLength, RealWidth = 0/*, NewTextLength = 0 */;
+  UINT16      c, c1;
+  UINTN       Shift = 0, LeftSpace, RightSpace;
 
   // clip the text
   TextLength = StrLen (Text);
 
-  if (!FontImage) {
+  if (!gFontImage) {
     PrepareFont ();
   }
 
@@ -263,16 +263,16 @@ RenderText (
   BufferLineWidth = BufferLineOffset - PosX; // remove indent from drawing width
   BufferPtr += PosX + PosY * BufferLineOffset;
   FirstPixelBuf = BufferPtr;
-  FontPixelData = (Selected && FontImageHover) ? FontImageHover->PixelData : FontImage->PixelData;
-  FontLineOffset = (Selected && FontImageHover) ? FontImageHover->Width : FontImage->Width;
+  FontPixelData = (Selected && gFontImageHover) ? gFontImageHover->PixelData : gFontImage->PixelData;
+  FontLineOffset = (Selected && gFontImageHover) ? gFontImageHover->Width : gFontImage->Width;
 
-  if (GlobalConfig.CharWidth < FontWidth) {
-    Shift = (FontWidth - GlobalConfig.CharWidth) >> 1;
+  if (GlobalConfig.CharWidth < gFontWidth) {
+    Shift = (gFontWidth - GlobalConfig.CharWidth) >> 1;
   }
 
   RealWidth = GlobalConfig.CharWidth;
 
-  //DBG ("FontWidth=%d, CharWidth=%d\n", FontWidth, RealWidth);
+  //DBG ("gFontWidth=%d, CharWidth=%d\n", gFontWidth, RealWidth);
 
   for (i = 0; i < TextLength; i++) {
     c = Text[i];
@@ -291,8 +291,8 @@ RenderText (
     }
 
     RawCompose (
-      BufferPtr - LeftSpace + 2, FontPixelData + c * FontWidth + RightSpace,
-      RealWidth, FontHeight,
+      BufferPtr - LeftSpace + 2, FontPixelData + c * gFontWidth + RightSpace,
+      RealWidth, gFontHeight,
       BufferLineOffset, FontLineOffset
     );
 
@@ -304,8 +304,8 @@ RenderText (
       }
 
       RawCompose (
-        BufferPtr - LeftSpace + 2, FontPixelData + c * FontWidth + RightSpace,
-        RealWidth, FontHeight,
+        BufferPtr - LeftSpace + 2, FontPixelData + c * gFontWidth + RightSpace,
+        RealWidth, gFontHeight,
         BufferLineOffset, FontLineOffset
       );
     }

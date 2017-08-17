@@ -95,7 +95,7 @@ GetMacAddress () {
         //  HwAddressSize = 6;
         //}
         //CopyMem (&MacAddr, &MacAddressNode->MacAddress.Addr[0], HwAddressSize);
-        MsgLog ("MAC address of LAN #%d = ", nLanPaths);
+        MsgLog ("MAC address of LAN #%d = ", gSettings.GLAN.Paths);
         HwAddress = &MacAddressNode->MacAddress.Addr[0];
 
         for (Index2 = 0; Index2 < HwAddressSize; Index2++) {
@@ -104,14 +104,14 @@ GetMacAddress () {
 
         MsgLog ("\n");
         Found = TRUE;
-        CopyMem (&gLanMac[nLanPaths++], &MacAddressNode->MacAddress.Addr[0], HwAddressSize);
+        CopyMem (&gSettings.GLAN.Mac[gSettings.GLAN.Paths++], &MacAddressNode->MacAddress.Addr[0], HwAddressSize);
         break;
       }
 
       DevicePath = NextDevicePathNode (DevicePath);
     }
 
-    if (nLanPaths > 3) {
+    if (gSettings.GLAN.Paths > 3) {
       break;
     }
   }
@@ -126,32 +126,32 @@ GetMacAddress () {
     //  Legacy boot. Get MAC-address from hardwaredirectly
     //
     ////
-    DBG ("Legacy LAN MAC, %d card found\n", nLanCards);
-    for (Index = 0; Index < nLanCards; Index++) {
-      if (!gLanMmio[Index]) {  //security
+    DBG ("Legacy LAN MAC, %d card found\n", gSettings.GLAN.Cards);
+    for (Index = 0; Index < gSettings.GLAN.Cards; Index++) {
+      if (!gSettings.GLAN.Mmio[Index]) {  //security
         continue;
       }
 
       Offset = 0;
       Swap = FALSE;
 
-      switch (gLanVendor[Index]) {
+      switch (gSettings.GLAN.Vendor[Index]) {
         case 0x11ab:   //Marvell Yukon
-          if (PreviousVendor == gLanVendor[Index]) {
+          if (PreviousVendor == gSettings.GLAN.Vendor[Index]) {
             Offset = B2_MAC_2;
           } else {
             Offset = B2_MAC_1;
           }
-          CopyMem (&gLanMac[0][Index], gLanMmio[Index] + Offset, 6);
+          CopyMem (&gSettings.GLAN.Mac[0][Index], gSettings.GLAN.Mmio[Index] + Offset, 6);
           goto done;
 
         case 0x10ec:   //Realtek
-          Mac0 = IoRead32 ((UINTN)gLanMmio[Index]);
-          Mac4 = IoRead32 ((UINTN)gLanMmio[Index] + 4);
+          Mac0 = IoRead32 ((UINTN)gSettings.GLAN.Mmio[Index]);
+          Mac4 = IoRead32 ((UINTN)gSettings.GLAN.Mmio[Index] + 4);
           goto copy;
 
         case 0x14e4:   //Broadcom
-          if (PreviousVendor == gLanVendor[Index]) {
+          if (PreviousVendor == gSettings.GLAN.Vendor[Index]) {
             Offset = EMAC_MACADDR1_HI;
           } else {
             Offset = EMAC_MACADDR0_HI;
@@ -164,7 +164,7 @@ GetMacAddress () {
           break;
 
         case 0x8086:   //Intel
-          if (PreviousVendor == gLanVendor[Index]) {
+          if (PreviousVendor == gSettings.GLAN.Vendor[Index]) {
             Offset = INTEL_MAC_2;
           } else {
             Offset = INTEL_MAC_1;
@@ -179,27 +179,27 @@ GetMacAddress () {
         continue;
       }
 
-      Mac0 = *(UINT32 *)(gLanMmio[Index] + Offset);
-      Mac4 = *(UINT32 *)(gLanMmio[Index] + Offset + 4);
+      Mac0 = *(UINT32 *)(gSettings.GLAN.Mmio[Index] + Offset);
+      Mac4 = *(UINT32 *)(gSettings.GLAN.Mmio[Index] + Offset + 4);
 
       if (Swap) {
-        gLanMac[Index][0] = (UINT8)((Mac4 & 0xFF00) >> 8);
-        gLanMac[Index][1] = (UINT8)(Mac4 & 0xFF);
-        gLanMac[Index][2] = (UINT8)((Mac0 & 0xFF000000) >> 24);
-        gLanMac[Index][3] = (UINT8)((Mac0 & 0x00FF0000) >> 16);
-        gLanMac[Index][4] = (UINT8)((Mac0 & 0x0000FF00) >> 8);
-        gLanMac[Index][5] = (UINT8)(Mac0 & 0x000000FF);
+        gSettings.GLAN.Mac[Index][0] = (UINT8)((Mac4 & 0xFF00) >> 8);
+        gSettings.GLAN.Mac[Index][1] = (UINT8)(Mac4 & 0xFF);
+        gSettings.GLAN.Mac[Index][2] = (UINT8)((Mac0 & 0xFF000000) >> 24);
+        gSettings.GLAN.Mac[Index][3] = (UINT8)((Mac0 & 0x00FF0000) >> 16);
+        gSettings.GLAN.Mac[Index][4] = (UINT8)((Mac0 & 0x0000FF00) >> 8);
+        gSettings.GLAN.Mac[Index][5] = (UINT8)(Mac0 & 0x000000FF);
         goto done;
       }
 
     copy:
-      CopyMem (&gLanMac[Index][0], &Mac0, 4);
-      CopyMem (&gLanMac[Index][4], &Mac4, 2);
+      CopyMem (&gSettings.GLAN.Mac[Index][0], &Mac0, 4);
+      CopyMem (&gSettings.GLAN.Mac[Index][4], &Mac4, 2);
 
     done:
-      PreviousVendor = gLanVendor[Index];
+      PreviousVendor = gSettings.GLAN.Vendor[Index];
       MsgLog ("Legacy MAC address of LAN #%d = ", Index);
-      HwAddress = &gLanMac[Index][0];
+      HwAddress = &gSettings.GLAN.Mac[Index][0];
       for (Index2 = 0; Index2 < HwAddressSize; Index2++) {
         MsgLog ("%a%02x", !Index2 ? "" : ":", *HwAddress++);
       }

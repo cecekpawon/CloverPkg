@@ -10,8 +10,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
+#include <Library/Common/DeviceTreeLib.h>
 #include <Library/Platform/Platform.h>
-#include <Library/Platform/DeviceTree.h>
 #include <Library/Platform/KernelPatcher.h>
 
 EFI_EVENT   ExitBootServiceEvent = NULL;
@@ -39,7 +39,7 @@ ClosingEventAndLog (
   }
 
   if (gSettings.DebugLog) {
-    SaveBooterLog (SelfRootDir, DEBUG_LOG);
+    SaveBooterLog (gSelfRootDir, DEBUG_LOG);
   }
 }
 
@@ -95,9 +95,9 @@ OnExitBootServices (
     // Store prev boot-args (if any) after being used by boot.efi
     if (gSettings.BootArgsNVRAM) {
       SetNvramVariable (
-        NvramData[kNvBootArgs].VariableName,
-        NvramData[kNvBootArgs].Guid,
-        NvramData[kNvBootArgs].Attribute,
+        gNvramData[kNvBootArgs].VariableName,
+        gNvramData[kNvBootArgs].Guid,
+        gNvramData[kNvBootArgs].Attribute,
         AsciiStrLen (gSettings.BootArgsNVRAM),
         gSettings.BootArgsNVRAM
       );

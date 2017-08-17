@@ -15,12 +15,12 @@
 ##
 
 [Defines]
-  INF_VERSION                   = 0x00010006
-  BASE_NAME                     = Clover
-  FILE_GUID                     = 8F7D7B1E-0E1C-4C98-B12E-4EC99C4081AC
-  MODULE_TYPE                   = UEFI_APPLICATION
-  VERSION_STRING                = 1.0
-  ENTRY_POINT                   = RefitMain
+  INF_VERSION       = 0x00010006
+  BASE_NAME         = Clover
+  FILE_GUID         = 8F7D7B1E-0E1C-4C98-B12E-4EC99C4081AC
+  MODULE_TYPE       = UEFI_APPLICATION
+  VERSION_STRING    = 1.0
+  ENTRY_POINT       = RefitMain
 
 [Sources]
   ../../Library/Entry/Loader.c
@@ -29,7 +29,6 @@
 
   ../../Library/UI/Image.c
   ../../Library/UI/LoadIcon.c
-  ../../Library/UI/LodePng.c
   ../../Library/UI/Menu.c
   ../../Library/UI/Text.c
 
@@ -53,7 +52,6 @@
   ../../Library/Platform/Nvram.c
   ../../Library/Platform/Platformdata.c
   ../../Library/Platform/PlatformDriverOverride.c
-  ../../Library/Platform/Plist.c
   ../../Library/Platform/Settings.c
   ../../Library/Platform/Smbios.c
   ../../Library/Platform/Spd.c
@@ -62,7 +60,6 @@
 
   ../../Library/Common/Lib.c
   ../../Library/Common/Screen.c
-  ../../Library/Common/LZVN.c
 
   Main.c
 
@@ -77,6 +74,7 @@
   BaseLib
   BaseMemoryLib
   CommonLib
+  CompressLib
   DeviceTreeLib
   DxeServicesLib
   DxeServicesTableLib
@@ -85,6 +83,8 @@
   MemoryAllocationLib
   NetLib
   PeCoffLib
+  PlistLib
+  PngLib
   UefiApplicationEntryPoint
   UefiBootServicesTableLib
   UefiLib

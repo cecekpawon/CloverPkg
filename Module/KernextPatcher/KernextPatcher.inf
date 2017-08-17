@@ -9,14 +9,17 @@
 ##
 
 [Defines]
-  INF_VERSION                    = 0x00010005
-  BASE_NAME                      = KernextPatcher
-  FILE_GUID                      = 99665243-5AED-4D57-92AF-8C785FBC7558
-  MODULE_TYPE                    = DXE_RUNTIME_DRIVER
-  #MODULE_TYPE                    = UEFI_DRIVER
-  VERSION_STRING                 = 1.0
-  ENTRY_POINT                    = KernextPatcherEntrypoint
-  #UNLOAD_IMAGE                   = KernextPatcherUnload
+  INF_VERSION       = 0x00010005
+  BASE_NAME         = KernextPatcher
+  FILE_GUID         = 99665243-5AED-4D57-92AF-8C785FBC7558
+  MODULE_TYPE       = DXE_RUNTIME_DRIVER
+  #MODULE_TYPE       = UEFI_DRIVER
+  VERSION_STRING    = 1.0
+  ENTRY_POINT       = KernextPatcherEntrypoint
+  #UNLOAD_IMAGE      = KernextPatcherUnload
+
+[Sources]
+  KernextPatcher.c
 
 [Packages]
   CloverPkg/CloverPkg.dec
@@ -25,12 +28,9 @@
 [LibraryClasses]
   CommonLib
   MemLogLib
+  PlistLib
   UefiDriverEntryPoint
   UefiLib
-
-[Sources]
-  ../../Library/Platform/Plist.c
-  KernextPatcher.c
 
 [Guids]
   gEfiFileInfoGuid

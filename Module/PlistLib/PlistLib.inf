@@ -1,0 +1,26 @@
+## @file
+#
+##
+
+[Defines]
+  INF_VERSION       = 0x00010005
+  BASE_NAME         = PlistLib
+  FILE_GUID         = 46B49363-0149-45C1-892D-58CB31AECBCE
+  MODULE_TYPE       = BASE
+  VERSION_STRING    = 1.0
+  LIBRARY_CLASS     = PlistLib
+
+[Sources]
+  PlistLib.c
+
+[Packages]
+  CloverPkg/CloverPkg.dec
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  CommonLib
+  MemLogLib
+  MemoryAllocationLib
+  UefiLib

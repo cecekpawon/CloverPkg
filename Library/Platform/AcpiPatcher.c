@@ -35,9 +35,9 @@ Re-Work by Slice 2011.
 // Global pointers
 XSDT_TABLE            *Xsdt = NULL;
 
-UINT8                 AcpiCPUCount;
-CHAR8                 *AcpiCPUName[32];
-CHAR8                 *AcpiCPUScore;
+UINT8                 gAcpiCPUCount;
+CHAR8                 *gAcpiCPUName[32];
+CHAR8                 *gAcpiCPUScore;
 
 //-----------------------------------
 
@@ -192,7 +192,7 @@ PrintTableInfos (
   CopyMem (&OemTableId, &TmpTableEntry->OemTableId, ACPI_OEM_TABLE_ID_SIZE);
   CopyMem (&CreatorId, &TmpTableEntry->CreatorId, ACPI_NAME_SIZE);
 
-  MsgLog (
+  DBG (
     "%-4a: 0x%p %06X (v%.2d '%-6a' '%-8a' %08X '%-4a' %08X)\n",
     Signature, TableEntry,
     TmpTableEntry->Length, TmpTableEntry->Revision, OemId,
@@ -216,7 +216,7 @@ UpdateDropTables (
   DropTable->Next = gSettings.ACPIDropTables;
   gSettings.ACPIDropTables = DropTable;
 
-  ACPIDropTablesNum++;
+  gACPIDropTablesNum++;
 
   PrintTableInfos (TableEntry);
 }
@@ -409,10 +409,7 @@ PatchAllTablesHeaders () {
   for (Index = 0; Index < EntryCount; Index++, BasePtr += sizeof (UINT64)) {
     CopyMem (&Entry64, BasePtr, sizeof (UINT64)); // value from BasePtr->
     TableEntry = (EFI_ACPI_DESCRIPTION_HEADER *)((UINTN)(Entry64));
-    //if (
-    //  (TableEntry->Signature == EFI_ACPI_3_0_FIXED_ACPI_DESCRIPTION_TABLE_SIGNATURE) ||
-    //  !CheckTableHeader (TableEntry)
-    //) {
+
     if (TableEntry->Signature == EFI_ACPI_3_0_FIXED_ACPI_DESCRIPTION_TABLE_SIGNATURE) {
       continue; //will be patched elsewhere
     }
@@ -423,7 +420,7 @@ PatchAllTablesHeaders () {
     Status = gBS->AllocatePages (
                     AllocateMaxAddress,
                     EfiACPIReclaimMemory,
-                    EFI_SIZE_TO_PAGES (Length /* + 4096 */),
+                    EFI_SIZE_TO_PAGES (Length),
                     &TableAddr
                   );
     if (EFI_ERROR (Status)) {
@@ -433,8 +430,11 @@ PatchAllTablesHeaders () {
 
     Ptr = (EFI_ACPI_DESCRIPTION_HEADER *)(UINTN)TableAddr;
     CopyMem ((VOID *)Ptr, (VOID *)TableEntry, Length);
+
     PatchTableHeader (Ptr, FALSE);
+
     CopyMem ((VOID *)BasePtr, &TableAddr, sizeof(UINT64));
+
     Ptr->Checksum = 0;
     Ptr->Checksum = (UINT8)(256 - Checksum8 (Ptr, Length));
   }
@@ -447,11 +447,9 @@ PatchAllSSDT () {
   EFI_PHYSICAL_ADDRESS            Ssdt;
   UINT32                          Index, EntryCount, SsdtLen;
   UINT8                           *BasePtr, *Ptr;
-  CHAR8                           Signature[ACPI_NAME_SIZE + 1],
-                                  OemTableId[ACPI_OEM_TABLE_ID_SIZE + 1];
+  CHAR8                           OemTableId[ACPI_OEM_TABLE_ID_SIZE + 1];
   UINT64                          Entry64;
 
-  Signature[ACPI_NAME_SIZE] = 0;
   OemTableId[ACPI_OEM_TABLE_ID_SIZE] = 0;
 
   EntryCount = (Xsdt->Header.Length - sizeof (EFI_ACPI_DESCRIPTION_HEADER)) / sizeof (UINT64);
@@ -462,12 +460,11 @@ PatchAllSSDT () {
     TableEntry = (EFI_ACPI_DESCRIPTION_HEADER *)((UINTN)(Entry64));
     // Only patch SSDT
     if (TableEntry->Signature == EFI_ACPI_4_0_SECONDARY_SYSTEM_DESCRIPTION_TABLE_SIGNATURE) {
-      CopyMem ((CHAR8 *)&Signature, (CHAR8 *)&TableEntry->Signature, ACPI_NAME_SIZE);
       CopyMem ((CHAR8 *)&OemTableId, (CHAR8 *)&TableEntry->OemTableId, ACPI_OEM_TABLE_ID_SIZE);
 
       SsdtLen = TableEntry->Length;
 
-      DBG ("Patch table: %a  %a | Len: 0x%x\n", Signature, OemTableId, SsdtLen);
+      MsgLog ("Patching Table ID: '%a' | Len: 0x%d\n", OemTableId, SsdtLen);
 
       Ssdt = EFI_SYSTEM_TABLE_MAX_ADDRESS;
       Status = gBS->AllocatePages (
@@ -481,20 +478,10 @@ PatchAllSSDT () {
         continue;
       }
 
-      if (
-        (gSettings.PatchDsdtNum > 0) &&
-        gSettings.PatchDsdt
-      ) {
-        MsgLog ("Patching SSDT:\n");
-        SsdtLen = PatchBinACPI ((UINT8 *)(UINTN)Ssdt, SsdtLen);
-      }
-
       Ptr = (UINT8 *)(UINTN)Ssdt;
       CopyMem (Ptr, (VOID *)TableEntry, SsdtLen);
 
-      //if (BIT_ISSET (gSettings.FixDsdt, FIX_HEADER)) {
-      //  PatchTableHeader ((EFI_ACPI_DESCRIPTION_HEADER *)Ptr, FALSE);
-      //}
+      SsdtLen = PatchBinACPI (Ptr, SsdtLen);
 
       CopyMem (BasePtr, &Ssdt, sizeof (UINT64));
 
@@ -563,7 +550,7 @@ SaveBufferToDisk (
     return EFI_OUT_OF_RESOURCES;
   }
 
-  Status = SaveFile (SelfRootDir, FileName, Buffer, Length);
+  Status = SaveFile (gSelfRootDir, FileName, Buffer, Length);
   if (EFI_ERROR (Status)) {
     Status = SaveFile (NULL, FileName, Buffer, Length);
   }
@@ -1261,7 +1248,7 @@ SaveOemDsdt (
     FixedDsdt = AllocateZeroPool (SVALUE_MAX_SIZE);
     UnicodeSPrint (FixedDsdt, SVALUE_MAX_SIZE, DIR_ACPI_PATCHED L"\\%s\\" DSDT_PATCHED_NAME, OsSubdir, gSettings.FixDsdt);
 
-    if (FileExists (SelfRootDir, FixedDsdt)) {
+    if (FileExists (gSelfRootDir, FixedDsdt)) {
       goto Finish;
     }
   }
@@ -1312,7 +1299,7 @@ SaveOemDsdt (
     OriginDsdtFixed = AllocateZeroPool (SVALUE_MAX_SIZE);
     UnicodeSPrint (OriginDsdtFixed, SVALUE_MAX_SIZE, DIR_ACPI_ORIGIN L"\\" DSDT_PATCHED_NAME, gSettings.FixDsdt);
 
-    Status = SaveFile (SelfRootDir, FullPatch ? OriginDsdtFixed : FixedDsdt, Buffer, DsdtLen);
+    Status = SaveFile (gSelfRootDir, FullPatch ? OriginDsdtFixed : FixedDsdt, Buffer, DsdtLen);
 
     MsgLog ("Saving DSDT to: %s ... %r\n", FullPatch ? OriginDsdtFixed : FixedDsdt, Status);
 
@@ -1371,7 +1358,7 @@ PatchACPI (
   if (OsSubdir != NULL) {
     // prepare dirs that will be searched for custom ACPI tables
     UnicodeSPrint (PatchedPath, ARRAY_SIZE (PatchedPath), DIR_ACPI_PATCHED L"\\%s", OsSubdir);
-    PatchedDirExists = FileExists (SelfRootDir, PatchedPath);
+    PatchedDirExists = FileExists (gSelfRootDir, PatchedPath);
   }
 
   if (!OSTypeDarwin) {
@@ -1399,7 +1386,7 @@ PatchACPI (
 
     NewFadt->PreferredPmProfile = 3;
     if (!gSettings.SmartUPS) {
-      NewFadt->PreferredPmProfile = gMobile ? 2 : 1; // as calculated before
+      NewFadt->PreferredPmProfile = gSettings.Mobile ? 2 : 1; // as calculated before
     }
 
     if (gSettings.EnableC6 /* || gSettings.EnableISS */) {
@@ -1479,17 +1466,17 @@ PatchACPI (
 
     if (StriCmp (DSDT_NAME, gSettings.DsdtName) == 0) {
       FullPatchedPath = PoolPrint (L"%s\\%s", PatchedPath, FixedDsdt);
-      if (FileExists (SelfRootDir, FullPatchedPath)) {
+      if (FileExists (gSelfRootDir, FullPatchedPath)) {
         MsgLog ("Found patched DSDT: %s\n", FullPatchedPath);
-        Status = LoadFile (SelfRootDir, FullPatchedPath, &Buffer, &BufferLen);
+        Status = LoadFile (gSelfRootDir, FullPatchedPath, &Buffer, &BufferLen);
       }
     }
 
     if (EFI_ERROR (Status)) {
       FullPatchedPath = PoolPrint (L"%s\\%s", PatchedPath, gSettings.DsdtName);
-      if (FileExists (SelfRootDir, FullPatchedPath)) {
+      if (FileExists (gSelfRootDir, FullPatchedPath)) {
         DBG ("Found patched DSDT in Clover volume: %s\n", FullPatchedPath);
-        Status = LoadFile (SelfRootDir, FullPatchedPath, &Buffer, &BufferLen);
+        Status = LoadFile (gSelfRootDir, FullPatchedPath, &Buffer, &BufferLen);
       }
     }
 
@@ -1555,14 +1542,14 @@ PatchACPI (
 
   if (PatchedDirExists && gSettings.DebugDSDT) {
     DBG ("Output DSDT before patch to %s\\%s\n", DIR_ACPI_ORIGIN, DSDT_ORIGIN_NAME);
-    Status = SaveFile (SelfRootDir, PoolPrint (L"%s\\%s", DIR_ACPI_ORIGIN, DSDT_ORIGIN_NAME), (UINT8 *)(UINTN)FadtPointer->XDsdt, BufferLen);
+    Status = SaveFile (gSelfRootDir, PoolPrint (L"%s\\%s", DIR_ACPI_ORIGIN, DSDT_ORIGIN_NAME), (UINT8 *)(UINTN)FadtPointer->XDsdt, BufferLen);
   }
 
   if (!OSTypeDarwin) {
     goto InjectSSDT;
   }
 
-  DumpBitsConfig ("DsdtFixMask", gSettings.FixDsdt, AFIXDSDT, OptFixDSDTBitNum);
+  DumpBitsConfig ("DsdtFixMask", gSettings.FixDsdt, gAFIXDSDT, gOptFixDSDTBitNum);
 
   DBG ("Drop _DSM mask=0x%04x\n", gSettings.DropOEM_DSM); // dropDSM
 
@@ -1588,50 +1575,51 @@ PatchACPI (
     DbgHeader ("DropSSDT");
     // special case if we set into menu drop all SSDT
     DropTableFromXSDT (EFI_ACPI_4_0_SECONDARY_SYSTEM_DESCRIPTION_TABLE_SIGNATURE, 0, 0);
-  } else {
+  } else if (gSettings.PatchDsdtNum /* && gSettings.PatchDsdt */) {
     DbgHeader ("PatchAllSSDT");
     // all remaining SSDT tables will be patched
     PatchAllSSDT ();
     // do the empty drop to clean xsdt
-    DropTableFromXSDT (XXXX_SIGN, 0, 0);
+    //DropTableFromXSDT (XXXX_SIGN, 0, 0);
   }
 
   InjectSSDT:
 
-  if (ACPIPatchedAML) {
+  if (gACPIUserLoad) {
     CHAR16  FullName[AVALUE_MAX_SIZE];
 
-    DbgHeader ("ACPIPatchedAML");
-    MsgLog ("Start: Processing Patched AML (s): ");
+    DbgHeader ("ACPIUserLoad");
 
-    if (gSettings.SortedACPICount) {
-      MsgLog ("Sorted\n");
+    MsgLog ("Loading tables");
 
-      for (Index = 0; Index < gSettings.SortedACPICount; Index++) {
-        ACPI_PATCHED_AML    *ACPIPatchedAMLTmp = ACPIPatchedAML;
+    if (gSettings.ACPISortedCount) {
+      MsgLog (" (sorted):\n");
 
-        while (ACPIPatchedAMLTmp) {
+      for (Index = 0; Index < gSettings.ACPISortedCount; Index++) {
+        ACPI_USER_LOAD    *ACPIUserLoadTmp = gACPIUserLoad;
+
+        while (ACPIUserLoadTmp) {
           if (
-            (OSTYPE_IS_DARWIN_GLOB (OSType) && OSTYPE_IS_DARWIN_GLOB (ACPIPatchedAMLTmp->OSType)) ||
-            (OSTYPE_IS_LINUX_GLOB (OSType) && OSTYPE_IS_LINUX_GLOB (ACPIPatchedAMLTmp->OSType)) ||
-            (OSTYPE_IS_WINDOWS_GLOB (OSType) && OSTYPE_IS_WINDOWS_GLOB (ACPIPatchedAMLTmp->OSType))
+            (OSTYPE_IS_DARWIN_GLOB (OSType) && OSTYPE_IS_DARWIN_GLOB (ACPIUserLoadTmp->OSType)) ||
+            (OSTYPE_IS_LINUX_GLOB (OSType) && OSTYPE_IS_LINUX_GLOB (ACPIUserLoadTmp->OSType)) ||
+            (OSTYPE_IS_WINDOWS_GLOB (OSType) && OSTYPE_IS_WINDOWS_GLOB (ACPIUserLoadTmp->OSType))
           ) {
             if (
-              (StriCmp (ACPIPatchedAMLTmp->FileName, gSettings.SortedACPI[Index]) == 0) &&
-              (ACPIPatchedAMLTmp->MenuItem.BValue)
+              (StriCmp (ACPIUserLoadTmp->FileName, gSettings.ACPISorted[Index]) == 0) &&
+              (ACPIUserLoadTmp->MenuItem.BValue)
             ) {
-              MsgLog ("Disabled: %s, skip\n", ACPIPatchedAMLTmp->FileName);
+              MsgLog ("Disabled: %s, skip\n", ACPIUserLoadTmp->FileName);
               break;
             }
           }
 
-          ACPIPatchedAMLTmp = ACPIPatchedAMLTmp->Next;
+          ACPIUserLoadTmp = ACPIUserLoadTmp->Next;
         }
 
-        if (!ACPIPatchedAMLTmp) { // NULL when not disabled
-          UnicodeSPrint (FullName, ARRAY_SIZE (FullName), L"%s\\%s", PatchedPath, gSettings.SortedACPI[Index]);
-          MsgLog (" - [%02d]: %s from %s ... ", Index, gSettings.SortedACPI[Index], PatchedPath);
-          Status = LoadFile (SelfRootDir, FullName, &Buffer, &BufferLen);
+        if (!ACPIUserLoadTmp) { // NULL when not disabled
+          UnicodeSPrint (FullName, ARRAY_SIZE (FullName), L"%s\\%s", PatchedPath, gSettings.ACPISorted[Index]);
+          MsgLog (" - [%02d]: %s from %s ... ", Index, gSettings.ACPISorted[Index], PatchedPath);
+          Status = LoadFile (gSelfRootDir, FullName, &Buffer, &BufferLen);
           if (!EFI_ERROR (Status)) {
             // before insert we should checksum it
             if (Buffer) {
@@ -1648,17 +1636,12 @@ PatchACPI (
             Status = InsertTable ((VOID *)Buffer, BufferLen);
 
             if (!EFI_ERROR (Status)) {
-              if (!StriCmp (ACPIPatchedAMLTmp->FileName, SSDT_PSTATES_NAME)) {
-                if (gSettings.GeneratePStates) {
-                  MsgLog (" (GeneratedPStates) ");
-                  gSettings.GeneratePStates = FALSE;
-                }
-              } else if (!StriCmp (ACPIPatchedAMLTmp->FileName, SSDT_CSTATES_NAME)) {
+              if (!StriCmp (ACPIUserLoadTmp->FileName, SSDT_PSTATES_NAME)) {
+                MsgLog (" (GeneratedPStates) ");
+                gSettings.GeneratePStates = FALSE;
+              } else if (!StriCmp (ACPIUserLoadTmp->FileName, SSDT_CSTATES_NAME)) {
+                MsgLog (" (GeneratedCStates) ");
                 gSettings.GenerateCStates = FALSE;
-                if (gSettings.GenerateCStates) {
-                  MsgLog (" (GeneratedCStates) ");
-                  gSettings.GenerateCStates = FALSE;
-                }
               }
             }
           }
@@ -1667,24 +1650,25 @@ PatchACPI (
         }
       }
     } else {
-      ACPI_PATCHED_AML    *ACPIPatchedAMLTmp = ACPIPatchedAML;
+      ACPI_USER_LOAD    *ACPIUserLoadTmp = gACPIUserLoad;
 
-      MsgLog ("Unsorted\n");
+      MsgLog (" (unsorted):\n");
+
       Index = 0;
 
-      while (ACPIPatchedAMLTmp) {
-        if (ACPIPatchedAMLTmp->MenuItem.BValue == FALSE) {
+      while (ACPIUserLoadTmp) {
+        if (ACPIUserLoadTmp->MenuItem.BValue == FALSE) {
           if (
-            (OSTYPE_IS_DARWIN_GLOB (OSType) && !OSTYPE_IS_DARWIN_GLOB (ACPIPatchedAMLTmp->OSType)) ||
-            (OSTYPE_IS_LINUX_GLOB (OSType) && !OSTYPE_IS_LINUX_GLOB (ACPIPatchedAMLTmp->OSType)) ||
-            (OSTYPE_IS_WINDOWS_GLOB (OSType) && !OSTYPE_IS_WINDOWS_GLOB (ACPIPatchedAMLTmp->OSType))
+            (OSTYPE_IS_DARWIN_GLOB (OSType) && !OSTYPE_IS_DARWIN_GLOB (ACPIUserLoadTmp->OSType)) ||
+            (OSTYPE_IS_LINUX_GLOB (OSType) && !OSTYPE_IS_LINUX_GLOB (ACPIUserLoadTmp->OSType)) ||
+            (OSTYPE_IS_WINDOWS_GLOB (OSType) && !OSTYPE_IS_WINDOWS_GLOB (ACPIUserLoadTmp->OSType))
           ) {
             goto LoadNext;
           }
 
-          UnicodeSPrint (FullName, ARRAY_SIZE (FullName), L"%s\\%s", PatchedPath, ACPIPatchedAMLTmp->FileName);
-          MsgLog (" - [%02d]: %s from %s ... ", Index++, ACPIPatchedAMLTmp->FileName, PatchedPath);
-          Status = LoadFile (SelfRootDir, FullName, &Buffer, &BufferLen);
+          UnicodeSPrint (FullName, ARRAY_SIZE (FullName), L"%s\\%s", PatchedPath, ACPIUserLoadTmp->FileName);
+          MsgLog (" - [%02d]: %s from %s ... ", Index++, ACPIUserLoadTmp->FileName, PatchedPath);
+          Status = LoadFile (gSelfRootDir, FullName, &Buffer, &BufferLen);
 
           if (!EFI_ERROR (Status)) {
             // before insert we should checksum it
@@ -1702,32 +1686,26 @@ PatchACPI (
             Status = InsertTable ((VOID *)Buffer, BufferLen);
 
             if (!EFI_ERROR (Status)) {
-              if (!StriCmp (ACPIPatchedAMLTmp->FileName, SSDT_PSTATES_NAME)) {
-                if (gSettings.GeneratePStates) {
-                  MsgLog ("(GeneratedPStates) ");
-                  gSettings.GeneratePStates = FALSE;
-                }
-              } else if (!StriCmp (ACPIPatchedAMLTmp->FileName, SSDT_CSTATES_NAME)) {
-                if (gSettings.GenerateCStates) {
-                  MsgLog ("(GeneratedCStates) ");
-                  gSettings.GenerateCStates = FALSE;
-                }
+              if (!StriCmp (ACPIUserLoadTmp->FileName, SSDT_PSTATES_NAME)) {
+                MsgLog ("(GeneratedPStates) ");
+                gSettings.GeneratePStates = FALSE;
+              } else if (!StriCmp (ACPIUserLoadTmp->FileName, SSDT_CSTATES_NAME)) {
+                MsgLog ("(GeneratedCStates) ");
+                gSettings.GenerateCStates = FALSE;
               }
             }
           }
 
           MsgLog ("%r\n", Status);
         } else {
-          MsgLog ("Disabled: %s, skip\n", ACPIPatchedAMLTmp->FileName);
+          MsgLog ("Disabled: %s, skip\n", ACPIUserLoadTmp->FileName);
         }
 
         LoadNext:
 
-        ACPIPatchedAMLTmp = ACPIPatchedAMLTmp->Next;
+        ACPIUserLoadTmp = ACPIUserLoadTmp->Next;
       }
     }
-
-    MsgLog ("End: Processing Patched AML (s)\n");
   }
 
   if (!OSTypeDarwin || (!gSettings.GeneratePStates && !gSettings.GenerateCStates)) {
@@ -1739,29 +1717,29 @@ PatchACPI (
   // find ACPI CPU name and hardware address
   FindCPU ((UINT8 *)(UINTN)FadtPointer->XDsdt);
 
-  //if (gCPUStructure.Vendor != CPU_VENDOR_INTEL) {
+  //if (gSettings.CPUStructure.Vendor != CPU_VENDOR_INTEL) {
   //  MsgLog ("Not an Intel platform: P-States will not be generated !!!\n");
   //  goto SkipGenStates;
   //}
 
-  if (BIT_ISUNSET (gCPUStructure.Features, CPUID_FEATURE_MSR)) {
+  if (BIT_ISUNSET (gSettings.CPUStructure.Features, CPUID_FEATURE_MSR)) {
     MsgLog ("Unsupported CPU: P-States will not be generated !!!\n");
     goto SkipGenStates;
   }
 
   // 1. For CPU base number 0 or 1.  codes from SunKi
-  CPUBase = AcpiCPUName[0][3] - '0'; // "CPU0"
+  CPUBase = gAcpiCPUName[0][3] - '0'; // "CPU0"
 
   if ((UINT8)CPUBase > 11) {
     DBG ("Abnormal CPUBase=%x will set to 0\n", CPUBase);
     CPUBase = 0;
   }
 
-  ApicCPUNum = AcpiCPUCount
-                ? AcpiCPUCount
-                : (gCPUStructure.Threads >= gCPUStructure.Cores)
-                    ? gCPUStructure.Threads
-                    : gCPUStructure.Cores;
+  ApicCPUNum = gAcpiCPUCount
+                ? gAcpiCPUCount
+                : (gSettings.CPUStructure.Threads >= gSettings.CPUStructure.Cores)
+                    ? gSettings.CPUStructure.Threads
+                    : gSettings.CPUStructure.Cores;
 
   if (gSettings.GeneratePStates) {
     Status = EFI_NOT_FOUND;
@@ -1774,7 +1752,7 @@ PatchACPI (
     //DBG ("GeneratePStates Status=%r\n", Status);
 
     if (!EFI_ERROR (Status)) {
-      Status = SaveFile (SelfRootDir, PoolPrint (L"%s\\%s", PatchedPath, SSDT_PSTATES_NAME), (VOID *)Ssdt, Ssdt->Length);
+      Status = SaveFile (gSelfRootDir, PoolPrint (L"%s\\%s", PatchedPath, SSDT_PSTATES_NAME), (VOID *)Ssdt, Ssdt->Length);
       if (!EFI_ERROR (Status)) {
         MsgLog ("Generated PStates saved to: %s\\%s\n", PatchedPath, SSDT_PSTATES_NAME);
       }
@@ -1792,7 +1770,7 @@ PatchACPI (
     //DBG ("GenerateCStates Status=%r\n", Status);
 
     if (!EFI_ERROR (Status)) {
-      Status = SaveFile (SelfRootDir, PoolPrint (L"%s\\%s", PatchedPath, SSDT_CSTATES_NAME), (VOID *)Ssdt, Ssdt->Length);
+      Status = SaveFile (gSelfRootDir, PoolPrint (L"%s\\%s", PatchedPath, SSDT_CSTATES_NAME), (VOID *)Ssdt, Ssdt->Length);
       if (!EFI_ERROR (Status)) {
         MsgLog ("Generated CStates saved to: %s\\%s\n", PatchedPath, SSDT_CSTATES_NAME);
       }

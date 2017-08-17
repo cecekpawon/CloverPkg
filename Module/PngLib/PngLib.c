@@ -28,7 +28,11 @@ The manual and changelog are in the header file "lodepng.h"
 Rename this file to lodepng.cpp to use it for C++, or to lodepng.c to use it for C.
 */
 
-#include <Library/Platform/Platform.h>
+#include <Uefi.h>
+#include <Library/BaseMemoryLib.h>
+#include <Library/MemoryAllocationLib.h>
+#include <Library/Common/CommonLib.h>
+#include <Library/UI/PngLib.h>
 
 //#include <stdio.h>
 //#include <stdlib.h>
@@ -4834,7 +4838,9 @@ unsigned lodepng_decode_memory(unsigned char** out, unsigned* w, unsigned* h, co
   return error;
 }
 
-unsigned lodepng_decode32(unsigned char** out, unsigned* w, unsigned* h, const unsigned char* in, size_t insize)
+unsigned
+EFIAPI
+lodepng_decode32(unsigned char** out, unsigned* w, unsigned* h, const unsigned char* in, size_t insize)
 {
   return lodepng_decode_memory(out, w, h, in, insize, LCT_RGBA, 8);
 }
@@ -5903,7 +5909,9 @@ unsigned lodepng_encode_memory(unsigned char** out, size_t* outsize, const unsig
   return error;
 }
 
-unsigned lodepng_encode32(unsigned char** out, size_t* outsize, const unsigned char* image, unsigned w, unsigned h)
+unsigned
+EFIAPI
+lodepng_encode32(unsigned char** out, size_t* outsize, const unsigned char* image, unsigned w, unsigned h)
 {
   return lodepng_encode_memory(out, outsize, image, w, h, LCT_RGBA, 8);
 }

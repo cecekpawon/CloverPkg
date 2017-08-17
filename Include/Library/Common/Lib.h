@@ -37,17 +37,6 @@
 #ifndef __REFITLIB_STANDARD_H__
 #define __REFITLIB_STANDARD_H__
 
-#define REFIT_DEBUG (2)
-
-//#define Print if ((!GlobalConfig.Quiet) || (GlobalConfig.TextOnly)) Print
-
-#ifndef ARRAY_SIZE
-#define ARRAY_SIZE(array) (sizeof (array) / sizeof (array[0]))
-#endif
-
-#define CONSTRAIN_MIN(Variable, MinValue) if (Variable < MinValue) Variable = MinValue
-#define CONSTRAIN_MAX(Variable, MaxValue) if (Variable > MaxValue) Variable = MaxValue
-
 //
 // lib module
 //
@@ -98,27 +87,28 @@ typedef struct {
 #define OSTYPE_LINUX_STR          L"Linux"
 #define OSTYPE_WINDOWS_STR        L"Windows"
 
-#define OSTYPE_IS_DARWIN(type) ((type == OSTYPE_DARWIN) || (type == OSTYPE_VAR))
-#define OSTYPE_IS_DARWIN_RECOVERY(type) ((type == OSTYPE_DARWIN_RECOVERY) /*|| ((type >= OSTYPE_TIGER) && (type <= OSTYPE_MAV))*/ || (type == OSTYPE_VAR))
-#define OSTYPE_IS_DARWIN_INSTALLER(type) ((type == OSTYPE_DARWIN_INSTALLER) /*|| ((type >= OSTYPE_TIGER) && (type <= OSTYPE_MAV))*/ || (type == OSTYPE_VAR))
-#define OSTYPE_IS_DARWIN_GLOB(type) (OSTYPE_IS_DARWIN(type) || OSTYPE_IS_DARWIN_RECOVERY(type) || OSTYPE_IS_DARWIN_INSTALLER(type))
-#define OSTYPE_IS_WINDOWS(type) ((type == OSTYPE_WIN) || (type == OSTYPE_WINEFI) || (type == OSTYPE_EFI) || (type == OSTYPE_VAR))
-#define OSTYPE_IS_WINDOWS_GLOB(type) ((type == OSTYPE_WIN) || (type == OSTYPE_WINEFI))
-#define OSTYPE_IS_LINUX(type) ((type == OSTYPE_LIN) || (type == OSTYPE_LINEFI) || (type == OSTYPE_EFI) || (type == OSTYPE_VAR))
-#define OSTYPE_IS_LINUX_GLOB(type) ((type == OSTYPE_LIN) || (type == OSTYPE_LINEFI))
-#define OSTYPE_IS_OTHER(type) ((type == OSTYPE_OTHER) || (type == OSTYPE_EFI) || (type == OSTYPE_VAR))
-//#define OSTYPE_IS_NOT(type1, type2) (type1 != type2)
-#define OSTYPE_COMPARE_IMP(comparator, type1, type2) (comparator(type1) && comparator(type2))
+#define IS_EXTENDED_PART_TYPE(type)       ((type) == 0x05 || (type) == 0x0f || (type) == 0x85)
+#define OSTYPE_IS_DARWIN(type)            ((type == OSTYPE_DARWIN) || (type == OSTYPE_VAR))
+#define OSTYPE_IS_DARWIN_RECOVERY(type)   ((type == OSTYPE_DARWIN_RECOVERY) /*|| ((type >= OSTYPE_TIGER) && (type <= OSTYPE_MAV))*/ || (type == OSTYPE_VAR))
+#define OSTYPE_IS_DARWIN_INSTALLER(type)  ((type == OSTYPE_DARWIN_INSTALLER) /*|| ((type >= OSTYPE_TIGER) && (type <= OSTYPE_MAV))*/ || (type == OSTYPE_VAR))
+#define OSTYPE_IS_DARWIN_GLOB(type)       (OSTYPE_IS_DARWIN (type) || OSTYPE_IS_DARWIN_RECOVERY (type) || OSTYPE_IS_DARWIN_INSTALLER (type))
+#define OSTYPE_IS_WINDOWS(type)           ((type == OSTYPE_WIN) || (type == OSTYPE_WINEFI) || (type == OSTYPE_EFI) || (type == OSTYPE_VAR))
+#define OSTYPE_IS_WINDOWS_GLOB(type)      ((type == OSTYPE_WIN) || (type == OSTYPE_WINEFI))
+#define OSTYPE_IS_LINUX(type)             ((type == OSTYPE_LIN) || (type == OSTYPE_LINEFI) || (type == OSTYPE_EFI) || (type == OSTYPE_VAR))
+#define OSTYPE_IS_LINUX_GLOB(type)        ((type == OSTYPE_LIN) || (type == OSTYPE_LINEFI))
+#define OSTYPE_IS_OTHER(type)             ((type == OSTYPE_OTHER) || (type == OSTYPE_EFI) || (type == OSTYPE_VAR))
+//#define OSTYPE_IS_NOT(type1, type2)     (type1 != type2)
+#define OSTYPE_COMPARE_IMP(comparator, type1, type2)  (comparator (type1) && comparator (type2))
 #define OSTYPE_COMPARE(type1, type2) \
-          (OSTYPE_COMPARE_IMP(OSTYPE_IS_DARWIN, type1, type2) || OSTYPE_COMPARE_IMP(OSTYPE_IS_DARWIN_RECOVERY, type1, type2) || \
-          OSTYPE_COMPARE_IMP(OSTYPE_IS_DARWIN_INSTALLER, type1, type2) || OSTYPE_COMPARE_IMP(OSTYPE_IS_WINDOWS, type1, type2) || \
-          OSTYPE_COMPARE_IMP(OSTYPE_IS_LINUX, type1, type2) || OSTYPE_COMPARE_IMP(OSTYPE_IS_OTHER, type1, type2))
+          (OSTYPE_COMPARE_IMP (OSTYPE_IS_DARWIN, type1, type2) || OSTYPE_COMPARE_IMP (OSTYPE_IS_DARWIN_RECOVERY, type1, type2) || \
+          OSTYPE_COMPARE_IMP (OSTYPE_IS_DARWIN_INSTALLER, type1, type2) || OSTYPE_COMPARE_IMP (OSTYPE_IS_WINDOWS, type1, type2) || \
+          OSTYPE_COMPARE_IMP (OSTYPE_IS_LINUX, type1, type2) || OSTYPE_COMPARE_IMP (OSTYPE_IS_OTHER, type1, type2))
 
-#define BIT_ISSET(flags, flag) ((flags & flag) == flag)
-#define BIT_ISUNSET(flags, flag) ((flags & flag) != flag)
-#define BIT_SET(flags, flag) (flags | flag)
-#define BIT_UNSET(flags, flag) (flags & (~flag))
-#define BIT_TOGGLE(flags, flag) (flags ^ flag)
+#define BIT_ISSET(flags, flag)          ((flags & flag) == flag)
+#define BIT_ISUNSET(flags, flag)        ((flags & flag) != flag)
+#define BIT_SET(flags, flag)            (flags | flag)
+#define BIT_UNSET(flags, flag)          (flags & (~flag))
+#define BIT_TOGGLE(flags, flag)         (flags ^ flag)
 
 #define OSFLAG_USEGRAPHICS              BIT0
 #define OSFLAG_WITHKEXTS                BIT1
@@ -165,8 +155,6 @@ typedef struct {
                                           OSFLAG_ALLOW_BOOTER_PATCHES \
                                         )
 
-#define IS_EXTENDED_PART_TYPE(type) ((type) == 0x05 || (type) == 0x0f || (type) == 0x85)
-
 typedef struct {
   UINT8     Type;
   CHAR16    *IconName;
@@ -203,8 +191,8 @@ typedef struct {
 } REFIT_VOLUME;
 
 typedef struct {
-  EFI_GUID              PartitionTypeGUID;
-  EFI_GUID              UniquePartitionGUID;
+  EFI_GUID    PartitionTypeGUID;
+  EFI_GUID    UniquePartitionGUID;
 } REFIT_VOLUME_GUID;
 
 typedef struct {
@@ -267,12 +255,28 @@ typedef struct {
   INTN        ScrollButtonHeight;
   INTN        ScrollBarDecorationsHeight;
   INTN        ScrollBackDecorationsHeight;
+
+  BOOLEAN     GraphicsScreenDirty;
+  BOOLEAN     GUIReady;
+  BOOLEAN     AllowGraphicsMode;
+
+  UINT32      UGAWidth;
+  UINT32      UGAHeight;
+  UINT32      UGAColorDepth;
+  UINT32      UGABytesPerRow;
+  UINT64      UGAFrameBufferBase;
 } REFIT_CONFIG;
 
-extern REFIT_CONFIG   GlobalConfig;
-extern REFIT_CONFIG   DefaultConfig;
-
 // types
+
+typedef struct {
+  CHAR8     *Name;
+  CHAR8     *Label;
+  CHAR8     *MatchOS;
+  CHAR8     *MatchBuild;
+  CHAR8     *IOKitPersonalities;
+  BOOLEAN   Disabled;
+} IOPERSONALITIES_INJECTOR;
 
 typedef struct {
   CHAR8     *Name;
@@ -314,32 +318,35 @@ typedef struct {
 } BOOTER_PATCH;
 
 typedef struct KERNEL_AND_KEXT_PATCHES {
-  BOOLEAN         KPDebug;
-  //BOOLEAN       KPKernelCpu;
-  //BOOLEAN       KPLapicPanic;
-  //BOOLEAN       KPHaswellE;
-  BOOLEAN         KPAsusAICPUPM;
-  //BOOLEAN       KPAppleRTC;
-  BOOLEAN         KPKernelPm;
-  UINT32          FakeCPUID;
+  BOOLEAN                     KPDebug;
+  //BOOLEAN                   KPKernelCpu;
+  //BOOLEAN                   KPLapicPanic;
+  //BOOLEAN                   KPHaswellE;
+  //BOOLEAN                     KPAsusAICPUPM;
+  //BOOLEAN                   KPAppleRTC;
+  BOOLEAN                     KPKernelPm;
+  UINT32                      FakeCPUID;
 
-  CHAR16          *KPATIConnectorsController;
-  UINT8           *KPATIConnectorsData;
-  UINTN           KPATIConnectorsDataLen;
-  UINT8           *KPATIConnectorsPatch;
-  UINT8           KPATIConnectorsWildcard;
+  CHAR16                      *KPATIConnectorsController;
+  UINT8                       *KPATIConnectorsData;
+  UINTN                       KPATIConnectorsDataLen;
+  UINT8                       *KPATIConnectorsPatch;
+  UINT8                       KPATIConnectorsWildcard;
 
-  UINTN           NrKexts;
-  KEXT_PATCH      *KextPatches;
+  UINTN                       NrKexts;
+  KEXT_PATCH                  *KextPatches;
 
-  UINTN           NrForceKexts;
-  CHAR16          **ForceKexts;
+  UINTN                       NrForceKexts;
+  CHAR16                      **ForceKexts;
 
-  UINTN           NrKernels;
-  KERNEL_PATCH    *KernelPatches;
+  UINTN                       NrKernels;
+  KERNEL_PATCH                *KernelPatches;
 
-  UINTN           NrBooters;
-  BOOTER_PATCH    *BooterPatches;
+  UINTN                       NrBooters;
+  BOOTER_PATCH                *BooterPatches;
+
+  UINTN                       NrIOPersonalitiesInjector;
+  IOPERSONALITIES_INJECTOR    *IOPersonalitiesInjector;
 } KERNEL_AND_KEXT_PATCHES;
 
 typedef struct {
@@ -402,20 +409,23 @@ typedef struct CUSTOM_TOOL_ENTRY {
           UINT8               VolumeType;
 } CUSTOM_TOOL_ENTRY;
 
-extern EFI_HANDLE         SelfImageHandle;
-extern EFI_LOADED_IMAGE   *SelfLoadedImage;
-extern EFI_FILE           *SelfRootDir;
-extern EFI_FILE           *SelfDir;
-extern EFI_DEVICE_PATH    *SelfFullDevicePath;
-extern EFI_FILE           *ThemeDir;
-extern CHAR16             *ThemePath;
+extern REFIT_CONFIG       GlobalConfig;
+extern REFIT_CONFIG       DefaultConfig;
 
-extern REFIT_VOLUME       *SelfVolume;
-extern REFIT_VOLUME       **Volumes;
-extern UINTN              VolumesCount;
+extern EFI_HANDLE         gSelfImageHandle;
+extern EFI_LOADED_IMAGE   *gSelfLoadedImage;
+extern EFI_FILE           *gSelfRootDir;
+extern EFI_FILE           *gSelfDir;
+extern EFI_DEVICE_PATH    *gSelfFullDevicePath;
+extern EFI_FILE           *gThemeDir;
+extern CHAR16             *gThemePath;
 
-extern EFI_GUID           **VenMediaGUID;
-extern UINTN              VenMediaGUIDCount;
+extern REFIT_VOLUME       *gSelfVolume;
+extern REFIT_VOLUME       **gVolumes;
+extern UINTN              gVolumesCount;
+
+extern EFI_GUID           **gVenMediaGUID;
+extern UINTN              gVenMediaGUIDCount;
 
 EFI_STATUS
 InitRefitLib (
@@ -535,10 +545,10 @@ RemoveExtension (
 
 INTN
 FindMem (
-  IN VOID   *Buffer,
-  IN UINTN  BufferLength,
-  IN VOID   *SearchString,
-  IN UINTN  SearchStringLength
+  IN VOID     *Buffer,
+  IN UINTN    BufferLength,
+  IN VOID     *SearchString,
+  IN UINTN    SearchStringLength
 );
 
 CHAR8 *
@@ -561,12 +571,6 @@ FileDevicePathFileToStr (
 
 EFI_STATUS
 InitializeUnicodeCollationProtocol ();
-
-#if REFIT_DEBUG > 0
-VOID DebugPause ();
-#else
-#define DebugPause()
-#endif
 
 //VOID EndlessIdleLoop();
 
@@ -733,9 +737,9 @@ TimeCompare (
 // screen module
 //
 
+#define ATTR_DEFAULT              (EFI_WHITE | EFI_BACKGROUND_BLACK)
 #define ATTR_BASIC                (EFI_LIGHTGRAY | EFI_BACKGROUND_BLACK)
 #define ATTR_ERROR                (EFI_RED | EFI_BACKGROUND_BLACK)
-//#define ATTR_BANNER             (EFI_WHITE | EFI_BACKGROUND_BLACK)
 #define ATTR_BANNER               (EFI_WHITE | EFI_BACKGROUND_GREEN)
 #define ATTR_CHOICE_BASIC         ATTR_BASIC
 #define ATTR_CHOICE_CURRENT       (EFI_WHITE | EFI_BACKGROUND_LIGHTGRAY)
@@ -778,12 +782,10 @@ SetGraphicsModeEnabled (
 );
 
 VOID
-InitScreen (
-  IN BOOLEAN  egSetMaxResolution
-);
+InitScreen ();
 
 VOID
-SetupScreen ();
+ReInitScreen ();
 
 VOID
 BeginTextScreen (
@@ -849,8 +851,6 @@ ScreenShot ();
 //
 // IO
 //
-
-#define PoolPrint(...) CatSPrint(NULL, __VA_ARGS__)
 
 //EFI_STATUS
 //WaitForSingleEvent (

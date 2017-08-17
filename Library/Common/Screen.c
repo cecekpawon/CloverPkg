@@ -35,6 +35,7 @@
  */
 
 #include <Library/Platform/Platform.h>
+#include <Protocol/GraphicsOutput.h>
 
 #ifndef DEBUG_ALL
 #ifndef DEBUG_SCREEN
@@ -51,37 +52,29 @@
 
 // Console defines and variables
 
-UINTN     ConWidth, ConHeight;
-CHAR16    *BlankLine = NULL;
+UINTN     gConWidth, gConHeight;
+CHAR16    *gBlankLine = NULL;
 
 // UGA defines and variables
 
-UINT32    UGAWidth, UGAHeight, UGAColorDepth, UGABytesPerRow;
-UINT64    UGAFrameBufferBase;
-BOOLEAN   AllowGraphicsMode;
-BOOLEAN   GraphicsScreenDirty;
+EG_RECT   gBannerPlace = { 0, 0, 0, 0 };
 
-EG_RECT   BannerPlace = {0, 0, 0, 0};
+EG_PIXEL  gBlackBackgroundPixel        = { 0x00, 0x00, 0x00, 0xFF },
+          gBlueBackgroundPixel         = { 0xFF, 0x00, 0x00, 0xFF },
+          gGrayBackgroundPixel         = { 0xBF, 0xBF, 0xBF, 0xFF },
+          gGreenBackgroundPixel        = { 0x00, 0x80, 0x00, 0xFF },
+          gRedBackgroundPixel          = { 0x00, 0x00, 0xFF, 0xFF },
+          gSelectionBackgroundPixel    = { 0xEF, 0xEF, 0xEF, 0xFF }, //non-trasparent
+          gTmpBackgroundPixel          = { 0x00, 0x00, 0x00, 0xFF },
+          gTransparentBackgroundPixel  = { 0x00, 0x00, 0x00, 0x00 };
 
-EG_PIXEL  BlackBackgroundPixel        = { 0x00, 0x00, 0x00, 0xFF },
-          BlueBackgroundPixel         = { 0xFF, 0x00, 0x00, 0xFF },
-          GrayBackgroundPixel         = { 0xBF, 0xBF, 0xBF, 0xFF },
-          GreenBackgroundPixel        = { 0x00, 0x80, 0x00, 0xFF },
-          RedBackgroundPixel          = { 0x00, 0x00, 0xFF, 0xFF },
-          SelectionBackgroundPixel    = { 0xEF, 0xEF, 0xEF, 0xFF }, //non-trasparent
-          TmpBackgroundPixel          = { 0x00, 0x00, 0x00, 0xFF },
-          TransparentBackgroundPixel  = { 0x00, 0x00, 0x00, 0x00 };
+EG_IMAGE  *gBackgroundImage = NULL, *gBanner = NULL, *gBigBack = NULL;
 
-EG_IMAGE  *BackgroundImage = NULL, *Banner = NULL, *BigBack = NULL;
-
-STATIC    BOOLEAN HaveError = FALSE;
-
+STATIC BOOLEAN HaveError = FALSE;
 
 //
 // LibScreen.c
 //
-
-#include <Protocol/GraphicsOutput.h>
 
 // Console defines and variables
 
@@ -91,9 +84,10 @@ STATIC EFI_CONSOLE_CONTROL_PROTOCOL *ConsoleControl = NULL;
 STATIC EFI_GUID GraphicsOutputProtocolGuid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
 STATIC EFI_GRAPHICS_OUTPUT_PROTOCOL *GraphicsOutput = NULL;
 
-STATIC BOOLEAN egHasGraphics = FALSE;
-STATIC UINTN egScreenWidth  = 0; //1024;
-STATIC UINTN egScreenHeight = 0; //768;
+STATIC BOOLEAN  egScreenInited;
+STATIC BOOLEAN  egHasGraphics = FALSE;
+STATIC UINTN    egScreenWidth  = 0; //1024;
+STATIC UINTN    egScreenHeight = 0; //768;
 
 STATIC EFI_CONSOLE_CONTROL_PROTOCOL_GET_MODE ConsoleControlGetMode = NULL;
 
@@ -127,31 +121,30 @@ VOID
 SetColorDepth (
   EFI_GRAPHICS_OUTPUT_MODE_INFORMATION    *Info
 ) {
-  UINTN   i;
-
-  UGAColorDepth = 0;
+  GlobalConfig.UGAColorDepth = 0;
 
   if (Info->PixelFormat == PixelBitMask)   {
+    UINTN   i;
     UINT32  ColorMask = Info->PixelInformation.BlueMask | Info->PixelInformation.GreenMask | Info->PixelInformation.RedMask;
 
     for (i = 0; i < 32; i++, ColorMask >>= 1) {
       if (BIT_ISSET (ColorMask, 1)) {
-        UGAColorDepth += 1;
+        GlobalConfig.UGAColorDepth += 1;
       }
     }
 
-    UGAColorDepth = (UGAColorDepth + 7) & ~7;
+    GlobalConfig.UGAColorDepth = (GlobalConfig.UGAColorDepth + 7) & ~7;
   }
 
   else if (Info->PixelFormat != PixelBltOnly) {
-    UGAColorDepth = 32;
+    GlobalConfig.UGAColorDepth = 32;
   }
 
-  if (!UGAColorDepth) {
-    UGAColorDepth = 32;
+  if (!GlobalConfig.UGAColorDepth) {
+    GlobalConfig.UGAColorDepth = 32;
   }
 
-  UGABytesPerRow = Info->PixelsPerScanLine * (UGAColorDepth >> 3);
+  GlobalConfig.UGABytesPerRow = Info->PixelsPerScanLine * (GlobalConfig.UGAColorDepth >> 3);
 }
 
 //
@@ -163,10 +156,10 @@ EFI_STATUS
 GopSetModeAndReconnectTextOut (
   IN UINT32     ModeNumber
 ) {
-  EFI_STATUS  Status;
+  EFI_STATUS  Status = EFI_UNSUPPORTED;
 
   if (GraphicsOutput == NULL) {
-    return EFI_UNSUPPORTED;
+    return Status;
   }
 
   Status = GraphicsOutput->SetMode (GraphicsOutput, ModeNumber);
@@ -184,7 +177,7 @@ SetMaxResolution () {
   UINTN                                   SizeOfInfo;
 
   if (GraphicsOutput == NULL) {
-    return EFI_UNSUPPORTED;
+    return Status;
   }
 
   MaxMode = GraphicsOutput->Mode->MaxMode;
@@ -342,9 +335,7 @@ SetScreenResolution (
 }
 
 VOID
-InternalInitScreen (
-  IN BOOLEAN    egSetMaxResolution
-) {
+InternalInitScreen () {
   EFI_STATUS    Status;
   CHAR16        *Resolution;
 
@@ -384,7 +375,8 @@ InternalInitScreen (
 
   if (GraphicsOutput != NULL) {
     if (
-      egSetMaxResolution &&
+      //egSetMaxResolution &&
+      !egScreenInited &&
       (
         (GlobalConfig.ScreenResolution == NULL) ||
         (
@@ -400,7 +392,7 @@ InternalInitScreen (
     egScreenHeight = GraphicsOutput->Mode->Info->VerticalResolution;
     egHasGraphics = TRUE;
 
-    UGAFrameBufferBase = GraphicsOutput->Mode->FrameBufferBase;
+    GlobalConfig.UGAFrameBufferBase = GraphicsOutput->Mode->FrameBufferBase;
   }
 }
 
@@ -422,7 +414,7 @@ CHAR16 *
 ScreenDescription () {
   if (egHasGraphics) {
     if (GraphicsOutput != NULL) {
-      return PoolPrint (L"Graphics Output (UEFI), %dx%d (%d / %d)", egScreenWidth, egScreenHeight, UGAColorDepth, UGABytesPerRow);
+      return PoolPrint (L"Graphics Output (UEFI), %dx%d (%d / %d)", egScreenWidth, egScreenHeight, GlobalConfig.UGAColorDepth, GlobalConfig.UGABytesPerRow);
     }
     return L"Internal Error";
   } else {
@@ -437,9 +429,9 @@ HasGraphicsMode () {
 
 BOOLEAN
 IsGraphicsModeEnabled () {
-  EFI_CONSOLE_CONTROL_SCREEN_MODE     CurrentMode;
-
   if (ConsoleControl != NULL) {
+    EFI_CONSOLE_CONTROL_SCREEN_MODE     CurrentMode;
+
     ConsoleControl->GetMode (ConsoleControl, &CurrentMode, NULL, NULL);
     return (CurrentMode == EfiConsoleControlScreenGraphics);
   }
@@ -451,9 +443,9 @@ VOID
 SetGraphicsModeEnabled (
   IN BOOLEAN    Enable
 ) {
-  EFI_CONSOLE_CONTROL_SCREEN_MODE     CurrentMode, NewMode;
-
   if (ConsoleControl != NULL) {
+    EFI_CONSOLE_CONTROL_SCREEN_MODE     CurrentMode, NewMode;
+
     if (GraphicsOutput != NULL) {
       if (!Enable) {
         // Don't allow switching to text mode, but report that we are in text mode when queried
@@ -483,25 +475,23 @@ VOID
 ClearScreen (
   IN EG_PIXEL   *Color
 ) {
-  EFI_GRAPHICS_OUTPUT_BLT_PIXEL FillColor;
+  if (egHasGraphics) {
+    EFI_GRAPHICS_OUTPUT_BLT_PIXEL   FillColor;
 
-  if (!egHasGraphics) {
-    return;
-  }
+    FillColor.Red       = Color->r;
+    FillColor.Green     = Color->g;
+    FillColor.Blue      = Color->b;
+    FillColor.Reserved  = 0;
 
-  FillColor.Red       = Color->r;
-  FillColor.Green     = Color->g;
-  FillColor.Blue      = Color->b;
-  FillColor.Reserved  = 0;
-
-  if (GraphicsOutput != NULL) {
-    // EFI_GRAPHICS_OUTPUT_BLT_PIXEL and EFI_UGA_PIXEL have the same
-    // layout, and the header from TianoCore actually defines them
-    // to be the same type.
-    GraphicsOutput->Blt (
-      GraphicsOutput, (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *)&FillColor, EfiBltVideoFill,
-      0, 0, 0, 0, egScreenWidth, egScreenHeight, 0
-    );
+    if (GraphicsOutput != NULL) {
+      // EFI_GRAPHICS_OUTPUT_BLT_PIXEL and EFI_UGA_PIXEL have the same
+      // layout, and the header from TianoCore actually defines them
+      // to be the same type.
+      GraphicsOutput->Blt (
+        GraphicsOutput, (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *)&FillColor, EfiBltVideoFill,
+        0, 0, 0, 0, egScreenWidth, egScreenHeight, 0
+      );
+    }
   }
 }
 
@@ -519,7 +509,10 @@ DrawImageArea (
     return;
   }
 
-  if ((ScreenPosX < 0) || (ScreenPosX >= UGAWidth) || (ScreenPosY < 0) || (ScreenPosY >= UGAHeight)) {
+  if (
+    (ScreenPosX < 0) || (ScreenPosX >= GlobalConfig.UGAWidth) ||
+    (ScreenPosY < 0) || (ScreenPosY >= GlobalConfig.UGAHeight)
+  ) {
     // This is outside of screen area
     return;
   }
@@ -545,12 +538,12 @@ DrawImageArea (
   //  SetPlane (PLPTR (Image, a), 255, Image->Width * Image->Height);
   //}
 
-  if ((ScreenPosX + AreaWidth) > UGAWidth) {
-    AreaWidth = UGAWidth - ScreenPosX;
+  if ((ScreenPosX + AreaWidth) > GlobalConfig.UGAWidth) {
+    AreaWidth = GlobalConfig.UGAWidth - ScreenPosX;
   }
 
-  if ((ScreenPosY + AreaHeight) > UGAHeight) {
-    AreaHeight = UGAHeight - ScreenPosY;
+  if ((ScreenPosY + AreaHeight) > GlobalConfig.UGAHeight) {
+    AreaHeight = GlobalConfig.UGAHeight - ScreenPosY;
   }
 
   if (GraphicsOutput != NULL) {
@@ -572,12 +565,12 @@ TakeImage (
   IN INTN         AreaWidth,
   IN INTN         AreaHeight
 ) {
-  if ((ScreenPosX + AreaWidth) > UGAWidth) {
-    AreaWidth = UGAWidth - ScreenPosX;
+  if ((ScreenPosX + AreaWidth) > GlobalConfig.UGAWidth) {
+    AreaWidth = GlobalConfig.UGAWidth - ScreenPosX;
   }
 
-  if ((ScreenPosY + AreaHeight) > UGAHeight) {
-    AreaHeight = UGAHeight - ScreenPosY;
+  if ((ScreenPosY + AreaHeight) > GlobalConfig.UGAHeight) {
+    AreaHeight = GlobalConfig.UGAHeight - ScreenPosY;
   }
 
   if (GraphicsOutput != NULL) {
@@ -606,14 +599,14 @@ ScreenShot () {
   EFI_GRAPHICS_OUTPUT_BLT_PIXEL   *ImagePNG;
   UINTN                           ImageSize, i;
 
-  if (!egHasGraphics || !FileExists (SelfRootDir, DIR_MISC)) {
+  if (!egHasGraphics || !FileExists (gSelfRootDir, DIR_MISC)) {
     return EFI_NOT_READY;
   }
 
   // allocate a buffer for the whole screen
   Image = CreateImage (egScreenWidth, egScreenHeight, FALSE);
   if (Image == NULL) {
-    Print (L"Error CreateImage returned NULL\n");
+    //DBG (L"Error CreateImage returned NULL\n");
     return EFI_NO_MEDIA;
   }
 
@@ -656,8 +649,8 @@ ScreenShot () {
   while (TRUE) {
     UnicodeSPrint (ScreenshotName, ARRAY_SIZE (ScreenshotName), L"%s\\Screenshot-%d.png", DIR_MISC, Index++);
 
-    if (!FileExists (SelfRootDir, ScreenshotName)) {
-      Status = SaveFile (SelfRootDir, ScreenshotName, FileData, FileDataLength);
+    if (!FileExists (gSelfRootDir, ScreenshotName)) {
+      Status = SaveFile (gSelfRootDir, ScreenshotName, FileData, FileDataLength);
       //if (!EFI_ERROR (Status)) {
         break;
       //}
@@ -798,25 +791,25 @@ UpdateConsoleVars () {
   UINTN   i;
 
   // get size of text console
-  if  (gST->ConOut->QueryMode (gST->ConOut, gST->ConOut->Mode->Mode, &ConWidth, &ConHeight) != EFI_SUCCESS) {
+  if  (gST->ConOut->QueryMode (gST->ConOut, gST->ConOut->Mode->Mode, &gConWidth, &gConHeight) != EFI_SUCCESS) {
     // use default values on error
-    ConWidth = 80;
-    ConHeight = 25;
+    gConWidth = 80;
+    gConHeight = 25;
   }
 
-  // free old BlankLine when it exists
-  if (BlankLine != NULL) {
-    FreePool (BlankLine);
+  // free old gBlankLine when it exists
+  if (gBlankLine != NULL) {
+    FreePool (gBlankLine);
   }
 
   // make a buffer for a whole text line
-  BlankLine = AllocatePool ((ConWidth + 1) * sizeof (CHAR16));
+  gBlankLine = AllocatePool ((gConWidth + 1) * sizeof (CHAR16));
 
-  for (i = 0; i < ConWidth; i++) {
-    BlankLine[i] = ' ';
+  for (i = 0; i < gConWidth; i++) {
+    gBlankLine[i] = ' ';
   }
 
-  BlankLine[i] = 0;
+  gBlankLine[i] = 0;
 }
 
 //
@@ -824,22 +817,21 @@ UpdateConsoleVars () {
 //
 
 VOID
-InitScreen (
-  IN BOOLEAN    egSetMaxResolution
-) {
-  //DbgHeader ("InitScreen");
+ReInitScreen () {
   // initialize libeg
-  InternalInitScreen (egSetMaxResolution);
+  InternalInitScreen ();
 
   if (HasGraphicsMode ()) {
-    GetScreenSize (&UGAWidth, &UGAHeight);
-    AllowGraphicsMode = TRUE;
+    GetScreenSize (&GlobalConfig.UGAWidth, &GlobalConfig.UGAHeight);
+    GlobalConfig.AllowGraphicsMode = TRUE;
   } else {
-    AllowGraphicsMode = FALSE;
-    SetGraphicsModeEnabled (FALSE);   // just to be sure we are in text mode
+    GlobalConfig.AllowGraphicsMode = FALSE;
+    SetGraphicsModeEnabled (FALSE); // just to be sure we are in text mode
   }
 
-  GraphicsScreenDirty = TRUE;
+  GlobalConfig.GraphicsScreenDirty = TRUE;
+
+  ClearScreen (&gBlackBackgroundPixel);
 
   // disable cursor
   gST->ConOut->EnableCursor (gST->ConOut, FALSE);
@@ -856,31 +848,44 @@ SwitchToText (
   IN BOOLEAN    CursorEnabled
 ) {
   SetGraphicsModeEnabled (FALSE);
+  gST->ConOut->SetAttribute (gST->ConOut, ATTR_DEFAULT);
   gST->ConOut->EnableCursor (gST->ConOut, CursorEnabled);
+  gST->ConOut->SetCursorPosition (gST->ConOut, 0, 0);
 }
 
 STATIC
 VOID
 SwitchToGraphics () {
-  if (AllowGraphicsMode && !IsGraphicsModeEnabled ()) {
-    InitScreen (FALSE);
+  if (GlobalConfig.AllowGraphicsMode && !IsGraphicsModeEnabled ()) {
+    ReInitScreen ();
     SetGraphicsModeEnabled (TRUE);
-    GraphicsScreenDirty = TRUE;
+    GlobalConfig.GraphicsScreenDirty = TRUE;
   }
 }
 
 VOID
 SetupScreen () {
+  egScreenInited = TRUE;
+
   if (gSettings.TextOnly) {
     // switch to text mode if requested
-    AllowGraphicsMode = FALSE;
+    GlobalConfig.AllowGraphicsMode = FALSE;
     SwitchToText (FALSE);
-  } else if (AllowGraphicsMode) {
+  } else if (GlobalConfig.AllowGraphicsMode) {
     // clear screen and show banner
     // (now we know we'll stay in graphics mode)
     SwitchToGraphics ();
     //BltClearScreen (TRUE);
   }
+}
+
+VOID
+InitScreen () {
+  DbgHeader ("InitScreen");
+
+  ReInitScreen ();
+
+  SetupScreen ();
 }
 
 //
@@ -894,16 +899,16 @@ DrawScreenHeader (
 ) {
   UINTN     i;
 
-  ClearScreen (&BlackBackgroundPixel);
   // clear to black background
+  ClearScreen (&gBlackBackgroundPixel);
   gST->ConOut->SetAttribute (gST->ConOut, ATTR_BASIC);
-  //gST->ConOut->ClearScreen (gST->ConOut);
+  gST->ConOut->ClearScreen (gST->ConOut);
+
   // paint header background
   gST->ConOut->SetAttribute (gST->ConOut, ATTR_BANNER);
-
   for (i = 0; i < 3; i++) {
     gST->ConOut->SetCursorPosition (gST->ConOut, 0, i);
-    Print (BlankLine);
+    Print (gBlankLine);
   }
 
   // print header text
@@ -954,7 +959,7 @@ BeginExternalScreen (
   IN BOOLEAN    UseGraphicsMode,
   IN CHAR16     *Title
 ) {
-  if (!AllowGraphicsMode) {
+  if (!GlobalConfig.AllowGraphicsMode) {
     UseGraphicsMode = FALSE;
   }
 
@@ -978,7 +983,7 @@ BeginExternalScreen (
 VOID
 FinishExternalScreen () {
   // make sure we clean up later
-  GraphicsScreenDirty = TRUE;
+  GlobalConfig.GraphicsScreenDirty = TRUE;
 
   if (HaveError) {
     // leave error messages on screen in case of error,
@@ -1015,7 +1020,7 @@ VOID
 SwitchToGraphicsAndClear () {
   SwitchToGraphics ();
 
-  if (GraphicsScreenDirty) {
+  if (GlobalConfig.GraphicsScreenDirty) {
     BltClearScreen (TRUE);
   }
 }

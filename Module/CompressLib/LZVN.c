@@ -24,7 +24,31 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
   @cecekpawon Fri Feb 24 08:58:13 2017
 */
 
-#include <Library/Platform/Platform.h>
+#include <Uefi.h>
+#include <Library/BaseLib.h>
+#include <Library/BaseMemoryLib.h>
+#include <Library/Common/CommonLib.h>
+#include <Library/Common/MemLogLib.h>
+#include <Library/Common/PlistLib.h>
+#include <Library/DebugLib.h>
+#include <Library/MemoryAllocationLib.h>
+
+#ifndef DEBUG_ALL
+#ifndef DEBUG_LZVN
+#define DEBUG_LZVN -1
+#endif
+#else
+#ifdef DEBUG_LZVN
+#undef DEBUG_LZVN
+#endif
+#define DEBUG_LZVN DEBUG_ALL
+#endif
+
+#if DEBUG_LZVN > 0
+#define DBG(...) MemLog (TRUE, 1, __VA_ARGS__)
+#else
+#define DBG(...)
+#endif
 
 //#define LZVN_STATUS_TEST      1
 #define LZVN_WITH_HEADER        1
@@ -34,8 +58,6 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 #include "b.h" // sample of encoded without header
 #include "c.h" // sample of raw decoded
 #endif
-
-#define DBG(...) DebugLog (1, __VA_ARGS__)
 
 // LZVN low-level decoder
 
@@ -1145,6 +1167,7 @@ LzvnEncodeBuffer (
 }
 
 EFI_STATUS
+EFIAPI
 LzvnEncode (
         UINT8   **Dst,
         UINTN   *DstSize,
@@ -1748,6 +1771,7 @@ LzvnDecodeInternal (
 }
 
 EFI_STATUS
+EFIAPI
 LzvnDecode (
         UINT8   **Dst,
         UINTN   *DstSize,
@@ -1868,7 +1892,7 @@ DrawLogo (
       Pixel->a = 0xFF;
     }
 
-    DrawImageArea (LogoImage, 0, 0, 0, 0, (UGAWidth - APPLE_LOGO_WIDTH) >> 1, (UGAHeight - APPLE_LOGO_HEIGHT) >> 1);
+    DrawImageArea (LogoImage, 0, 0, 0, 0, (GlobalConfig.UGAWidth - APPLE_LOGO_WIDTH) >> 1, (GlobalConfig.UGAHeight - APPLE_LOGO_HEIGHT) >> 1);
 
     FreeImage (LogoImage);
   }
@@ -1876,6 +1900,7 @@ DrawLogo (
 #endif
 
 VOID
+EFIAPI
 hehe () {
 #if LZVN_STATUS_TEST
   UINT8       //*Dst = NULL, *Src = (UINT8 *)AppleLogoPacked;
@@ -1895,6 +1920,7 @@ hehe () {
 }
 
 VOID
+EFIAPI
 hehe2 () {
 #if LZVN_STATUS_TEST
   UINTN       DstSize, SrcSize = ARRAY_SIZE (AppleLogo_RAW);

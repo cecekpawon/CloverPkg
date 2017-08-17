@@ -3,12 +3,12 @@
 ##
 
 [Defines]
-  INF_VERSION                    = 0x00010005
-  BASE_NAME                      = MemLogLibDefault
-  FILE_GUID                      = 62F5C426-2B49-11E2-8DA0-CFED6188709B
-  MODULE_TYPE                    = BASE
-  VERSION_STRING                 = 1.0
-  LIBRARY_CLASS                  = MemLogLib
+  INF_VERSION       = 0x00010005
+  BASE_NAME         = MemLogLibDefault
+  FILE_GUID         = 62F5C426-2B49-11E2-8DA0-CFED6188709B
+  MODULE_TYPE       = BASE
+  VERSION_STRING    = 1.0
+  LIBRARY_CLASS     = MemLogLib
 
 [Sources]
   MemLogLib.c

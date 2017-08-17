@@ -1,0 +1,26 @@
+## @file
+#
+##
+
+[Defines]
+  INF_VERSION       = 0x00010005
+  BASE_NAME         = PngLib
+  FILE_GUID         = 6A23D1A4-93D0-4E64-A061-F8BD71DD92CE
+  MODULE_TYPE       = BASE
+  VERSION_STRING    = 1.0
+  LIBRARY_CLASS     = PngLib
+
+[Sources]
+  PngLib.c
+
+[Packages]
+  CloverPkg/CloverPkg.dec
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  #BaseLib
+  BaseMemoryLib
+  CommonLib
+  #MemLogLib
+  MemoryAllocationLib
+  #UefiLib

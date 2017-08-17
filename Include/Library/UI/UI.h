@@ -146,30 +146,30 @@
 // menu module
 //
 
-#define MENU_EXIT_ENTER                   (1)
-#define MENU_EXIT_ESCAPE                  (2)
-#define MENU_EXIT_DETAILS                 (3)
-#define MENU_EXIT_TIMEOUT                 (4)
-#define MENU_EXIT_OPTIONS                 (5)
-#define MENU_EXIT_HELP                    (6)
-#define MENU_EXIT_HIDE_TOGGLE             (7)
-#define MENU_EXIT_OTHER                   (8) // Just Exit
+#define MENU_EXIT_ENTER                         (1)
+#define MENU_EXIT_ESCAPE                        (2)
+#define MENU_EXIT_DETAILS                       (3)
+#define MENU_EXIT_TIMEOUT                       (4)
+#define MENU_EXIT_OPTIONS                       (5)
+#define MENU_EXIT_HELP                          (6)
+#define MENU_EXIT_HIDE_TOGGLE                   (7)
+#define MENU_EXIT_OTHER                         (8) // Just Exit
 
-#define MENU_ENTRY_ID_GEN                 (0)
-#define MENU_ENTRY_ID_BOOT                (1)
+#define MENU_ENTRY_ID_GEN                       (0)
+#define MENU_ENTRY_ID_BOOT                      (1)
 
-#define X_IS_LEFT                         (64)
-#define X_IS_RIGHT                        (0)
-#define X_IS_CENTER                       (1)
-#define BADGE_DIMENSION                   (64)
-#define VOL_DIMENSION                     (128)
-#define TOOL_DIMENSION                    (32)
+#define X_IS_LEFT                               (64)
+#define X_IS_RIGHT                              (0)
+#define X_IS_CENTER                             (1)
+#define BADGE_DIMENSION                         (64)
+#define VOL_DIMENSION                           (128)
+#define TOOL_DIMENSION                          (32)
 
-#define LAYOUT_TEXT_WIDTH                 (500)
-#define LAYOUT_TOTAL_HEIGHT               (376)
-#define LAYOUT_BANNER_HEIGHT              (32)
+#define LAYOUT_TEXT_WIDTH                       (500)
+#define LAYOUT_TOTAL_HEIGHT                     (376)
+#define LAYOUT_BANNER_HEIGHT                    (32)
 
-#define INDICATOR_SIZE                    (52)
+#define INDICATOR_SIZE                          (52)
 
 typedef enum {
   //FONT_NONE,
@@ -342,25 +342,11 @@ AddMenuInfoLine (
   IN CHAR16             *InfoLine
 );
 
-//VOID
-//AddMenuInfo (
-//  REFIT_MENU_SCREEN   *SubScreen,
-//  CHAR16              *Label
-//);
-
 VOID
 AddMenuEntry (
   IN REFIT_MENU_SCREEN  *Screen,
   IN REFIT_MENU_ENTRY   *Entry
 );
-
-//REFIT_MENU_ENTRY *
-//AddMenuCheck (
-//  REFIT_MENU_SCREEN   *Screen,
-//  CHAR16              *Title,
-//  UINTN               Bit,
-//  INTN                ItemNum
-//);
 
 VOID
 FreeMenu (
@@ -380,26 +366,10 @@ RunMainMenu (
   OUT REFIT_MENU_ENTRY    **ChosenEntry
 );
 
-//VOID
-//AddOptionEntries (
-//  REFIT_MENU_SCREEN   *SubScreen,
-//  LOADER_ENTRY        *SubEntry
-//);
-
 VOID
 OptionsMenu (
   OUT REFIT_MENU_ENTRY    **ChosenEntry
 );
-
-//UINT32
-//EncodeOptions (
-//  CHAR16  *Options
-//);
-
-//VOID
-//DecodeOptions (
-//  LOADER_ENTRY    *Entry
-//);
 
 VOID
 ScrollingBar (
@@ -443,19 +413,6 @@ DrawBCSText (
   IN INTN       YPos,
   IN UINT8      XAlign
 );
-
-//VOID
-//DrawMenuText (
-//  IN CHAR16     *Text,
-//  IN INTN       SelectedWidth,
-//  IN INTN       XPos,
-//  IN INTN       YPos,
-//  IN INTN       Cursor,
-//  IN EG_IMAGE   *Button
-//);
-
-//INTN
-//GetSubMenuCount ();
 
 VOID
 SplitMenuInfo (
@@ -754,8 +711,8 @@ RenderText (
 
 EG_IMAGE *
 DecodePNG (
-  IN UINT8      *FileData,
-  IN UINTN      FileDataLength
+  IN UINT8    *FileData,
+  IN UINTN    FileDataLength
 );
 
 #define PLPTR(imagevar, colorname) ((UINT8 *) &((imagevar)->PixelData->colorname))
@@ -763,59 +720,51 @@ DecodePNG (
 
 //typedef EG_IMAGE * (*EG_DECODE_FUNC)(IN UINT8 *FileData, IN UINTN FileDataLength, IN UINTN IconSize, IN BOOLEAN WantAlpha);
 
-extern UI_IMG               ButtonsImg[];
-extern UI_IMG               SelectionImg[];
-//extern INTN               ButtonsImgCount;
-extern BUILTIN_ICON         BuiltinIconTable[];
+extern UI_IMG               gButtonsImg[];
+extern UI_IMG               gSelectionImg[];
+extern BUILTIN_ICON         gBuiltinIconTable[];
 
-extern INTN                 FontWidth;
-extern INTN                 FontHeight;
-extern INTN                 TextHeight;
+extern INTN                 gFontWidth;
+extern INTN                 gFontHeight;
+extern INTN                 gTextHeight;
 
-extern UINTN                ConWidth;
-extern UINTN                ConHeight;
-extern CHAR16               *BlankLine;
+extern UINTN                gConWidth;
+extern UINTN                gConHeight;
+extern CHAR16               *gBlankLine;
 
-extern UINT32               UGAWidth;
-extern UINT32               UGAHeight;
-extern UINT32               UGAColorDepth;
-extern UINT32               UGABytesPerRow;
-extern UINT64               UGAFrameBufferBase;
-extern BOOLEAN              AllowGraphicsMode;
+extern EG_PIXEL             gBlackBackgroundPixel;
+extern EG_PIXEL             gBlueBackgroundPixel;
+extern EG_PIXEL             gGrayBackgroundPixel;
+extern EG_PIXEL             gGreenBackgroundPixel;
+extern EG_PIXEL             gRedBackgroundPixel;
+extern EG_PIXEL             gSelectionBackgroundPixel;
+extern EG_PIXEL             gTmpBackgroundPixel;
+extern EG_PIXEL             gTransparentBackgroundPixel;
 
-extern EG_PIXEL             BlackBackgroundPixel;
-extern EG_PIXEL             BlueBackgroundPixel;
-extern EG_PIXEL             GrayBackgroundPixel;
-extern EG_PIXEL             GreenBackgroundPixel;
-extern EG_PIXEL             RedBackgroundPixel;
-extern EG_PIXEL             SelectionBackgroundPixel;
-extern EG_PIXEL             TmpBackgroundPixel;
-extern EG_PIXEL             TransparentBackgroundPixel;
+extern EG_RECT              gBannerPlace;
+extern EG_IMAGE             *gBackgroundImage;
 
-extern EG_RECT              BannerPlace;
-extern EG_IMAGE             *BackgroundImage;
+extern EG_IMAGE             *gBanner;
+extern EG_IMAGE             *gBigBack;
+extern EG_IMAGE             *gFontImage;
+extern EG_IMAGE             *gFontImageHover;
 
-extern EG_IMAGE             *Banner;
-extern EG_IMAGE             *BigBack;
-extern EG_IMAGE             *FontImage;
-extern EG_IMAGE             *FontImageHover;
-
-extern BOOLEAN              MainAnime;
-extern GUI_ANIME            *GuiAnime;
+extern BOOLEAN              gMainAnime;
+extern GUI_ANIME            *gGuiAnime;
 
 extern BOOLEAN              gThemeChanged;
 extern BOOLEAN              gBootChanged;
 extern BOOLEAN              gThemeOptionsChanged;
 
-extern REFIT_MENU_SCREEN    OptionMenu;
+extern REFIT_MENU_SCREEN    gOptionMenu;
 
-extern BOOLEAN              ScrollEnabled;
-extern EG_RECT              ScrollStart;
-extern EG_RECT              ScrollEnd;
+//extern BOOLEAN              ScrollEnabled;
+extern EG_RECT              gScrollStart;
+extern EG_RECT              gScrollEnd;
 
-extern EG_RECT              DownButton;
-extern EG_RECT              ScrollbarBackground;
-extern EG_RECT              Scrollbar;
+extern EG_RECT              gDownButton;
+extern EG_RECT              gScrollbarBackground;
+extern EG_RECT              gScrollbar;
 
 
 #endif /* __LIBEG_LIBEG_H__ */

@@ -19,20 +19,20 @@ typedef enum {
   kTagTypeArray
 } TAG_TYPE;
 
-#define kXMLTagPList      "plist"
-#define kXMLTagDict       "dict"
-#define kXMLTagKey        "key"
-#define kXMLTagString     "string"
-#define kXMLTagInteger    "integer"
-#define kXMLTagData       "data"
-#define kXMLTagDate       "date"
-#define kXMLTagFalse      "false"
-#define kXMLTagTrue       "true"
-#define kXMLTagArray      "array"
-#define kXMLTagReference  "reference"
-#define kXMLTagID         "ID="
-#define kXMLTagIDREF      "IDREF="
-#define kXMLTagSIZE       "size="
+#define kXMLTagPList        "plist"
+#define kXMLTagDict         "dict"
+#define kXMLTagKey          "key"
+#define kXMLTagString       "string"
+#define kXMLTagInteger      "integer"
+#define kXMLTagData         "data"
+#define kXMLTagDate         "date"
+#define kXMLTagFalse        "false"
+#define kXMLTagTrue         "true"
+#define kXMLTagArray        "array"
+#define kXMLTagReference    "reference"
+#define kXMLTagID           "ID="
+#define kXMLTagIDREF        "IDREF="
+#define kXMLTagSIZE         "size="
 
 typedef struct Symbol {
           UINTN   refCount;
@@ -65,11 +65,13 @@ typedef struct {
 } TagStruct, *TagPtr;
 
 CHAR8 *
+EFIAPI
 XMLDecode (
   CHAR8   *src
 );
 
 EFI_STATUS
+EFIAPI
 ParseXML (
   CHAR8   *Buffer,
   UINT32  BufSize,
@@ -77,12 +79,23 @@ ParseXML (
 );
 
 TagPtr
+EFIAPI
 GetProperty (
   TagPtr  Dict,
   CHAR8   *Key
 );
 
 EFI_STATUS
+EFIAPI
+GetRefString (
+  IN  TagPtr  Tag,
+  IN  INT32   Id,
+  OUT CHAR8   **Val,
+  OUT INTN    *Size
+);
+
+EFI_STATUS
+EFIAPI
 GetRefInteger (
    IN TagPtr  Tag,
    IN INT32   Id,
@@ -91,31 +104,34 @@ GetRefInteger (
   OUT INTN    *Size
 );
 
-EFI_STATUS
-GetRefString (
-  IN  TagPtr  Tag,
-  IN  INT32   Id,
-  OUT CHAR8   **Val,
-  OUT INTN    *Size
+VOID
+EFIAPI
+DumpBody (
+  CHAR16  **Str,
+  INT32   Depth
 );
 
-VOID
+CHAR16 *
+EFIAPI
 DumpTag (
   TagPtr  Tag,
   INT32   Depth
 );
 
 VOID
+EFIAPI
 FreeTag (
-  TagPtr Tag
+  TagPtr  Tag
 );
 
 INTN
+EFIAPI
 GetTagCount (
-  TagPtr Dict
+  TagPtr  Dict
 );
 
 EFI_STATUS
+EFIAPI
 GetElement (
   TagPtr    Dict,
   INTN      Id,

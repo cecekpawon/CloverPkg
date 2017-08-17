@@ -48,9 +48,15 @@
 
 #define DBG(...) DebugLog (DEBUG_SCAN_LOADER, __VA_ARGS__)
 
-CHAR16  *SupportedOsType[3] = { OSTYPE_DARWIN_STR, OSTYPE_LINUX_STR, OSTYPE_WINDOWS_STR };
+CHAR16  *gSupportedOsType[3] = { OSTYPE_DARWIN_STR, OSTYPE_LINUX_STR, OSTYPE_WINDOWS_STR };
 
-#define BOOT_LOADER_PATH                    L"\\EFI\\BOOT\\BOOTX64.efi"
+#define EFI_BOOTX64                         L"\\BOOTX64.efi"
+#define EFI_GRUB64                          L"\\GRUBX64.efi"
+
+#define EFI_PATH                            L"\\EFI"
+#define EFI_BOOT_PATH                       EFI_PATH L"\\BOOT"
+
+#define BOOT_LOADER_PATH                    EFI_BOOT_PATH EFI_BOOTX64
 
 #define DARWIN_CORE_SERVICES                L"\\System\\Library\\CoreServices"
 #define DARWIN_IA_PATH                      L"\\.IABootFiles"
@@ -70,6 +76,18 @@ CHAR16  *SupportedOsType[3] = { OSTYPE_DARWIN_STR, OSTYPE_LINUX_STR, OSTYPE_WIND
 #define DARWIN_RECOVERY_LOADER_PATH         DARWIN_RECOVERY_PATH DARWIN_BOOT_EFI
 #define DARWIN_INSTALLER_LOADER_PATH        DARWIN_INSTALLER_PATH DARWIN_BOOT_EFI
 
+#define DARWIN_LOCKED_FILES                 L"\\Locked Files"
+#define DARWIN_BOOT_FILES                   L"\\Boot Files"
+#define DARWIN_INSTALL_DATA_PATH            L"Install Data"
+#define DARWIN_INSTALL_DATA_OSX1_PATH       L"\\OS X " DARWIN_INSTALL_DATA_PATH
+#define DARWIN_INSTALL_DATA_OSX2_PATH       L"\\Mac " DARWIN_INSTALL_DATA_OSX1_PATH
+#define DARWIN_INSTALL_DATA_MACOS_PATH      L"\\macOS " DARWIN_INSTALL_DATA_PATH
+
+#define DARWIN_KERNEL_CACHE                 L"\\kernelcache"
+#define DARWIN_EXT_MKEXT                    L"\\Extensions.mkext"
+#define DARWIN_LIBRARY_PATH                 L"\\System\\Library"
+#define DARWIN_CACHE_STARTUP_PATH           DARWIN_LIBRARY_PATH L"\\com.apple.kext.caches\\Startup"
+
 #define DARWIN_MACH_KERNEL_PATH             L"/mach_kernel"
 #define DARWIN_KERNEL_PATH                  L"/System/Library/Kernels/kernel"
 
@@ -82,19 +100,33 @@ CHAR16  *SupportedOsType[3] = { OSTYPE_DARWIN_STR, OSTYPE_LINUX_STR, OSTYPE_WIND
 #define LINUX_LOADER_SEARCH_PATH            LINUX_LOADER_PATH L"*"
 #define LINUX_DEFAULT_OPTIONS               L"ro add_efi_memmap quiet splash vt.handoff=7"
 
+#define MICROSOFT_BOOT_PATH                 EFI_PATH L"\\MICROSOFT\\BOOT"
+
 #define STR_S_UNKNOWN                       L"Unknown"
 
 STATIC CHAR16   *OSXInstallerPaths[] = {
-  L"\\OS X Install Data" DARWIN_BOOT_EFI,
-  L"\\Mac OS X Install Data" DARWIN_BOOT_EFI,
-  L"\\macOS Install Data" DARWIN_BOOT_EFI,
-  L"\\macOS Install Data\\Locked Files\\Boot Files" DARWIN_BOOT_EFI,
+  DARWIN_INSTALL_DATA_OSX1_PATH   DARWIN_BOOT_EFI,
+  DARWIN_INSTALL_DATA_OSX2_PATH   DARWIN_BOOT_EFI,
+  DARWIN_INSTALL_DATA_MACOS_PATH  DARWIN_BOOT_EFI,
+  DARWIN_INSTALL_DATA_MACOS_PATH  DARWIN_LOCKED_FILES   DARWIN_BOOT_FILES   DARWIN_BOOT_EFI,
   DARWIN_INSTALLER_IA_PATH,
   DARWIN_INSTALLER_LOADER_PATH,
   DARWIN_INSTALLER_LOADERBASE_PATH
 };
 
-STATIC CONST UINTN OSXInstallerPathsCount = ARRAY_SIZE (OSXInstallerPaths);
+STATIC CONST UINTN  OSXInstallerPathsCount = ARRAY_SIZE (OSXInstallerPaths);
+
+CONST CHAR16  *gOsxPathLCaches[] = {
+   DARWIN_CACHE_STARTUP_PATH  DARWIN_KERNEL_CACHE,
+   DARWIN_CACHE_STARTUP_PATH  DARWIN_EXT_MKEXT,
+   DARWIN_LIBRARY_PATH        DARWIN_EXT_MKEXT,
+   DARWIN_RECOVERY_PATH       DARWIN_KERNEL_CACHE,
+   DARWIN_RECOVERY_PATH       DARWIN_EXT_MKEXT,
+   DARWIN_IA_PATH             DARWIN_KERNEL_CACHE
+};
+
+CONST UINTN   gOsxPathLCachesCount = ARRAY_SIZE (gOsxPathLCaches);
+//CHAR8   *OsVerUndetected = "10.10.10";  //longer string
 
 // Linux loader path data
 typedef struct {
@@ -103,7 +135,7 @@ typedef struct {
   CHAR16  Icon[64];
 } LINUX_PATH_DATA;
 
-STATIC CHAR16 *LinuxInitImagePath[] = {
+STATIC CHAR16   *LinuxInitImagePath[] = {
    L"initrd%s",
    L"initrd.img%s",
    L"initrd%s.img",
@@ -112,7 +144,7 @@ STATIC CHAR16 *LinuxInitImagePath[] = {
    L"initramfs%s.img",
 };
 
-STATIC CONST UINTN LinuxInitImagePathCount = ARRAY_SIZE (LinuxInitImagePath);
+STATIC CONST UINTN  LinuxInitImagePathCount = ARRAY_SIZE (LinuxInitImagePath);
 
 #define ANDX86_FINDLEN 3
 
@@ -123,21 +155,21 @@ typedef struct {
   CHAR16   *Find[ANDX86_FINDLEN];
 } ANDX86_PATH_DATA;
 
-STATIC ANDX86_PATH_DATA AndroidEntryData[] = {
-  { L"\\EFI\\remixos\\grubx64.efi",   L"Remix",   L"remix,grub,linux",    { L"\\isolinux\\isolinux.bin",  L"\\initrd.img",          L"\\kernel" } },
-  { L"\\EFI\\boot\\grubx64.efi",      L"Phoenix", L"phoenix,grub,linux",  { L"\\phoenix\\kernel",         L"\\phoenix\\initrd.img", L"\\phoenix\\ramdisk.img" } },
-  { L"\\EFI\\boot\\bootx64.efi",      L"Chrome",  L"chrome,grub,linux",   { L"\\syslinux\\vmlinuz.A",     L"\\syslinux\\vmlinuz.B", L"\\syslinux\\ldlinux.sys" } },
+STATIC ANDX86_PATH_DATA   AndroidEntryData[] = {
+  { EFI_PATH L"\\remixos" EFI_GRUB64, L"Remix",   L"remix,grub,linux",    { L"\\isolinux\\isolinux.bin",  L"\\initrd.img",          L"\\kernel" } },
+  { EFI_BOOT_PATH EFI_GRUB64,         L"Phoenix", L"phoenix,grub,linux",  { L"\\phoenix\\kernel",         L"\\phoenix\\initrd.img", L"\\phoenix\\ramdisk.img" } },
+  { BOOT_LOADER_PATH,                 L"Chrome",  L"chrome,grub,linux",   { L"\\syslinux\\vmlinuz.A",     L"\\syslinux\\vmlinuz.B", L"\\syslinux\\ldlinux.sys" } },
 };
 
 STATIC CONST UINTN AndroidEntryDataCount = ARRAY_SIZE (AndroidEntryData);
 
 STATIC CHAR16   *WINEFIPaths[] = {
-  L"\\EFI\\MICROSOFT\\BOOT\\bootmgfw.efi",
-  //L"\\EFI\\MICROSOFT\\BOOT\\bootmgfw-orig.efi",
-  L"\\EFI\\MICROSOFT\\BOOT\\cdboot.efi"
+  MICROSOFT_BOOT_PATH   L"\\bootmgfw.efi",
+  //MICROSOFT_BOOT_PATH L"\\bootmgfw-orig.efi",
+  MICROSOFT_BOOT_PATH   L"\\cdboot.efi"
 };
 
-STATIC CONST UINTN    WINEFIPathsCount = ARRAY_SIZE (WINEFIPaths);
+STATIC CONST UINTN  WINEFIPathsCount = ARRAY_SIZE (WINEFIPaths);
 
 STATIC CHAR16   *LinuxPath[] = { L"Gentoo", L"RedHat", L"Ubuntu", L"Mint", L"Fedora", L"OpenSuse", L"Debian", L"Arch" };
 
@@ -296,8 +328,8 @@ IsFirstRootUUID (
   UINTN           VolumeIndex;
   REFIT_VOLUME    *ScanedVolume;
 
-  for (VolumeIndex = 0; VolumeIndex < VolumesCount; VolumeIndex++) {
-    ScanedVolume = Volumes[VolumeIndex];
+  for (VolumeIndex = 0; VolumeIndex < gVolumesCount; VolumeIndex++) {
+    ScanedVolume = gVolumes[VolumeIndex];
 
     if (ScanedVolume == Volume) {
       break;
@@ -640,7 +672,7 @@ CreateLoaderEntry (
   }
 
   // Ignore this loader if it's self path
-  if (StriCmp (FileDevicePathToStr (SelfFullDevicePath), LoaderDevicePathString) == 0) {
+  if (StriCmp (FileDevicePathToStr (gSelfFullDevicePath), LoaderDevicePathString) == 0) {
     DBG ("%a skipped because path `%s` is self path!\n", Indent, LoaderDevicePathString);
     FreePool (LoaderDevicePathString);
     return NULL;
@@ -648,12 +680,12 @@ CreateLoaderEntry (
 
   if (!CustomEntry) {
     CUSTOM_LOADER_ENTRY   *Custom;
-    UINTN                  CustomIndex = 0;
+    UINTN                 CustomIndex = 0;
 
     // Ignore this loader if it's device path is already present in another loader
-    if (MainMenu.Entries) {
-      for (i = 0; i < MainMenu.EntryCount; ++i) {
-        REFIT_MENU_ENTRY    *MainEntry = MainMenu.Entries[i];
+    if (gMainMenu.Entries) {
+      for (i = 0; i < gMainMenu.EntryCount; ++i) {
+        REFIT_MENU_ENTRY    *MainEntry = gMainMenu.Entries[i];
 
         // Only loaders
         if (MainEntry && (MainEntry->Tag == TAG_LOADER)) {
@@ -684,7 +716,7 @@ CreateLoaderEntry (
           // Check if the string matches the volume
           VolumeMatch = (
             (StrStr (Volume->DevicePathString, Custom->Volume) != NULL) ||
-             ((Volume->VolName != NULL) && (StrStr (Volume->VolName, Custom->Volume) != NULL))
+            ((Volume->VolName != NULL) && (StrStr (Volume->VolName, Custom->Volume) != NULL))
           ) ? 1 : -1;
         }
 
@@ -963,7 +995,7 @@ GetIconDetail (
   Width   = BaseImg->Width + 16;
   Height  = BaseImg->Height + 16;
 
-  rImage = CreateFilledImage (Width, Height, TRUE, &TransparentBackgroundPixel);
+  rImage = CreateFilledImage (Width, Height, TRUE, &gTransparentBackgroundPixel);
 
   ComposeImage (rImage, BaseImg, 8, 8);
 
@@ -1038,7 +1070,7 @@ AddDefaultMenu (
     AddMenuEntry (SubScreen, (REFIT_MENU_ENTRY *)SubEntry);
   }
 
-  AddMenuEntry (SubScreen, &MenuEntryReturn);
+  AddMenuEntry (SubScreen, &gMenuEntryReturn);
   Entry->me.SubScreen = SubScreen;
   //DBG ("    Added '%s': OSType='%d', OSVersion='%a'\n", Entry->me.Title, Entry->LoaderType, Entry->OSVersion);
 }
@@ -1159,7 +1191,7 @@ AddLoaderEntry (
     }
 
     AddDefaultMenu (Entry);
-    AddMenuEntry (&MainMenu, (REFIT_MENU_ENTRY *)Entry);
+    AddMenuEntry (&gMainMenu, (REFIT_MENU_ENTRY *)Entry);
     return TRUE;
   }
 
@@ -1195,12 +1227,14 @@ ScanApfsLoader (
   }
 
   if (!ValidLoader) {
-    for (TmpVenMediaGUIDIndex = 0; (TmpVenMediaGUIDIndex < VenMediaGUIDCount) && !ValidLoader; TmpVenMediaGUIDIndex++) {
-      TmpVenMediaGUID = VenMediaGUID[TmpVenMediaGUIDIndex];
+    for (TmpVenMediaGUIDIndex = 0; (TmpVenMediaGUIDIndex < gVenMediaGUIDCount) && !ValidLoader; TmpVenMediaGUIDIndex++) {
+      TmpVenMediaGUID = gVenMediaGUID[TmpVenMediaGUIDIndex];
 
       //DBG ("        --> [TmpVenMediaGUID]: %g\n", TmpVenMediaGUID);
 
-      if (IsRecovery) {
+      if (IsPreboot) {
+        ValidLoader = AddLoaderEntry (PoolPrint (L"\\%g%s", TmpVenMediaGUID, DARWIN_LOADER_PATH), NULL, L"Preboot", Volume, NULL, OSTYPE_DARWIN, 0);
+      } else if (IsRecovery) {
         ValidLoader = AddLoaderEntry (PoolPrint (L"\\%g%s", TmpVenMediaGUID, DARWIN_BOOT_EFI), NULL, L"Recovery", Volume, NULL, OSTYPE_DARWIN_RECOVERY, 0);
       } else {
         Index = 0;
@@ -1224,10 +1258,10 @@ ScanLoader () {
   //DBG ("Scanning loaders...\n");
   DbgHeader ("ScanLoader");
 
-  for (VolumeIndex = 0; VolumeIndex < VolumesCount; VolumeIndex++) {
+  for (VolumeIndex = 0; VolumeIndex < gVolumesCount; VolumeIndex++) {
     BOOLEAN   ValidLoader = FALSE , PartIsHFS = FALSE, PartIsRecovery = FALSE, PartIsAPFS = FALSE, PartIsKernelCoreDump = FALSE;
 
-    Volume = Volumes[VolumeIndex];
+    Volume = gVolumes[VolumeIndex];
 
     if (Volume->RootDir == NULL) { // || Volume->VolName == NULL)
       //DBG (", no filesystem\n", VolumeIndex);
@@ -1513,7 +1547,7 @@ AddCustomEntry (
     DBG ("all volumes\n");
   }
 
-  for (VolumeIndex = 0; VolumeIndex < VolumesCount; ++VolumeIndex) {
+  for (VolumeIndex = 0; VolumeIndex < gVolumesCount; ++VolumeIndex) {
     CUSTOM_LOADER_ENTRY   *CustomSubEntry;
     LOADER_ENTRY          *Entry = NULL;
     EG_IMAGE              *Image, *DriveImage, *ImageHover = NULL;
@@ -1521,7 +1555,7 @@ AddCustomEntry (
     EFI_GUID              *Guid = NULL;
     UINT64                VolumeSize;
 
-    Volume = Volumes[VolumeIndex];
+    Volume = gVolumes[VolumeIndex];
 
     if ((Volume == NULL) || (Volume->RootDir == NULL)) {
       continue;
@@ -1609,19 +1643,19 @@ AddCustomEntry (
 
       Image = LoadImage (Volume->RootDir, Custom->ImagePath);
       if (Image == NULL) {
-        Image = LoadImage (ThemeDir, Custom->ImagePath);
+        Image = LoadImage (gThemeDir, Custom->ImagePath);
         if (Image == NULL) {
-          Image = LoadImage (SelfDir, Custom->ImagePath);
+          Image = LoadImage (gSelfDir, Custom->ImagePath);
           if (Image == NULL) {
-            Image = LoadImage (SelfRootDir, Custom->ImagePath);
+            Image = LoadImage (gSelfRootDir, Custom->ImagePath);
             if (Image != NULL) {
-              ImageHover = LoadImage (SelfRootDir, ImageHoverPath);
+              ImageHover = LoadImage (gSelfRootDir, ImageHoverPath);
             }
           } else {
-            ImageHover = LoadImage (SelfDir, ImageHoverPath);
+            ImageHover = LoadImage (gSelfDir, ImageHoverPath);
           }
         } else {
-          ImageHover = LoadImage (ThemeDir, ImageHoverPath);
+          ImageHover = LoadImage (gThemeDir, ImageHoverPath);
         }
       } else {
         ImageHover = LoadImage (Volume->RootDir, ImageHoverPath);
@@ -1636,11 +1670,11 @@ AddCustomEntry (
     if ((DriveImage == NULL) && Custom->DriveImagePath) {
       DriveImage = LoadImage (Volume->RootDir, Custom->DriveImagePath);
       if (DriveImage == NULL) {
-        DriveImage = LoadImage (ThemeDir, Custom->DriveImagePath);
+        DriveImage = LoadImage (gThemeDir, Custom->DriveImagePath);
         if (DriveImage == NULL) {
-          DriveImage = LoadImage (SelfDir, Custom->DriveImagePath);
+          DriveImage = LoadImage (gSelfDir, Custom->DriveImagePath);
           if (DriveImage == NULL) {
-            DriveImage = LoadImage (SelfRootDir, Custom->DriveImagePath);
+            DriveImage = LoadImage (gSelfRootDir, Custom->DriveImagePath);
             if (DriveImage == NULL) {
               DriveImage = LoadBuiltinIcon (Custom->DriveImagePath);
             }
@@ -1884,12 +1918,12 @@ AddCustomEntry (
               );
             }
 
-            AddMenuEntry (SubScreen, &MenuEntryReturn);
+            AddMenuEntry (SubScreen, &gMenuEntryReturn);
             Entry->me.SubScreen = SubScreen;
           }
         }
 
-        AddMenuEntry (IsSubEntry ? SubMenu : &MainMenu, (REFIT_MENU_ENTRY *)Entry);
+        AddMenuEntry (IsSubEntry ? SubMenu : &gMainMenu, (REFIT_MENU_ENTRY *)Entry);
       }
 
       // cleanup custom
@@ -2000,10 +2034,10 @@ FindDefaultEntry () {
   //DBG ("FindDefaultEntry ...\n");
   DbgHeader ("FindDefaultEntry");
 
-  Index = FindStartupDiskVolume (&MainMenu);
+  Index = FindStartupDiskVolume (&gMainMenu);
 
   if (Index >= 0) {
-    DBG ("Boot redirected to Entry %d. '%s'\n", Index, MainMenu.Entries[Index]->Title);
+    DBG ("Boot redirected to Entry %d. '%s'\n", Index, gMainMenu.Entries[Index]->Title);
     return Index;
   }
 
@@ -2015,8 +2049,8 @@ FindDefaultEntry () {
     // if not null or empty, also search for loader that matches gSettings.DefaultLoader
     SearchForLoader = ((gSettings.DefaultLoader != NULL) && (gSettings.DefaultLoader[0] != L'\0'));
 
-    for (Index = 0; ((Index < (INTN)MainMenu.EntryCount) && (MainMenu.Entries[Index]->Row == 0)); Index++) {
-      Entry = (LOADER_ENTRY *)MainMenu.Entries[Index];
+    for (Index = 0; ((Index < (INTN)gMainMenu.EntryCount) && (gMainMenu.Entries[Index]->Row == 0)); Index++) {
+      Entry = (LOADER_ENTRY *)gMainMenu.Entries[Index];
       if (!Entry->Volume) {
         continue;
       }
@@ -2182,7 +2216,6 @@ NullConOutOutputString (
   return EFI_SUCCESS;
 }
 
-
 EFI_STATUS
 LoadEFIImageList (
   IN  EFI_DEVICE_PATH   **DevicePaths,
@@ -2208,7 +2241,7 @@ LoadEFIImageList (
   for (DevicePathIndex = 0; (DevicePaths[DevicePathIndex] != NULL); DevicePathIndex++) {
     Status = gBS->LoadImage (
                     FALSE,
-                    SelfImageHandle,
+                    gSelfImageHandle,
                     DevicePaths[DevicePathIndex],
                     NULL,
                     0,
@@ -2413,8 +2446,8 @@ CheckAptioFix () {
   Status = EfiLibLocateProtocol (&gAptioFixProtocolGuid, (VOID **)&AptioFix);
   if (!EFI_ERROR (Status) && (AptioFix->Signature == APTIOFIX_SIGNATURE)) {
     DBG ("- AptioFix driver loaded\n");
-    gDriversFlags->AptioFixLoaded = TRUE;
-    gDriversFlags->AptioFixVersion = AptioFix->Version;
+    gSettings.DriversFlags.AptioFixLoaded = TRUE;
+    gSettings.DriversFlags.AptioFixVersion = AptioFix->Version;
   }
 }
 
@@ -2433,7 +2466,7 @@ StartLoader (
 
   if (Entry->Settings) {
     DBG ("Entry->Settings: %s\n", Entry->Settings);
-    Status = LoadUserSettings (SelfRootDir, Entry->Settings, &Dict);
+    Status = LoadUserSettings (gSelfRootDir, Entry->Settings, &Dict);
 
     if (!EFI_ERROR (Status)) {
       DBG (" - found custom settings for this entry: %s\n", Entry->Settings);
@@ -2444,7 +2477,7 @@ StartLoader (
         DBG (" - ... but: %r\n", Status);
       } else {
         if ((gSettings.CpuFreqMHz > 100) && (gSettings.CpuFreqMHz < 20000)) {
-          gCPUStructure.MaxSpeed = gSettings.CpuFreqMHz;
+          gSettings.CPUStructure.MaxSpeed = gSettings.CpuFreqMHz;
         }
       }
     } else {
@@ -2453,8 +2486,8 @@ StartLoader (
   }
 
   DBG ("Finally: Bus=%ldkHz CPU=%ldMHz\n",
-    DivU64x32 (gCPUStructure.FSBFrequency, kilo),
-    gCPUStructure.MaxSpeed
+    DivU64x32 (gSettings.CPUStructure.FSBFrequency, kilo),
+    gSettings.CPUStructure.MaxSpeed
   );
 
   // Unified
@@ -2477,9 +2510,9 @@ StartLoader (
   }
 
 #if BOOT_GRAY
-  ClearScreen (&GrayBackgroundPixel);
+  ClearScreen (&gGrayBackgroundPixel);
 #else
-  ClearScreen (&BlackBackgroundPixel);
+  ClearScreen (&gBlackBackgroundPixel);
 #endif
 
   if (OSTYPE_IS_DARWIN_GLOB (Entry->LoaderType)) {
@@ -2650,7 +2683,7 @@ StartLoader (
     SetCPUProperties ();
 
     if (
-      gDriversFlags->AptioFixLoaded &&
+      gSettings.DriversFlags.AptioFixLoaded &&
       !BootArgsExists (Entry->LoadOptions, L"slide=")
     ) {
       // Add slide=0 argument for ML+ if not present
@@ -2739,9 +2772,9 @@ StartLoader (
 
     if (gSettings.BootArgsNVRAM && BootArgsLen) {
       SetNvramVariable (
-        NvramData[kNvBootArgs].VariableName,
-        NvramData[kNvBootArgs].Guid,
-        NvramData[kNvBootArgs].Attribute,
+        gNvramData[kNvBootArgs].VariableName,
+        gNvramData[kNvBootArgs].Guid,
+        gNvramData[kNvBootArgs].Attribute,
         BootArgsLen,
         BootArgsTmp
       );
@@ -2780,7 +2813,7 @@ CHAR16 *
 GetCommonKextsDir (
   CHAR16   *SrcDir
 ) {
-  return FileExists (SelfVolume->RootDir, SrcDir) ? SrcDir : NULL;
+  return FileExists (gSelfVolume->RootDir, SrcDir) ? SrcDir : NULL;
 }
 
 //dmazar
@@ -2811,7 +2844,7 @@ GetOSVersionKextsDir (
   SrcDir = AllocateZeroPool (AVALUE_MAX_SIZE);
   UnicodeSPrint (SrcDir, AVALUE_MAX_SIZE, L"%s\\%a", DIR_KEXTS, FixedVersion);
 
-  if (!FileExists (SelfVolume->RootDir, SrcDir)) {
+  if (!FileExists (gSelfVolume->RootDir, SrcDir)) {
     FreePool (SrcDir);
     SrcDir = NULL;
   }
@@ -2826,14 +2859,14 @@ SetFSInjection (
   EFI_STATUS              Status = EFI_NOT_STARTED;
   FSINJECTION_PROTOCOL    *FSInject;
   FSI_STRING_LIST         *Blacklist = 0, *ForceLoadKexts = NULL;
-  UINTN                   Index = 0, InjectKextsDirCount = ARRAY_SIZE (InjectKextsDir);
+  UINTN                   Index = 0, InjectKextsDirCount = ARRAY_SIZE (gInjectKextsDir);
 
   //DbgHeader ("FSInjection");
 
   if (BIT_ISSET (Entry->Flags, OSFLAG_WITHKEXTS)) {
-    InjectKextsDir[0] = GetCommonKextsDir (DIR_KEXTS_COMMON);
-    //InjectKextsDir[1] = GetCommonKextsDir (DIR_KEXTS_COMMON_SLAVE); // Slave
-    InjectKextsDir[1] = GetOSVersionKextsDir (Entry->OSVersion);
+    gInjectKextsDir[0] = GetCommonKextsDir (DIR_KEXTS_COMMON);
+    //gInjectKextsDir[1] = GetCommonKextsDir (DIR_KEXTS_COMMON_SLAVE); // Slave
+    gInjectKextsDir[1] = GetOSVersionKextsDir (Entry->OSVersion);
   }
 
   //check if blocking of caches is needed
@@ -2862,8 +2895,8 @@ SetFSInjection (
     return EFI_NOT_STARTED;
   }
 
-  while (Index < OsxPathLCachesCount) {
-    FSInject->AddStringToList (Blacklist, OsxPathLCaches[Index++]);
+  while (Index < gOsxPathLCachesCount) {
+    FSInject->AddStringToList (Blacklist, gOsxPathLCaches[Index++]);
   }
 
   if (gSettings.BlockKexts[0] != L'\0') {
@@ -2874,17 +2907,17 @@ SetFSInjection (
   // (will be done only if caches are blocked or if boot.efi refuses to load kernelcache)
   if (BIT_ISSET (Entry->Flags, OSFLAG_WITHKEXTS)) {
     for (Index = 0; Index < InjectKextsDirCount; Index++) {
-      if (InjectKextsDir[Index] != NULL) {
+      if (gInjectKextsDir[Index] != NULL) {
         Status = FSInject->Install (
                               Entry->Volume->DeviceHandle,
                               OSX_PATH_SLE,
-                              SelfVolume->DeviceHandle,
-                              InjectKextsDir[Index],
+                              gSelfVolume->DeviceHandle,
+                              gInjectKextsDir[Index],
                               Blacklist,
                               ForceLoadKexts
                             );
 
-        MsgLog (" - Src: %s, Status: %r\n", InjectKextsDir[Index], Status);
+        MsgLog (" - Src: %s, Status: %r\n", gInjectKextsDir[Index], Status);
       }
     }
   } else {
@@ -2913,8 +2946,8 @@ VOID
 SetupBooterCsrCfg (
   IN LOADER_ENTRY   *Entry
 ) {
-  UINT16    FixFlags = 0xFFFF;
-  UINT32    FixCsrActiveConfig = 0xFFFF;
+  UINT16    FixFlags = 0;
+  UINT32    FixCsrActiveConfig = 0;
   BOOLEAN   DisableSIP = FALSE;
 
   if (OSX_LT (Entry->OSVersion, DARWIN_OS_VER_STR_ELCAPITAN)) {
@@ -2927,24 +2960,21 @@ SetupBooterCsrCfg (
     goto NoSIP;
   }
 
-  CONSTRAIN_MAX (gSettings.BooterConfig, FixFlags);
-  CONSTRAIN_MAX (gSettings.CsrActiveConfig, FixCsrActiveConfig);
-
   switch (Entry->LoaderType) {
     case OSTYPE_DARWIN_RECOVERY:
     case OSTYPE_DARWIN_INSTALLER:
-      if (!gSettings.CsrActiveConfig || (gSettings.CsrActiveConfig == FixCsrActiveConfig)) {
+      if (!gSettings.CsrActiveConfig) {
         DisableSIP = TRUE;
       }
       break;
 
     default:
       // user defined
-      if (gSettings.BooterConfig && (gSettings.BooterConfig != FixFlags)) {
+      if (gSettings.BooterConfig) {
         FixFlags = gSettings.BooterConfig;
       }
 
-      if (gSettings.CsrActiveConfig && (gSettings.CsrActiveConfig != FixCsrActiveConfig)) {
+      if (gSettings.CsrActiveConfig) {
         FixCsrActiveConfig = gSettings.CsrActiveConfig;
       }
       break;
@@ -2957,25 +2987,21 @@ SetupBooterCsrCfg (
     FixCsrActiveConfig = DEF_NOSIP_CSR_ACTIVE_CONFIG;
   }
 
-  switch (gDriversFlags->AptioFixVersion) {
+  switch (gSettings.DriversFlags.AptioFixVersion) {
     case 1:
       if (!DisableSIP) {
-        FixCsrActiveConfig = BIT_SET (((FixCsrActiveConfig == 0xFFFF) ? 0 : FixCsrActiveConfig), (CSR_ALLOW_APPLE_INTERNAL | CSR_ALLOW_UNRESTRICTED_NVRAM));
+        FixCsrActiveConfig = BIT_SET ((FixCsrActiveConfig ? FixCsrActiveConfig : 0), (CSR_ALLOW_APPLE_INTERNAL | CSR_ALLOW_UNRESTRICTED_NVRAM));
       }
       break;
 
     case 2:
-      if (FixCsrActiveConfig && (FixCsrActiveConfig != 0xFFFF)) {
+      if (FixCsrActiveConfig) {
         FixCsrActiveConfig = BIT_UNSET (FixCsrActiveConfig, CSR_ALLOW_UNRESTRICTED_NVRAM);
       }
       break;
   }
 
-  if (FixCsrActiveConfig != 0xFFFF) {
-    if (FixFlags == 0xFFFF) {
-      FixFlags = 0;
-    }
-
+  if (FixCsrActiveConfig) {
     FixFlags = BIT_SET (FixFlags, kBootArgsFlagCSRActiveConfig);
 
     if (BIT_ISSET (FixCsrActiveConfig, CSR_ALLOW_DEVICE_CONFIGURATION)) {
@@ -2986,7 +3012,7 @@ SetupBooterCsrCfg (
   Finish:
 
   #if BOOT_GRAY
-    if (FixFlags && (FixFlags != 0xFFFF)) {
+    if (FixFlags) {
       FixFlags = BIT_UNSET (FixFlags, (kBootArgsFlagBlack | kBootArgsFlagBlackBg));
     }
   #endif
@@ -2994,6 +3020,6 @@ SetupBooterCsrCfg (
   gSettings.BooterConfig = FixFlags;
   gSettings.CsrActiveConfig = FixCsrActiveConfig;
 
-  DumpBitsConfig ("BooterConfig", (UINT32)gSettings.BooterConfig, ABOOTERCFG, OptBooterCfgBitNum);
-  DumpBitsConfig ("CsrActiveConfig", gSettings.CsrActiveConfig, ACSRCFG, OptCsrCfgBitNum);
+  DumpBitsConfig ("BooterConfig", (UINT32)gSettings.BooterConfig, gABOOTERCFG, gOptBooterCfgBitNum);
+  DumpBitsConfig ("CsrActiveConfig", gSettings.CsrActiveConfig, gACSRCFG, gOptCsrCfgBitNum);
 }

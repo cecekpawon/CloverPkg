@@ -55,9 +55,8 @@
 #endif
 
 UINT8             gDefaultType;
-CPU_STRUCTURE     gCPUStructure;
-UINT64            TurboMsr;
-BOOLEAN           NeedPMfix = FALSE;
+//CPU_STRUCTURE     gCPUStructure;
+//UINT64            TurboMsr;
 
 //this must not be defined at LegacyBios calls
 #define EAX 0
@@ -85,28 +84,31 @@ GetCPUProperties () {
 
   DbgHeader ("GetCPUProperties");
 
-  //initial values
-  gCPUStructure.MaxRatio = 10; //keep it as K * 10
-  gCPUStructure.MinRatio = 10; //same
-  gCPUStructure.SubDivider = 0;
-  gSettings.CpuFreqMHz = 0;
-  gCPUStructure.FSBFrequency = MultU64x32 (gCPUStructure.ExternalClock, kilo); //kHz -> Hz
-  gCPUStructure.ProcessorInterconnectSpeed = 0;
-  gCPUStructure.Mobile = FALSE; //not same as gMobile
+  // get TSC freq and init MemLog if needed
+  gSettings.CPUStructure.TSCCalibr = GetMemLogTscTicksPerSecond (); //ticks for 1second
 
-  if (!gCPUStructure.CurrentSpeed) {
-    gCPUStructure.CurrentSpeed = (UINT32)DivU64x32 (gCPUStructure.TSCCalibr + (Mega >> 1), Mega);
+  //initial values
+  gSettings.CPUStructure.MaxRatio = 10; //keep it as K * 10
+  gSettings.CPUStructure.MinRatio = 10; //same
+  gSettings.CPUStructure.SubDivider = 0;
+  gSettings.CpuFreqMHz = 0;
+  gSettings.CPUStructure.FSBFrequency = MultU64x32 (gSettings.CPUStructure.ExternalClock, kilo); //kHz -> Hz
+  gSettings.CPUStructure.ProcessorInterconnectSpeed = 0;
+  gSettings.CPUStructure.Mobile = FALSE; //not same as gSettings.Mobile
+
+  if (!gSettings.CPUStructure.CurrentSpeed) {
+    gSettings.CPUStructure.CurrentSpeed = (UINT32)DivU64x32 (gSettings.CPUStructure.TSCCalibr + (Mega >> 1), Mega);
   }
 
-  if (!gCPUStructure.MaxSpeed) {
-    gCPUStructure.MaxSpeed = gCPUStructure.CurrentSpeed;
+  if (!gSettings.CPUStructure.MaxSpeed) {
+    gSettings.CPUStructure.MaxSpeed = gSettings.CPUStructure.CurrentSpeed;
   }
 
   /* get CPUID Values */
-  DoCpuid (0, gCPUStructure.CPUID[CPUID_0]);
-  gCPUStructure.Vendor  = gCPUStructure.CPUID[CPUID_0][EBX];
+  DoCpuid (0, gSettings.CPUStructure.CPUID[CPUID_0]);
+  gSettings.CPUStructure.Vendor  = gSettings.CPUStructure.CPUID[CPUID_0][EBX];
 
-  if (gCPUStructure.Vendor != CPU_VENDOR_INTEL) {
+  if (gSettings.CPUStructure.Vendor != CPU_VENDOR_INTEL) {
     DBG ("Unsupported CPU model\n");
   }
 
@@ -115,104 +117,104 @@ GetCPUProperties () {
    * and bracket this with the approved procedure for reading the
    * the microcode version number a.k.a. signature a.k.a. BIOS ID
    */
-  //if (gCPUStructure.Vendor == CPU_VENDOR_INTEL) {
+  //if (gSettings.CPUStructure.Vendor == CPU_VENDOR_INTEL) {
     AsmWriteMsr64 (MSR_IA32_BIOS_SIGN_ID, 0);
   //}
 
-  DoCpuid (1, gCPUStructure.CPUID[CPUID_1]);
-  gCPUStructure.Signature = gCPUStructure.CPUID[CPUID_1][EAX];
+  DoCpuid (1, gSettings.CPUStructure.CPUID[CPUID_1]);
+  gSettings.CPUStructure.Signature = gSettings.CPUStructure.CPUID[CPUID_1][EAX];
 
-  DBG ("CPU Vendor = %x Model=%x\n", gCPUStructure.Vendor, gCPUStructure.Signature);
+  DBG ("CPU Vendor = %x Model=%x\n", gSettings.CPUStructure.Vendor, gSettings.CPUStructure.Signature);
 
-  //if (gCPUStructure.Vendor == CPU_VENDOR_INTEL) {
+  //if (gSettings.CPUStructure.Vendor == CPU_VENDOR_INTEL) {
     Msr = AsmReadMsr64 (MSR_IA32_BIOS_SIGN_ID);
-    gCPUStructure.MicroCode = RShiftU64 (Msr, 32);
+    gSettings.CPUStructure.MicroCode = RShiftU64 (Msr, 32);
     /* Get "processor flag"; necessary for microcode update matching */
-    gCPUStructure.ProcessorFlag = (RShiftU64 (AsmReadMsr64 (MSR_IA32_PLATFORM_ID), 50)) & 3;
+    gSettings.CPUStructure.ProcessorFlag = (RShiftU64 (AsmReadMsr64 (MSR_IA32_PLATFORM_ID), 50)) & 3;
   //}
 
-  //  DoCpuid (2, gCPUStructure.CPUID[2]);
+  //  DoCpuid (2, gSettings.CPUStructure.CPUID[2]);
 
-  DoCpuid (0x80000000, gCPUStructure.CPUID[CPUID_80]);
-  if ((gCPUStructure.CPUID[CPUID_80][EAX] & 0x0000000f) >= 1) {
-    DoCpuid (0x80000001, gCPUStructure.CPUID[CPUID_81]);
+  DoCpuid (0x80000000, gSettings.CPUStructure.CPUID[CPUID_80]);
+  if ((gSettings.CPUStructure.CPUID[CPUID_80][EAX] & 0x0000000f) >= 1) {
+    DoCpuid (0x80000001, gSettings.CPUStructure.CPUID[CPUID_81]);
   }
 
-  gCPUStructure.Stepping      = (UINT8)bitfield (gCPUStructure.Signature, 3, 0);
-  gCPUStructure.Model         = (UINT8)bitfield (gCPUStructure.Signature, 7, 4);
-  gCPUStructure.Family        = (UINT8)bitfield (gCPUStructure.Signature, 11, 8);
-  gCPUStructure.Type          = (UINT8)bitfield (gCPUStructure.Signature, 13, 12);
-  gCPUStructure.Extmodel      = (UINT8)bitfield (gCPUStructure.Signature, 19, 16);
-  gCPUStructure.Extfamily     = (UINT8)bitfield (gCPUStructure.Signature, 27, 20);
-  gCPUStructure.Features      = quad (gCPUStructure.CPUID[CPUID_1][ECX], gCPUStructure.CPUID[CPUID_1][EDX]);
-  gCPUStructure.ExtFeatures   = quad (gCPUStructure.CPUID[CPUID_81][ECX], gCPUStructure.CPUID[CPUID_81][EDX]);
+  gSettings.CPUStructure.Stepping      = (UINT8)bitfield (gSettings.CPUStructure.Signature, 3, 0);
+  gSettings.CPUStructure.Model         = (UINT8)bitfield (gSettings.CPUStructure.Signature, 7, 4);
+  gSettings.CPUStructure.Family        = (UINT8)bitfield (gSettings.CPUStructure.Signature, 11, 8);
+  gSettings.CPUStructure.Type          = (UINT8)bitfield (gSettings.CPUStructure.Signature, 13, 12);
+  gSettings.CPUStructure.Extmodel      = (UINT8)bitfield (gSettings.CPUStructure.Signature, 19, 16);
+  gSettings.CPUStructure.Extfamily     = (UINT8)bitfield (gSettings.CPUStructure.Signature, 27, 20);
+  gSettings.CPUStructure.Features      = quad (gSettings.CPUStructure.CPUID[CPUID_1][ECX], gSettings.CPUStructure.CPUID[CPUID_1][EDX]);
+  gSettings.CPUStructure.ExtFeatures   = quad (gSettings.CPUStructure.CPUID[CPUID_81][ECX], gSettings.CPUStructure.CPUID[CPUID_81][EDX]);
 
   /* Pack CPU Family and Model */
-  if (gCPUStructure.Family == 0x0f) {
-    gCPUStructure.Family += gCPUStructure.Extfamily;
+  if (gSettings.CPUStructure.Family == 0x0f) {
+    gSettings.CPUStructure.Family += gSettings.CPUStructure.Extfamily;
   }
 
-  gCPUStructure.Model += (gCPUStructure.Extmodel << 4);
+  gSettings.CPUStructure.Model += (gSettings.CPUStructure.Extmodel << 4);
 
   //Calculate Nr of Cores
-  gCPUStructure.LogicalPerPackage = 1;
-  if (BIT_ISSET (gCPUStructure.Features, CPUID_FEATURE_HTT)) {
-    gCPUStructure.LogicalPerPackage = (UINT32)bitfield (gCPUStructure.CPUID[CPUID_1][EBX], 23, 16); //Atom330 = 4
+  gSettings.CPUStructure.LogicalPerPackage = 1;
+  if (BIT_ISSET (gSettings.CPUStructure.Features, CPUID_FEATURE_HTT)) {
+    gSettings.CPUStructure.LogicalPerPackage = (UINT32)bitfield (gSettings.CPUStructure.CPUID[CPUID_1][EBX], 23, 16); //Atom330 = 4
   }
 
-  //if (gCPUStructure.Vendor == CPU_VENDOR_INTEL) {
-    DoCpuid (4, gCPUStructure.CPUID[CPUID_4]);
-    if (gCPUStructure.CPUID[CPUID_4][EAX]) {
-      gCPUStructure.CoresPerPackage =  (UINT32)bitfield (gCPUStructure.CPUID[CPUID_4][EAX], 31, 26) + 1; //Atom330 = 2
-      DBG ("CPUID_4_eax=%x\n", gCPUStructure.CPUID[CPUID_4][EAX]);
-      DoCpuid (4, gCPUStructure.CPUID[CPUID_4]);
-      DBG ("CPUID_4_eax=%x\n", gCPUStructure.CPUID[CPUID_4][EAX]);
-      DoCpuid (4, gCPUStructure.CPUID[CPUID_4]);
-      DBG ("CPUID_4_eax=%x\n", gCPUStructure.CPUID[CPUID_4][EAX]);
+  //if (gSettings.CPUStructure.Vendor == CPU_VENDOR_INTEL) {
+    DoCpuid (4, gSettings.CPUStructure.CPUID[CPUID_4]);
+    if (gSettings.CPUStructure.CPUID[CPUID_4][EAX]) {
+      gSettings.CPUStructure.CoresPerPackage =  (UINT32)bitfield (gSettings.CPUStructure.CPUID[CPUID_4][EAX], 31, 26) + 1; //Atom330 = 2
+      DBG ("CPUID_4_eax=%x\n", gSettings.CPUStructure.CPUID[CPUID_4][EAX]);
+      DoCpuid (4, gSettings.CPUStructure.CPUID[CPUID_4]);
+      DBG ("CPUID_4_eax=%x\n", gSettings.CPUStructure.CPUID[CPUID_4][EAX]);
+      DoCpuid (4, gSettings.CPUStructure.CPUID[CPUID_4]);
+      DBG ("CPUID_4_eax=%x\n", gSettings.CPUStructure.CPUID[CPUID_4][EAX]);
     } else {
-      gCPUStructure.CoresPerPackage = (UINT32)bitfield (gCPUStructure.CPUID[CPUID_1][EBX], 18, 16);
-      DBG ("got cores from CPUID_1 = %d\n", gCPUStructure.CoresPerPackage);
+      gSettings.CPUStructure.CoresPerPackage = (UINT32)bitfield (gSettings.CPUStructure.CPUID[CPUID_1][EBX], 18, 16);
+      DBG ("got cores from CPUID_1 = %d\n", gSettings.CPUStructure.CoresPerPackage);
     }
   //}
 
-  CONSTRAIN_MIN (gCPUStructure.CoresPerPackage, 1);
+  CONSTRAIN_MIN (gSettings.CPUStructure.CoresPerPackage, 1);
 
   /* Fold in the Invariant TSC feature bit, if present */
-  if (gCPUStructure.CPUID[CPUID_80][EAX] >= 0x80000007) {
-    DoCpuid (0x80000007, gCPUStructure.CPUID[CPUID_87]);
-    gCPUStructure.ExtFeatures |= gCPUStructure.CPUID[CPUID_87][EDX] & (UINT32)CPUID_EXTFEATURE_TSCI;
+  if (gSettings.CPUStructure.CPUID[CPUID_80][EAX] >= 0x80000007) {
+    DoCpuid (0x80000007, gSettings.CPUStructure.CPUID[CPUID_87]);
+    gSettings.CPUStructure.ExtFeatures |= gSettings.CPUStructure.CPUID[CPUID_87][EDX] & (UINT32)CPUID_EXTFEATURE_TSCI;
   }
 
-  //if ((bit (9) & gCPUStructure.CPUID[CPUID_1][ECX]) != 0) {
+  //if ((bit (9) & gSettings.CPUStructure.CPUID[CPUID_1][ECX]) != 0) {
   //  SSSE3 = TRUE;
   //}
-  gCPUStructure.Turbo = FALSE;
+  gSettings.CPUStructure.Turbo = FALSE;
 
-  //if (gCPUStructure.Vendor == CPU_VENDOR_INTEL) {
+  //if (gSettings.CPUStructure.Vendor == CPU_VENDOR_INTEL) {
     // Determine turbo boost support
-    DoCpuid (6, gCPUStructure.CPUID[CPUID_6]);
-    gCPUStructure.Turbo = ((gCPUStructure.CPUID[CPUID_6][EAX] & (1 << 1)) != 0);
+    DoCpuid (6, gSettings.CPUStructure.CPUID[CPUID_6]);
+    gSettings.CPUStructure.Turbo = ((gSettings.CPUStructure.CPUID[CPUID_6][EAX] & (1 << 1)) != 0);
 
-    MsgLog ("CPU with turbo supported: %a\n", gCPUStructure.Turbo ? "Yes" : "No");
+    MsgLog ("CPU with turbo supported: %a\n", gSettings.CPUStructure.Turbo ? "Yes" : "No");
 
-    gCPUStructure.Cores = 0;
+    gSettings.CPUStructure.Cores = 0;
 
-    if (gCPUStructure.Model >= CPUID_MODEL_SANDYBRIDGE) {
+    if (gSettings.CPUStructure.Model >= CPUID_MODEL_SANDYBRIDGE) {
       Msr = AsmReadMsr64 (MSR_CORE_THREAD_COUNT);  //0x35
-      gCPUStructure.Cores   = (UINT8)bitfield ((UINT32)Msr, 31, 16);
-      gCPUStructure.Threads = (UINT8)bitfield ((UINT32)Msr, 15,  0);
+      gSettings.CPUStructure.Cores   = (UINT8)bitfield ((UINT32)Msr, 31, 16);
+      gSettings.CPUStructure.Threads = (UINT8)bitfield ((UINT32)Msr, 15,  0);
     }
   //}
 
-  if (gCPUStructure.Cores == 0) {
-    gCPUStructure.Cores   = (UINT8)(gCPUStructure.CoresPerPackage & 0xff);
-    gCPUStructure.Threads = (UINT8)(gCPUStructure.LogicalPerPackage & 0xff);
+  if (gSettings.CPUStructure.Cores == 0) {
+    gSettings.CPUStructure.Cores   = (UINT8)(gSettings.CPUStructure.CoresPerPackage & 0xff);
+    gSettings.CPUStructure.Threads = (UINT8)(gSettings.CPUStructure.LogicalPerPackage & 0xff);
 
-    CONSTRAIN_MIN (gCPUStructure.Threads, gCPUStructure.Cores);
+    CONSTRAIN_MIN (gSettings.CPUStructure.Threads, gSettings.CPUStructure.Cores);
   }
 
   /* get BrandString (if supported) */
-  if (gCPUStructure.CPUID[CPUID_80][EAX] >= 0x80000004) {
+  if (gSettings.CPUStructure.CPUID[CPUID_80][EAX] >= 0x80000004) {
     CHAR8   *S;
     UINTN   Len;
 
@@ -233,65 +235,65 @@ GetCPUProperties () {
       if (*S != ' ') break; //remove leading spaces
     }
 
-    Len = ARRAY_SIZE (gCPUStructure.BrandString); //48
-    AsciiStrnCpyS (gCPUStructure.BrandString, Len, S, Len);
+    Len = ARRAY_SIZE (gSettings.CPUStructure.BrandString); //48
+    AsciiStrnCpyS (gSettings.CPUStructure.BrandString, Len, S, Len);
 
     if (
       !AsciiStrnCmp (
-        (CONST CHAR8 *)gCPUStructure.BrandString,
+        (CONST CHAR8 *)gSettings.CPUStructure.BrandString,
         (CONST CHAR8 *)CPU_STRING_UNKNOWN,
-        AsciiTrimStrLen ((gCPUStructure.BrandString) + 1, Len)
+        AsciiTrimStrLen ((gSettings.CPUStructure.BrandString) + 1, Len)
       )
     ) {
-      gCPUStructure.BrandString[0] = '\0';
+      gSettings.CPUStructure.BrandString[0] = '\0';
     }
 
-    gCPUStructure.BrandString[47] = '\0';
-    MsgLog ("BrandString = %a\n", gCPUStructure.BrandString);
+    gSettings.CPUStructure.BrandString[47] = '\0';
+    MsgLog ("BrandString = %a\n", gSettings.CPUStructure.BrandString);
   }
 
   // workaround for Quad
-  if (AsciiStrStr (gCPUStructure.BrandString, "Quad")) {
-    gCPUStructure.Cores   = 4;
-    gCPUStructure.Threads = 4;
+  if (AsciiStrStr (gSettings.CPUStructure.BrandString, "Quad")) {
+    gSettings.CPUStructure.Cores   = 4;
+    gSettings.CPUStructure.Threads = 4;
   }
 
   // New for SkyLake 0x4E, 0x5E
-  if (gCPUStructure.CPUID[CPUID_0][EAX] >= 0x15) {
+  if (gSettings.CPUStructure.CPUID[CPUID_0][EAX] >= 0x15) {
     UINT32    Num, Denom;
 
-    DoCpuid (0x15, gCPUStructure.CPUID[CPUID_15]);
-    Num = gCPUStructure.CPUID[CPUID_15][EBX];
-    Denom = gCPUStructure.CPUID[CPUID_15][EAX];
+    DoCpuid (0x15, gSettings.CPUStructure.CPUID[CPUID_15]);
+    Num = gSettings.CPUStructure.CPUID[CPUID_15][EBX];
+    Denom = gSettings.CPUStructure.CPUID[CPUID_15][EAX];
 
     DBG (" TSC/CCC Information Leaf:\n");
     DBG ("  numerator     : %d\n", Num);
     DBG ("  denominator   : %d\n", Denom);
 
     if (Num && Denom) {
-      gCPUStructure.ARTFrequency = DivU64x32 (MultU64x32 (gCPUStructure.TSCCalibr, Denom), Num);
-      DBG (" Calibrated ARTFrequency: %lld\n", gCPUStructure.ARTFrequency);
+      gSettings.CPUStructure.ARTFrequency = DivU64x32 (MultU64x32 (gSettings.CPUStructure.TSCCalibr, Denom), Num);
+      DBG (" Calibrated ARTFrequency: %lld\n", gSettings.CPUStructure.ARTFrequency);
     }
   }
 
   if (
-    //(gCPUStructure.Vendor == CPU_VENDOR_INTEL) &&
+    //(gSettings.CPUStructure.Vendor == CPU_VENDOR_INTEL) &&
     //(
-      ((gCPUStructure.Family == 0x06) && (gCPUStructure.Model >= 0x0c)) ||
-      ((gCPUStructure.Family == 0x0f) && (gCPUStructure.Model >= 0x03))
+      ((gSettings.CPUStructure.Family == 0x06) && (gSettings.CPUStructure.Model >= 0x0c)) ||
+      ((gSettings.CPUStructure.Family == 0x0f) && (gSettings.CPUStructure.Model >= 0x03))
     //)
   ) {
-    if (gCPUStructure.Family == 0x06) {
-      if (gCPUStructure.Model >= CPUID_MODEL_SANDYBRIDGE) {
-        gCPUStructure.TSCFrequency = MultU64x32 (gCPUStructure.CurrentSpeed, Mega); //MHz -> Hz
-        gCPUStructure.CPUFrequency = gCPUStructure.TSCFrequency;
+    if (gSettings.CPUStructure.Family == 0x06) {
+      if (gSettings.CPUStructure.Model >= CPUID_MODEL_SANDYBRIDGE) {
+        gSettings.CPUStructure.TSCFrequency = MultU64x32 (gSettings.CPUStructure.CurrentSpeed, Mega); //MHz -> Hz
+        gSettings.CPUStructure.CPUFrequency = gSettings.CPUStructure.TSCFrequency;
 
         //----test C3 patch
         Msr = AsmReadMsr64 (MSR_PKG_CST_CONFIG_CONTROL); //0xE2
         DBG ("MSR 0xE2: %08x (before patch)\n", Msr);
         if (BIT_ISSET (Msr, 0x8000)) {
           DBG (" - is locked, PM patches will be turned on\n");
-          NeedPMfix = TRUE;
+          gSettings.KPKernelPm = TRUE;
         }
 
         //        AsmWriteMsr64 (MSR_PKG_CST_CONFIG_CONTROL, (Msr & 0x8000000ULL));
@@ -302,8 +304,8 @@ GetCPUProperties () {
         //------------
         Msr = AsmReadMsr64 (MSR_PLATFORM_INFO);       //0xCE
         DBG ("MSR 0xCE: %08x_%08x\n", (Msr>>32), Msr);
-        gCPUStructure.MaxRatio = (UINT8)RShiftU64 (Msr, 8) & 0xff;
-        gCPUStructure.MinRatio = (UINT8)MultU64x32 (RShiftU64 (Msr, 40) & 0xff, 10);
+        gSettings.CPUStructure.MaxRatio = (UINT8)RShiftU64 (Msr, 8) & 0xff;
+        gSettings.CPUStructure.MinRatio = (UINT8)MultU64x32 (RShiftU64 (Msr, 40) & 0xff, 10);
         Msr = AsmReadMsr64 (MSR_FLEX_RATIO);   //0x194
 
         if ((RShiftU64 (Msr, 16) & 0x01) != 0) {
@@ -319,33 +321,33 @@ GetCPUProperties () {
             MsgLog ("Corrected FLEX_RATIO = %x\n", Msr);
           }
           /*else {
-           if (gCPUStructure.BusRatioMax > FlexRatio)
-           gCPUStructure.BusRatioMax = (UINT8)FlexRatio;
+           if (gSettings.CPUStructure.BusRatioMax > FlexRatio)
+           gSettings.CPUStructure.BusRatioMax = (UINT8)FlexRatio;
            }*/
         }
 
-        //if ((gCPUStructure.CPUID[CPUID_6][ECX] & (1 << 3)) != 0) {
+        //if ((gSettings.CPUStructure.CPUID[CPUID_6][ECX] & (1 << 3)) != 0) {
         //  Msr = AsmReadMsr64 (IA32_ENERGY_PERF_BIAS); //0x1B0
         //  MsgLog ("MSR 0x1B0             %08x\n", Msr);
         //}
 
-        if (gCPUStructure.MaxRatio) {
-          gCPUStructure.FSBFrequency = DivU64x32 (gCPUStructure.TSCFrequency, gCPUStructure.MaxRatio);
+        if (gSettings.CPUStructure.MaxRatio) {
+          gSettings.CPUStructure.FSBFrequency = DivU64x32 (gSettings.CPUStructure.TSCFrequency, gSettings.CPUStructure.MaxRatio);
         } else {
-          gCPUStructure.FSBFrequency = 100000000ULL; //100 * Mega
+          gSettings.CPUStructure.FSBFrequency = 100000000ULL; //100 * Mega
         }
 
         Msr = AsmReadMsr64 (MSR_TURBO_RATIO_LIMIT);   //0x1AD
-        gCPUStructure.Turbo1 = (UINT8)(RShiftU64 (Msr, 0) & 0xff);
-        gCPUStructure.Turbo2 = (UINT8)(RShiftU64 (Msr, 8) & 0xff);
-        gCPUStructure.Turbo3 = (UINT8)(RShiftU64 (Msr, 16) & 0xff);
-        gCPUStructure.Turbo4 = (UINT8)(RShiftU64 (Msr, 24) & 0xff);
+        gSettings.CPUStructure.Turbo1 = (UINT8)(RShiftU64 (Msr, 0) & 0xff);
+        gSettings.CPUStructure.Turbo2 = (UINT8)(RShiftU64 (Msr, 8) & 0xff);
+        gSettings.CPUStructure.Turbo3 = (UINT8)(RShiftU64 (Msr, 16) & 0xff);
+        gSettings.CPUStructure.Turbo4 = (UINT8)(RShiftU64 (Msr, 24) & 0xff);
 
-        if (gCPUStructure.Turbo4 == 0) {
-          gCPUStructure.Turbo4 = gCPUStructure.Turbo1;
+        if (gSettings.CPUStructure.Turbo4 == 0) {
+          gSettings.CPUStructure.Turbo4 = gSettings.CPUStructure.Turbo1;
 
-          if (gCPUStructure.Turbo4 == 0) {
-            gCPUStructure.Turbo4 = (UINT16)gCPUStructure.MaxRatio;
+          if (gSettings.CPUStructure.Turbo4 == 0) {
+            gSettings.CPUStructure.Turbo4 = (UINT16)gSettings.CPUStructure.MaxRatio;
           }
         }
 
@@ -353,26 +355,26 @@ GetCPUProperties () {
         // another similar bug in i7-3820
         //MSR 000001AD  0000-0000-3B3B-3B3B - from AIDA64
         // so there is a workaround
-        if ((gCPUStructure.Turbo4 == 0x3B) || (gCPUStructure.Turbo4 == 0x39)) {
-          gCPUStructure.Turbo4 = (UINT16)gCPUStructure.MaxRatio + (gCPUStructure.Turbo ? 1 : 0);
+        if ((gSettings.CPUStructure.Turbo4 == 0x3B) || (gSettings.CPUStructure.Turbo4 == 0x39)) {
+          gSettings.CPUStructure.Turbo4 = (UINT16)gSettings.CPUStructure.MaxRatio + (gSettings.CPUStructure.Turbo ? 1 : 0);
         }
 
-        gCPUStructure.MaxRatio *= 10;
-        gCPUStructure.Turbo1 *= 10;
-        gCPUStructure.Turbo2 *= 10;
-        gCPUStructure.Turbo3 *= 10;
-        gCPUStructure.Turbo4 *= 10;
+        gSettings.CPUStructure.MaxRatio *= 10;
+        gSettings.CPUStructure.Turbo1 *= 10;
+        gSettings.CPUStructure.Turbo2 *= 10;
+        gSettings.CPUStructure.Turbo3 *= 10;
+        gSettings.CPUStructure.Turbo4 *= 10;
       } else {
-        gCPUStructure.TSCFrequency = MultU64x32 (gCPUStructure.CurrentSpeed, Mega); //MHz -> Hz
-        gCPUStructure.CPUFrequency = gCPUStructure.TSCFrequency;
-        gCPUStructure.MinRatio = 60;
+        gSettings.CPUStructure.TSCFrequency = MultU64x32 (gSettings.CPUStructure.CurrentSpeed, Mega); //MHz -> Hz
+        gSettings.CPUStructure.CPUFrequency = gSettings.CPUStructure.TSCFrequency;
+        gSettings.CPUStructure.MinRatio = 60;
 
-        if (!gCPUStructure.FSBFrequency) {
-          gCPUStructure.FSBFrequency = 100000000ULL; //100 * Mega
+        if (!gSettings.CPUStructure.FSBFrequency) {
+          gSettings.CPUStructure.FSBFrequency = 100000000ULL; //100 * Mega
         }
 
-        gCPUStructure.MaxRatio = (UINT32)(MultU64x32 (DivU64x64Remainder (gCPUStructure.TSCFrequency, gCPUStructure.FSBFrequency, NULL), 10));
-        gCPUStructure.CPUFrequency = gCPUStructure.TSCFrequency;
+        gSettings.CPUStructure.MaxRatio = (UINT32)(MultU64x32 (DivU64x64Remainder (gSettings.CPUStructure.TSCFrequency, gSettings.CPUStructure.FSBFrequency, NULL), 10));
+        gSettings.CPUStructure.CPUFrequency = gSettings.CPUStructure.TSCFrequency;
       }
     }
   }
@@ -386,70 +388,70 @@ SyncCPUProperties () {
   // Check if QPI is used
   if (gSettings.QPI == 0xFFFF) {
     // Not used, quad-pumped FSB; multiply ExternalClock by 4
-    ExternalClock = gCPUStructure.ExternalClock * 4;
+    ExternalClock = gSettings.CPUStructure.ExternalClock * 4;
   } else {
     // Used; keep the same value for ExternalClock
-    ExternalClock = gCPUStructure.ExternalClock;
+    ExternalClock = gSettings.CPUStructure.ExternalClock;
   }
 
   // DBG ("take FSB\n");
-  TmpFSB = gCPUStructure.FSBFrequency;
+  TmpFSB = gSettings.CPUStructure.FSBFrequency;
   //  DBG ("divide by 1000\n");
   BusSpeed = (UINT32)DivU64x32 (TmpFSB, kilo); //Hz -> kHz
-  DBG ("FSBFrequency=%dMHz DMIvalue=%dkHz\n", DivU64x32 (TmpFSB, Mega), gCPUStructure.ExternalClock);
+  DBG ("FSBFrequency=%dMHz DMIvalue=%dkHz\n", DivU64x32 (TmpFSB, Mega), gSettings.CPUStructure.ExternalClock);
 
   //now check if SMBIOS has ExternalClock = 4xBusSpeed
   if (
     (BusSpeed > 50 * kilo) &&
-    ((/*gCPUStructure.*/ExternalClock > BusSpeed * 3) || (/*gCPUStructure.*/ExternalClock < 50 * kilo)) //khz
+    ((/*gSettings.CPUStructure.*/ExternalClock > BusSpeed * 3) || (/*gSettings.CPUStructure.*/ExternalClock < 50 * kilo)) //khz
   ) {
-    gCPUStructure.ExternalClock = BusSpeed;
+    gSettings.CPUStructure.ExternalClock = BusSpeed;
   } else {
-    TmpFSB = MultU64x32 (/*gCPUStructure.*/ExternalClock, kilo); //kHz -> Hz
-    gCPUStructure.FSBFrequency = TmpFSB;
+    TmpFSB = MultU64x32 (/*gSettings.CPUStructure.*/ExternalClock, kilo); //kHz -> Hz
+    gSettings.CPUStructure.FSBFrequency = TmpFSB;
   }
 
-  TmpFSB = gCPUStructure.FSBFrequency;
+  TmpFSB = gSettings.CPUStructure.FSBFrequency;
   DBG ("Corrected FSBFrequency=%dMHz\n", DivU64x32 (TmpFSB, Mega));
 
-  gCPUStructure.ProcessorInterconnectSpeed = DivU64x32 (LShiftU64 (gCPUStructure.ExternalClock, 2), kilo); //kHz->MHz
-  gCPUStructure.MaxSpeed = (UINT32)(DivU64x32 (MultU64x64 (gCPUStructure.FSBFrequency, gCPUStructure.MaxRatio), Mega * 10)); //kHz->MHz
+  gSettings.CPUStructure.ProcessorInterconnectSpeed = DivU64x32 (LShiftU64 (gSettings.CPUStructure.ExternalClock, 2), kilo); //kHz->MHz
+  gSettings.CPUStructure.MaxSpeed = (UINT32)(DivU64x32 (MultU64x64 (gSettings.CPUStructure.FSBFrequency, gSettings.CPUStructure.MaxRatio), Mega * 10)); //kHz->MHz
 
-  DBG ("Vendor/Model/Stepping: 0x%x/0x%x/0x%x\n", gCPUStructure.Vendor, gCPUStructure.Model, gCPUStructure.Stepping);
-  DBG ("Family/ExtFamily: 0x%x/0x%x\n", gCPUStructure.Family, gCPUStructure.Extfamily);
-  DBG ("MaxDiv/MinDiv: %d.%d/%d\n", gCPUStructure.MaxRatio/10, gCPUStructure.MaxRatio%10 , gCPUStructure.MinRatio/10);
-  if (gCPUStructure.Turbo) {
-    DBG ("Turbo: %d/%d/%d/%d\n", gCPUStructure.Turbo4/10, gCPUStructure.Turbo3/10, gCPUStructure.Turbo2/10, gCPUStructure.Turbo1/10);
+  DBG ("Vendor/Model/Stepping: 0x%x/0x%x/0x%x\n", gSettings.CPUStructure.Vendor, gSettings.CPUStructure.Model, gSettings.CPUStructure.Stepping);
+  DBG ("Family/ExtFamily: 0x%x/0x%x\n", gSettings.CPUStructure.Family, gSettings.CPUStructure.Extfamily);
+  DBG ("MaxDiv/MinDiv: %d.%d/%d\n", gSettings.CPUStructure.MaxRatio/10, gSettings.CPUStructure.MaxRatio%10 , gSettings.CPUStructure.MinRatio/10);
+  if (gSettings.CPUStructure.Turbo) {
+    DBG ("Turbo: %d/%d/%d/%d\n", gSettings.CPUStructure.Turbo4/10, gSettings.CPUStructure.Turbo3/10, gSettings.CPUStructure.Turbo2/10, gSettings.CPUStructure.Turbo1/10);
   }
-  DBG ("Features: 0x%08x\n", gCPUStructure.Features);
+  DBG ("Features: 0x%08x\n", gSettings.CPUStructure.Features);
 
   MsgLog ("Threads: %d, Cores: %d, FSB: %d MHz, CPU: %d MHz, TSC: %d MHz, PIS: %d MHz\n",
-    gCPUStructure.Threads,
-    gCPUStructure.Cores,
-    (INT32)(DivU64x32 (gCPUStructure.ExternalClock, kilo)),
-    (INT32)(DivU64x32 (gCPUStructure.CPUFrequency, Mega)),
-    (INT32)(DivU64x32 (gCPUStructure.TSCFrequency, Mega)),
-    (INT32)gCPUStructure.ProcessorInterconnectSpeed
+    gSettings.CPUStructure.Threads,
+    gSettings.CPUStructure.Cores,
+    (INT32)(DivU64x32 (gSettings.CPUStructure.ExternalClock, kilo)),
+    (INT32)(DivU64x32 (gSettings.CPUStructure.CPUFrequency, Mega)),
+    (INT32)(DivU64x32 (gSettings.CPUStructure.TSCFrequency, Mega)),
+    (INT32)gSettings.CPUStructure.ProcessorInterconnectSpeed
   );
 
-  MsgLog ("Calibrated TSC frequency = %ld = %ldMHz\n", gCPUStructure.TSCCalibr, DivU64x32 (gCPUStructure.TSCCalibr, Mega));
+  MsgLog ("Calibrated TSC frequency = %ld = %ldMHz\n", gSettings.CPUStructure.TSCCalibr, DivU64x32 (gSettings.CPUStructure.TSCCalibr, Mega));
 
-  if (gCPUStructure.TSCCalibr > 200000000ULL) {  //200MHz
-    gCPUStructure.TSCFrequency = gCPUStructure.TSCCalibr;
+  if (gSettings.CPUStructure.TSCCalibr > 200000000ULL) {  //200MHz
+    gSettings.CPUStructure.TSCFrequency = gSettings.CPUStructure.TSCCalibr;
   }
 
-  gCPUStructure.CPUFrequency  = gCPUStructure.TSCFrequency;
-  gCPUStructure.FSBFrequency  = DivU64x32 (
-                                  MultU64x32 (gCPUStructure.CPUFrequency, 10),
-                                  (gCPUStructure.MaxRatio == 0) ? 1 : gCPUStructure.MaxRatio
+  gSettings.CPUStructure.CPUFrequency  = gSettings.CPUStructure.TSCFrequency;
+  gSettings.CPUStructure.FSBFrequency  = DivU64x32 (
+                                  MultU64x32 (gSettings.CPUStructure.CPUFrequency, 10),
+                                  (gSettings.CPUStructure.MaxRatio == 0) ? 1 : gSettings.CPUStructure.MaxRatio
                                 );
-  gCPUStructure.ExternalClock = (UINT32)DivU64x32 (gCPUStructure.FSBFrequency, kilo);
-  gCPUStructure.MaxSpeed      = (UINT32)DivU64x32 (gCPUStructure.TSCFrequency + (Mega >> 1), Mega);
+  gSettings.CPUStructure.ExternalClock = (UINT32)DivU64x32 (gSettings.CPUStructure.FSBFrequency, kilo);
+  gSettings.CPUStructure.MaxSpeed      = (UINT32)DivU64x32 (gSettings.CPUStructure.TSCFrequency + (Mega >> 1), Mega);
 
   // Check if QPI is used
   if (gSettings.QPI == 0xFFFF) {
     // Not used, quad-pumped FSB; divide ExternalClock by 4
-    gCPUStructure.ExternalClock = gCPUStructure.ExternalClock / 4;
+    gSettings.CPUStructure.ExternalClock = gSettings.CPUStructure.ExternalClock / 4;
   }
 }
 
@@ -458,7 +460,7 @@ SetCPUProperties () {
   /*
   UINT64    Msr = 0;
 
-  if ((gCPUStructure.CPUID[CPUID_6][ECX] & (1 << 3)) != 0) {
+  if ((gSettings.CPUStructure.CPUID[CPUID_6][ECX] & (1 << 3)) != 0) {
     if (gSettings.SavingMode != 0xFF) {
       Msr = gSettings.SavingMode;
       AsmWriteMsr64 (IA32_ENERGY_PERF_BIAS, Msr);
@@ -472,9 +474,9 @@ SetCPUProperties () {
 UINT16
 GetStandardCpuType () {
   /*
-  if (gCPUStructure.Threads >= 4) {
+  if (gSettings.CPUStructure.Threads >= 4) {
     return 0x402;   // Quad-Core Xeon
-  } else if (gCPUStructure.Threads == 1) {
+  } else if (gSettings.CPUStructure.Threads == 1) {
     return 0x201;   // Core Solo
   }
 
@@ -486,12 +488,12 @@ GetStandardCpuType () {
 UINT16
 GetAdvancedCpuType () {
   if (
-    /*(gCPUStructure.Vendor == CPU_VENDOR_INTEL) &&
-    (*/ gCPUStructure.Family == 0x06 /*)*/
+    /*(gSettings.CPUStructure.Vendor == CPU_VENDOR_INTEL) &&
+    (*/ gSettings.CPUStructure.Family == 0x06 /*)*/
   ) {
     UINT8    CoreBridgeType = 0;
 
-    switch (gCPUStructure.Model) {
+    switch (gSettings.CPUStructure.Model) {
       case CPUID_MODEL_KABYLAKE:
       case CPUID_MODEL_KABYLAKE_DT:
         CoreBridgeType = BRIDGETYPE_KABYLAKE;
@@ -525,16 +527,16 @@ GetAdvancedCpuType () {
         break;
     }
 
-    if (AsciiStrStr (gCPUStructure.BrandString, "Core(TM) i7")) {
+    if (AsciiStrStr (gSettings.CPUStructure.BrandString, "Core(TM) i7")) {
       return (0x700 + CoreBridgeType);
     }
-    else if (AsciiStrStr (gCPUStructure.BrandString, "Core(TM) i5")) {
+    else if (AsciiStrStr (gSettings.CPUStructure.BrandString, "Core(TM) i5")) {
       return (0x600 + CoreBridgeType);
     }
-    else if (AsciiStrStr (gCPUStructure.BrandString, "Core(TM) i3")) {
+    else if (AsciiStrStr (gSettings.CPUStructure.BrandString, "Core(TM) i3")) {
       return (0x900 + CoreBridgeType);
     }
-    else if (AsciiStrStr (gCPUStructure.BrandString, "Xeon(R)")) {
+    else if (AsciiStrStr (gSettings.CPUStructure.BrandString, "Xeon(R)")) {
       return (0xA00 + CoreBridgeType);
     }
   }
@@ -552,11 +554,11 @@ GetModelByBrandString (
 ) {
   MACHINE_TYPES   DefaultType = MinMachineType + 1;
 
-  if (AsciiStrStr (gCPUStructure.BrandString, "i3")) {
+  if (AsciiStrStr (gSettings.CPUStructure.BrandString, "i3")) {
     return i3;
-  } else if (AsciiStrStr (gCPUStructure.BrandString, "i5")) {
+  } else if (AsciiStrStr (gSettings.CPUStructure.BrandString, "i5")) {
     return i5;
-  } else if (AsciiStrStr (gCPUStructure.BrandString, "i7")) {
+  } else if (AsciiStrStr (gSettings.CPUStructure.BrandString, "i7")) {
     return i7;
   }
 
@@ -568,12 +570,12 @@ MACHINE_TYPES
 GetDefaultModel () {
   MACHINE_TYPES   DefaultType = MinMachineType + 1;
 
-  //if (gCPUStructure.Vendor != CPU_VENDOR_INTEL) {
+  //if (gSettings.CPUStructure.Vendor != CPU_VENDOR_INTEL) {
   //  return DefaultType;
   //}
 
-  if (gMobile) {
-    switch (gCPUStructure.Model) {
+  if (gSettings.Mobile) {
+    switch (gSettings.CPUStructure.Model) {
       case CPUID_MODEL_KABYLAKE:
       case CPUID_MODEL_KABYLAKE_DT:
         DefaultType = MacBookPro143;
@@ -608,7 +610,7 @@ GetDefaultModel () {
         break;
     }
   } else {
-    switch (gCPUStructure.Model) {
+    switch (gSettings.CPUStructure.Model) {
       case CPUID_MODEL_KABYLAKE:
       case CPUID_MODEL_KABYLAKE_DT:
         DefaultType = iMac183;

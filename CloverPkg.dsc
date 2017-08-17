@@ -16,15 +16,15 @@
 #
 ##
 [Defines]
-  PLATFORM_NAME                  = CloverPkg
-  PLATFORM_GUID                  = 199E24E0-0989-42aa-87F2-611A8C397E72
-  PLATFORM_VERSION               = 0.92
-  DSC_SPECIFICATION              = 0x00010006
-  OUTPUT_DIRECTORY               = Build/CloverPkg
-  SUPPORTED_ARCHITECTURES        = X64
-  BUILD_TARGETS                  = RELEASE
-  SKUID_IDENTIFIER               = DEFAULT
-  FLASH_DEFINITION               = CloverPkg/CloverPkg.fdf
+  PLATFORM_NAME             = CloverPkg
+  PLATFORM_GUID             = 199E24E0-0989-42aa-87F2-611A8C397E72
+  PLATFORM_VERSION          = 0.92
+  DSC_SPECIFICATION         = 0x00010006
+  OUTPUT_DIRECTORY          = Build/CloverPkg
+  SUPPORTED_ARCHITECTURES   = X64
+  BUILD_TARGETS             = RELEASE
+  SKUID_IDENTIFIER          = DEFAULT
+  FLASH_DEFINITION          = CloverPkg/CloverPkg.fdf
 
 [LibraryClasses]
   #
@@ -74,8 +74,11 @@
   # Our libs
   #
   CommonLib|CloverPkg/Module/CommonLib/CommonLib.inf
+  CompressLib|CloverPkg/Module/CompressLib/CompressLib.inf
   DeviceTreeLib|CloverPkg/Module/DeviceTreeLib/DeviceTreeLib.inf
   MemLogLib|CloverPkg/Module/MemLogLibDefault/MemLogLibDefault.inf
+  PlistLib|CloverPkg/Module/PlistLib/PlistLib.inf
+  PngLib|CloverPkg/Module/PngLib/PngLib.inf
 
 [Components.X64]
   CloverPkg/Application/Clover/Clover.inf {

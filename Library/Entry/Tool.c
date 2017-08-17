@@ -50,6 +50,7 @@
 
 STATIC CHAR16 *ShellPath[] = {
   L"Shellx64.efi",
+  L"Shell64.efi",
   L"Shell.efi"
 };
 
@@ -100,22 +101,22 @@ AddToolEntry (
   //Entry->Flags              = 0;
 
   MsgLog ("- %s\n", LoaderPath);
-  AddMenuEntry (&MainMenu, (REFIT_MENU_ENTRY *)Entry);
+  AddMenuEntry (&gMainMenu, (REFIT_MENU_ENTRY *)Entry);
 
   return TRUE;
 }
 
 VOID
-GetListOfTools () {
+ScanTools () {
   REFIT_DIR_ITER    DirIter;
   EFI_FILE_INFO     *DirEntry;
   UINTN             i = 0, y = 0;
 
-  DbgHeader ("GetListOfTools");
+  DbgHeader ("ScanTools");
 
-  DirIterOpen (SelfRootDir, DIR_TOOLS, &DirIter);
+  DirIterOpen (gSelfRootDir, DIR_TOOLS, &DirIter);
 
-  OldChosenTool = 0;
+  gOldChosenTool = 0;
 
   while (DirIterNext (&DirIter, 2, L"*.efi", &DirEntry)) {
     if (DirEntry->FileName[0] != L'.') {
@@ -127,8 +128,8 @@ GetListOfTools () {
       aTmp->Index = y++;
 
       aTmp->FileName = PoolPrint (TmpCfg);
-      aTmp->Next = aTools;
-      aTools = aTmp;
+      aTmp->Next = gToolFiles;
+      gToolFiles = aTmp;
 
       FreePool (TmpCfg);
     }
@@ -137,15 +138,15 @@ GetListOfTools () {
   DirIterClose (&DirIter);
 
   if (y) {
-    S_FILES   *aTmp = aTools;
+    S_FILES   *aTmp = gToolFiles;
 
-    aTools = 0;
+    gToolFiles = 0;
 
     while (aTmp) {
       S_FILES   *next = aTmp->Next;
 
-      aTmp->Next = aTools;
-      aTools = aTmp;
+      aTmp->Next = gToolFiles;
+      gToolFiles = aTmp;
       aTmp = next;
     }
   }
@@ -155,8 +156,6 @@ VOID
 ScanTool () {
   UINTN    i;
 
-  //Print (L"Scanning for tools...\n");
-
   // look for the EFI shell
   if (BIT_ISUNSET (GlobalConfig.DisableFlags, HIDEUI_FLAG_SHELL)) {
     for (i = 0; i < ShellPathCount; ++i) {
@@ -165,7 +164,7 @@ ScanTool () {
           PoolPrint (L"%s\\%s", DIR_TOOLS, ShellPath[i]),
           NULL,
           L"UEFI Shell 64",
-          SelfVolume,
+          gSelfVolume,
           BuiltinIcon (BUILTIN_ICON_TOOL_SHELL),
           GetSmallHover (BUILTIN_ICON_TOOL_SHELL),
           'S',
@@ -207,8 +206,8 @@ AddCustomTool () {
       DBG ("Custom tool %d matching \"%s\" ...\n", i, Custom->Volume);
     }
 
-    for (VolumeIndex = 0; VolumeIndex < VolumesCount; ++VolumeIndex) {
-      Volume = Volumes[VolumeIndex];
+    for (VolumeIndex = 0; VolumeIndex < gVolumesCount; ++VolumeIndex) {
+      Volume = gVolumes[VolumeIndex];
 
       DBG ("   Checking volume \"%s\" (%s) ... ", Volume->VolName, Volume->DevicePathString);
 
@@ -266,19 +265,19 @@ AddCustomTool () {
 
         Image = LoadImage (Volume->RootDir, Custom->ImagePath);
         if (Image == NULL) {
-          Image = LoadImage (ThemeDir, Custom->ImagePath);
+          Image = LoadImage (gThemeDir, Custom->ImagePath);
           if (Image == NULL) {
-            Image = LoadImage (SelfDir, Custom->ImagePath);
+            Image = LoadImage (gSelfDir, Custom->ImagePath);
             if (Image == NULL) {
-              Image = LoadImage (SelfRootDir, Custom->ImagePath);
+              Image = LoadImage (gSelfRootDir, Custom->ImagePath);
               if (Image != NULL) {
-                ImageHover = LoadImage (SelfRootDir, ImageHoverPath);
+                ImageHover = LoadImage (gSelfRootDir, ImageHoverPath);
               }
             } else {
-              ImageHover = LoadImage (SelfDir, ImageHoverPath);
+              ImageHover = LoadImage (gSelfDir, ImageHoverPath);
             }
           } else {
-            ImageHover = LoadImage (ThemeDir, ImageHoverPath);
+            ImageHover = LoadImage (gThemeDir, ImageHoverPath);
           }
         } else {
           ImageHover = LoadImage (Volume->RootDir, ImageHoverPath);
@@ -316,15 +315,9 @@ VOID
 StartTool (
   IN LOADER_ENTRY   *Entry
 ) {
-  DBG ("StartTool: %s\n", Entry->LoaderPath);
-  //SaveBooterLog (SelfRootDir, PREBOOT_LOG);
-  ClearScreen (&BlackBackgroundPixel);
-  // assumes "Start <title>" as assigned below
-  //BeginExternalScreen (BIT_ISSET (Entry->Flags, OSFLAG_USEGRAPHICS), Entry->me.Title + 6);
+  ClearScreen (&gBlackBackgroundPixel);
 
-  //
-  // Entry->Flags never set
-  //
+  DBG ("StartTool: %s\n", Entry->LoaderPath);
 
   BeginExternalScreen (TRUE, PoolPrint (L"StartTool: %s\n", Entry->LoaderPath));
 
@@ -341,25 +334,16 @@ StartTool (
   //ReinitRefitLib ();
 }
 
-BOOLEAN
+VOID
 StartToolFromMenu () {
-  BOOLEAN   Ret = FALSE;
-
   if (gToolPath != NULL) {
     LOADER_ENTRY   *Entry = AllocateZeroPool (sizeof (LOADER_ENTRY));
 
     Entry->LoaderPath = EfiStrDuplicate (gToolPath);
-    Entry->DevicePath = FileDevicePath (SelfVolume->DeviceHandle, Entry->LoaderPath);
-
-    FreePool (gToolPath);
-    gToolPath = NULL;
+    Entry->DevicePath = FileDevicePath (gSelfVolume->DeviceHandle, Entry->LoaderPath);
 
     StartTool (Entry);
 
     FreePool (Entry);
-
-    Ret = TRUE;
   }
-
-  return Ret;
 }

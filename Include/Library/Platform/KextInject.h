@@ -35,6 +35,33 @@ kext injection
 #define THIN_IA32 0xfeedface
 #define THIN_X64  0xfeedfacf
 
+// Chameleon: Micky1979
+#define IOPERSONALITIES_INJECTOR_PLIST_TPL  L"<\?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n\
+<plist version=\"1.0\">\n\
+<dict>\n\
+  <key>CFBundleDevelopmentRegion</key>\n\
+  <string>English</string>\n\
+  <key>CFBundleIdentifier</key>\n\
+  <string>com.Enoch.plist.%a</string>\n\
+  <key>CFBundleInfoDictionaryVersion</key>\n\
+  <string>6.0</string>\n\
+  <key>CFBundleName</key>\n\
+  <string>%a</string>\n\
+  <key>CFBundlePackageType</key>\n\
+  <string>KEXT</string>\n\
+  <key>CFBundleSignature</key>\n\
+  <string>\?\?\?\?</string>\n\
+  <key>CFBundleVersion</key>\n\
+  <string>1.0.0</string>\n\
+  <key>IOKitPersonalities</key>\n\
+  <dict>\n%s\
+  </dict>\n%s\
+</dict>\n\
+</plist>"
+
+#define IOPERSONALITIES_INJECTOR_OSBUNDLEREQUIRED_TPL L"  <key>OSBundleRequired</key>\n  <string>%a</string>\n"
+
 ////////////////////
 // types
 ////////////////////

@@ -39,7 +39,7 @@ PrintPageTablePTE (
 ) {
 #if DBG_TO
   UINTN             Index;
-  UINT64              Start;
+  UINT64            Start;
 
   for (Index = 0; Index < 10; Index++) {
     VA.Pg4K.PTOffset = Index;

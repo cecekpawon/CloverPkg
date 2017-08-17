@@ -172,13 +172,13 @@ SetupGmaDevprop (
   }
 
   if (DevId >= 0x0102) {
-    // Skylake
+    // Kabylake
     if (DevId >= 0x5000) {
       SetIgPlatform (
         Device,
         NeedIgPlatform,
         "AAPL,ig-platform-id",
-        gMobile
+        gSettings.Mobile
           ? RegIgPlatformIdKBLMobile
           : RegIgPlatformIdKBLDesktop
       );
@@ -192,7 +192,7 @@ SetupGmaDevprop (
         Device,
         NeedIgPlatform,
         "AAPL,ig-platform-id",
-        gMobile
+        gSettings.Mobile
           ? RegIgPlatformIdSKLMobile
           : RegIgPlatformIdSKLDesktop
       );
@@ -206,7 +206,7 @@ SetupGmaDevprop (
         Device,
         NeedIgPlatform,
         "AAPL,ig-platform-id",
-        gMobile
+        gSettings.Mobile
           ? RegIgPlatformIdBDWMobile
           : RegIgPlatformIdBDWDesktop
       );
@@ -218,7 +218,7 @@ SetupGmaDevprop (
         Device,
         NeedIgPlatform,
         "AAPL,ig-platform-id",
-        gMobile
+        gSettings.Mobile
           ? RegIgPlatformIdAzulMobile
           : RegIgPlatformIdAzulDesktop
       );
@@ -230,7 +230,7 @@ SetupGmaDevprop (
         Device,
         NeedIgPlatform,
         "AAPL,ig-platform-id",
-        gMobile
+        gSettings.Mobile
           ? RegIgPlatformIdCapriMobile
           : RegIgPlatformIdCapriDesktop
       );
@@ -242,7 +242,7 @@ SetupGmaDevprop (
         Device,
         NeedIgPlatform,
         "AAPL,snb-platform-id",
-        gMobile
+        gSettings.Mobile
           ? RegIgPlatformIdSNBMobile
           : RegIgPlatformIdSNBDesktop
       );

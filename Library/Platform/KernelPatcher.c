@@ -577,9 +577,7 @@ KernelCPUIDPatch (
 
 BOOLEAN
 KernelPatchPm () {
-  UINT8     *Ptr = (UINT8 *)KernelInfo->Bin, *End = NULL;
-  BOOLEAN   Found = FALSE, Ret = FALSE;
-  UINT64    KernelPatchPMNull = 0x0000000000000000ULL;
+  UINT8     *Ptr = (UINT8 *)KernelInfo->Bin, *End = NULL, Count = 0;
 
   DBG ("%a: Start\n", __FUNCTION__);
 
@@ -602,37 +600,21 @@ KernelPatchPm () {
     End = Ptr + 0x1000000;
   }
 
-  // Credits to RehabMan for the kernel patch information
-
-  while (Ptr < End) {
-    Found = Ret = FALSE;
-
-    switch (*((UINT64 *)Ptr)) {
-      case 0x00004000000000E2ULL:
-      case 0x00003390000000E2ULL:
-      case 0x00001390000000E2ULL:
-      case 0x00000190000000E2ULL:
-        Found = TRUE;
-        Ret = TRUE;
-        break;
-      case 0x0000004C000000E2ULL:
-      case 0x00000002000000E2ULL:
-        Found = TRUE;
-        break;
-    }
-
-    if (Found) {
-      DBG (" - found: 0x%lx\n", *((UINT64 *)Ptr));
-      (*((UINT64 *)Ptr)) = KernelPatchPMNull;
-      if (Ret) {
-        break;
-      }
+  while ((Count < 2) && (Ptr < End)) {
+    if (
+      (*(PTR_OFFSET (Ptr, 0, UINT32 *)) == 0xE2) &&
+      *(PTR_OFFSET (Ptr, sizeof (UINT32), UINT16 *)) &&
+      !(*(PTR_OFFSET (Ptr, sizeof (UINT32) + sizeof (UINT16), UINT16 *)))
+    ) {
+      DBG (" - Zeroing: 0x%lx (at 0x%p)\n", *((UINT64 *)Ptr), Ptr);
+      ZeroMem (Ptr, sizeof (UINT64));
+      Count++;
     }
 
     Ptr += 16;
   }
 
-  if (!Ret) {
+  if (!Count) {
     DBG (" - error 0 matches\n");
   }
 
@@ -640,7 +622,7 @@ KernelPatchPm () {
 
   DBG ("%a: End\n", __FUNCTION__);
 
-  return Ret;
+  return (Count > 0);
 }
 
 BOOLEAN
@@ -684,39 +666,32 @@ FindBootArgs (
       DBG ("gBootArgs->bootMemStart = 0x%x\n", gBootArgs->bootMemStart);
       */
 
-#ifdef NO_NVRAM_SIP
+      gBootArgs->flags = 0;
+      gBootArgs->csrActiveConfig = 0;
+      gBootArgs->csrCapabilities = CSR_CAPABILITY_UNLIMITED;
+
       if (
         //OSX_GE (Entry->OSVersion, DARWIN_OS_VER_STR_ELCAPITAN) ||
-        (gSettings.BooterConfig != 0xFFFF) ||
-        (gSettings.CsrActiveConfig != 0xFFFF)
+        (gSettings.BooterConfig || gSettings.CsrActiveConfig)
       ) {
-        gBootArgs->flags = 0;
-        gBootArgs->csrActiveConfig = 0;
-
         // user defined
-        if (gSettings.BooterConfig != 0xFFFF) {
+        if (gSettings.BooterConfig) {
           gBootArgs->flags = gSettings.BooterConfig;
         }
 
-        if (gSettings.CsrActiveConfig != 0xFFFF) {
+        if (gSettings.CsrActiveConfig) {
           gBootArgs->csrActiveConfig = gSettings.CsrActiveConfig;
         }
-
-        gBootArgs->csrCapabilities = CSR_CAPABILITY_UNLIMITED;
       }
-
-      DeleteNvramVariable (NvramData[kNvBootercfg].VariableName, NvramData[kNvBootercfg].Guid);
-      DeleteNvramVariable (NvramData[kNvCsrActiveConfig].VariableName, NvramData[kNvCsrActiveConfig].Guid);
 
       //gBootArgs->boot_SMC_plimit = 0;
 
       gBootArgs->Video/* V1 */.v_display = BIT_ISSET (Entry->Flags, OSFLAG_USEGRAPHICS) ? GRAPHICS_MODE : FB_TEXT_MODE;
-      gBootArgs->Video/* V1 */.v_width = UGAWidth;
-      gBootArgs->Video/* V1 */.v_height = UGAHeight;
-      gBootArgs->Video/* V1 */.v_depth = UGAColorDepth;
-      gBootArgs->Video/* V1 */.v_rowBytes = UGABytesPerRow;
-      gBootArgs->Video/* V1 */.v_baseAddr = /* (UINT32) */UGAFrameBufferBase;
-#endif
+      gBootArgs->Video/* V1 */.v_width = GlobalConfig.UGAWidth;
+      gBootArgs->Video/* V1 */.v_height = GlobalConfig.UGAHeight;
+      gBootArgs->Video/* V1 */.v_depth = GlobalConfig.UGAColorDepth;
+      gBootArgs->Video/* V1 */.v_rowBytes = GlobalConfig.UGABytesPerRow;
+      gBootArgs->Video/* V1 */.v_baseAddr = /* (UINT32) */GlobalConfig.UGAFrameBufferBase;
 
       Ret = TRUE;
 
@@ -740,12 +715,12 @@ KernelUserPatch (
   for (i = 0; i < Entry->KernelAndKextPatches->NrKernels; ++i) {
     DBG ("KernelUserPatch[%02d]: %a", i, Entry->KernelAndKextPatches->KernelPatches[i].Label);
 
-    /*
       if (Entry->KernelAndKextPatches->KernelPatches[i].Disabled) {
         DBG (" | DISABLED!\n");
         continue;
       }
 
+    /*
       Num = SearchAndCount (
         KernelInfo->Bin,
         gSettings.KernelPatchesWholePrelinked ? KernelInfo->PrelinkedSize : KernelInfo->KernelSize,
@@ -1087,7 +1062,7 @@ KernelAndKextsPatcherStart (
   }
 
   KextPatchesNeeded = (
-    Entry->KernelAndKextPatches->KPAsusAICPUPM ||
+    Entry->KernelAndKextPatches->KPKernelPm ||
     //Entry->KernelAndKextPatches->KPAppleRTC ||
     (Entry->KernelAndKextPatches->KPATIConnectorsPatch != NULL) ||
     ((Entry->KernelAndKextPatches->NrKexts > 0) && (Entry->KernelAndKextPatches->KextPatches != NULL))
@@ -1129,6 +1104,7 @@ KernelAndKextsPatcherStart (
 
   // CPU power management patch for haswell with locked msr
   if (Entry->KernelAndKextPatches->KPKernelPm) {
+    gSettings.KextPatchesAllowed = TRUE;
     if (!KernelAndKextPatcherInit (Entry)) {
       goto NoKernelData;
     }

@@ -6,13 +6,6 @@
 
 /* Machine Default Data */
 
-CHAR8   *DefaultMemEntry        = "N/A";
-
-CHAR8   *DefaultSerial          = "CT288GT9VT6";
-
-UINT32  gFwFeatures             = 0xE807E136;
-UINT32  gFwFeaturesMask         = 0xFF1FFF3F;
-
 typedef struct {
   CHAR8   *AppleFirmwareVersion, *AppleBoardID, *AppleProductName, *AppleSerialNumber, *SmcPlatform;
   UINT8   SmcRevision[6];
@@ -41,9 +34,6 @@ S_MAC_MODELS   MAC_MODELS[] = {
   { "MBP143.88Z.0161.B01.1706252330" , "Mac-551B86E5744E2388" , "MacBookPro14,3" , "C02V7PCYHTD5", "2017mbp"  , { 0x02, 0x38, 0x0F, 0, 0, 0x07 }, 0xf0a009 } // kabylake
 };
 
-CHAR8   *AppleBoardSN       = "C02140302D5DMT31M";
-CHAR8   *AppleBoardLocation = "MLB";//"Part Component";
-
 STATIC
 CHAR8 *
 GetAppleFamilies (
@@ -62,7 +52,6 @@ GetAppleFamilies (
   return Res;
 }
 
-STATIC
 CHAR8 *
 GetAppleReleaseDate (
   IN CHAR8  *Version
@@ -120,10 +109,10 @@ SetDMISettingsForModel (
   AsciiStrCpyS (gSettings.SerialNr,             ARRAY_SIZE (gSettings.SerialNr), MAC_MODELS[Model].AppleSerialNumber);
   AsciiStrCpyS (gSettings.FamilyName,           ARRAY_SIZE (gSettings.FamilyName), GetAppleFamilies (MAC_MODELS[Model].AppleProductName));
   AsciiStrCpyS (gSettings.BoardManufactureName, ARRAY_SIZE (gSettings.BoardManufactureName), DARWIN_SYSTEM_VENDOR);
-  AsciiStrCpyS (gSettings.BoardSerialNumber,    ARRAY_SIZE (gSettings.BoardSerialNumber), AppleBoardSN);
+  AsciiStrCpyS (gSettings.BoardSerialNumber,    ARRAY_SIZE (gSettings.BoardSerialNumber), MAC_MODELS[Model].AppleSerialNumber);
   AsciiStrCpyS (gSettings.BoardNumber,          ARRAY_SIZE (gSettings.BoardNumber), MAC_MODELS[Model].AppleBoardID);
   AsciiStrCpyS (gSettings.BoardVersion,         ARRAY_SIZE (gSettings.BoardVersion), MAC_MODELS[Model].AppleProductName);
-  AsciiStrCpyS (gSettings.LocationInChassis,    ARRAY_SIZE (gSettings.LocationInChassis), AppleBoardLocation);
+  AsciiStrCpyS (gSettings.LocationInChassis,    ARRAY_SIZE (gSettings.LocationInChassis), DARWIN_BOARD_LOCATION);
   AsciiStrCpyS (gSettings.ChassisManufacturer,  ARRAY_SIZE (gSettings.ChassisManufacturer), DARWIN_SYSTEM_VENDOR);
   AsciiStrCpyS (gSettings.ChassisAssetTag,      ARRAY_SIZE (gSettings.ChassisAssetTag), GetAppleChassisAsset (gSettings.ProductName));
 
@@ -146,7 +135,7 @@ SetDMISettingsForModel (
 
   } else {
     gSettings.ChassisType = 0;
-    gSettings.Mobile = gMobile;
+    gSettings.CustomMobile = gSettings.Mobile;
   }
 
   // smc helper
@@ -156,7 +145,7 @@ SetDMISettingsForModel (
     if (MAC_MODELS[Model].SmcPlatform[0] != 'N') {
       AsciiStrCpyS (gSettings.RPlt, Len, MAC_MODELS[Model].SmcPlatform);
     } else {
-      switch (gCPUStructure.Model) {
+      switch (gSettings.CPUStructure.Model) {
         case CPUID_MODEL_KABYLAKE:
         case CPUID_MODEL_KABYLAKE_DT:
           AsciiStrCpyS (gSettings.RPlt, Len, MAC_MODELS[gSettings.Mobile ? MacBookPro143 : iMac183].SmcPlatform);

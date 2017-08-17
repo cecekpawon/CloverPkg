@@ -31,7 +31,7 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/PrintLib.h>
-#include <Library/Platform/DeviceTree.h>
+#include <Library/Common/DeviceTreeLib.h>
 
 #define RoundLong(x) (((x) + 3UL) & ~(3UL))
 #define NextProp(x)  ((DeviceTreeNodeProperty *) (((UINT8 *)x) + sizeof (DeviceTreeNodeProperty) + RoundLong (x->length)))

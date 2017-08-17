@@ -63,8 +63,8 @@ UINT32      DisplayVendor[MAX_NUM_GFX];
 //UINT32      GfxlayoutId = 1;
 //PCI_DT      Displaydevice[MAX_NUM_GFX];
 
-//UINT32 IMEIADR1;
-//UINT32 IMEIADR2;
+//UINT32      IMEIADR1;
+//UINT32      IMEIADR2;
 
 CHAR8       ClassFix[] =  { 0x00, 0x00, 0x03, 0x00 };
 
@@ -250,7 +250,7 @@ CheckHardware () {
             DBG (" - DisplayADR1[%02d]: 0x%x, DisplayADR2[%02d] = 0x%x\n", Display, DAdr1, Display, DAdr2);
             #endif
 
-                 //DAdr2 = DAdr1; //to avoid warning "unused variable" :(
+            //DAdr2 = DAdr1; //to avoid warning "unused variable" :(
             DisplayVendor[Display] = Pci.Hdr.VendorId;
             //DisplayID[Display] = Pci.Hdr.DeviceId;
             //DisplaySubID[Display] = (Pci.Device.SubsystemID << 16) | (Pci.Device.SubsystemVendorID << 0);
@@ -388,16 +388,16 @@ InsertScore (
 
   i = 0;
   while (i < 127) {
-    Buf[Ind++] = AcpiCPUScore[i];
-    if (AcpiCPUScore[i] == 0) {
+    Buf[Ind++] = gAcpiCPUScore[i];
+    if (gAcpiCPUScore[i] == 0) {
       break;
     }
 
     i++;
   }
 
-  CopyMem (AcpiCPUScore, Buf, Ind);
-  AcpiCPUScore[Ind] = 0;
+  CopyMem (gAcpiCPUScore, Buf, Ind);
+  gAcpiCPUScore[Ind] = 0;
 }
 
 //STATIC
@@ -409,19 +409,19 @@ FindCPU (
               Off, j1, Length = ((EFI_ACPI_DESCRIPTION_HEADER *)Dsdt)->Length;
   BOOLEAN     SBFound = FALSE;
 
-  if (AcpiCPUScore) {
-    FreePool (AcpiCPUScore);
+  if (gAcpiCPUScore) {
+    FreePool (gAcpiCPUScore);
   }
 
-  AcpiCPUScore = AllocateZeroPool (128);
-  AcpiCPUCount = 0;
+  gAcpiCPUScore = AllocateZeroPool (128);
+  gAcpiCPUCount = 0;
 
   for (i = 0; i < Length - 20; i++) {
     if ((Dsdt[i] == 0x5B) && (Dsdt[i + 1] == 0x83)) { // ProcessorOP
       UINT32    j, Offset = i + 3 + (Dsdt[i + 2] >> 6); // name
       BOOLEAN   AddName = TRUE;
 
-      if (AcpiCPUCount == 0) {         //only first time in the cycle
+      if (gAcpiCPUCount == 0) {         //only first time in the cycle
         CHAR8   C1 = Dsdt[Offset + 1];
 
         // I want to determine a scope of PR
@@ -441,7 +441,7 @@ FindCPU (
             j = 2 + (C1 - 2) * 4;
           }
 
-          CopyMem (AcpiCPUScore, Dsdt + Offset + j, 4);
+          CopyMem (gAcpiCPUScore, Dsdt + Offset + j, 4);
           DBG ("slash found\n");
         } else {
           //--------
@@ -466,11 +466,11 @@ FindCPU (
                   if (Dsdt[Off] == '\\') {
                     // "\_SB.SCL0"
                     InsertScore (Dsdt, Off, 1);
-                    DBG ("AcpiCPUScore calculated as %a\n", AcpiCPUScore);
+                    DBG ("gAcpiCPUScore calculated as %a\n", gAcpiCPUScore);
                     break;
                   } else {
                     InsertScore (Dsdt, Off, 0);
-                    DBG ("device inserted in AcpiCPUScore %a\n", AcpiCPUScore);
+                    DBG ("device inserted in gAcpiCPUScore %a\n", gAcpiCPUScore);
                   }
                 }  //else not an outer device
               } //else wrong size field - not a device
@@ -511,7 +511,7 @@ FindCPU (
 
             if (SBFound) {
               InsertScore (Dsdt, j, 0);
-              DBG ("score inserted in AcpiCPUScore %a\n", AcpiCPUScore);
+              DBG ("score inserted in gAcpiCPUScore %a\n", gAcpiCPUScore);
               break;
             }
             j = k - 3;    //if found then search again from found
@@ -542,29 +542,29 @@ FindCPU (
       }
 
       if (AddName) {
-        AcpiCPUName[AcpiCPUCount] = AllocateZeroPool (5);
-        CopyMem (AcpiCPUName[AcpiCPUCount], Dsdt + Offset, 4);
+        gAcpiCPUName[gAcpiCPUCount] = AllocateZeroPool (5);
+        CopyMem (gAcpiCPUName[gAcpiCPUCount], Dsdt + Offset, 4);
         i = Offset + 5;
 
-        if (AcpiCPUCount == 0) {
-          DBG ("Found ACPI CPU: %a ", AcpiCPUName[AcpiCPUCount]);
+        if (gAcpiCPUCount == 0) {
+          DBG ("Found ACPI CPU: %a ", gAcpiCPUName[gAcpiCPUCount]);
         } else {
-          DBG ("| %a ", AcpiCPUName[AcpiCPUCount]);
+          DBG ("| %a ", gAcpiCPUName[gAcpiCPUCount]);
         }
 
-        if (++AcpiCPUCount == 32) {
+        if (++gAcpiCPUCount == 32) {
           break;
         }
       }
     }
   }
 
-  DBG (", within the score: %a\n", AcpiCPUScore);
+  DBG (", within the score: %a\n", gAcpiCPUScore);
 
-  if (!AcpiCPUCount) {
+  if (!gAcpiCPUCount) {
     for (i = 0; i < 15; i++) {
-      AcpiCPUName[i] = AllocateZeroPool (5);
-      AsciiSPrint (AcpiCPUName[i], 5, "CPU%1x", i);
+      gAcpiCPUName[i] = AllocateZeroPool (5);
+      AsciiSPrint (gAcpiCPUName[i], 5, "CPU%1x", i);
     }
   }
 
@@ -1335,6 +1335,7 @@ FixAny (
       } else {
         MsgLog (" bin not Found / already patched!\n");
       }
+
       return Len;
     }
 
@@ -2796,7 +2797,7 @@ FixBiosDsdt (
   }
 
   //Always add MCHC for PM
-  if ((gCPUStructure.Family == 0x06)  && BIT_ISSET (gSettings.FixDsdt, FIX_MCHC)) {
+  if ((gSettings.CPUStructure.Family == 0x06)  && BIT_ISSET (gSettings.FixDsdt, FIX_MCHC)) {
     //DBG ("patch MCHC in DSDT \n");
     DsdtLen = AddMCHC (Temp, DsdtLen);
   }

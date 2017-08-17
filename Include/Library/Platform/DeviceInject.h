@@ -152,7 +152,7 @@ DevpropAddValue (
 
 CHAR8 *
 DevpropGenerateString (
-  DevPropString     *StringBuf
+  DevPropString   *StringBuf
 );
 
 VOID

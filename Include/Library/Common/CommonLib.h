@@ -17,10 +17,17 @@
 #ifndef _COMMON_LIB_H_
 #define _COMMON_LIB_H_
 
-#define TO_LOWER(ch) (((ch >= L'A') && (ch <= L'Z')) ? ((ch - L'A') + L'a') : ch)
-#define TO_UPPER(ch) (((ch >= L'a') && (ch <= L'z')) ? ((ch - L'a') + L'A') : ch)
-#define TO_ALOWER(ch) (((ch >= 'A') && (ch <= 'Z')) ? ((ch - 'A') + 'a') : ch)
-#define TO_AUPPER(ch) (((ch >= 'a') && (ch <= 'z')) ? ((ch - 'a') + 'A') : ch)
+#include <Library/UefiLib.h>
+
+#define PoolPrint(...)  CatSPrint (NULL, __VA_ARGS__)
+
+#define CONSTRAIN_MIN(Variable, MinValue) if (Variable < MinValue) Variable = MinValue
+#define CONSTRAIN_MAX(Variable, MaxValue) if (Variable > MaxValue) Variable = MaxValue
+
+#define TO_LOWER(ch)            (((ch >= L'A') && (ch <= L'Z')) ? ((ch - L'A') + L'a') : ch)
+#define TO_UPPER(ch)            (((ch >= L'a') && (ch <= L'z')) ? ((ch - L'a') + L'A') : ch)
+#define TO_ALOWER(ch)           (((ch >= 'A') && (ch <= 'Z')) ? ((ch - 'A') + 'a') : ch)
+#define TO_AUPPER(ch)           (((ch >= 'a') && (ch <= 'z')) ? ((ch - 'a') + 'A') : ch)
 
 //Unicode
 #define IS_COMMA(a)             ((a) == L',')
@@ -39,8 +46,8 @@
 #define IS_PUNCT(x)             ((x == '.') || (x == '-'))
 
 // Allow for 255 unicode characters + 2 byte unicode null terminator.
-#define SVALUE_MAX_SIZE 512
-#define AVALUE_MAX_SIZE 256
+#define SVALUE_MAX_SIZE         (512)
+#define AVALUE_MAX_SIZE         (256)
 
 typedef struct {
   UINT8   VersionMajor;
@@ -65,9 +72,9 @@ AsciiStrVersionToUint64 (
 UINT32
 EFIAPI
 Hex2Bin (
-  IN  CHAR8   *hex,
-  OUT UINT8   *bin,
-  IN  UINT32  len
+  IN  CHAR8   *Hex,
+  OUT UINT8   *Bin,
+  IN  UINT32  Len
 );
 
 VOID *
@@ -80,15 +87,8 @@ StringDataToHex (
 UINT8
 EFIAPI
 HexStrToUint8 (
-  CHAR8   *buf
+  CHAR8   *Buf
 ); //one or two hex letters to one byte
-
-CHAR8 *
-EFIAPI
-Bytes2Hex (
-  UINT8   *data,
-  UINTN   len
-);
 
 CHAR8 *
 EFIAPI

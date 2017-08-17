@@ -502,7 +502,7 @@ UINT8   MovE2ToCx[]   = { 0x66, 0xB9, 0xE2, 0x00 };
 UINT8   Wrmsr[]       = { 0x0F, 0x30 };
 
 VOID
-AsusAICPUPMPatch (
+AICPUPowerManagementPatch (
   UINT8           *Driver,
   UINT32          DriverSize/*,
   CHAR8           *InfoPlist,
@@ -513,7 +513,7 @@ AsusAICPUPMPatch (
 
   GetTextSegment (Driver, &Addr, &Size, &Off);
 
-  DBG ("AsusAICPUPMPatch: driverAddr = %x, driverSize = %x\n", Driver, DriverSize);
+  DBG ("AICPUPowerManagementPatch: driverAddr = %x, driverSize = %x\n", Driver, DriverSize);
 
   if (Off && Size) {
     Index1 = Off;
@@ -710,11 +710,11 @@ PatchKext (
   //
 
   } else if (
-    Entry->KernelAndKextPatches->KPAsusAICPUPM &&
+    Entry->KernelAndKextPatches->KPKernelPm &&
     IsPatchNameMatch (BundleIdentifier, NULL, "com.apple.driver.AppleIntelCPUPowerManagement", &IsBundle)
   ) {
-    AsusAICPUPMPatch (Driver, DriverSize);
-    Entry->KernelAndKextPatches->KPAsusAICPUPM = FALSE;
+    AICPUPowerManagementPatch (Driver, DriverSize);
+    Entry->KernelAndKextPatches->KPKernelPm = FALSE;
 
   //
   // Others
@@ -753,8 +753,8 @@ PatchKext (
 
 VOID
 CheckForFakeSMC (
-  CHAR8         *InfoPlist,
-  LOADER_ENTRY  *Entry
+  CHAR8           *InfoPlist,
+  LOADER_ENTRY    *Entry
 ) {
   if (
     !gSettings.FakeSMCLoaded &&

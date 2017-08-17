@@ -133,7 +133,6 @@ AllocatePagesFromTop (
   IN OUT  EFI_PHYSICAL_ADDRESS  *Memory
 );
 
-
 VOID
 EFIAPI
 BootArgsPrint (

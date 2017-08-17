@@ -12,7 +12,7 @@
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
 
-#include <Library/Platform/DeviceTree.h>
+#include <Library/Common/DeviceTreeLib.h>
 
 #include "BootFixes.h"
 #include "AsmFuncs.h"

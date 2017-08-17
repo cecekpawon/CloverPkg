@@ -59,15 +59,15 @@ GeneratePssSsdt (
   UINT16    RealMax, RealMin = 6, RealTurbo = 0, Apsn = 0, Aplf = 8;
   UINT32    i, j;
 
-  if (gMobile) {
+  if (gSettings.Mobile) {
    Aplf = 4;
   }
 
   for (i = 0; i < 47; i++) {
     //ultra-mobile
     if (
-      (gCPUStructure.BrandString[i] != 'P') &&
-      (gCPUStructure.BrandString[i + 1] == 'U')
+      (gSettings.CPUStructure.BrandString[i] != 'P') &&
+      (gSettings.CPUStructure.BrandString[i + 1] == 'U')
     ) {
       Aplf = 0;
       break;
@@ -78,15 +78,15 @@ GeneratePssSsdt (
     Aplf++;
   }
 
-  if (gCPUStructure.Model >= CPUID_MODEL_HASWELL) {
+  if (gSettings.CPUStructure.Model >= CPUID_MODEL_HASWELL) {
     Aplf = 0;
   }
 
   if (Number > 0) {
     // Retrieving P-States, ported from code by superhai (c)
     if (
-      (gCPUStructure.Family == 0x06) &&
-      (gCPUStructure.Model >= CPUID_MODEL_SANDYBRIDGE)
+      (gSettings.CPUStructure.Family == 0x06) &&
+      (gSettings.CPUStructure.Model >= CPUID_MODEL_SANDYBRIDGE)
     ) {
       Maximum.Control.Control = RShiftU64 (AsmReadMsr64 (MSR_PLATFORM_INFO), 8) & 0xff;
 
@@ -100,9 +100,9 @@ GeneratePssSsdt (
       DBG ("Maximum control=0x%x\n", RealMax);
 
       if (gSettings.Turbo) {
-        RealTurbo = (gCPUStructure.Turbo4 > gCPUStructure.Turbo1)
-                      ? (gCPUStructure.Turbo4 / 10)
-                      : (gCPUStructure.Turbo1 / 10);
+        RealTurbo = (gSettings.CPUStructure.Turbo4 > gSettings.CPUStructure.Turbo1)
+                      ? (gSettings.CPUStructure.Turbo4 / 10)
+                      : (gSettings.CPUStructure.Turbo1 / 10);
         Maximum.Control.Control = RealTurbo;
         DBG ("Turbo control=0x%x\n", RealTurbo);
       }
@@ -135,14 +135,14 @@ GeneratePssSsdt (
             PStatesCount++;
             PStates[PStatesCount].Control.Control = (UINT16)j;
             PStates[PStatesCount].CID = j;
-            PStates[PStatesCount].Frequency = (UINT32)(DivU64x32 (MultU64x32 (gCPUStructure.FSBFrequency, i), Mega)) - 1;
+            PStates[PStatesCount].Frequency = (UINT32)(DivU64x32 (MultU64x32 (gSettings.CPUStructure.FSBFrequency, i), Mega)) - 1;
           }
 
           PStatesCount++;
         }
       }
     } else {
-      MsgLog ("Unsupported CPU (0x%X): P-States not generated !!!\n", gCPUStructure.Family);
+      MsgLog ("Unsupported CPU (0x%X): P-States not generated !!!\n", gSettings.CPUStructure.Family);
     }
 
     //
@@ -156,9 +156,9 @@ GeneratePssSsdt (
 
       AmlAddBuffer (Root, (CHAR8 *)&PssSsdtHeader[0], sizeof (PssSsdtHeader)); // SSDT header
 
-      AsciiSPrint (Name, 31, "%a%4a", AcpiCPUScore, AcpiCPUName[0]);
-      AsciiSPrint (Name1, 31, "%a%4aPSS_", AcpiCPUScore, AcpiCPUName[0]);
-      AsciiSPrint (Name2, 31, "%a%4aPCT_", AcpiCPUScore, AcpiCPUName[0]);
+      AsciiSPrint (Name, 31, "%a%4a", gAcpiCPUScore, gAcpiCPUName[0]);
+      AsciiSPrint (Name1, 31, "%a%4aPSS_", gAcpiCPUScore, gAcpiCPUName[0]);
+      AsciiSPrint (Name2, 31, "%a%4aPCT_", gAcpiCPUScore, gAcpiCPUName[0]);
 
       Scope = AmlAddScope (Root, Name);
       Method = AmlAddName (Scope, "PSS_");
@@ -203,7 +203,7 @@ GeneratePssSsdt (
         AmlAddByte (Scope, gSettings.PluginType);
       }
 
-      if (gCPUStructure.Family >= 2) {
+      if (gSettings.CPUStructure.Family >= 2) {
         AmlAddName (Scope, "APSN");
         AmlAddByte (Scope, (UINT8)Apsn);
         AmlAddName (Scope, "APLF");
@@ -212,7 +212,7 @@ GeneratePssSsdt (
 
       // Add CPUs
       for (i = 1; i < Number; i++) {
-        AsciiSPrint (Name, 31, "%a%4a", AcpiCPUScore, AcpiCPUName[i]);
+        AsciiSPrint (Name, 31, "%a%4a", gAcpiCPUScore, gAcpiCPUName[i]);
         Scope = AmlAddScope (Root, Name);
         MetPSS = AmlAddMethod (Scope, "_PSS", 0);
         AmlAddReturnName (MetPSS, Name1);
@@ -267,13 +267,16 @@ GenerateCstSsdt (
   AcpiCPUPBlk = Fadt->Pm1aEvtBlk + 0x10;
   C2Enabled = gSettings.EnableC2 || (Fadt->PLvl2Lat < 100);
   C3Enabled = (Fadt->PLvl3Lat < 1000);
-  CStatesCount = 1 + (C2Enabled ? 1 : 0) + ((C3Enabled || gSettings.EnableC4)? 1 : 0)
-                  + (gSettings.EnableC6 ? 1 : 0) + (gSettings.EnableC7 ? 1 : 0);
+  CStatesCount =  1
+                  + (C2Enabled ? 1 : 0)
+                  + ((C3Enabled || gSettings.EnableC4) ? 1 : 0)
+                  + (gSettings.EnableC6 ? 1 : 0)
+                  + (gSettings.EnableC7 ? 1 : 0);
 
   Root = AmlCreateNode (NULL);
   AmlAddBuffer (Root, CstSsdtHeader, sizeof (CstSsdtHeader)); // SSDT header
-  AsciiSPrint (Name0, 31, "%a%4a", AcpiCPUScore, AcpiCPUName[0]);
-  AsciiSPrint (Name1, 31, "%a%4aCST_",  AcpiCPUScore, AcpiCPUName[0]);
+  AsciiSPrint (Name0, 31, "%a%4a", gAcpiCPUScore, gAcpiCPUName[0]);
+  AsciiSPrint (Name1, 31, "%a%4aCST_",  gAcpiCPUScore, gAcpiCPUName[0]);
   Scope = AmlAddScope (Root, Name0);
   Name = AmlAddName (Scope, "CST_");
   Pack = AmlAddPackage (Name);
@@ -290,54 +293,54 @@ GenerateCstSsdt (
   ResourceTemplateRegisterFixedHW[11] = 0x00; // C1
 
   AmlAddBuffer (Tmpl, ResourceTemplateRegisterFixedHW, ARRAY_SIZE (ResourceTemplateRegisterFixedHW));
-  AmlAddByte (Tmpl, 0x01);     // C1
-  AmlAddWord (Tmpl, 0x0001);     // Latency
-  AmlAddDword (Tmpl, 0x000003e8);  // Power
+  AmlAddByte (Tmpl, 0x01); // C1
+  AmlAddWord (Tmpl, 0x0001); // Latency
+  AmlAddDword (Tmpl, 0x000003e8); // Power
 
   //ResourceTemplateRegisterFixedHW[18] = 0x03;
   ResourceTemplateRegisterFixedHW[10] = 0x03;
 
-  if (C2Enabled) {         // C2
+  if (C2Enabled) { // C2
     Tmpl = AmlAddPackage (Pack);
     ResourceTemplateRegisterFixedHW[11] = 0x10; // C2
     AmlAddBuffer (Tmpl, ResourceTemplateRegisterFixedHW, ARRAY_SIZE (ResourceTemplateRegisterFixedHW));
-    AmlAddByte (Tmpl, 0x02);     // C2
-    AmlAddWord (Tmpl, 0x0040);     // Latency
-    AmlAddDword (Tmpl, 0x000001f4);  // Power
+    AmlAddByte (Tmpl, 0x02); // C2
+    AmlAddWord (Tmpl, 0x0040); // Latency
+    AmlAddDword (Tmpl, 0x000001f4); // Power
   }
 
-  if (gSettings.EnableC4) {         // C4
+  if (gSettings.EnableC4) { // C4
     Tmpl = AmlAddPackage (Pack);
     ResourceTemplateRegisterFixedHW[11] = 0x30; // C4
     AmlAddBuffer (Tmpl, ResourceTemplateRegisterFixedHW, ARRAY_SIZE (ResourceTemplateRegisterFixedHW));
-    AmlAddByte (Tmpl, 0x04);     // C4
-    AmlAddWord (Tmpl, 0x0080);     // Latency
-    AmlAddDword (Tmpl, 0x000000C8);  // Power
+    AmlAddByte (Tmpl, 0x04); // C4
+    AmlAddWord (Tmpl, 0x0080); // Latency
+    AmlAddDword (Tmpl, 0x000000C8); // Power
   } else if (C3Enabled) {
     Tmpl = AmlAddPackage (Pack);
     ResourceTemplateRegisterFixedHW[11] = 0x20; // C3
     AmlAddBuffer (Tmpl, ResourceTemplateRegisterFixedHW, ARRAY_SIZE (ResourceTemplateRegisterFixedHW));
-    AmlAddByte (Tmpl, 0x03);     // C3
-    AmlAddWord (Tmpl, gSettings.C3Latency);      // Latency as in MacPro6,1 = 0x0043
-    AmlAddDword (Tmpl, 0x000001F4);  // Power
+    AmlAddByte (Tmpl, 0x03); // C3
+    AmlAddWord (Tmpl, gSettings.C3Latency); // Latency as in MacPro6,1 = 0x0043
+    AmlAddDword (Tmpl, 0x000001F4); // Power
   }
 
-  if (gSettings.EnableC6) {     // C6
+  if (gSettings.EnableC6) { // C6
     Tmpl = AmlAddPackage (Pack);
     ResourceTemplateRegisterFixedHW[11] = 0x20; // C6
     AmlAddBuffer (Tmpl, ResourceTemplateRegisterFixedHW, ARRAY_SIZE (ResourceTemplateRegisterFixedHW));
-    AmlAddByte (Tmpl, 0x06);     // C6
-    AmlAddWord (Tmpl, gSettings.C3Latency + 3);      // Latency as in MacPro6,1 = 0x0046
-    AmlAddDword (Tmpl, 0x0000015E);  // Power
+    AmlAddByte (Tmpl, 0x06); // C6
+    AmlAddWord (Tmpl, gSettings.C3Latency + 3); // Latency as in MacPro6,1 = 0x0046
+    AmlAddDword (Tmpl, 0x0000015E); // Power
   }
 
   if (gSettings.EnableC7) {
     Tmpl = AmlAddPackage (Pack);
     ResourceTemplateRegisterFixedHW[11] = 0x30; // C4 or C7
     AmlAddBuffer (Tmpl, ResourceTemplateRegisterFixedHW, ARRAY_SIZE (ResourceTemplateRegisterFixedHW));
-    AmlAddByte (Tmpl, 0x07);     // C7
-    AmlAddWord (Tmpl, 0xF5);     // Latency as in iMac14,1
-    AmlAddDword (Tmpl, 0xC8);  // Power
+    AmlAddByte (Tmpl, 0x07); // C7
+    AmlAddWord (Tmpl, 0xF5); // Latency as in iMac14,1
+    AmlAddDword (Tmpl, 0xC8); // Power
   }
 
   Met = AmlAddMethod (Scope, "_CST", 0);
@@ -347,7 +350,7 @@ GenerateCstSsdt (
 
   // Aliases
   for (i = 1; i < Number; i++) {
-    AsciiSPrint (Name2, 31, "%a%4a",  AcpiCPUScore, AcpiCPUName[i]);
+    AsciiSPrint (Name2, 31, "%a%4a",  gAcpiCPUScore, gAcpiCPUName[i]);
 
     Scope = AmlAddScope (Root, Name2);
     Met = AmlAddMethod (Scope, "_CST", 0);

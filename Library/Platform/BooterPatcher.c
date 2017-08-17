@@ -32,7 +32,7 @@ ParseBooterHeader (
   BOOT_EFI_HEADER                   *Ret = NULL;
   UINT32                            Index;
 
-  DBG ("Start: %a\n", __FUNCTION__);
+  DBG ("%a: Start\n", __FUNCTION__);
 
   DosHdr = (EFI_IMAGE_DOS_HEADER *)FileBuffer;
   if (DosHdr->e_magic != EFI_IMAGE_DOS_SIGNATURE) {
@@ -78,7 +78,7 @@ ParseBooterHeader (
 
   Finish:
 
-  DBG ("End: %a\n", __FUNCTION__);
+  DBG ("%a: End\n", __FUNCTION__);
 
   return Ret;
 }
@@ -97,7 +97,7 @@ PatchBooter (
   ) {
     UINTN  i = 0, Num = 0;
 
-    MsgLog ("Start BooterPatches:\n");
+    MsgLog ("%a: Start\n", __FUNCTION__);
 
     for (; i < Entry->KernelAndKextPatches->NrBooters; ++i) {
       MsgLog (" - [%02d]: %a | [MatchOS: %a]",
@@ -130,6 +130,6 @@ PatchBooter (
       MsgLog ("  - Patching %a : %d replaces done\n", Num ? "Success" : "Error", Num);
     }
 
-    MsgLog ("End BooterPatches\n");
+    MsgLog ("%a: End\n", __FUNCTION__);
   }
 }

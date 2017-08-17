@@ -1,0 +1,26 @@
+## @file
+#
+##
+
+[Defines]
+  INF_VERSION       = 0x00010005
+  BASE_NAME         = CompressLib
+  FILE_GUID         = 7E70C3D6-F8D8-4DC6-8F1A-3397982F06B8
+  MODULE_TYPE       = BASE
+  VERSION_STRING    = 1.0
+  LIBRARY_CLASS     = CompressLib
+
+[Sources]
+  LZVN.c
+
+[Packages]
+  CloverPkg/CloverPkg.dec
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  CommonLib
+  MemLogLib
+  MemoryAllocationLib
+  UefiLib

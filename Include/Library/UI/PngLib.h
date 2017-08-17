@@ -137,7 +137,9 @@ unsigned lodepng_decode_memory(unsigned char** out, unsigned* w, unsigned* h,
                                LodePNGColorType colortype, unsigned bitdepth);
 
 /*Same as lodepng_decode_memory, but always decodes to 32-bit RGBA raw image*/
-unsigned lodepng_decode32(unsigned char** out, unsigned* w, unsigned* h,
+unsigned
+EFIAPI
+lodepng_decode32(unsigned char** out, unsigned* w, unsigned* h,
                           const unsigned char* in, size_t insize);
 
 /*Same as lodepng_decode_memory, but always decodes to 24-bit RGB raw image*/
@@ -186,7 +188,9 @@ unsigned lodepng_encode_memory(unsigned char** out, size_t* outsize,
                                LodePNGColorType colortype, unsigned bitdepth);
 
 /*Same as lodepng_encode_memory, but always encodes from 32-bit RGBA raw image.*/
-unsigned lodepng_encode32(unsigned char** out, size_t* outsize,
+unsigned
+EFIAPI
+lodepng_encode32(unsigned char** out, size_t* outsize,
                           const unsigned char* image, unsigned w, unsigned h);
 
 /*Same as lodepng_encode_memory, but always encodes from 24-bit RGB raw image.*/

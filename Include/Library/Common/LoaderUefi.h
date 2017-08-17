@@ -345,13 +345,13 @@ typedef struct {
 } BootArgs2;
 
 typedef struct {
-  UINT16  NumSections;
-  UINT32  TextVA;
-  UINT32  TextOffset;
-  UINT32  TextSize;
-  UINT32  DataVA;
-  UINT32  DataOffset;
-  UINT32  DataSize;
+  UINT16    NumSections;
+  UINT32    TextVA;
+  UINT32    TextOffset;
+  UINT32    TextSize;
+  UINT32    DataVA;
+  UINT32    DataOffset;
+  UINT32    DataSize;
 } BOOT_EFI_HEADER;
 
 

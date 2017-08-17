@@ -49,6 +49,8 @@
 
 #define DBG(...) DebugLog (DEBUG_IMG, __VA_ARGS__)
 
+STATIC EG_IMAGE   *AnimeImage = NULL;
+
 //
 // Basic image handling
 //
@@ -595,7 +597,7 @@ ComposeImage (
 
   // compose
   if (CompWidth > 0) {
-    //if (CompImage->HasAlpha && !BackgroundImage) {
+    //if (CompImage->HasAlpha && !gBackgroundImage) {
     //  CompImage->HasAlpha = FALSE;
     //}
 
@@ -713,8 +715,8 @@ CopyPlane (
 
 EG_IMAGE *
 DecodePNG (
-  IN UINT8      *FileData,
-  IN UINTN      FileDataLength
+  IN UINT8    *FileData,
+  IN UINTN    FileDataLength
 ) {
   EG_IMAGE    *NewImage = NULL;
   EG_PIXEL    *PixelData, *Pixel, *PixelD;
@@ -758,8 +760,6 @@ DecodePNG (
 
   return NewImage;
 }
-
-
 
 STATIC
 INTN
@@ -868,30 +868,30 @@ BltClearScreen (
 ) { //ShowBanner always TRUE
   EG_PIXEL  *p1;
   INTN      i, j, x, x1, x2, y, y1, y2,
-            BanHeight = ((UGAHeight - LAYOUT_TOTAL_HEIGHT) >> 1) + LAYOUT_BANNER_HEIGHT;
+            BanHeight = ((GlobalConfig.UGAHeight - LAYOUT_TOTAL_HEIGHT) >> 1) + LAYOUT_BANNER_HEIGHT;
 
   if (BIT_ISUNSET (GlobalConfig.HideUIFlags, HIDEUI_FLAG_BANNER)) {
     // Banner is used in this theme
-    if (!Banner) {
+    if (!gBanner) {
       // Banner is not loaded yet
       if (IsEmbeddedTheme ()) {
-        Banner = BuiltinIcon (BUILTIN_ICON_BANNER);
-        CopyMem (&TmpBackgroundPixel, &GrayBackgroundPixel, sizeof (EG_PIXEL));
+        gBanner = BuiltinIcon (BUILTIN_ICON_BANNER);
+        CopyMem (&gTmpBackgroundPixel, &gGrayBackgroundPixel, sizeof (EG_PIXEL));
       } else  {
-        Banner = LoadImage (ThemeDir, GlobalConfig.BannerFileName);
-        if (Banner) {
+        gBanner = LoadImage (gThemeDir, GlobalConfig.BannerFileName);
+        if (gBanner) {
           // Banner was changed, so copy into BlueBackgroundBixel first pixel of banner
-          CopyMem (&TmpBackgroundPixel, &Banner->PixelData[0], sizeof (EG_PIXEL));
+          CopyMem (&gTmpBackgroundPixel, &gBanner->PixelData[0], sizeof (EG_PIXEL));
         } else {
           DBG ("banner file not read\n");
         }
       }
     }
 
-    if (Banner) {
+    if (gBanner) {
       // Banner was loaded, so calculate its size and position
-      BannerPlace.Width = Banner->Width;
-      BannerPlace.Height = (BanHeight >= Banner->Height) ? (INTN)Banner->Height : BanHeight;
+      gBannerPlace.Width = gBanner->Width;
+      gBannerPlace.Height = (BanHeight >= gBanner->Height) ? (INTN)gBanner->Height : BanHeight;
       // Check if new style placement value was used for banner in theme.plist
       if (
         (((INT32)GlobalConfig.BannerPosX >= 0) && ((INT32)GlobalConfig.BannerPosX <= 100)) &&
@@ -900,110 +900,110 @@ BltClearScreen (
         // Check if screen size being used is different from theme origination size.
         // If yes, then recalculate the placement % value.
         // This is necessary because screen can be a different size, but banner is not scaled.
-        BannerPlace.XPos = HybridRepositioning (
+        gBannerPlace.XPos = HybridRepositioning (
                               GlobalConfig.BannerEdgeHorizontal,
-                              GlobalConfig.BannerPosX, BannerPlace.Width,  UGAWidth,  GlobalConfig.ThemeDesignWidth
+                              GlobalConfig.BannerPosX, gBannerPlace.Width,  GlobalConfig.UGAWidth,  GlobalConfig.ThemeDesignWidth
                             );
 
-        BannerPlace.YPos = HybridRepositioning (
+        gBannerPlace.YPos = HybridRepositioning (
                               GlobalConfig.BannerEdgeVertical,
-                              GlobalConfig.BannerPosY, BannerPlace.Height, UGAHeight, GlobalConfig.ThemeDesignHeight
+                              GlobalConfig.BannerPosY, gBannerPlace.Height, GlobalConfig.UGAHeight, GlobalConfig.ThemeDesignHeight
                             );
 
         // Check if banner is required to be nudged.
-        BannerPlace.XPos = CalculateNudgePosition (BannerPlace.XPos, GlobalConfig.BannerNudgeX, Banner->Width,  UGAWidth);
-        BannerPlace.YPos = CalculateNudgePosition (BannerPlace.YPos, GlobalConfig.BannerNudgeY, Banner->Height, UGAHeight);
+        gBannerPlace.XPos = CalculateNudgePosition (gBannerPlace.XPos, GlobalConfig.BannerNudgeX, gBanner->Width,  GlobalConfig.UGAWidth);
+        gBannerPlace.YPos = CalculateNudgePosition (gBannerPlace.YPos, GlobalConfig.BannerNudgeY, gBanner->Height, GlobalConfig.UGAHeight);
       } else {
         // Use rEFIt default (no placement values speicifed)
-        BannerPlace.XPos = (UGAWidth - Banner->Width) >> 1;
-        BannerPlace.YPos = (BanHeight >= Banner->Height) ? (BanHeight - Banner->Height) : 0;
+        gBannerPlace.XPos = (GlobalConfig.UGAWidth - gBanner->Width) >> 1;
+        gBannerPlace.YPos = (BanHeight >= gBanner->Height) ? (BanHeight - gBanner->Height) : 0;
       }
     }
   }
 
   if (
-    !Banner ||
+    !gBanner ||
     BIT_ISSET (GlobalConfig.HideUIFlags, HIDEUI_FLAG_BANNER) ||
-    !IsImageWithinScreenLimits (BannerPlace.XPos, BannerPlace.Width, UGAWidth) ||
-    !IsImageWithinScreenLimits (BannerPlace.YPos, BannerPlace.Height, UGAHeight)
+    !IsImageWithinScreenLimits (gBannerPlace.XPos, gBannerPlace.Width, GlobalConfig.UGAWidth) ||
+    !IsImageWithinScreenLimits (gBannerPlace.YPos, gBannerPlace.Height, GlobalConfig.UGAHeight)
   ) {
     // Banner is disabled or it cannot be used, apply defaults for placement
-    if (Banner) {
-      FreePool (Banner);
-      Banner = NULL;
+    if (gBanner) {
+      FreePool (gBanner);
+      gBanner = NULL;
     }
 
-    BannerPlace.XPos = 0;
-    BannerPlace.YPos = 0;
-    BannerPlace.Width = UGAWidth;
-    BannerPlace.Height = BanHeight;
+    gBannerPlace.XPos = 0;
+    gBannerPlace.YPos = 0;
+    gBannerPlace.Width = GlobalConfig.UGAWidth;
+    gBannerPlace.Height = BanHeight;
   }
 
   // Load Background and scale
-  if (!BigBack && (GlobalConfig.BackgroundName != NULL)) {
-    BigBack = LoadImage (ThemeDir, GlobalConfig.BackgroundName);
+  if (!gBigBack && (GlobalConfig.BackgroundName != NULL)) {
+    gBigBack = LoadImage (gThemeDir, GlobalConfig.BackgroundName);
   }
 
   if (
-    (BackgroundImage != NULL) &&
-    ((BackgroundImage->Width != UGAWidth) || (BackgroundImage->Height != UGAHeight))
+    (gBackgroundImage != NULL) &&
+    ((gBackgroundImage->Width != GlobalConfig.UGAWidth) || (gBackgroundImage->Height != GlobalConfig.UGAHeight))
   ) {
     // Resolution changed
-    FreeImage (BackgroundImage);
-    BackgroundImage = NULL;
+    FreeImage (gBackgroundImage);
+    gBackgroundImage = NULL;
   }
 
-  if (BackgroundImage == NULL) {
-    BackgroundImage = CreateFilledImage (UGAWidth, UGAHeight, FALSE, &TmpBackgroundPixel);
+  if (gBackgroundImage == NULL) {
+    gBackgroundImage = CreateFilledImage (GlobalConfig.UGAWidth, GlobalConfig.UGAHeight, FALSE, &gTmpBackgroundPixel);
   }
 
-  if (BigBack != NULL) {
+  if (gBigBack != NULL) {
     switch (GlobalConfig.BackgroundScale) {
       case Scale:
-        BackgroundImage = ScaleImage (BigBack, UGAWidth, UGAHeight);
+        gBackgroundImage = ScaleImage (gBigBack, GlobalConfig.UGAWidth, GlobalConfig.UGAHeight);
         break;
 
       case Crop:
-        x = UGAWidth - BigBack->Width;
+        x = GlobalConfig.UGAWidth - gBigBack->Width;
         if (x >= 0) {
           x1 = x >> 1;
           x2 = 0;
-          x = BigBack->Width;
+          x = gBigBack->Width;
         } else {
           x1 = 0;
           x2 = (-x) >> 1;
-          x = UGAWidth;
+          x = GlobalConfig.UGAWidth;
         }
 
-        y = UGAHeight - BigBack->Height;
+        y = GlobalConfig.UGAHeight - gBigBack->Height;
 
         if (y >= 0) {
           y1 = y >> 1;
           y2 = 0;
-          y = BigBack->Height;
+          y = gBigBack->Height;
         } else {
           y1 = 0;
           y2 = (-y) >> 1;
-          y = UGAHeight;
+          y = GlobalConfig.UGAHeight;
         }
 
         RawCopy (
-          BackgroundImage->PixelData + y1 * UGAWidth + x1,
-          BigBack->PixelData + y2 * BigBack->Width + x2,
-          x, y, UGAWidth, BigBack->Width
+          gBackgroundImage->PixelData + y1 * GlobalConfig.UGAWidth + x1,
+          gBigBack->PixelData + y2 * gBigBack->Width + x2,
+          x, y, GlobalConfig.UGAWidth, gBigBack->Width
         );
         break;
 
       case Tile:
-        x = (BigBack->Width * ((UGAWidth - 1) / BigBack->Width + 1) - UGAWidth) >> 1;
-        y = (BigBack->Height * ((UGAHeight - 1) / BigBack->Height + 1) - UGAHeight) >> 1;
-        p1 = BackgroundImage->PixelData;
+        x = (gBigBack->Width * ((GlobalConfig.UGAWidth - 1) / gBigBack->Width + 1) - GlobalConfig.UGAWidth) >> 1;
+        y = (gBigBack->Height * ((GlobalConfig.UGAHeight - 1) / gBigBack->Height + 1) - GlobalConfig.UGAHeight) >> 1;
+        p1 = gBackgroundImage->PixelData;
 
-        for (j = 0; j < UGAHeight; j++) {
-          y2 = ((j + y) % BigBack->Height) * BigBack->Width;
+        for (j = 0; j < GlobalConfig.UGAHeight; j++) {
+          y2 = ((j + y) % gBigBack->Height) * gBigBack->Width;
 
-          for (i = 0; i < UGAWidth; i++) {
-            *p1++ = BigBack->PixelData[y2 + ((i + x) % BigBack->Width)];
+          for (i = 0; i < GlobalConfig.UGAWidth; i++) {
+            *p1++ = gBigBack->PixelData[y2 + ((i + x) % gBigBack->Width)];
           }
         }
         break;
@@ -1016,18 +1016,18 @@ BltClearScreen (
   }
 
   // Draw background
-  if (BackgroundImage) {
-    BltImage (BackgroundImage, 0, 0); //if NULL then do nothing
+  if (gBackgroundImage) {
+    BltImage (gBackgroundImage, 0, 0); //if NULL then do nothing
   } else {
-    ClearScreen (IsEmbeddedTheme () ? &GrayBackgroundPixel : &BlackBackgroundPixel);
+    ClearScreen (IsEmbeddedTheme () ? &gGrayBackgroundPixel : &gBlackBackgroundPixel);
   }
 
   // Draw banner
-  if (Banner && ShowBanner) {
-    BltImageAlpha (Banner, BannerPlace.XPos, BannerPlace.YPos, &TransparentBackgroundPixel, 16);
+  if (gBanner && ShowBanner) {
+    BltImageAlpha (gBanner, gBannerPlace.XPos, gBannerPlace.YPos, &gTransparentBackgroundPixel, 16);
   }
 
-  GraphicsScreenDirty = FALSE;
+  GlobalConfig.GraphicsScreenDirty = FALSE;
 }
 
 VOID
@@ -1042,7 +1042,7 @@ BltImage (
 
   DrawImageArea (Image, 0, 0, 0, 0, XPos, YPos);
 
-  GraphicsScreenDirty = TRUE;
+  GlobalConfig.GraphicsScreenDirty = TRUE;
 }
 
 VOID
@@ -1056,7 +1056,7 @@ BltImageAlpha (
   EG_IMAGE    *CompImage, *NewImage = NULL;
   INTN        Width = Scale << 3, Height = Width;
 
-  GraphicsScreenDirty = TRUE;
+  GlobalConfig.GraphicsScreenDirty = TRUE;
 
   if (Image) {
     NewImage = CopyScaledImage (Image, Scale); //will be Scale/16
@@ -1065,14 +1065,14 @@ BltImageAlpha (
   }
 
   // compose on background
-  CompImage = CreateFilledImage (Width, Height, (BackgroundImage != NULL), BackgroundPixel);
+  CompImage = CreateFilledImage (Width, Height, (gBackgroundImage != NULL), BackgroundPixel);
   ComposeImage (CompImage, NewImage, 0, 0);
 
   if (NewImage) {
     FreeImage (NewImage);
   }
 
-  if (!BackgroundImage) {
+  if (!gBackgroundImage) {
     DrawImageArea (CompImage, 0, 0, 0, 0, XPos, YPos);
     FreeImage (CompImage);
     return;
@@ -1086,10 +1086,10 @@ BltImageAlpha (
 
   RawCopy (
     NewImage->PixelData,
-    BackgroundImage->PixelData + YPos * BackgroundImage->Width + XPos,
+    gBackgroundImage->PixelData + YPos * gBackgroundImage->Width + XPos,
     Width, Height,
     Width,
-    BackgroundImage->Width
+    gBackgroundImage->Width
   );
 
   ComposeImage (NewImage, CompImage, 0, 0);
@@ -1138,10 +1138,10 @@ BltImageComposite (
 
   // blit to screen and clean up
   //DrawImageArea (CompImage, 0, 0, TotalWidth, TotalHeight, XPos, YPos);
-  BltImageAlpha (CompImage, XPos, YPos, &TransparentBackgroundPixel, 16);
+  BltImageAlpha (CompImage, XPos, YPos, &gTransparentBackgroundPixel, 16);
   FreeImage (CompImage);
 
-  GraphicsScreenDirty = TRUE;
+  GlobalConfig.GraphicsScreenDirty = TRUE;
 }
 
 /*
@@ -1189,7 +1189,7 @@ BltImageCompositeBadge (
                 (CompWidth > TotalWidth) ? CompWidth : TotalWidth,
                 (CompHeight > TotalHeight) ? CompHeight : TotalHeight,
                 TRUE,
-                &TransparentBackgroundPixel
+                &gTransparentBackgroundPixel
               );
 
   if (!CompImage) {
@@ -1272,13 +1272,13 @@ BltImageCompositeBadge (
     ComposeImage (CompImage, NewTopImage, OffsetXTmp, OffsetYTmp);
   }
 
-  BltImageAlpha (CompImage, XPos, YPos, &TransparentBackgroundPixel, (GlobalConfig.NonSelectedGrey && !Selected) ? -16 : 16);
+  BltImageAlpha (CompImage, XPos, YPos, &gTransparentBackgroundPixel, (GlobalConfig.NonSelectedGrey && !Selected) ? -16 : 16);
 
   FreeImage (CompImage);
   FreeImage (NewBaseImage);
   FreeImage (NewTopImage);
 
-  GraphicsScreenDirty = TRUE;
+  GlobalConfig.GraphicsScreenDirty = TRUE;
 }
 
 //
@@ -1299,8 +1299,6 @@ FreeAnime (
     //Anime = NULL;
   }
 }
-
-STATIC EG_IMAGE *AnimeImage = NULL;
 
 VOID
 UpdateAnime (
@@ -1331,8 +1329,8 @@ UpdateAnime (
   y = Place->YPos + (Place->Height - AnimeImage->Height) / 2;
 
   if (
-    !IsImageWithinScreenLimits (x, Screen->Film[0]->Width, UGAWidth) ||
-    !IsImageWithinScreenLimits (y, Screen->Film[0]->Height, UGAHeight)
+    !IsImageWithinScreenLimits (x, Screen->Film[0]->Width, GlobalConfig.UGAWidth) ||
+    !IsImageWithinScreenLimits (y, Screen->Film[0]->Height, GlobalConfig.UGAHeight)
   ) {
     // This anime can't be displayed
     return;
@@ -1342,10 +1340,10 @@ UpdateAnime (
   // to avoid overlapping the menu text on menu pages at lower resolutions is set.
   if ((Screen->ID > 1) && (GlobalConfig.LayoutAnimMoveForMenuX != 0)) { // these screens have text menus which the anim may interfere with.
     MenuWidth = TEXT_XMARGIN * 2 + (50 * GlobalConfig.CharWidth); // taken from menu.c
-    if ((x + Screen->Film[0]->Width) > (UGAWidth - MenuWidth) >> 1) {
+    if ((x + Screen->Film[0]->Width) > (GlobalConfig.UGAWidth - MenuWidth) >> 1) {
       if (
         (x + GlobalConfig.LayoutAnimMoveForMenuX >= 0) ||
-        ((UGAWidth - (x + GlobalConfig.LayoutAnimMoveForMenuX + Screen->Film[0]->Width)) <= 100)
+        ((GlobalConfig.UGAWidth - (x + GlobalConfig.LayoutAnimMoveForMenuX + Screen->Film[0]->Width)) <= 100)
       ) {
         x += GlobalConfig.LayoutAnimMoveForMenuX;
       }
@@ -1356,7 +1354,7 @@ UpdateAnime (
 
   if (Screen->LastDraw == 0) {
     //first start, we should save background into last frame
-    FillImageArea (AnimeImage, 0, 0, AnimeImage->Width, AnimeImage->Height, &TransparentBackgroundPixel);
+    FillImageArea (AnimeImage, 0, 0, AnimeImage->Width, AnimeImage->Height, &gTransparentBackgroundPixel);
     TakeImage (
       Screen->Film[Screen->Frames],
       x, y,
@@ -1403,7 +1401,7 @@ InitAnime (
     return;
   }
 
-  for (Anime = GuiAnime; Anime != NULL && Anime->ID != Screen->ID; Anime = Anime->Next);
+  for (Anime = gGuiAnime; Anime != NULL && Anime->ID != Screen->ID; Anime = Anime->Next);
 
   // Check if we should clear old film vars (no anime or anime path changed)
   //
@@ -1450,7 +1448,7 @@ InitAnime (
         UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s\\%s_%03d.png", Path, Path, i);
         //DBG ("Try to load file %s\n", FileName);
 
-        p = LoadImage (ThemeDir, FileName);
+        p = LoadImage (gThemeDir, FileName);
         if (!p) {
           p = Last;
           if (!p) {
@@ -1488,7 +1486,7 @@ InitAnime (
                                 Anime->ScreenEdgeHorizontal,
                                 Anime->FilmX,
                                 Screen->Film[0]->Width,
-                                UGAWidth,
+                                GlobalConfig.UGAWidth,
                                 GlobalConfig.ThemeDesignWidth
                               );
 
@@ -1496,13 +1494,13 @@ InitAnime (
                                 Anime->ScreenEdgeVertical,
                                 Anime->FilmY,
                                 Screen->Film[0]->Height,
-                                UGAHeight,
+                                GlobalConfig.UGAHeight,
                                 GlobalConfig.ThemeDesignHeight
                               );
 
     // Does the user want to fine tune the placement?
-    Screen->FilmPlace.XPos = CalculateNudgePosition (Screen->FilmPlace.XPos, Anime->NudgeX, Screen->Film[0]->Width, UGAWidth);
-    Screen->FilmPlace.YPos = CalculateNudgePosition (Screen->FilmPlace.YPos, Anime->NudgeY, Screen->Film[0]->Height, UGAHeight);
+    Screen->FilmPlace.XPos = CalculateNudgePosition (Screen->FilmPlace.XPos, Anime->NudgeX, Screen->Film[0]->Width, GlobalConfig.UGAWidth);
+    Screen->FilmPlace.YPos = CalculateNudgePosition (Screen->FilmPlace.YPos, Anime->NudgeY, Screen->Film[0]->Height, GlobalConfig.UGAHeight);
 
     Screen->FilmPlace.Width = Screen->Film[0]->Width;
     Screen->FilmPlace.Height = Screen->Film[0]->Height;
@@ -1533,11 +1531,11 @@ GetAnime (
 ) {
   GUI_ANIME   *Anime;
 
-  if (!Screen || !GuiAnime) {
+  if (!Screen || !gGuiAnime) {
     return FALSE;
   }
 
-  for (Anime = GuiAnime; Anime != NULL && Anime->ID != Screen->ID; Anime = Anime->Next);
+  for (Anime = gGuiAnime; Anime != NULL && Anime->ID != Screen->ID; Anime = Anime->Next);
 
   if (Anime == NULL) {
     return FALSE;

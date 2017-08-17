@@ -617,9 +617,9 @@ LoadVbiosFile (
   //}
 
   UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s\\%04x_%04x.rom", DIR_ROM, VendorId, DeviceId);
-  if (FileExists (SelfRootDir, FileName)) {
+  if (FileExists (gSelfRootDir, FileName)) {
     DBG ("Found generic VBIOS ROM file (%04x_%04x.rom)\n", VendorId, DeviceId);
-    Status = LoadFile (SelfRootDir, FileName, &Buffer, &BufferLen);
+    Status = LoadFile (gSelfRootDir, FileName, &Buffer, &BufferLen);
   }
 
   if (EFI_ERROR (Status) || (BufferLen == 0)) {
@@ -656,7 +656,6 @@ LoadVbiosFile (
 
   return TRUE;
 }
-
 
 VOID
 GetVramSize () {
@@ -743,14 +742,14 @@ InitCard (
 
   Card->pci_dev = Dev;
 
-  for (j = 0; j < NGFX; j++) {
+  for (j = 0; j < gSettings.NGFX; j++) {
     if (
-      (gGraphics[j].Vendor == GfxAti) &&
-      (gGraphics[j].DeviceID == Dev->device_id)
+      (gSettings.Graphics[j].Vendor == GfxAti) &&
+      (gSettings.Graphics[j].DeviceID == Dev->device_id)
     ) {
-      //      model = gGraphics[j].Model;
-      PortsNum = gGraphics[j].Ports;
-      LoadVBios = gGraphics[j].LoadVBios;
+      //      model = gSettings.Graphics[j].Model;
+      PortsNum = gSettings.Graphics[j].Ports;
+      LoadVBios = gSettings.Graphics[j].LoadVBios;
       break;
     }
   }
@@ -785,7 +784,7 @@ InitCard (
     }
   }
 
-  if (gMobile) {
+  if (gSettings.Mobile) {
     DBG ("ATI Mobile Radeon\n");
     Card->flags |= FLAGMOBILE;
   }

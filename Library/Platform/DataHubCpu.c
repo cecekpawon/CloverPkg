@@ -133,44 +133,44 @@ SetVariablesForOSX () {
   //
 
   SetNvramVariable (
-    NvramData[kNvSystemID].VariableName,
-    NvramData[kNvSystemID].Guid,
-    NvramData[kNvSystemID].Attribute,
+    gNvramData[kNvSystemID].VariableName,
+    gNvramData[kNvSystemID].Guid,
+    gNvramData[kNvSystemID].Attribute,
     sizeof (EFI_GUID),
     SwapGuid (gSettings.SystemID)
   );
 
   SetOrDeleteNvramVariable (
-    NvramData[kNvMLB].VariableName,
-    NvramData[kNvMLB].Guid,
-    NvramData[kNvMLB].Attribute,
+    gNvramData[kNvMLB].VariableName,
+    gNvramData[kNvMLB].Guid,
+    gNvramData[kNvMLB].Attribute,
     AsciiStrLen (gSettings.RtMLB),
     gSettings.RtMLB,
     (gSettings.RtMLB && (AsciiStrLen (gSettings.RtMLB) == 17))
   );
 
   SetOrDeleteNvramVariable (
-    NvramData[kNvHWMLB].VariableName,
-    NvramData[kNvHWMLB].Guid,
-    NvramData[kNvHWMLB].Attribute,
+    gNvramData[kNvHWMLB].VariableName,
+    gNvramData[kNvHWMLB].Guid,
+    gNvramData[kNvHWMLB].Attribute,
     AsciiStrLen (gSettings.RtMLB),
     gSettings.RtMLB,
     (gSettings.RtMLB && (AsciiStrLen (gSettings.RtMLB) == 17))
   );
 
   SetOrDeleteNvramVariable (
-    NvramData[kNvROM].VariableName,
-    NvramData[kNvROM].Guid,
-    NvramData[kNvROM].Attribute,
+    gNvramData[kNvROM].VariableName,
+    gNvramData[kNvROM].Guid,
+    gNvramData[kNvROM].Attribute,
     gSettings.RtROMLen,
     gSettings.RtROM,
     (gSettings.RtROM != NULL)
   );
 
   SetOrDeleteNvramVariable (
-    NvramData[kNvHWROM].VariableName,
-    NvramData[kNvHWROM].Guid,
-    NvramData[kNvHWROM].Attribute,
+    gNvramData[kNvHWROM].VariableName,
+    gNvramData[kNvHWROM].Guid,
+    gNvramData[kNvHWROM].Attribute,
     gSettings.RtROMLen,
     gSettings.RtROM,
     (gSettings.RtROM != NULL)
@@ -179,41 +179,41 @@ SetVariablesForOSX () {
   // Force store variables with default / fallback value
 
   SetNvramVariable (
-    NvramData[kNvFirmwareFeatures].VariableName,
-    NvramData[kNvFirmwareFeatures].Guid,
-    NvramData[kNvFirmwareFeatures].Attribute,
-    sizeof (gFwFeatures),
-    &gFwFeatures
+    gNvramData[kNvFirmwareFeatures].VariableName,
+    gNvramData[kNvFirmwareFeatures].Guid,
+    gNvramData[kNvFirmwareFeatures].Attribute,
+    sizeof (gSettings.FwFeatures),
+    &gSettings.FwFeatures
   );
 
   SetNvramVariable (
-    NvramData[kNvFirmwareFeaturesMask].VariableName,
-    NvramData[kNvFirmwareFeaturesMask].Guid,
-    NvramData[kNvFirmwareFeaturesMask].Attribute,
-    sizeof (gFwFeaturesMask),
-    &gFwFeaturesMask
+    gNvramData[kNvFirmwareFeaturesMask].VariableName,
+    gNvramData[kNvFirmwareFeaturesMask].Guid,
+    gNvramData[kNvFirmwareFeaturesMask].Attribute,
+    sizeof (gSettings.FwFeaturesMask),
+    &gSettings.FwFeaturesMask
   );
 
   SetNvramVariable (
-    NvramData[kNvSBoardID].VariableName,
-    NvramData[kNvSBoardID].Guid,
-    NvramData[kNvSBoardID].Attribute,
+    gNvramData[kNvSBoardID].VariableName,
+    gNvramData[kNvSBoardID].Guid,
+    gNvramData[kNvSBoardID].Attribute,
     AsciiStrLen(gSettings.BoardNumber),
     gSettings.BoardNumber
   );
 
   SetNvramVariable (
-    NvramData[kNvSystemSerialNumber].VariableName,
-    NvramData[kNvSystemSerialNumber].Guid,
-    NvramData[kNvSystemSerialNumber].Attribute,
+    gNvramData[kNvSystemSerialNumber].VariableName,
+    gNvramData[kNvSystemSerialNumber].Guid,
+    gNvramData[kNvSystemSerialNumber].Attribute,
     AsciiStrLen(gSettings.SerialNr),
     gSettings.SerialNr
   );
 
   //SetOrDeleteNvramVariable (
-  //  NvramData[kNvBlackMode].VariableName,
-  //  NvramData[kNvBlackMode].Guid,
-  //  NvramData[kNvBlackMode].Attribute,
+  //  gNvramData[kNvBlackMode].VariableName,
+  //  gNvramData[kNvBlackMode].Guid,
+  //  gNvramData[kNvBlackMode].Attribute,
   //  sizeof (UINT8),
   //  &BlackMode,
   //  TRUE
@@ -226,50 +226,48 @@ SetVariablesForOSX () {
   // we should have two UUID: platform and system
   // NO! Only Platform is the best solution
   SetOrDeleteNvramVariable (
-    NvramData[kNvPlatformUUID].VariableName,
-    NvramData[kNvPlatformUUID].Guid,
-    NvramData[kNvPlatformUUID].Attribute,
+    gNvramData[kNvPlatformUUID].VariableName,
+    gNvramData[kNvPlatformUUID].Guid,
+    gNvramData[kNvPlatformUUID].Attribute,
     sizeof (EFI_GUID),
     SwapGuid (gSettings.PlatformUUID),
     !CompareGuid (&gSettings.PlatformUUID, &gEfiPartTypeUnusedGuid)
   );
 
   SetOrDeleteNvramVariable (
-    NvramData[kNvBacklightLevel].VariableName,
-    NvramData[kNvBacklightLevel].Guid,
-    NvramData[kNvBacklightLevel].Attribute,
+    gNvramData[kNvBacklightLevel].VariableName,
+    gNvramData[kNvBacklightLevel].Guid,
+    gNvramData[kNvBacklightLevel].Attribute,
     sizeof (gSettings.BacklightLevel),
     &gSettings.BacklightLevel,
-    (gMobile && (gSettings.BacklightLevel != 0xFFFF))
+    (gSettings.Mobile && (gSettings.BacklightLevel != 0xFFFF))
   );
 
   // Hack for recovery by Asgorath
-  SetOrDeleteNvramVariable (
-    NvramData[kNvCsrActiveConfig].VariableName,
-    NvramData[kNvCsrActiveConfig].Guid,
-    NvramData[kNvCsrActiveConfig].Attribute,
-    sizeof (gSettings.CsrActiveConfig),
-    &gSettings.CsrActiveConfig,
-    (
-      gSettings.CsrActiveConfig &&
-      (gSettings.CsrActiveConfig != 0xFFFF)
-    )
-  );
+  //SetOrDeleteNvramVariable (
+  //  gNvramData[kNvCsrActiveConfig].VariableName,
+  //  gNvramData[kNvCsrActiveConfig].Guid,
+  //  gNvramData[kNvCsrActiveConfig].Attribute,
+  //  sizeof (gSettings.CsrActiveConfig),
+  //  &gSettings.CsrActiveConfig,
+  //  (gSettings.CsrActiveConfig > 0)
+  //);
 
-  SetOrDeleteNvramVariable (
-    NvramData[kNvBootercfg].VariableName,
-    NvramData[kNvBootercfg].Guid,
-    NvramData[kNvBootercfg].Attribute,
-    sizeof (gSettings.BooterConfig),
-    &gSettings.BooterConfig,
-    (
-      gSettings.BooterConfig &&
-      (gSettings.BooterConfig != 0xFFFF)
-    )
-  );
+  //SetOrDeleteNvramVariable (
+  //  gNvramData[kNvBootercfg].VariableName,
+  //  gNvramData[kNvBootercfg].Guid,
+  //  gNvramData[kNvBootercfg].Attribute,
+  //  sizeof (gSettings.BooterConfig),
+  //  &gSettings.BooterConfig,
+  //  (gSettings.BooterConfig > 0)
+  //);
 
-  DeleteNvramVariable (NvramData[kNvBootSwitchVar].VariableName, NvramData[kNvBootSwitchVar].Guid);
-  DeleteNvramVariable (NvramData[kNvRecoveryBootMode].VariableName, NvramData[kNvRecoveryBootMode].Guid); // ICloud Lock?
+  DeleteNvramVariable (gNvramData[kNvBootercfg].VariableName, gNvramData[kNvBootercfg].Guid);
+  DeleteNvramVariable (gNvramData[kNvBootercfgOnce].VariableName, gNvramData[kNvBootercfgOnce].Guid);
+  DeleteNvramVariable (gNvramData[kNvCsrActiveConfig].VariableName, gNvramData[kNvCsrActiveConfig].Guid);
+
+  DeleteNvramVariable (gNvramData[kNvBootSwitchVar].VariableName, gNvramData[kNvBootSwitchVar].Guid);
+  DeleteNvramVariable (gNvramData[kNvRecoveryBootMode].VariableName, gNvramData[kNvRecoveryBootMode].Guid); // ICloud Lock?
 
   return EFI_SUCCESS;
 }
@@ -285,14 +283,14 @@ SetupDataForOSX () {
   // Locate DataHub Protocol
   //Status = gBS->LocateProtocol (&gEfiDataHubProtocolGuid, NULL, (VOID **)&gDataHub);
   //if (!EFI_ERROR (Status)) {
-    LogDataHub (&gEfiMiscSubClassGuid,  L"FSBFrequency",  &gCPUStructure.FSBFrequency,  sizeof (UINT64));
+    LogDataHub (&gEfiMiscSubClassGuid,  L"FSBFrequency",  &gSettings.CPUStructure.FSBFrequency,  sizeof (UINT64));
 
-    if (gCPUStructure.ARTFrequency && gSettings.UseARTFreq) {
-      LogDataHub (&gEfiMiscSubClassGuid,  L"ARTFrequency",  &gCPUStructure.ARTFrequency,  sizeof (UINT64));
+    if (gSettings.CPUStructure.ARTFrequency && gSettings.UseARTFreq) {
+      LogDataHub (&gEfiMiscSubClassGuid,  L"ARTFrequency",  &gSettings.CPUStructure.ARTFrequency,  sizeof (UINT64));
     }
 
-    LogDataHub (&gEfiMiscSubClassGuid,  L"InitialTSC",            &gCPUStructure.TSCFrequency,  sizeof (UINT64));
-    LogDataHub (&gEfiMiscSubClassGuid,  L"CPUFrequency",          &gCPUStructure.CPUFrequency,  sizeof (UINT64));
+    LogDataHub (&gEfiMiscSubClassGuid,  L"InitialTSC",            &gSettings.CPUStructure.TSCFrequency,  sizeof (UINT64));
+    LogDataHub (&gEfiMiscSubClassGuid,  L"CPUFrequency",          &gSettings.CPUStructure.CPUFrequency,  sizeof (UINT64));
 
     LogDataHub (&gEfiMiscSubClassGuid,  L"DevicePathsSupported",  &DevPathSupportedVal,         sizeof (UINT32));
     LogDataHub (&gEfiMiscSubClassGuid,  L"Model",                 gSettings.ProductName,        ARRAY_SIZE (gSettings.ProductName));

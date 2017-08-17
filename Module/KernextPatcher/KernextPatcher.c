@@ -12,9 +12,9 @@
 #include <Library/Common/CommonLib.h>
 #include <Library/Common/LoaderUefi.h>
 #include <Library/Common/MemLogLib.h>
+#include <Library/Common/PlistLib.h>
 #include <Library/DevicePathLib.h>
 #include <Library/MemoryAllocationLib.h>
-#include <Library/Platform/Plist.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
@@ -46,11 +46,9 @@
 //#define DBG(...)
 //#endif
 
-#define PoolPrint(...)                              CatSPrint(NULL, __VA_ARGS__)
-
-#ifndef ARRAY_SIZE
-#define ARRAY_SIZE(array)                           (sizeof (array) / sizeof (array[0]))
-#endif
+//#ifndef ARRAY_SIZE
+//#define ARRAY_SIZE(array)                           (sizeof (array) / sizeof (array[0]))
+//#endif
 
 #define CONSTRAIN_MIN(Variable, MinValue)           if (Variable < MinValue) Variable = MinValue
 #define CONSTRAIN_MAX(Variable, MaxValue)           if (Variable > MaxValue) Variable = MaxValue
@@ -768,7 +766,6 @@ SaveBooterLog () {
   if (gPrefDbg || gPrefSaveLogToFile) {
     CHAR8   *MemLogBuffer = GetMemLogBuffer ();
     UINTN   MemLogLen = GetMemLogLen ();
-
 
     if ((MemLogBuffer != NULL) && (MemLogLen != 0)) {
       return SaveFile (gSelfRootDir, DEBUG_LOG, (UINT8 *)MemLogBuffer, MemLogLen);

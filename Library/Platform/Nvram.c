@@ -34,29 +34,31 @@ CHAR16                      *gEfiBootLoaderPath;
                             // contains GPT GUID from gEfiBootDeviceData or gBootCampHD (if exists)
 EFI_GUID                    *gEfiBootDeviceGuid;
 
-CONST NVRAM_DATA   NvramData[] = {
-  { kNvSystemID,              L"system-id",              &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
-  { kNvMLB,                   L"MLB",                    &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
-  { kNvHWMLB,                 L"HW_MLB",                 &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
-  { kNvROM,                   L"ROM",                    &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
-  { kNvHWROM,                 L"HW_ROM",                 &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
-  { kNvFirmwareFeatures,      L"FirmwareFeatures",       &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
-  { kNvFirmwareFeaturesMask,  L"FirmwareFeaturesMask",   &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
-  { kNvSBoardID,              L"HW_BID",                 &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
-  { kNvSystemSerialNumber,    L"SSN",                    &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
-  //{ kNvBlackMode,             L"BlackMode",              &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
-  //{ kNvUIScale,               L"UIScale",                &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+CONST NVRAM_DATA   gNvramData[] = {
+  { kNvSystemID,                L"system-id",               &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  { kNvMLB,                     L"MLB",                     &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  { kNvHWMLB,                   L"HW_MLB",                  &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  { kNvROM,                     L"ROM",                     &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  { kNvHWROM,                   L"HW_ROM",                  &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  { kNvFirmwareFeatures,        L"FirmwareFeatures",        &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  { kNvFirmwareFeaturesMask,    L"FirmwareFeaturesMask",    &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  { kNvSBoardID,                L"HW_BID",                  &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  { kNvSystemSerialNumber,      L"SSN",                     &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  //{ kNvBlackMode,               L"BlackMode",               &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
+  //{ kNvUIScale,                 L"UIScale",                 &gEfiAppleNvramGuid, NVRAM_ATTR_RT_BS, 1 },
 
-  { kNvBootArgs,              L"boot-args",              &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 0 },
-  { kNvPlatformUUID,          L"platform-uuid",          &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
-  { kNvBacklightLevel,        L"backlight-level",        &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
-  { kNvCsrActiveConfig,       L"csr-active-config",      &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
-  { kNvBootercfg,             L"bootercfg" /* -once */,  &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
-  { kNvBootSwitchVar,         L"boot-switch-vars",       &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
-  { kNvRecoveryBootMode,      L"recovery-boot-mode",     &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
+  { kNvBootArgs,                L"boot-args",               &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 0 },
+  { kNvPlatformUUID,            L"platform-uuid",           &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
+  { kNvBacklightLevel,          L"backlight-level",         &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
+  { kNvCsrActiveConfig,         L"csr-active-config",       &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
+  { kNvBootercfg,               L"bootercfg",               &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
+  { kNvBootercfgOnce,           L"bootercfg-once",          &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
+  { kNvBootSwitchVar,           L"boot-switch-vars",        &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
+  { kNvRecoveryBootMode,        L"recovery-boot-mode",      &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
 
-  { kNvCloverConfig,          L"Clover.Config",          &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
-  { kNvCloverTheme,           L"Clover.Theme",           &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 }
+  { kNvCloverConfig,            L"Clover.Config",           &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
+  { kNvCloverTheme,             L"Clover.Theme",            &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 },
+  { kNvCloverNoEarlyProgress,   L"Clover.NoEarlyProgress",  &gEfiAppleBootGuid,  NVRAM_ATTR_RT_BS_NV, 1 }
 };
 
 #if 0
@@ -232,12 +234,12 @@ AddNvramVariable (
   OldData = GetNvramVariable (VariableName, VendorGuid, NULL, NULL);
   if (OldData == NULL) {
     // set new value
-    return gRT->SetVariable (VariableName, VendorGuid, Attributes, DataSize, Data);
     //DBG (" -> writing new (%r)\n", Status);
-  } else {
-    FreePool (OldData);
-    return EFI_ABORTED;
+    return gRT->SetVariable (VariableName, VendorGuid, Attributes, DataSize, Data);
   }
+
+  FreePool (OldData);
+  return EFI_ABORTED;
 }
 
 /** Sets NVRAM variable. Or delete if State == FALSE. */
@@ -276,11 +278,11 @@ DeleteNvramVariable (
 EFI_STATUS
 ResetNvram () {
   EFI_STATUS    Status;
-  UINTN         Index, NvramDataCount = ARRAY_SIZE (NvramData);
+  UINTN         Index, NvramDataCount = ARRAY_SIZE (gNvramData);
 
   for (Index = 0; Index < NvramDataCount; Index++) {
-    if (NvramData[Index].Reset) {
-      Status = DeleteNvramVariable (NvramData[Index].VariableName, NvramData[Index].Guid);
+    if (gNvramData[Index].Reset) {
+      Status = DeleteNvramVariable (gNvramData[Index].VariableName, gNvramData[Index].Guid);
     }
   }
 
@@ -320,10 +322,6 @@ FindGPTPartitionGuidInDevicePath (
   return Guid;
 }
 
-/** detailed debug for BootVolumeDevicePathEqual */
-#define DBG_DP(...)
-//#define DBG_DP(...) DBG (__VA_ARGS__)
-
 /** Returns TRUE if dev paths are equal. Ignores some differences. */
 BOOLEAN
 BootVolumeDevicePathEqual (
@@ -335,10 +333,8 @@ BootVolumeDevicePathEqual (
   UINTN               Len1, Len2;
   SATA_DEVICE_PATH    *SataNode1, *SataNode2;
 
-  DBG_DP ("   BootVolumeDevicePathEqual:\n    %s\n    %s\n",
-    FileDevicePathToStr (DevicePath1), FileDevicePathToStr (DevicePath2));
-
-  DBG_DP ("    N1: (Type, Subtype, Len) N2: (Type, Subtype, Len)\n");
+  //DBG ("   BootVolumeDevicePathEqual:\n    %s\n    %s\n", FileDevicePathToStr (DevicePath1), FileDevicePathToStr (DevicePath2));
+  //DBG ("    N1: (Type, Subtype, Len) N2: (Type, Subtype, Len)\n");
 
   Equal = FALSE;
   while (TRUE) {
@@ -352,12 +348,12 @@ BootVolumeDevicePathEqual (
 
     ForceEqualNodes = FALSE;
 
-    DBG_DP ("    N1: (%d, %d, %d)", Type1, SubType1, Len1);
-    DBG_DP (" N2: (%d, %d, %d)", Type2, SubType2, Len2);
+    //DBG ("    N1: (%d, %d, %d)", Type1, SubType1, Len1);
+    //DBG ("    N2: (%d, %d, %d)", Type2, SubType2, Len2);
 
     /*
-     DBG_DP ("%s\n", DevicePathToStr (DevicePath1));
-     DBG_DP ("%s\n", DevicePathToStr (DevicePath2));
+     DBG ("%s\n", DevicePathToStr (DevicePath1));
+     DBG ("%s\n", DevicePathToStr (DevicePath2));
      */
 
     //
@@ -395,7 +391,7 @@ BootVolumeDevicePathEqual (
 
     if (ForceEqualNodes) {
       // assume equal nodes
-      DBG_DP (" - forcing equal nodes\n");
+      //DBG (" - forcing equal nodes\n");
       DevicePath1 = NextDevicePathNode (DevicePath1);
       DevicePath2 = NextDevicePathNode (DevicePath2);
       continue;
@@ -403,7 +399,7 @@ BootVolumeDevicePathEqual (
 
     if ((Type1 != Type2) || (SubType1 != SubType2) || (Len1 != Len2)) {
       // Not equal
-      DBG_DP (" - not equal\n");
+      //DBG (" - not equal\n");
       break;
     }
 
@@ -413,7 +409,7 @@ BootVolumeDevicePathEqual (
     if (IsDevicePathEnd (DevicePath1)) {
       // END node - they are the same
       Equal = TRUE;
-      DBG_DP (" - END = equal\n");
+      //DBG (" - END = equal\n");
       break;
     }
 
@@ -429,23 +425,24 @@ BootVolumeDevicePathEqual (
 
       if (SataNode1->HBAPortNumber != SataNode2->HBAPortNumber) {
         // not equal
-        DBG_DP (" - not equal SataNode.HBAPortNumber\n");
+        //DBG (" - not equal SataNode.HBAPortNumber\n");
         break;
       }
 
       if (SataNode1->Lun != SataNode2->Lun) {
         // not equal
-        DBG_DP (" - not equal SataNode.Lun\n");
+        //DBG (" - not equal SataNode.Lun\n");
         break;
       }
-      DBG_DP (" - forcing equal nodes");
+
+      //DBG (" - forcing equal nodes");
     } else if (CompareMem (DevicePath1, DevicePath2, DevicePathNodeLength (DevicePath1)) != 0) {
       // Not equal
-      DBG_DP (" - not equal\n");
+      //DBG (" - not equal\n");
       break;
     }
 
-    DBG_DP ("\n");
+    //DBG ("\n");
 
     //
     // Advance to next node
@@ -770,8 +767,8 @@ FindStartupDiskVolume (
   DiskVolume = NULL;
   DBG ("   - searching for that disk\n");
 
-  for (Index = 0; Index < VolumesCount; ++Index) {
-    Volume = Volumes[Index];
+  for (Index = 0; Index < gVolumesCount; ++Index) {
+    Volume = gVolumes[Index];
 
     if (BootVolumeDevicePathEqual (gEfiBootVolume, Volume->DevicePath)) {
       // that's the one

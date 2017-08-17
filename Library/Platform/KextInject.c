@@ -75,16 +75,27 @@ ThinFatFile (
   return EFI_SUCCESS;
 }
 
+VOID
+FixLineEnding (
+  UINT8   *Buffer,
+  UINT32  Size
+) {
+  UINT8   Search[]  = { 0x0D, 0x0A }, // "CRLF"
+          Replace[] = { 0x0A, 0x20 }; // "LF "
+
+  SearchAndReplace (Buffer, Size, &Search[0], ARRAY_SIZE (Search), &Replace[0], 0xFF, -1);
+}
+
 EFI_STATUS
 EFIAPI
 LoadKext (
-  IN      LOADER_ENTRY       *Entry,
   IN      EFI_FILE           *RootDir,
   IN      CHAR16             *FileName,
+  IN      UINT8              *InfoDictBuffer,
   IN OUT  DeviceTreeBuffer   *Kext
 ) {
-  EFI_STATUS            Status;
-  UINT8                 *InfoDictBuffer = NULL, *ExecutableFatBuffer = NULL, *ExecutableBuffer = NULL;
+  EFI_STATUS            Status, Ret = EFI_NOT_FOUND;
+  UINT8                 *ExecutableFatBuffer = NULL, *ExecutableBuffer = NULL;
   UINTN                 InfoDictBufferLength = 0, ExecutableBufferLength = 0, BundlePathBufferLength = 0;
   CHAR8                 *BundlePathBuffer = NULL;
   CHAR16                TempName[AVALUE_MAX_SIZE];
@@ -94,24 +105,29 @@ LoadKext (
 
   UnicodeSPrint (TempName, SVALUE_MAX_SIZE, L"%s\\%s", FileName, L"Contents\\Info.plist");
 
-  Status = LoadFile (RootDir, TempName, &InfoDictBuffer, &InfoDictBufferLength);
-  if (EFI_ERROR (Status)) {
-    //try to find a planar kext, without Contents
-    UnicodeSPrint (TempName, SVALUE_MAX_SIZE, L"%s\\%s", FileName, L"Info.plist");
-
+  if (InfoDictBuffer) {
+    InfoDictBufferLength = AsciiStrLen ((CHAR8 *)InfoDictBuffer);
+  } else {
     Status = LoadFile (RootDir, TempName, &InfoDictBuffer, &InfoDictBufferLength);
     if (EFI_ERROR (Status)) {
-      DBG ("Failed to load extra kext (Info.plist not found): %s\n", FileName);
-      return EFI_NOT_FOUND;
-    }
+      // try to find a planar kext, without Contents
+      UnicodeSPrint (TempName, SVALUE_MAX_SIZE, L"%s\\%s", FileName, L"Info.plist");
 
-    NoContents = TRUE;
+      Status = LoadFile (RootDir, TempName, &InfoDictBuffer, &InfoDictBufferLength);
+      if (EFI_ERROR (Status)) {
+        DBG ("Failed to load extra kext (Info.plist not found): %s\n", FileName);
+        goto Finish;
+      }
+
+      NoContents = TRUE;
+    }
   }
 
+  FixLineEnding (InfoDictBuffer, (UINT32)InfoDictBufferLength);
+
   if (EFI_ERROR (ParseXML ((CHAR8 *)InfoDictBuffer, 0, &Dict))) {
-    FreePool (InfoDictBuffer);
     DBG ("Failed to load extra kext (failed to parse Info.plist): %s\n", FileName);
-    return EFI_NOT_FOUND;
+    goto Finish;
   }
 
   Prop = GetProperty (Dict, kPropCFBundleExecutable);
@@ -120,17 +136,15 @@ LoadKext (
 
     Status = LoadFile (RootDir, TempName, &ExecutableFatBuffer, &ExecutableBufferLength);
     if (EFI_ERROR (Status)) {
-      FreePool (InfoDictBuffer);
       DBG ("Failed to load extra kext (Executable not found): %s\n", FileName);
-      return EFI_NOT_FOUND;
+      goto Finish;
     }
 
     ExecutableBuffer = ExecutableFatBuffer;
     if (EFI_ERROR (ThinFatFile (&ExecutableBuffer, &ExecutableBufferLength, CPU_TYPE_X86_64))) {
-      FreePool (InfoDictBuffer);
       FreePool (ExecutableBuffer);
       DBG ("Thinning failed: %s\n", FileName);
-      return EFI_NOT_FOUND;
+      goto Finish;
     }
   } /*else {
     DBG ("Failed to read '%a' prop\n", kPropCFBundleExecutable);
@@ -145,32 +159,44 @@ LoadKext (
   InfoAddr = (BooterKextFileInfo *)AllocatePool (Kext->length);
   InfoAddr->infoDictPhysAddr    = sizeof (BooterKextFileInfo);
   InfoAddr->infoDictLength      = (UINT32)InfoDictBufferLength;
-  InfoAddr->executablePhysAddr  = (UINT32)(sizeof (BooterKextFileInfo) + InfoDictBufferLength);
+  InfoAddr->executablePhysAddr  = (UINT32)(InfoAddr->infoDictPhysAddr + InfoAddr->infoDictLength);
   InfoAddr->executableLength    = (UINT32)ExecutableBufferLength;
-  InfoAddr->bundlePathPhysAddr  = (UINT32)(sizeof (BooterKextFileInfo) + InfoDictBufferLength + ExecutableBufferLength);
+  InfoAddr->bundlePathPhysAddr  = (UINT32)(InfoAddr->executablePhysAddr + InfoAddr->executableLength);
   InfoAddr->bundlePathLength    = (UINT32)BundlePathBufferLength;
 
-  Kext->paddr = (UINT32)(UINTN)InfoAddr; // Note that we cannot free InfoAddr because of this
+  Kext->paddr = (UINT32)(UINTN)InfoAddr;
 
-  CopyMem ((CHAR8 *)InfoAddr + sizeof (BooterKextFileInfo), InfoDictBuffer, InfoDictBufferLength);
+  CopyMem ((CHAR8 *)InfoAddr + InfoAddr->infoDictPhysAddr, InfoDictBuffer, InfoDictBufferLength);
   if (ExecutableBuffer != NULL) {
-    CopyMem ((CHAR8 *)InfoAddr + sizeof (BooterKextFileInfo) + InfoDictBufferLength, ExecutableBuffer, ExecutableBufferLength);
+    CopyMem ((CHAR8 *)InfoAddr + InfoAddr->executablePhysAddr, ExecutableBuffer, ExecutableBufferLength);
   }
-  CopyMem ((CHAR8 *)InfoAddr + sizeof (BooterKextFileInfo) + InfoDictBufferLength + ExecutableBufferLength, BundlePathBuffer, BundlePathBufferLength);
+  CopyMem ((CHAR8 *)InfoAddr + InfoAddr->bundlePathPhysAddr, BundlePathBuffer, BundlePathBufferLength);
 
-  FreePool (InfoDictBuffer);
-  FreePool (ExecutableFatBuffer);
-  FreePool (BundlePathBuffer);
+  Ret = EFI_SUCCESS;
 
-  return EFI_SUCCESS;
+  Finish:
+
+  if (InfoDictBuffer != NULL) {
+    FreePool (InfoDictBuffer);
+  }
+
+  if (ExecutableFatBuffer != NULL) {
+    FreePool (ExecutableFatBuffer);
+  }
+
+  if (BundlePathBuffer != NULL) {
+    FreePool (BundlePathBuffer);
+  }
+
+  return Ret;
 }
 
 EFI_STATUS
 EFIAPI
 AddKext (
-  IN LOADER_ENTRY   *Entry,
-  IN EFI_FILE       *RootDir,
-  IN CHAR16         *FileName
+  IN EFI_FILE   *RootDir,
+  IN CHAR16     *FileName,
+  IN UINT8      *InfoDictBuffer
 ) {
   EFI_STATUS    Status;
   KEXT_ENTRY    *KextEntry;
@@ -178,7 +204,7 @@ AddKext (
   KextEntry = AllocatePool (sizeof (KEXT_ENTRY));
   KextEntry->Signature = KEXT_SIGNATURE;
 
-  Status = LoadKext (Entry, RootDir, FileName, &KextEntry->Kext);
+  Status = LoadKext (RootDir, FileName, InfoDictBuffer, &KextEntry->Kext);
   if (EFI_ERROR (Status)) {
     FreePool (KextEntry);
   } else {
@@ -186,6 +212,65 @@ AddKext (
   }
 
   return Status;
+}
+
+VOID
+LoadIOPersonalitiesInjector (
+  IN LOADER_ENTRY   *Entry
+) {
+  if (
+    gSettings.KextPatchesAllowed &&
+    (Entry->KernelAndKextPatches->IOPersonalitiesInjector != NULL) &&
+    Entry->KernelAndKextPatches->NrIOPersonalitiesInjector
+  ) {
+    UINTN    i = 0;
+
+    MsgLog ("Load IOPersonalitiesInjector:\n");
+
+    for (; i < Entry->KernelAndKextPatches->NrIOPersonalitiesInjector; ++i) {
+      BOOLEAN   NeedBuildVersion = (
+                  (Entry->OSBuildVersion != NULL) &&
+                  (Entry->KernelAndKextPatches->IOPersonalitiesInjector[i].MatchBuild != NULL)
+                );
+
+      MsgLog (" - [%02d]: %a | [MatchOS: %a | MatchBuild: %a]",
+        i,
+        Entry->KernelAndKextPatches->IOPersonalitiesInjector[i].Label,
+        Entry->KernelAndKextPatches->IOPersonalitiesInjector[i].MatchOS
+          ? Entry->KernelAndKextPatches->IOPersonalitiesInjector[i].MatchOS
+          : "All",
+        NeedBuildVersion
+          ? Entry->KernelAndKextPatches->IOPersonalitiesInjector[i].MatchBuild
+          : "All"
+      );
+
+      if (NeedBuildVersion) {
+        Entry->KernelAndKextPatches->IOPersonalitiesInjector[i].Disabled = !IsPatchEnabled (
+          Entry->KernelAndKextPatches->IOPersonalitiesInjector[i].MatchBuild, Entry->OSBuildVersion);
+
+        MsgLog (" | Allowed: %a\n", Entry->KernelAndKextPatches->IOPersonalitiesInjector[i].Disabled ? "No" : "Yes");
+
+        //if (!Entry->KernelAndKextPatches->IOPersonalitiesInjector[i].Disabled) {
+          continue; // If user give MatchOS, should we ignore MatchOS / keep reading 'em?
+        //}
+      }
+
+      Entry->KernelAndKextPatches->IOPersonalitiesInjector[i].Disabled = !IsPatchEnabled (
+        Entry->KernelAndKextPatches->IOPersonalitiesInjector[i].MatchOS, Entry->OSVersion);
+
+      MsgLog (" | Allowed: %a\n", Entry->KernelAndKextPatches->IOPersonalitiesInjector[i].Disabled ? "No" : "Yes");
+
+      if (!Entry->KernelAndKextPatches->IOPersonalitiesInjector[i].Disabled) {
+        AddKext (
+          gSelfVolume->RootDir,
+          // Is path really matter here?
+          //PoolPrint (L"%s\\%a%a.kext", OSX_PATH_SLE, BOOTER_IOPERSONALITIES_PREFIX, Entry->KernelAndKextPatches->IOPersonalitiesInjector[i].Name),
+          PoolPrint (L"%a%a.kext", BOOTER_IOPERSONALITIES_PREFIX, Entry->KernelAndKextPatches->IOPersonalitiesInjector[i].Name),
+          (UINT8 *)Entry->KernelAndKextPatches->IOPersonalitiesInjector[i].IOKitPersonalities
+        );
+      }
+    }
+  }
 }
 
 VOID
@@ -204,17 +289,16 @@ GetKextSummaries () {
 
 VOID
 RecursiveLoadKexts (
-  IN LOADER_ENTRY   *Entry,
-  IN EFI_FILE       *RootDir,
-  IN CHAR16         *SrcDir,
-  IN BOOLEAN        PlugIn
+  IN EFI_FILE   *RootDir,
+  IN CHAR16     *SrcDir,
+  IN BOOLEAN    PlugIn
 ) {
   REFIT_DIR_ITER    DirIter;
   EFI_FILE_INFO     *DirEntry;
   CHAR16            FileName[AVALUE_MAX_SIZE], PlugIns[AVALUE_MAX_SIZE], *Indent = L"         ";
   UINTN             i = 0;
 
-  if ((Entry == NULL) || (RootDir == NULL) || (SrcDir == NULL)) {
+  if ((RootDir == NULL) || (SrcDir == NULL)) {
     return;
   }
 
@@ -231,11 +315,11 @@ RecursiveLoadKexts (
 
     UnicodeSPrint (FileName, ARRAY_SIZE (FileName), L"%s\\%s", SrcDir, DirEntry->FileName);
     MsgLog ("%s - [%02d]: %s\n", PlugIn ? Indent : L"", i++, DirEntry->FileName);
-    AddKext (Entry, RootDir, FileName);
+    AddKext (RootDir, FileName, NULL);
 
     if (!PlugIn) {
       UnicodeSPrint (PlugIns, ARRAY_SIZE (PlugIns), L"%s\\%s", FileName, L"Contents\\PlugIns");
-      RecursiveLoadKexts (Entry, RootDir, PlugIns, TRUE);
+      RecursiveLoadKexts (RootDir, PlugIns, TRUE);
     }
   }
 
@@ -247,7 +331,7 @@ LoadKexts (
   IN LOADER_ENTRY   *Entry
 ) {
   //EFI_STATUS      Status;
-  UINTN             Index = 0, InjectKextsDirCount = ARRAY_SIZE (InjectKextsDir);
+  UINTN             Index = 0, InjectKextsDirCount = ARRAY_SIZE (gInjectKextsDir);
 
   if ((Entry == 0) || BIT_ISUNSET (Entry->Flags, OSFLAG_WITHKEXTS)) {
     return EFI_NOT_STARTED;
@@ -268,21 +352,23 @@ LoadKexts (
       if (Entry->Volume && Entry->Volume->RootDir) {
         // Check if the entry is a directory
         if (StriStr (Entry->KernelAndKextPatches->ForceKexts[Index], L".kext") == NULL) {
-          RecursiveLoadKexts (Entry, Entry->Volume->RootDir, Entry->KernelAndKextPatches->ForceKexts[Index], FALSE);
+          RecursiveLoadKexts (Entry->Volume->RootDir, Entry->KernelAndKextPatches->ForceKexts[Index], FALSE);
         } else {
-          AddKext (Entry, Entry->Volume->RootDir, Entry->KernelAndKextPatches->ForceKexts[Index]);
+          AddKext (Entry->Volume->RootDir, Entry->KernelAndKextPatches->ForceKexts[Index], NULL);
           UnicodeSPrint (PlugIns, ARRAY_SIZE (PlugIns), L"%s\\%s", Entry->KernelAndKextPatches->ForceKexts[Index], L"Contents\\PlugIns");
-          RecursiveLoadKexts (Entry, Entry->Volume->RootDir, PlugIns, TRUE);
+          RecursiveLoadKexts (Entry->Volume->RootDir, PlugIns, TRUE);
         }
       }
     }
   }
 
   for (Index = 0; Index < InjectKextsDirCount; Index++) {
-    if (InjectKextsDir[Index] != NULL) {
-      RecursiveLoadKexts (Entry, SelfVolume->RootDir, InjectKextsDir[Index], FALSE);
+    if (gInjectKextsDir[Index] != NULL) {
+      RecursiveLoadKexts (gSelfVolume->RootDir, gInjectKextsDir[Index], FALSE);
     }
   }
+
+  LoadIOPersonalitiesInjector (Entry);
 
   GetKextSummaries ();
 
@@ -297,10 +383,10 @@ LoadKexts (
     ExtraSize = gKextSize;
     Extra = AllocateZeroPool (ExtraSize - sizeof (DeviceTreeNodeProperty) + EFI_PAGE_SIZE);
     /*Status =  */LogDataHub (&gEfiMiscSubClassGuid, L"DTKextsExtra", Extra, (UINT32)(ExtraSize - sizeof (DeviceTreeNodeProperty) + EFI_PAGE_SIZE));
-    //MsgLog ("count: %d    \n", gKextCount);
-    //MsgLog ("MMExtraSize: %d    \n", MMExtraSize);
-    //MsgLog ("ExtraSize: %d    \n", ExtraSize);
-    //MsgLog ("offset: %d      \n", ExtraSize - sizeof (DeviceTreeNodeProperty) + EFI_PAGE_SIZE);
+    //DBG ("KextCount: %d\n", gKextCount);
+    //DBG ("MMExtraSize: %d\n", MMExtraSize);
+    //DBG ("ExtraSize: %d\n", ExtraSize);
+    //DBG ("Offset: %d\n", ExtraSize - sizeof (DeviceTreeNodeProperty) + EFI_PAGE_SIZE);
   }
 
   return EFI_SUCCESS;
@@ -309,6 +395,49 @@ LoadKexts (
 ////////////////////
 // OnExitBootServices
 ////////////////////
+
+#if 0
+BOOLEAN
+IsIOPersonalitiesAllowed (
+  IN LOADER_ENTRY   *Entry,
+  IN CHAR8          *KextName
+) {
+  BOOLEAN   Ret = TRUE;
+  CHAR8     *IOPersonalitiesName = AsciiStrStr (KextName, BOOTER_IOPERSONALITIES_PREFIX), Hold;
+  UINTN     i = 0, Len = AsciiStrLen (BOOTER_IOPERSONALITIES_PREFIX);
+
+  if (IOPersonalitiesName != NULL) {
+    IOPersonalitiesName += Len;
+    Len = IOPersonalitiesName - KextName;
+    IOPersonalitiesName = AsciiStrStr (IOPersonalitiesName, ".kext");
+
+    if (IOPersonalitiesName != NULL) {
+      Ret = FALSE;
+
+      if (gSettings.KextPatchesAllowed) {
+        for (; (i < Entry->KernelAndKextPatches->NrIOPersonalitiesInjector) && !Ret; ++i) {
+          if (Entry->KernelAndKextPatches->IOPersonalitiesInjector[i].Disabled) {
+            continue;
+          }
+
+          Len = (IOPersonalitiesName - KextName) - Len;
+          Hold = *IOPersonalitiesName;
+          *IOPersonalitiesName = '\0';
+          IOPersonalitiesName -= Len;
+
+          if (AsciiStrCmp (IOPersonalitiesName, Entry->KernelAndKextPatches->IOPersonalitiesInjector[i].Name) == 0) {
+            Ret = TRUE;
+          }
+
+          *(IOPersonalitiesName + Len) = Hold;
+        }
+      }
+    }
+  }
+
+  return Ret;
+}
+#endif
 
 EFI_STATUS
 InjectKexts (
@@ -394,6 +523,8 @@ InjectKexts (
   if (!IsListEmpty (&gKextList)) {
     Index = 0;
     for (Link = gKextList.ForwardLink; Link != &gKextList; Link = Link->ForwardLink) {
+      //BOOLEAN   AllowedToLoad = TRUE;
+
       KextEntry = CR (Link, KEXT_ENTRY, Link, KEXT_SIGNATURE);
 
       CopyMem ((VOID *)KextBase, (VOID *)(UINTN)KextEntry->Kext.paddr, KextEntry->Kext.length);
@@ -408,6 +539,10 @@ InjectKexts (
       MM = (DeviceTreeBuffer *) (((UINT8 *)Prop) + sizeof (DeviceTreeNodeProperty));
       MM->paddr = (UINT32)KextBase;
       MM->length = KextEntry->Kext.length;
+
+      //AllowedToLoad = IsIOPersonalitiesAllowed (Entry, (CHAR8 *)(UINTN)Drvinfo->bundlePathPhysAddr);
+
+      //AsciiSPrint (Prop->name, 31, (AllowedToLoad ? (BOOTER_KEXT_PREFIX "%x") : (BOOTER_KEXT_NOLOAD_PREFIX "%x")), KextBase);
       AsciiSPrint (Prop->name, 31, BOOTER_KEXT_PREFIX "%x", KextBase);
 
       DrvPtr += sizeof (DeviceTreeNodeProperty) + sizeof (DeviceTreeBuffer);

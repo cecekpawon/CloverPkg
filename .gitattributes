@@ -1,0 +1,21 @@
+*.c         text eol=crlf
+*.h         text eol=crlf
+*.asm       text eol=crlf
+*.nasm      text eol=crlf
+*.inc       text eol=crlf
+
+*.inf       text eol=crlf
+*.dec       text eol=crlf
+*.dsc       text eol=crlf
+*.fdf       text eol=crlf
+
+*.md        text eol=crlf
+*.txt       text eol=crlf
+*.log       text eol=crlf
+
+*.cmd       text eol=crlf
+*.bat       text eol=crlf
+
+*.sh        text eol=lf
+*.command   text eol=lf
+*.plist     text eol=lf

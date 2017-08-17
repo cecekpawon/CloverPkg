@@ -30,7 +30,7 @@ ScanDriverDir (
   BOOLEAN                         Skip;
 
   // look through contents of the directory
-  DirIterOpen (SelfRootDir, Path, &DirIter);
+  DirIterOpen (gSelfRootDir, Path, &DirIter);
 
   while (DirIterNext (&DirIter, 2, L"*.EFI", &DirEntry)) {
     Skip = (DirEntry->FileName[0] == L'.');
@@ -55,22 +55,22 @@ ScanDriverDir (
 
     if (
       (
-        gDriversFlags->FSInjectEmbedded &&
+        gSettings.DriversFlags.FSInjectEmbedded &&
         (StriStr (DirEntry->FileName, L"FSInject") != NULL)
       ) ||
       (
-        (gDriversFlags->AptioFixEmbedded || gDriversFlags->AptioFixLoaded) &&
+        (gSettings.DriversFlags.AptioFixEmbedded || gSettings.DriversFlags.AptioFixLoaded) &&
         (
           (StriStr (DirEntry->FileName, L"AptioFix") != NULL) ||
           (StriStr (DirEntry->FileName, L"LowMemFix") != NULL)
         )
       ) ||
       (
-        gDriversFlags->HFSLoaded &&
+        gSettings.DriversFlags.HFSLoaded &&
         (StriStr (DirEntry->FileName, L"HFS") != NULL)
       ) ||
       (
-        gDriversFlags->APFSLoaded &&
+        gSettings.DriversFlags.APFSLoaded &&
         (StriStr (DirEntry->FileName, L"APFS") != NULL)
       )
     ) {
@@ -78,7 +78,7 @@ ScanDriverDir (
     }
 
     Status = StartEFIImage (
-                FileDevicePath (SelfLoadedImage->DeviceHandle, Str),
+                FileDevicePath (gSelfLoadedImage->DeviceHandle, Str),
                 L"",
                 DirEntry->FileName,
                 DirEntry->FileName,
@@ -93,24 +93,24 @@ ScanDriverDir (
     NumLoad++;
 
     if (StriStr (Str, L"HFS") != NULL) {
-      gDriversFlags->HFSLoaded = TRUE;
+      gSettings.DriversFlags.HFSLoaded = TRUE;
     }
 
     if (StriStr (Str, L"APFS") != NULL) {
-      gDriversFlags->APFSLoaded = TRUE;
+      gSettings.DriversFlags.APFSLoaded = TRUE;
     }
 
     // either AptioFix, AptioFix2 or LowMemFix
     if (
-      !gDriversFlags->AptioFixEmbedded && !gDriversFlags->AptioFixLoaded &&
+      !gSettings.DriversFlags.AptioFixEmbedded && !gSettings.DriversFlags.AptioFixLoaded &&
       (
         (StriStr (DirEntry->FileName, L"AptioFix") != NULL) ||
         (StriStr (DirEntry->FileName, L"LowMemFix") != NULL)
       )
     ) {
       DBG ("- AptioFix driver loaded\n");
-      gDriversFlags->AptioFixLoaded = TRUE;
-      gDriversFlags->AptioFixVersion = (StriStr (DirEntry->FileName, L"AptioFix2") != NULL) ? 2 : 1; // Lame check
+      gSettings.DriversFlags.AptioFixLoaded = TRUE;
+      gSettings.DriversFlags.AptioFixVersion = (StriStr (DirEntry->FileName, L"AptioFix2") != NULL) ? 2 : 1; // Lame check
     }
 
     if (
@@ -175,12 +175,12 @@ DisconnectSomeDevices () {
   CHAR16                            *DriverName;
   UINTN                             HandleCount, Index, Index2, ControllerHandleCount;
 
-  if (gDriversFlags->HFSLoaded || gDriversFlags->APFSLoaded) {
-    if (gDriversFlags->HFSLoaded) {
+  if (gSettings.DriversFlags.HFSLoaded || gSettings.DriversFlags.APFSLoaded) {
+    if (gSettings.DriversFlags.HFSLoaded) {
       DBG ("- HFS+ driver loaded\n");
     }
 
-    if (gDriversFlags->APFSLoaded) {
+    if (gSettings.DriversFlags.APFSLoaded) {
       DBG ("- APFS driver loaded\n");
     }
 

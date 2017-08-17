@@ -51,46 +51,66 @@
 
 // variables
 
-BOOLEAN                 gGuiIsReady = FALSE,
-                        gThemeNeedInit = TRUE;
+BOOLEAN   gThemeNeedInit = TRUE;
 
 // Splash -->
-CHAR16                  **LoadMessages;
-UINTN                   MessageNow = 0, MessageClearWidth = 0;
+CHAR16    **gLoadMessages, *gMessageDots = L"...";
+UINTN     gMessageNow = 0, gMessageClearWidth = 0, gRowHeight = 20;
 // Splash <--
 
 VOID
 DrawLoadMessage (
   CHAR16  *Msg
 ) {
-  UINTN   i, Size, RowHeight = 20;
+  if (!gSettings.NoEarlyProgress) {
+    UINTN   i, Size, Index;
 
-  //if (gSettings.NoEarlyProgress) {
-  //  return;
-  //}
+    gMessageNow++;
 
-  MessageNow++;
+    Size = gMessageNow * sizeof (CHAR16 *);
 
-  Size = MessageNow * sizeof (CHAR16 *);
+    gLoadMessages = ReallocatePool (Size, Size + sizeof (CHAR16 *), gLoadMessages);
+    gLoadMessages[gMessageNow - 1] = EfiStrDuplicate (Msg);
 
-  LoadMessages = ReallocatePool (Size, Size + sizeof (CHAR16 *), LoadMessages);
-  LoadMessages[MessageNow - 1] = EfiStrDuplicate (Msg);
+    for (i = 0; i < gMessageNow; i++) {
+      Index = (gMessageNow - i);
+      DrawTextXY (gLoadMessages[i], 0, GlobalConfig.UGAHeight - (Index * gRowHeight), X_IS_LEFT, gMessageClearWidth);
+    }
 
-  for (i = 0; i < MessageNow; i++) {
-    DrawTextXY (LoadMessages[i], 0, UGAHeight - ((MessageNow - i) * RowHeight), X_IS_LEFT, MessageClearWidth);
+    i = 3;
+    while (i) {
+      DrawTextXY (PoolPrint (L"%s %s", gLoadMessages[gMessageNow - 1], &gMessageDots[--i]), 0, GlobalConfig.UGAHeight - (Index * gRowHeight), X_IS_LEFT, gMessageClearWidth);
+      gBS->Stall (30000);
+    }
   }
+}
 
-  //gBS->Stall (500000);
+VOID
+FreeLoadMessage () {
+  if (gMessageNow && !gSettings.NoEarlyProgress) {
+    UINTN   i;
+
+    for (i = 0; (i < gMessageNow) && gLoadMessages[i]; i++) {
+      FreePool (gLoadMessages[i]);
+    }
+  }
 }
 
 VOID
 InitSplash () {
-  //if (!gSettings.NoEarlyProgress) {
+  CHAR8   *NvramConfig = NULL;
+  UINTN   Size;
+
+  NvramConfig = GetNvramVariable (gNvramData[kNvCloverNoEarlyProgress].VariableName, gNvramData[kNvCloverNoEarlyProgress].Guid, NULL, &Size);
+  if ((NvramConfig != NULL) && (AsciiStrCmp (NvramConfig, kXMLTagTrue) == 0)) {
+    gSettings.NoEarlyProgress = TRUE;
+    FreePool (NvramConfig);
+  } else {
     EG_IMAGE  *SplashLogo = BuiltinIcon (BUILTIN_ICON_BANNER_BLACK);
 
-    MessageClearWidth = (UGAWidth - SplashLogo->Width) >> 1;
-    DrawImageArea (SplashLogo, 0, 0, 0, 0, MessageClearWidth, (UGAHeight - SplashLogo->Height) >> 1);
-  //}
+    gMessageClearWidth = (GlobalConfig.UGAWidth - SplashLogo->Width) >> 1;
+    DrawImageArea (SplashLogo, 0, 0, 0, 0, gMessageClearWidth, (GlobalConfig.UGAHeight - SplashLogo->Height) >> 1);
+  }
 }
 
 //
@@ -105,7 +125,7 @@ RefitMain (
   EFI_TIME            Now;
   EFI_STATUS          Status;
   INTN                DefaultIndex;
-  UINTN               MenuExit, Size, i;
+  UINTN               MenuExit, Size;
   BOOLEAN             MainLoopRunning = TRUE,
                       ReinitDesktop = TRUE,
                       AfterTool = FALSE,
@@ -113,20 +133,14 @@ RefitMain (
   REFIT_MENU_ENTRY    *ChosenEntry = NULL,
                       *DefaultEntry = NULL,
                       *OptionEntry = NULL;
-  TagPtr              gConfigDict;
+  TagPtr              ConfigDict;
   CHAR8               *NvramConfig = NULL;
 
-  // get TSC freq and init MemLog if needed
-  gCPUStructure.TSCCalibr = GetMemLogTscTicksPerSecond (); //ticks for 1second
-
   // bootstrap
-  gST           = SystemTable;
   gImageHandle  = ImageHandle;
-  gBS           = SystemTable->BootServices;
-  gRT           = SystemTable->RuntimeServices;
   /*Status = */EfiGetSystemConfigurationTable (&gEfiDxeServicesTableGuid, (VOID **)&gDS);
 
-  // To initialize 'SelfRootDir', we should place it here
+  // To initialize 'gSelfRootDir', we should place it here
   Status = InitRefitLib (gImageHandle);
 
   if (EFI_ERROR (Status)) {
@@ -134,12 +148,10 @@ RefitMain (
   }
 
   // Init assets dir: misc
-  /*Status = */MkDir (SelfRootDir, DIR_MISC);
-  //Should apply to: "ACPI/origin/" too
+  /*Status = */MkDir (gSelfRootDir, DIR_MISC);
+  // Should apply to: "ACPI/origin/" too
 
   gRT->GetTime (&Now, NULL);
-
-  //DbgHeader ("RefitMain");
 
   MsgLog ("Now is %d.%d.%d, %d:%d:%d (GMT+%d)\n",
     Now.Year, Now.Month, Now.Day, Now.Hour, Now.Minute, Now.Second,
@@ -168,78 +180,60 @@ RefitMain (
     DBG ("UnicodeCollation Status=%r\n", Status);
   }
 
-  InitializeSettings (); // Init gSettings
+  InitializeSettings ();
 
-  if (FileExists (SelfRootDir, DEV_MARK)) {
+  InitScreen ();
+
+  InitSplash ();
+
+  DrawLoadMessage (PoolPrint (L"Starting %a", CLOVER_REVISION_STR));
+
+  if (FileExists (gSelfRootDir, DEV_MARK)) {
     gSettings.Dev = TRUE;
   }
 
+  DrawLoadMessage (L"Gather ACPI Info");
   GetAcpiTablesList ();
 
+  DrawLoadMessage (L"Gather Smbios Info");
   PrePatchSmbios ();
 
-  //replace / with _
-  Size = AsciiTrimStrLen (gSettings.OEMProduct, 64);
-  for (i = 0; i < Size; i++) {
-    if (gSettings.OEMProduct[i] == 0x2F) {
-      gSettings.OEMProduct[i] = 0x5F;
-    }
-  }
+  MsgLog ("Running on: '%a (%a)' with board '%a'\n", gSettings.OEMVendor, gSettings.OEMProduct, gSettings.OEMBoard);
 
-  Size = AsciiTrimStrLen (gSettings.OEMBoard, 64);
-  for (i = 0; i < Size; i++) {
-    if (gSettings.OEMBoard[i] == 0x2F) {
-      gSettings.OEMBoard[i] = 0x5F;
-    }
-  }
-
-  MsgLog ("Running on: '%a' with board '%a'\n", gSettings.OEMProduct, gSettings.OEMBoard);
-
+  DrawLoadMessage (L"Gather CPU Info");
   GetCPUProperties ();
 
   SyncCPUProperties ();
 
   SyncDefaultSettings ();
 
+  DrawLoadMessage (L"Load Settings");
   DbgHeader ("LoadSettings");
 
   Status = EFI_LOAD_ERROR;
 
-  NvramConfig = GetNvramVariable (NvramData[kNvCloverConfig].VariableName, NvramData[kNvCloverConfig].Guid, NULL, &Size);
+  NvramConfig = GetNvramVariable (gNvramData[kNvCloverConfig].VariableName, gNvramData[kNvCloverConfig].Guid, NULL, &Size);
   if (NvramConfig != NULL) {
     Size = AsciiStrSize (NvramConfig) * sizeof (CHAR16);
     gSettings.ConfigName = AllocateZeroPool (Size);
     AsciiStrToUnicodeStrS (NvramConfig, gSettings.ConfigName, Size);
-    Status = LoadUserSettings (SelfRootDir, gSettings.ConfigName, &gConfigDict);
+    Status = LoadUserSettings (gSelfRootDir, gSettings.ConfigName, &ConfigDict);
     MsgLog ("Load (Nvram) Settings: %s.plist: %r\n", gSettings.ConfigName, Status);
   }
 
-  if ((NvramConfig == NULL) || EFI_ERROR (Status) || !gConfigDict) {
+  if ((NvramConfig == NULL) || EFI_ERROR (Status) || !ConfigDict) {
     gSettings.ConfigName = EfiStrDuplicate (CONFIG_FILENAME);
-    Status = LoadUserSettings (SelfRootDir, gSettings.ConfigName, &gConfigDict);
+    Status = LoadUserSettings (gSelfRootDir, gSettings.ConfigName, &ConfigDict);
     MsgLog ("Load (Disk) Settings: %s.plist: %r\n", gSettings.ConfigName, Status);
   }
 
-  if (!EFI_ERROR (Status) && &gConfigDict[0]) {
-    Status = GetUserSettings (gConfigDict);
+  if (!EFI_ERROR (Status) && &ConfigDict[0]) {
+    Status = GetUserSettings (ConfigDict);
     DBG ("Load Settings: %r\n", Status);
   }
 
-  if (!gSettings.FastBoot) {
-    InitScreen (TRUE);
-    SetupScreen ();
-  } else {
-    InitScreen (FALSE);
-  }
-
-  InitSplash ();
-
-  DrawLoadMessage (PoolPrint (L"Starting %a", CLOVER_REVISION_STR));
-
   DrawLoadMessage (L"Init Hardware");
-
   SetPrivateVarProto ();
-
   InitializeEdidOverride ();
 
   DrawLoadMessage (L"Scan SPD");
@@ -257,7 +251,6 @@ RefitMain (
   Status = ReinitRefitLib ();
 
   if (EFI_ERROR (Status)) {
-    //DebugLog (2, " %r", Status);
     return Status;
   }
 
@@ -269,8 +262,7 @@ RefitMain (
     !ReadAllKeyStrokes ()
   ) {
     // UEFI boot: get gEfiBootDeviceGuid from NVRAM.
-    // if present, ScanVolumes () will skip scanning other volumes
-    // in the first run.
+    // if present, ScanVolumes () will skip scanning other volumes in the first run.
     // this speeds up loading of default OSX volume.
     GetEfiBootDeviceFromNvram ();
   }
@@ -278,32 +270,33 @@ RefitMain (
   DrawLoadMessage (L"Scan Assets");
 
   if (!gSettings.FastBoot) {
-    GetListOfConfigs ();
-    GetListOfThemes ();
-    GetListOfTools ();
+    ScanConfigs ();
+    ScanThemes ();
+    ScanTools ();
   }
 
-  GetListOfAcpi ();
+  ScanAcpi ();
 
   AfterTool = FALSE;
-  gGuiIsReady = TRUE;
+  GlobalConfig.GUIReady = TRUE;
 
   // get boot-args
   SyncBootArgsFromNvram ();
 
-  MainMenu.TimeoutSeconds = (!gSettings.FastBoot && (gSettings.Timeout >= 0)) ? gSettings.Timeout : 0;
+  gMainMenu.TimeoutSeconds = (!gSettings.FastBoot && (gSettings.Timeout >= 0)) ? gSettings.Timeout : 0;
 
   DrawLoadMessage (L"Scan Entries");
+
+  FreeLoadMessage ();
 
   //InitDesktop:
 
   do {
-    FreeList ((VOID ***)&MainMenu.Entries, &MainMenu.EntryCount);
+    FreeList ((VOID ***)&gMainMenu.Entries, &gMainMenu.EntryCount);
 
-    MainMenu.EntryCount = 0;
-    OptionMenu.EntryCount = 0;
+    gMainMenu.EntryCount = 0;
+    gOptionMenu.EntryCount = 0;
 
-    FreeList ((VOID ***)&Volumes, &VolumesCount);
     ScanVolumes ();
 
     if (!gSettings.FastBoot) {
@@ -313,9 +306,8 @@ RefitMain (
         InitTheme (TRUE, &Now);
         gThemeNeedInit = FALSE;
       } else if (gThemeChanged) {
-        //DBG ("change theme\n");
         InitTheme (FALSE, NULL);
-        FreeMenu (&OptionMenu);
+        FreeMenu (&gOptionMenu);
       }
 
       gThemeChanged = FALSE;
@@ -354,10 +346,10 @@ RefitMain (
 
     DefaultIndex = FindDefaultEntry ();
 
-    DBG ("DefaultIndex=%d and MainMenu.EntryCount=%d\n", DefaultIndex, MainMenu.EntryCount);
+    DBG ("DefaultIndex=%d and gMainMenu.EntryCount=%d\n", DefaultIndex, gMainMenu.EntryCount);
 
-    DefaultEntry = ((DefaultIndex >= 0) && ((UINTN)DefaultIndex < MainMenu.EntryCount))
-      ? MainMenu.Entries[DefaultIndex]
+    DefaultEntry = ((DefaultIndex >= 0) && ((UINTN)DefaultIndex < gMainMenu.EntryCount))
+      ? gMainMenu.Entries[DefaultIndex]
       : NULL;
 
     MainLoopRunning = TRUE;
@@ -370,11 +362,10 @@ RefitMain (
       MainLoopRunning = FALSE;
       gSettings.FastBoot = FALSE; //Hmm... will never be here
     } else {
-      MainAnime = GetAnime (&MainMenu);
+      gMainAnime = GetAnime (&gMainMenu);
     }
 
     AfterTool = FALSE;
-    //gEvent = 0; //clear to cancel loop
 
     while (MainLoopRunning) {
       if (
@@ -385,8 +376,8 @@ RefitMain (
         // go straight to DefaultVolume loading
         MenuExit = MENU_EXIT_TIMEOUT;
       } else {
-        MainMenu.AnimeRun = MainAnime;
-        MenuExit = RunMainMenu (&MainMenu, DefaultIndex, &ChosenEntry);
+        gMainMenu.AnimeRun = gMainAnime;
+        MenuExit = RunMainMenu (&gMainMenu, DefaultIndex, &ChosenEntry);
       }
 
       // disable default boot - have sense only in the first run
@@ -429,6 +420,13 @@ RefitMain (
         break;   //refresh main menu
       }
 
+      //
+      if (MenuExit == MENU_EXIT_OTHER) {
+        MainLoopRunning = FALSE;
+        AfterTool = TRUE;
+        break;   //refresh main menu
+      }
+
       switch (ChosenEntry->Tag) {
         case TAG_RESET:    // Restart
           // Attempt warm reboot
@@ -450,7 +448,7 @@ RefitMain (
           AfterTool = TRUE;
           break;
 
-        case TAG_OPTIONS:    // Options like KernelFlags, DSDTname etc.
+        case TAG_OPTIONS:
           gBootChanged = FALSE;
           OptionsMenu (&OptionEntry);
 
@@ -464,7 +462,7 @@ RefitMain (
           }
           break;
 
-        case TAG_ABOUT:    // About rEFIt
+        case TAG_ABOUT:
           AboutRefit ();
           break;
 
@@ -472,20 +470,23 @@ RefitMain (
           HelpRefit ();
           break;
 
-        case TAG_LOADER:   // Boot OS via .EFI loader
+        case TAG_LOADER:
           StartLoader ((LOADER_ENTRY *)ChosenEntry);
           break;
 
-        case TAG_TOOL:     // Start a EFI tool
+        case TAG_TOOL:
           StartTool ((LOADER_ENTRY *)ChosenEntry);
           MainLoopRunning = FALSE;
           AfterTool = TRUE;
           break;
       }
 
-      if (StartToolFromMenu ()) {
+      if (gToolPath) {
+        FreePool (gToolPath);
+        gToolPath = NULL;
         MainLoopRunning = FALSE;
         AfterTool = TRUE;
+        break;
       }
     } //MainLoopRunning
 

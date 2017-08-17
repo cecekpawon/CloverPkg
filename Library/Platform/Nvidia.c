@@ -367,10 +367,10 @@ SetupNvidiaDevprop (
       DIR_ROM, Dev->device_id, Dev->subsys_id.subsys.vendor_id, Dev->subsys_id.subsys.device_id
     );
 
-    if (FileExists (SelfRootDir, FileName)) {
+    if (FileExists (gSelfRootDir, FileName)) {
       DBG (" - Found specific VBIOS ROM file (%s)\n", FileName);
 
-      Status = LoadFile (SelfRootDir, FileName, &Buffer, &BufferLen);
+      Status = LoadFile (gSelfRootDir, FileName, &Buffer, &BufferLen);
     }
   }
 

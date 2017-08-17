@@ -6,8 +6,7 @@
 #ifndef __LIBSAIO_KERNEL_PATCHER_H
 #define __LIBSAIO_KERNEL_PATCHER_H
 
-#include "DeviceTree.h"
-
+#include <Library/Common/DeviceTreeLib.h>
 #include <Library/Common/LoaderUefi.h>
 #include <Library/Platform/Platform.h>
 
@@ -61,6 +60,12 @@
 #define kPropOSBundleLibraries              "OSBundleLibraries"
 #define kPropIOKitPersonalities             "IOKitPersonalities"
 #define kPropIONameMatch                    "IONameMatch"
+
+#define kOSBundleRequiredRoot               "Root"
+#define kOSBundleRequiredLocalRoot          "Local-Root"
+#define kOSBundleRequiredNetworkRoot        "Network-Root"
+#define kOSBundleRequiredSafeBoot           "Safe Boot"
+#define kOSBundleRequiredConsole            "Console"
 
 #if 0
 typedef struct compressed_kernel_header {
@@ -175,20 +180,20 @@ typedef struct KERNEL_PATCH_SYMBOL_LOOKUP
 } KERNEL_PATCH_SYMBOL_LOOKUP;
 
 STATIC KERNEL_PATCH_SYMBOL_LOOKUP KernelPatchSymbolLookup[] = {
-  { kLoadEXEStart, "__ZN6OSKext14loadExecutableEv" },
-  { kLoadEXEEnd, "__ZN6OSKext23jettisonLinkeditSegmentEv" },
-  { kCPUInfoStart, "_cpuid_set_info" },
-  { kCPUInfoEnd, "_cpuid_info" },
-  { kVersion, "_version" },
-  { kVersionMajor, "_version_major" },
-  { kVersionMinor, "_version_minor" },
-  { kRevision, "_version_revision" },
-  { kXCPMStart, "_xcpm_core_scope_msrs" },
-  { kXCPMEnd, "_xcpm_SMT_scope_msrs" },
-  { kStartupExtStart, "__ZN12KLDBootstrap21readStartupExtensionsEv" },
-  { kStartupExtEnd, "__ZN12KLDBootstrap23readPrelinkedExtensionsEP10section_64" },
-  //{ kPrelinkedStart, "__ZN12KLDBootstrap23readPrelinkedExtensionsEP10section_64" },
-  //{ kPrelinkedEnd, "__ZN12KLDBootstrap20readBooterExtensionsEv" }
+  { kLoadEXEStart,      "__ZN6OSKext14loadExecutableEv" },
+  { kLoadEXEEnd,        "__ZN6OSKext23jettisonLinkeditSegmentEv" },
+  { kCPUInfoStart,      "_cpuid_set_info" },
+  { kCPUInfoEnd,        "_cpuid_info" },
+  { kVersion,           "_version" },
+  { kVersionMajor,      "_version_major" },
+  { kVersionMinor,      "_version_minor" },
+  { kRevision,          "_version_revision" },
+  { kXCPMStart,         "_xcpm_core_scope_msrs" },
+  { kXCPMEnd,           "_xcpm_SMT_scope_msrs" },
+  { kStartupExtStart,   "__ZN12KLDBootstrap21readStartupExtensionsEv" },
+  { kStartupExtEnd,     "__ZN12KLDBootstrap23readPrelinkedExtensionsEP10section_64" },
+  //{ kPrelinkedStart,  "__ZN12KLDBootstrap23readPrelinkedExtensionsEP10section_64" },
+  //{ kPrelinkedEnd,    "__ZN12KLDBootstrap20readBooterExtensionsEv" }
 };
 
 STATIC CONST UINTN KernelPatchSymbolLookupCount = ARRAY_SIZE (KernelPatchSymbolLookup);
@@ -199,8 +204,8 @@ STATIC CONST UINTN KernelPatchSymbolLookupCount = ARRAY_SIZE (KernelPatchSymbolL
 // kext_patcher.c
 //
 
-#define PropCFBundleIdentifierKey "<key>" kPropCFBundleIdentifier "</key>"
-#define PropCFBundleVersionKey "<key>" kPropCFBundleVersion "</key>"
+#define PropCFBundleIdentifierKey   "<key>" kPropCFBundleIdentifier "</key>"
+#define PropCFBundleVersionKey      "<key>" kPropCFBundleVersion "</key>"
 
 VOID
 ExtractKextPropString (
@@ -243,8 +248,8 @@ KextPatcherRegisterKexts (
 
 VOID
 CheckForFakeSMC (
-  CHAR8         *InfoPlist,
-  LOADER_ENTRY  *Entry
+  CHAR8           *InfoPlist,
+  LOADER_ENTRY    *Entry
 );
 
 //
