@@ -24,6 +24,8 @@
 
 #define DBG(...) DebugLog (DEBUG_PLATFORM_DRIVER, __VA_ARGS__)
 
+//#define DEBUG_DRIVER_OVERRIDE 1
+
 /** NULL terminated list of driver's handles that will be served by EFI_PLATFORM_DRIVER_OVERRIDE_PROTOCOL. */
 EFI_HANDLE  *mPriorityDrivers = NULL;
 
@@ -137,7 +139,6 @@ OurPlatformDriverLoaded (
   if (!EFI_ERROR (Status)) {
     DBG (" DriverName=%s at Controller=%x\n", DriverName, ControllerHandle);
   }
-
 #endif
 
   if (mOrigPlatformDriverLoaded) {

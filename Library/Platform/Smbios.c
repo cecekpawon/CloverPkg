@@ -948,10 +948,11 @@ VOID
 PatchTableType7 () {
   // Cache Information
   //
-    //TODO - should be separate table for each CPU core
-    //new handle for each core and attach Type4 tables for individual Type7
-    // Handle = 0x0700 + CoreN<<2 + CacheN (4-level cache is supported
-    // L1[CoreN] = Handle
+
+  //TODO - should be separate table for each CPU core
+  //new handle for each core and attach Type4 tables for individual Type7
+  // Handle = 0x0700 + CoreN<<2 + CacheN (4-level cache is supported
+  // L1[CoreN] = Handle
 
   CHAR8     *SSocketD;
   BOOLEAN   CorrectSD = FALSE;

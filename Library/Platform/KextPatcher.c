@@ -105,32 +105,6 @@ FilterKextPatches (
 
 //
 // Searches Source for Search pattern of size SearchSize
-// and returns the number of occurences.
-//
-UINTN
-SearchAndCount (
-  UINT8     *Source,
-  UINT32    SourceSize,
-  UINT8     *Search,
-  UINTN     SearchSize
-) {
-  UINTN     NumFounds = 0;
-  UINT8     *End = Source + SourceSize;
-
-  while (Source < End) {
-    if (CompareMem (Source, Search, SearchSize) == 0) {
-      NumFounds++;
-      Source += SearchSize;
-    } else {
-      Source++;
-    }
-  }
-
-  return NumFounds;
-}
-
-//
-// Searches Source for Search pattern of size SearchSize
 // and replaces it with Replace up to MaxReplaces times.
 // If MaxReplaces <= 0, then there is no restriction on number of replaces.
 // Replace should have the same size as Search.
@@ -416,8 +390,6 @@ ATIConnectorsPatch (
   } else {
     DBG (" | NOT patched!\n");
   }
-
-  //DBG_PAUSE (Entry, 5);
 }
 
 VOID
@@ -484,8 +456,6 @@ GetTextSegment (
   }
 }
 
-// TODO: to swap this method, hardcodedless
-
 ////////////////////////////////////
 //
 // AsusAICPUPM patch
@@ -495,77 +465,34 @@ GetTextSegment (
 //
 // Credits: Samantha/RevoGirl/DHP
 // http://www.insanelymac.com/forum/topic/253642-dsdt-for-asus-p8p67-m-pro/page__st__200#entry1681099
-// Rehabman corrections 2014
 //
-UINT8   MovlE2ToEcx[] = { 0xB9, 0xE2, 0x00, 0x00, 0x00 };
-UINT8   MovE2ToCx[]   = { 0x66, 0xB9, 0xE2, 0x00 };
-UINT8   Wrmsr[]       = { 0x0F, 0x30 };
-
 VOID
 AICPUPowerManagementPatch (
-  UINT8           *Driver,
-  UINT32          DriverSize/*,
-  CHAR8           *InfoPlist,
-  UINT32          InfoPlistSize*/
+  UINT8     *Driver,
+  UINT32    DriverSize
 ) {
-  UINTN   Index1 = 0, Index2 = 0, Count = 0;
+  UINTN   Num;
   UINT32  Addr = 0, Size = 0, Off = 0;
+  UINT8   Search[]  = { 0x20, 0xB9, 0xE2, 0x00, 0x00, 0x00, 0x0F, 0x30 },
+          Replace[] = { 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0x90, 0x90 };
 
   GetTextSegment (Driver, &Addr, &Size, &Off);
 
-  DBG ("AICPUPowerManagementPatch: driverAddr = %x, driverSize = %x\n", Driver, DriverSize);
-
   if (Off && Size) {
-    Index1 = Off;
-    DriverSize = (Off + Size);
+    Driver += Off;
+    DriverSize = Size;
   }
 
-  for (; Index1 < DriverSize; Index1++) {
-    // search for MovlE2ToEcx
-    if (CompareMem (Driver + Index1, MovlE2ToEcx, sizeof (MovlE2ToEcx)) == 0) {
-      // search for wrmsr in next few bytes
-      for (Index2 = Index1 + sizeof (MovlE2ToEcx); Index2 < Index1 + sizeof (MovlE2ToEcx) + 32; Index2++) {
-        if ((Driver[Index2] == Wrmsr[0]) && (Driver[Index2 + 1] == Wrmsr[1])) {
-          // found it - patch it with nops
-          Count++;
-          Driver[Index2] = 0x90;
-          Driver[Index2 + 1] = 0x90;
-          DBG (" %d. patched at 0x%x\n", Count, Index2);
-          break;
-        } else if (
-          (((Driver[Index2] == 0xC9) || (Driver[Index2] == 0x5D)) && (Driver[Index2 + 1] == 0xC3)) ||
-          ((Driver[Index2] == 0xB9) && (Driver[Index2 + 3] == 0) && (Driver[Index2 + 4] == 0)) ||
-          ((Driver[Index2] == 0x66) && (Driver[Index2 + 1] == 0xB9) && (Driver[Index2 + 3] == 0))
-        ) {
-          // a leave/ret will cancel the search
-          // so will an intervening "mov[l] $xx, [e]cx"
-          break;
-        }
-      }
-    } else if (CompareMem (Driver + Index1, MovE2ToCx, sizeof (MovE2ToCx)) == 0) {
-      // search for wrmsr in next few bytes
-      for (Index2 = Index1 + sizeof (MovE2ToCx); Index2 < Index1 + sizeof (MovE2ToCx) + 32; Index2++) {
-        if ((Driver[Index2] == Wrmsr[0]) && (Driver[Index2 + 1] == Wrmsr[1])) {
-          // found it - patch it with nops
-          Count++;
-          Driver[Index2] = 0x90;
-          Driver[Index2 + 1] = 0x90;
-          DBG (" %d. patched at 0x%x\n", Count, Index2);
-          break;
-        } else if (
-          (((Driver[Index2] == 0xC9) || (Driver[Index2] == 0x5D)) && (Driver[Index2 + 1] == 0xC3)) ||
-          ((Driver[Index2] == 0xB9) && (Driver[Index2 + 3] == 0) && (Driver[Index2 + 4] == 0)) ||
-          ((Driver[Index2] == 0x66) && (Driver[Index2 + 1] == 0xB9) && (Driver[Index2 + 3] == 0))
-        ) {
-          // a leave/ret will cancel the search
-          // so will an intervening "mov[l] $xx, [e]cx"
-          break;
-        }
-      }
-    }
-  }
+  Num = SearchAndReplace (Driver, DriverSize, &Search[0], ARRAY_SIZE (Search), &Replace[0], 0xCC, -1);
 
-  //DBG ("= %d patches\n", Count);
+  MsgLog (
+    "- %a | Addr = 0x%x, Size = %d | BinPatch | %a: %d replaces done\n",
+    kPropCFBundleIdentifierAICPUPM,
+    Driver,
+    DriverSize,
+    Num ? "Success" : "Error",
+    Num
+  );
 }
 
 ////////////////////////////////////
@@ -706,12 +633,12 @@ PatchKext (
     }
 
   //
-  // AsusAICPUPM
+  // AICPUPM
   //
 
   } else if (
     Entry->KernelAndKextPatches->KPKernelPm &&
-    IsPatchNameMatch (BundleIdentifier, NULL, "com.apple.driver.AppleIntelCPUPowerManagement", &IsBundle)
+    IsPatchNameMatch (BundleIdentifier, kPropCFBundleIdentifierAICPUPM, NULL, &IsBundle)
   ) {
     AICPUPowerManagementPatch (Driver, DriverSize);
     Entry->KernelAndKextPatches->KPKernelPm = FALSE;

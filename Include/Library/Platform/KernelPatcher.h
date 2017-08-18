@@ -67,6 +67,8 @@
 #define kOSBundleRequiredSafeBoot           "Safe Boot"
 #define kOSBundleRequiredConsole            "Console"
 
+#define kPropCFBundleIdentifierAICPUPM      "com.apple.driver.AppleIntelCPUPowerManagement"
+
 #if 0
 typedef struct compressed_kernel_header {
   UINT32  signature;
@@ -260,18 +262,6 @@ CheckForFakeSMC (
 VOID
 KextPatcher (
   LOADER_ENTRY    *Entry
-);
-
-//
-// Searches Source for Search pattern of size SearchSize
-// and returns the number of occurences.
-//
-UINTN
-SearchAndCount (
-  UINT8     *Source,
-  UINT32    SourceSize,
-  UINT8     *Search,
-  UINTN     SearchSize
 );
 
 //

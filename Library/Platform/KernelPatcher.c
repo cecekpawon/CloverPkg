@@ -720,20 +720,6 @@ KernelUserPatch (
       continue;
     }
 
-    /*
-      Num = SearchAndCount (
-        KernelInfo->Bin,
-        gSettings.KernelPatchesWholePrelinked ? KernelInfo->PrelinkedSize : KernelInfo->KernelSize,
-        Entry->KernelAndKextPatches->KernelPatches[i].Data,
-        Entry->KernelAndKextPatches->KernelPatches[i].DataLen
-      );
-
-      if (!Num) {
-        DBG (" | pattern (s) not found.\n");
-        continue;
-      }
-    */
-
     Num = SearchAndReplace (
             KernelInfo->Bin,
             gSettings.KernelPatchesWholePrelinked ? KernelInfo->PrelinkedSize : KernelInfo->KernelSize,

@@ -373,13 +373,13 @@ GetDDRSpeedMhz (
 
     case SPD_MEMORY_TYPE_SDRAM_DDR3: {
         // This should be multiples of MTB converted to MHz- apianti
-        UINT16    divisor = Spd[10],
-                  dividend = Spd[11],
-                  ratio = Spd[12];
+        UINT16    Divisor = Spd[10],
+                  Dividend = Spd[11],
+                  Ratio = Spd[12];
 
         Frequency = (
-                      ((dividend != 0) && (divisor != 0) && (ratio != 0))
-                        ? ((2000 * dividend) / (divisor * ratio))
+                      ((Dividend != 0) && (Divisor != 0) && (Ratio != 0))
+                        ? ((2000 * Dividend) / (Divisor * Ratio))
                         : 0
                     );
 
@@ -393,28 +393,28 @@ GetDDRSpeedMhz (
 
           if ((XmpProfiles & 1) == 1) {
             // Check the first profile
-            divisor = Spd[SPD_XMP_PROF1_DIVISOR];
-            dividend = Spd[SPD_XMP_PROF1_DIVIDEND];
-            ratio = Spd[SPD_XMP_PROF1_RATIO];
+            Divisor = Spd[SPD_XMP_PROF1_DIVISOR];
+            Dividend = Spd[SPD_XMP_PROF1_DIVIDEND];
+            Ratio = Spd[SPD_XMP_PROF1_RATIO];
             XmpFrequency1 = (
-                              ((dividend != 0) && (divisor != 0) && (ratio != 0))
-                                ? ((2000 * dividend) / (divisor * ratio))
+                              ((Dividend != 0) && (Divisor != 0) && (Ratio != 0))
+                                ? ((2000 * Dividend) / (Divisor * Ratio))
                                 : 0
                             );
-            DBG ("%a XMP Profile1: %d * %d/%dns\n", LOG_INDENT, ratio, divisor, dividend);
+            DBG ("%a XMP Profile1: %d * %d/%dns\n", LOG_INDENT, Ratio, Divisor, Dividend);
           }
 
           if ((XmpProfiles & 2) == 2) {
             // Check the second profile
-            divisor = Spd[SPD_XMP_PROF2_DIVISOR];
-            dividend = Spd[SPD_XMP_PROF2_DIVIDEND];
-            ratio = Spd[SPD_XMP_PROF2_RATIO];
+            Divisor = Spd[SPD_XMP_PROF2_DIVISOR];
+            Dividend = Spd[SPD_XMP_PROF2_DIVIDEND];
+            Ratio = Spd[SPD_XMP_PROF2_RATIO];
             XmpFrequency2 = (
-                              ((dividend != 0) && (divisor != 0) && (ratio != 0))
-                                ? ((2000 * dividend) / (divisor * ratio))
+                              ((Dividend != 0) && (Divisor != 0) && (Ratio != 0))
+                                ? ((2000 * Dividend) / (Divisor * Ratio))
                                 : 0
                             );
-            DBG ("%a XMP Profile2: %d * %d/%dns\n", LOG_INDENT, ratio, divisor, dividend);
+            DBG ("%a XMP Profile2: %d * %d/%dns\n", LOG_INDENT, Ratio, Divisor, Dividend);
           }
         }
       }
