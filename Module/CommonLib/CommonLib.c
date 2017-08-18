@@ -1111,7 +1111,30 @@ AsciiStrnCatGrow (
   return *Destination;
 }
 
+UINT32
+EFIAPI
+GetCrc32 (
+  UINT8   *Buffer,
+  UINTN   Size
+) {
+  UINTN     i, Len;
+  UINT32    Ret = 0, *Tmp;
+
+  Tmp = (UINT32 *)Buffer;
+
+  if (Tmp != NULL) {
+    Len = Size >> 2;
+
+    for (i = 0; i < Len; i++) {
+      Ret += Tmp[i];
+    }
+  }
+
+  return Ret;
+}
+
 BOOLEAN
+EFIAPI
 IsHexDigit (
   CHAR8   C
 ) {

@@ -111,23 +111,24 @@ PatchBooter (
       Entry->KernelAndKextPatches->BooterPatches[i].Disabled = !IsPatchEnabled (
         Entry->KernelAndKextPatches->BooterPatches[i].MatchOS, OSVer);
 
-      MsgLog (" | Allowed: %a\n", Entry->KernelAndKextPatches->BooterPatches[i].Disabled ? "No" : "Yes");
-
-      if (Entry->KernelAndKextPatches->BooterPatches[i].Disabled) {
-        continue;
+      if (!Entry->KernelAndKextPatches->BooterPatches[i].Disabled) {
+        Num = SearchAndReplace (
+          (UINT8 *)LoadedImage->ImageBase,
+          (UINT32)LoadedImage->ImageSize,
+          Entry->KernelAndKextPatches->BooterPatches[i].Data,
+          Entry->KernelAndKextPatches->BooterPatches[i].DataLen,
+          Entry->KernelAndKextPatches->BooterPatches[i].Patch,
+          Entry->KernelAndKextPatches->BooterPatches[i].Wildcard,
+          Entry->KernelAndKextPatches->BooterPatches[i].Count
+        );
       }
 
-      Num = SearchAndReplace (
-        (UINT8 *)LoadedImage->ImageBase,
-        (UINT32)LoadedImage->ImageSize,
-        Entry->KernelAndKextPatches->BooterPatches[i].Data,
-        Entry->KernelAndKextPatches->BooterPatches[i].DataLen,
-        Entry->KernelAndKextPatches->BooterPatches[i].Patch,
-        Entry->KernelAndKextPatches->BooterPatches[i].Wildcard,
-        Entry->KernelAndKextPatches->BooterPatches[i].Count
+      MsgLog (
+        " | Allowed: %a | %a: %d replaces done\n",
+        Entry->KernelAndKextPatches->BooterPatches[i].Disabled ? "No" : "Yes",
+        Num ? "Success" : "Error",
+        Num
       );
-
-      MsgLog ("  - Patching %a : %d replaces done\n", Num ? "Success" : "Error", Num);
     }
 
     MsgLog ("%a: End\n", __FUNCTION__);

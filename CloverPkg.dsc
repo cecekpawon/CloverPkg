@@ -58,12 +58,12 @@
   #
   NetLib|MdeModulePkg/Library/DxeNetLib/DxeNetLib.inf
   PcdLib|MdePkg/Library/BasePcdLibNull/BasePcdLibNull.inf
+  UefiUsbLib|MdePkg/Library/UefiUsbLib/UefiUsbLib.inf
   !ifdef USB_SUPPORT
     HiiLib|MdeModulePkg/Library/UefiHiiLib/UefiHiiLib.inf
     ReportStatusCodeLib|MdePkg/Library/BaseReportStatusCodeLibNull/BaseReportStatusCodeLibNull.inf
     UefiHiiServicesLib|MdeModulePkg/Library/UefiHiiServicesLib/UefiHiiServicesLib.inf
   !endif
-  UefiUsbLib|MdePkg/Library/UefiUsbLib/UefiUsbLib.inf
   #
   # Misc
   #

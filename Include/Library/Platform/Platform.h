@@ -1297,11 +1297,6 @@ EFI_STATUS
 GetEdidDiscovered ();
 
 //Settings.c
-UINT32
-GetCrc32 (
-  UINT8   *Buffer,
-  UINTN   Size
-);
 
 VOID
 InitializeSettings ();
@@ -1569,18 +1564,6 @@ VOID
 EFIAPI
 ClosingEventAndLog (
   IN LOADER_ENTRY   *Entry
-);
-
-BOOLEAN
-GetPropertyBool (
-  TagPtr    Prop,
-  BOOLEAN   Default
-);
-
-INTN
-GetPropertyInteger (
-  TagPtr  Prop,
-  INTN    Default
 );
 
 VOID

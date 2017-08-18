@@ -436,111 +436,6 @@ DbgLog (
 
 
 //
-// Plist
-//
-
-
-STATIC
-BOOLEAN
-GetPropertyBool (
-  TagPtr    Prop,
-  BOOLEAN   Default
-) {
-  return (
-    (Prop == NULL)
-      ? Default
-      : (
-          (Prop->type == kTagTypeTrue) ||
-          (
-            (Prop->type == kTagTypeString) &&
-            (TO_AUPPER (Prop->string[0]) == 'Y')
-          )
-        )
-  );
-}
-
-STATIC
-INTN
-GetPropertyInteger (
-  TagPtr  Prop,
-  INTN    Default
-) {
-  if (Prop != NULL) {
-    if (Prop->type == kTagTypeInteger) {
-      return Prop->integer;
-    } else if (Prop->type == kTagTypeString) {
-      if ((Prop->string[0] == '0') && (TO_AUPPER (Prop->string[1]) == 'X')) {
-        return (INTN)AsciiStrHexToUintn (Prop->string);
-      }
-
-      if (Prop->string[0] == '-') {
-        return -(INTN)AsciiStrDecimalToUintn (Prop->string + 1);
-      }
-
-      return (INTN)AsciiStrDecimalToUintn (Prop->string);
-    }
-  }
-
-  return Default;
-}
-
-/*
-STATIC
-CHAR8 *
-GetPropertyString (
-  TagPtr  Prop,
-  CHAR8   *Default
-) {
-  if (
-    (Prop != NULL) &&
-    (Prop->type == kTagTypeString) &&
-    AsciiStrLen (Prop->string)
-  ) {
-    return Prop->string;
-  }
-
-  return Default;
-}
-*/
-
-//
-// returns binary setting in a new allocated buffer and data length in dataLen.
-// data can be specified in <data></data> base64 encoded
-// or in <string></string> hex encoded
-//
-
-STATIC
-VOID *
-GetDataSetting (
-  IN  TagPtr   Dict,
-  IN  CHAR8    *PropName,
-  OUT UINTN    *DataLen
-) {
-  TagPtr    Prop;
-  UINT8     *Data = NULL;
-  UINTN     Len;
-
-  Prop = GetProperty (Dict, PropName);
-  if (Prop != NULL) {
-    if ((Prop->type == kTagTypeData) && Prop->data && Prop->size) {
-      // data property
-      Data = AllocateCopyPool (Prop->size, Prop->data);
-
-      if (Data != NULL) {
-        *DataLen = Prop->size;
-      }
-    } else {
-      // assume data in hex encoded string property
-      Data = StringDataToHex (Prop->string, &Len);
-      *DataLen = Len;
-    }
-  }
-
-  return Data;
-}
-
-
-//
 // file and dir functions
 //
 
@@ -1430,7 +1325,7 @@ AnyKextPatch (
           );
   }
 
-  MsgLog (" | %a : %d replaces done\n", Num ? "Success" : "Error", Num);
+  MsgLog (" | %a: %d replaces done\n", Num ? "Success" : "Error", Num);
 
   return Num;
 }
@@ -1636,7 +1531,7 @@ KernelUserPatch () {
       y++;
     }
 
-    MsgLog (" | %a : %d replaces done\n", Num ? "Success" : "Error", Num);
+    MsgLog (" | %a: %d replaces done\n", Num ? "Success" : "Error", Num);
   }
 
   MsgLog ("%a: End\n", __FUNCTION__);

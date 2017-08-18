@@ -106,20 +106,6 @@ GetRefInteger (
 
 VOID
 EFIAPI
-DumpBody (
-  CHAR16  **Str,
-  INT32   Depth
-);
-
-CHAR16 *
-EFIAPI
-DumpTag (
-  TagPtr  Tag,
-  INT32   Depth
-);
-
-VOID
-EFIAPI
 FreeTag (
   TagPtr  Tag
 );
@@ -137,6 +123,49 @@ GetElement (
   INTN      Id,
   INTN      Count,
   TagPtr    *Dict1
+);
+
+BOOLEAN
+EFIAPI
+GetPropertyBool (
+  TagPtr    Prop,
+  BOOLEAN   Default
+);
+
+INTN
+EFIAPI
+GetPropertyInteger (
+  TagPtr  Prop,
+  INTN    Default
+);
+
+CHAR8 *
+EFIAPI
+GetPropertyString (
+  TagPtr  Prop,
+  CHAR8   *Default
+);
+
+VOID *
+EFIAPI
+GetDataSetting (
+  IN   TagPtr   Dict,
+  IN   CHAR8    *PropName,
+  OUT  UINTN    *DataLen
+);
+
+VOID
+EFIAPI
+DumpBody (
+  CHAR16  **Str,
+  INT32   Depth
+);
+
+CHAR16 *
+EFIAPI
+DumpTag (
+  TagPtr  Tag,
+  INT32   Depth
 );
 
 #endif

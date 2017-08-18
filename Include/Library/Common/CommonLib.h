@@ -71,6 +71,13 @@ AsciiStrVersionToUint64 (
 
 UINT32
 EFIAPI
+GetCrc32 (
+  UINT8   *Buffer,
+  UINTN   Size
+);
+
+UINT32
+EFIAPI
 Hex2Bin (
   IN  CHAR8   *Hex,
   OUT UINT8   *Bin,
@@ -82,6 +89,12 @@ EFIAPI
 StringDataToHex (
   IN   CHAR8    *Val,
   OUT  UINTN    *DataLen
+);
+
+BOOLEAN
+EFIAPI
+IsHexDigit (
+  CHAR8   C
 );
 
 UINT8

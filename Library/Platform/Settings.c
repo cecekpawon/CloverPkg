@@ -156,136 +156,6 @@ UINT8    gOptCsrCfgBitNum = ARRAY_SIZE (gACSRCFG);
 
 CHAR16    *gInjectKextsDir[2] = { NULL/*, NULL*/, NULL };
 
-UINT32
-GetCrc32 (
-  UINT8   *Buffer,
-  UINTN   Size
-) {
-  UINTN     i, Len;
-  UINT32    Ret = 0, *Tmp;
-
-  Tmp = (UINT32 *)Buffer;
-
-  if (Tmp != NULL) {
-    Len = Size >> 2;
-
-    for (i = 0; i < Len; i++) {
-      Ret += Tmp[i];
-    }
-  }
-
-  return Ret;
-}
-
-BOOLEAN
-GetPropertyBool (
-  TagPtr    Prop,
-  BOOLEAN   Default
-) {
-  return (
-    (Prop == NULL)
-      ? Default
-      : (
-          (Prop->type == kTagTypeTrue) ||
-          (
-            (Prop->type == kTagTypeString) &&
-            (TO_AUPPER (Prop->string[0]) == 'Y')
-          )
-        )
-  );
-}
-
-INTN
-GetPropertyInteger (
-  TagPtr  Prop,
-  INTN    Default
-) {
-  if (Prop != NULL) {
-    if (Prop->type == kTagTypeInteger) {
-      return Prop->integer; //(INTN)Prop->string;
-    } else if (Prop->type == kTagTypeString) {
-      if ((Prop->string[0] == '0') && (TO_AUPPER (Prop->string[1]) == 'X')) {
-        return (INTN)AsciiStrHexToUintn (Prop->string);
-      }
-
-      if (Prop->string[0] == '-') {
-        return -(INTN)AsciiStrDecimalToUintn (Prop->string + 1);
-      }
-
-      return (INTN)AsciiStrDecimalToUintn (Prop->string);
-    }
-  }
-
-  return Default;
-}
-
-CHAR8 *
-GetPropertyString (
-  TagPtr  Prop,
-  CHAR8   *Default
-) {
-  if (
-    (Prop != NULL) &&
-    (Prop->type == kTagTypeString) &&
-    AsciiStrLen (Prop->string)
-  ) {
-    return Prop->string;
-  }
-
-  return Default;
-}
-
-//
-// returns binary setting in a new allocated buffer and data length in dataLen.
-// data can be specified in <data></data> base64 encoded
-// or in <string></string> hex encoded
-//
-
-VOID *
-GetDataSetting (
-  IN   TagPtr   Dict,
-  IN   CHAR8    *PropName,
-  OUT  UINTN    *DataLen
-) {
-  TagPtr    Prop;
-  UINT8     *Data = NULL;
-  UINTN     Len;
-
-  Prop = GetProperty (Dict, PropName);
-  if (Prop != NULL) {
-    if ((Prop->type == kTagTypeData) && Prop->data && Prop->size) {
-      // data property
-      Data = AllocateCopyPool (Prop->size, Prop->data);
-
-      if (Data != NULL) {
-        *DataLen = Prop->size;
-      }
-
-      /*
-        DBG ("Data: %p, Len: %d = ", Data, Prop->size);
-        for (i = 0; i < Prop->size; i++) {
-          DBG ("%02x ", Data[i]);
-        }
-        DBG ("\n");
-      */
-    } else {
-      // assume data in hex encoded string property
-      Data = StringDataToHex (Prop->string, &Len);
-      *DataLen = Len;
-
-      /*
-        DBG ("Data (str): %p, Len: %d = ", data, len);
-        for (i = 0; i < Len; i++) {
-          DBG ("%02x ", data[i]);
-        }
-        DBG ("\n");
-      */
-    }
-  }
-
-  return Data;
-}
-
 MatchOSes *
 GetStrArraySeparatedByChar (
   CHAR8   *Str,
@@ -1662,7 +1532,7 @@ FillinKextPatches (
           // Do sanitize Name.
           NameLen = AsciiStrLen (Name);
           for (; y < NameLen; y++) {
-            if (!(IS_ALFA (Name[y]) || IS_PUNCT (Name[y]))) {
+            if (!(IS_ALFA (Name[y]) || IS_DIGIT (Name[y]) || IS_PUNCT (Name[y]))) {
               Name[y] = '-';
             }
           }
@@ -2697,52 +2567,54 @@ InitTheme (
 
 VOID
 ScanThemes () {
-  REFIT_DIR_ITER    DirIter;
-  EFI_FILE_INFO     *DirEntry;
-  UINTN             i = 0, y = 0;
-
   DbgHeader ("ScanThemes");
 
-  DirIterOpen (gSelfRootDir, DIR_THEMES, &DirIter);
+  if (!gSettings.TextOnly) {
+    REFIT_DIR_ITER    DirIter;
+    EFI_FILE_INFO     *DirEntry;
+    UINTN             i = 0, y = 0;
 
-  while (DirIterNext (&DirIter, 1, NULL, &DirEntry)) {
-    if (
-      (DirEntry->FileName[0] != '.') &&
-      (StriCmp (DirEntry->FileName, CONFIG_THEME_EMBEDDED) != 0) &&
-      (StriCmp (DirEntry->FileName, CONFIG_THEME_RANDOM) != 0)
-    ) {
-      S_FILES   *aTmp = AllocateZeroPool (sizeof (S_FILES));
+    DirIterOpen (gSelfRootDir, DIR_THEMES, &DirIter);
 
-      MsgLog ("- [%02d]: %s\n", i++, DirEntry->FileName);
+    while (DirIterNext (&DirIter, 1, NULL, &DirEntry)) {
+      if (
+        (DirEntry->FileName[0] != '.') &&
+        (StriCmp (DirEntry->FileName, CONFIG_THEME_EMBEDDED) != 0) &&
+        (StriCmp (DirEntry->FileName, CONFIG_THEME_RANDOM) != 0)
+      ) {
+        S_FILES   *aTmp = AllocateZeroPool (sizeof (S_FILES));
 
-      aTmp->Index = gOldChosenTheme = y++;
+        MsgLog ("- [%02d]: %s\n", i++, DirEntry->FileName);
 
-      aTmp->FileName = PoolPrint (DirEntry->FileName);
-      aTmp->Next = gThemeFiles;
-      gThemeFiles = aTmp;
+        aTmp->Index = gOldChosenTheme = y++;
+
+        aTmp->FileName = PoolPrint (DirEntry->FileName);
+        aTmp->Next = gThemeFiles;
+        gThemeFiles = aTmp;
+      }
     }
-  }
 
-  DirIterClose (&DirIter);
+    DirIterClose (&DirIter);
 
-  if (y) {
-    S_FILES   *aTmp, *Embedded = AllocateZeroPool (sizeof (S_FILES));
+    if (y) {
+      S_FILES   *aTmp, *Embedded = AllocateZeroPool (sizeof (S_FILES));
 
-    Embedded->Index = gOldChosenTheme = y;
+      Embedded->Index = gOldChosenTheme = y;
 
-    Embedded->FileName = PoolPrint (CONFIG_THEME_EMBEDDED);
-    Embedded->Next = gThemeFiles;
-    gThemeFiles = Embedded;
+      Embedded->FileName = PoolPrint (CONFIG_THEME_EMBEDDED);
+      Embedded->Next = gThemeFiles;
+      gThemeFiles = Embedded;
 
-    aTmp = gThemeFiles;
-    gThemeFiles = 0;
+      aTmp = gThemeFiles;
+      gThemeFiles = 0;
 
-    while (aTmp) {
-      S_FILES   *next = aTmp->Next;
+      while (aTmp) {
+        S_FILES   *next = aTmp->Next;
 
-      aTmp->Next = gThemeFiles;
-      gThemeFiles = aTmp;
-      aTmp = next;
+        aTmp->Next = gThemeFiles;
+        gThemeFiles = aTmp;
+        aTmp = next;
+      }
     }
   }
 }
@@ -2822,7 +2694,7 @@ ParseBootSettings (
 
     gSettings.FastBoot = GetPropertyBool (GetProperty (DictPointer, "Fast"), FALSE);
 
-    gSettings.NoEarlyProgress = GetPropertyBool (GetProperty (DictPointer, "NoEarlyProgress"), FALSE);
+    gSettings.NoEarlyProgress = GetPropertyBool (GetProperty (DictPointer, "NoEarlyProgress"), gSettings.NoEarlyProgress);
 
     // defaults if "DefaultVolume" is not present or is empty
     gSettings.LastBootedVolume = FALSE;

@@ -32,12 +32,27 @@ Re-Work by Slice 2011.
 
 #define DBG(...) DebugLog (DEBUG_ACPI_PATCH, __VA_ARGS__)
 
-// Global pointers
-XSDT_TABLE            *Xsdt = NULL;
+#define SAVED_TABLES_ALLOC_ENTRIES    64
+#define AML_OP_NAME                   0x08
+#define AML_OP_PACKAGE                0x12
 
-UINT8                 gAcpiCPUCount;
-CHAR8                 *gAcpiCPUName[32];
-CHAR8                 *gAcpiCPUScore;
+// Global pointers
+XSDT_TABLE    *Xsdt = NULL;
+
+UINT8         gAcpiCPUCount;
+CHAR8         *gAcpiCPUName[32],
+              *gAcpiCPUScore;
+
+VOID          **mSavedTables = NULL;
+UINTN         mSavedTablesEntries = 0,
+              mSavedTablesNum = 0;
+
+STATIC CHAR8 NameSSDT[]   = { AML_OP_NAME, 'S', 'S', 'D', 'T', AML_OP_PACKAGE };
+STATIC CHAR8 NameCSDT[]   = { AML_OP_NAME, 'C', 'S', 'D', 'T', AML_OP_PACKAGE };
+STATIC CHAR8 NameTSDT[]   = { AML_OP_NAME, 'T', 'S', 'D', 'T', AML_OP_PACKAGE };
+
+STATIC UINT8 NameSSDT2[]  = { 0x80, 0x53, 0x53, 0x44, 0x54 };
+STATIC UINT8 NameCSDT2[]  = { 0x80, 0x43, 0x53, 0x44, 0x54 };
 
 //-----------------------------------
 
@@ -348,7 +363,7 @@ PrintRSDPTableInfos (
 
     CopyMem (&OemId, &RsdPtr->OemId, ACPI_OEM_ID_SIZE);
 
-    MsgLog (
+    DBG (
       "RSDP: 0x%p %06X (v%.2d '%-6a')\n",
       RsdPtr, RsdPtr->Length, RsdPtr->Revision, OemId
     );
@@ -366,7 +381,7 @@ PrintFACSTableInfos (
 
     CopyMem (&Signature, &Facs->Signature, ACPI_NAME_SIZE);
 
-    MsgLog (
+    DBG (
       "%-4a: 0x%p %06X (v%.2d)\n",
       Signature, Facs, Facs->Length, Facs->Version
     );
@@ -563,11 +578,6 @@ SaveBufferToDisk (
 //
 // Remembering saved tables
 //
-#define SAVED_TABLES_ALLOC_ENTRIES  64
-
-VOID    **mSavedTables = NULL;
-UINTN   mSavedTablesEntries = 0;
-UINTN   mSavedTablesNum = 0;
 
 /** Returns TRUE is TableEntry is already saved. */
 BOOLEAN
@@ -643,16 +653,6 @@ MarkTableAsSaved (
   //DBG (" - added to index %d\n", mSavedTablesNum);
   mSavedTablesNum++;
 }
-
-#define AML_OP_NAME    0x08
-#define AML_OP_PACKAGE 0x12
-
-STATIC CHAR8 NameSSDT[] = { AML_OP_NAME, 'S', 'S', 'D', 'T', AML_OP_PACKAGE };
-STATIC CHAR8 NameCSDT[] = { AML_OP_NAME, 'C', 'S', 'D', 'T', AML_OP_PACKAGE };
-STATIC CHAR8 NameTSDT[] = { AML_OP_NAME, 'T', 'S', 'D', 'T', AML_OP_PACKAGE };
-
-STATIC UINT8 NameSSDT2[] = { 0x80, 0x53, 0x53, 0x44, 0x54 };
-STATIC UINT8 NameCSDT2[] = { 0x80, 0x43, 0x53, 0x44, 0x54 };
 
 VOID
 DumpChildSsdt (
@@ -1326,8 +1326,8 @@ PatchACPI (
   EFI_ACPI_4_0_FIRMWARE_ACPI_CONTROL_STRUCTURE            *Facs = NULL;
   EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_POINTER            *RsdPtr;
   EFI_PHYSICAL_ADDRESS                                    BufferPtr, Dsdt = EFI_SYSTEM_TABLE_MAX_ADDRESS;
-  UINT64                                                  XFirmwareCtrl, XDsdt; // save values if present
   EFI_ACPI_DESCRIPTION_HEADER                             *TableHeader, *Ssdt = NULL;
+  UINT64                                                  XFirmwareCtrl, XDsdt; // save values if present
   UINTN                                                   Index, ApicCPUNum, BufferLen = 0;
   UINT8                                                   CPUBase, *Buffer = NULL;
   BOOLEAN                                                 DsdtLoaded = FALSE, OSTypeDarwin = FALSE,

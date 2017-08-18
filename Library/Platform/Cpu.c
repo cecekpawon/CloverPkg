@@ -48,15 +48,7 @@
 
 #define DBG(...) DebugLog (DEBUG_CPU, __VA_ARGS__)
 
-#define VIRTUAL 0
-#if VIRTUAL == 1
-#define AsmReadMsr64(x) 0ULL
-#define AsmWriteMsr64(m, x)
-#endif
-
 UINT8             gDefaultType;
-//CPU_STRUCTURE     gCPUStructure;
-//UINT64            TurboMsr;
 
 //this must not be defined at LegacyBios calls
 #define EAX 0
@@ -296,9 +288,9 @@ GetCPUProperties () {
           gSettings.KPKernelPm = TRUE;
         }
 
-        //        AsmWriteMsr64 (MSR_PKG_CST_CONFIG_CONTROL, (Msr & 0x8000000ULL));
-        //        Msr = AsmReadMsr64 (MSR_PKG_CST_CONFIG_CONTROL);
-        //        MsgLog ("MSR 0xE2 after  patch %08x\n", Msr);
+        //AsmWriteMsr64 (MSR_PKG_CST_CONFIG_CONTROL, (Msr & 0x8000000ULL));
+        //Msr = AsmReadMsr64 (MSR_PKG_CST_CONFIG_CONTROL);
+        //MsgLog ("MSR 0xE2 after  patch %08x\n", Msr);
         Msr = AsmReadMsr64 (MSR_PMG_IO_CAPTURE_BASE);
         DBG ("MSR 0xE4: %08x\n", Msr);
         //------------

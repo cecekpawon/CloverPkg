@@ -630,7 +630,7 @@ AnyKextPatch (
           );
   }
 
-  MsgLog (" | %a : %d replaces done\n", Num ? "Success" : "Error", Num);
+  MsgLog (" | %a: %d replaces done\n", Num ? "Success" : "Error", Num);
 }
 
 //
@@ -1351,17 +1351,17 @@ VOID
 KextPatcher (
   LOADER_ENTRY    *Entry
 ) {
-  DBG ("%a: Start\n", __FUNCTION__);
+  MsgLog ("%a: Start\n", __FUNCTION__);
 
   ATIConnectorsPatchInit (Entry);
 
   if (KernelInfo->Cached) {
-    DBG ("Patching kernelcache ...\n");
+    MsgLog ("Patching kernelcache ...\n");
     PatchPrelinkedKexts (Entry);
   } else {
-    DBG ("Patching loaded kexts ...\n");
+    MsgLog ("Patching loaded kexts ...\n");
     PatchLoadedKexts (Entry);
   }
 
-  DBG ("%a: End\n", __FUNCTION__);
+  MsgLog ("%a: End\n", __FUNCTION__);
 }

@@ -715,10 +715,10 @@ KernelUserPatch (
   for (i = 0; i < Entry->KernelAndKextPatches->NrKernels; ++i) {
     DBG ("KernelUserPatch[%02d]: %a", i, Entry->KernelAndKextPatches->KernelPatches[i].Label);
 
-      if (Entry->KernelAndKextPatches->KernelPatches[i].Disabled) {
-        DBG (" | DISABLED!\n");
-        continue;
-      }
+    if (Entry->KernelAndKextPatches->KernelPatches[i].Disabled) {
+      DBG (" | DISABLED!\n");
+      continue;
+    }
 
     /*
       Num = SearchAndCount (
@@ -748,7 +748,7 @@ KernelUserPatch (
       y++;
     }
 
-    DBG (" | %a : %d replaces done\n", Num ? "Success" : "Error", Num);
+    DBG (" | %a: %d replaces done\n", Num ? "Success" : "Error", Num);
   }
 
   DBG ("%a: End\n", __FUNCTION__);

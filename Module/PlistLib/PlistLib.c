@@ -1219,6 +1219,113 @@ GetElement (
   return EFI_SUCCESS;
 }
 
+BOOLEAN
+EFIAPI
+GetPropertyBool (
+  TagPtr    Prop,
+  BOOLEAN   Default
+) {
+  return (
+    (Prop == NULL)
+      ? Default
+      : (Prop->type == kTagTypeTrue)
+  );
+}
+
+INTN
+EFIAPI
+GetPropertyInteger (
+  TagPtr  Prop,
+  INTN    Default
+) {
+  if (Prop != NULL) {
+    if (Prop->type == kTagTypeInteger) {
+      return Prop->integer; //(INTN)Prop->string;
+    } else if (Prop->type == kTagTypeString) {
+      if ((Prop->string[0] == '0') && (TO_AUPPER (Prop->string[1]) == 'X')) {
+        return (INTN)AsciiStrHexToUintn (Prop->string);
+      }
+
+      if (Prop->string[0] == '-') {
+        return -(INTN)AsciiStrDecimalToUintn (Prop->string + 1);
+      }
+
+      return (INTN)AsciiStrDecimalToUintn (Prop->string);
+    }
+  }
+
+  return Default;
+}
+
+CHAR8 *
+EFIAPI
+GetPropertyString (
+  TagPtr  Prop,
+  CHAR8   *Default
+) {
+  if (
+    (Prop != NULL) &&
+    (Prop->type == kTagTypeString) &&
+    AsciiStrLen (Prop->string)
+  ) {
+    return Prop->string;
+  }
+
+  return Default;
+}
+
+//
+// returns binary setting in a new allocated buffer and data length in dataLen.
+// data can be specified in <data></data> base64 encoded
+// or in <string></string> hex encoded
+//
+
+VOID *
+EFIAPI
+GetDataSetting (
+  IN   TagPtr   Dict,
+  IN   CHAR8    *PropName,
+  OUT  UINTN    *DataLen
+) {
+  TagPtr    Prop;
+  UINT8     *Data = NULL;
+  UINTN     Len;
+
+  Prop = GetProperty (Dict, PropName);
+  if (Prop != NULL) {
+    if ((Prop->type == kTagTypeData) && Prop->data && Prop->size) {
+      // data property
+      Data = AllocateCopyPool (Prop->size, Prop->data);
+
+      if (Data != NULL) {
+        *DataLen = Prop->size;
+      }
+
+      /*
+        DBG ("Data: %p, Len: %d = ", Data, Prop->size);
+        for (i = 0; i < Prop->size; i++) {
+          DBG ("%02x ", Data[i]);
+        }
+        DBG ("\n");
+      */
+    } else {
+      // assume data in hex encoded string property
+      Data = StringDataToHex (Prop->string, &Len);
+      *DataLen = Len;
+
+      /*
+        DBG ("Data (str): %p, Len: %d = ", data, len);
+        for (i = 0; i < Len; i++) {
+          DBG ("%02x ", data[i]);
+        }
+        DBG ("\n");
+      */
+    }
+  }
+
+  return Data;
+}
+
 //
 //  Debug
 //

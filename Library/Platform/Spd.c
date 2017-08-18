@@ -692,12 +692,15 @@ ReadSmb (
 
   // Search MAX_RAM_SLOTS Slots
   //==>
-  /*  TotalSlotsCount = (UINT8)TotalCount;
-   if (!TotalSlotsCount) {
-   TotalSlotsCount = MAX_RAM_SLOTS;
-   }
+  /*
+    TotalSlotsCount = (UINT8)TotalCount; // TotalCount from SMBIOS.
+    if (!TotalSlotsCount) {
+      TotalSlotsCount = MAX_RAM_SLOTS;
+    }
   */
+
   //TotalSlotsCount = 8; //MAX_RAM_SLOTS;  -- spd can read only 8 Slots
+
   MsgLog ("Slots to scan: %d (max)\n", MAX_RAM_SLOTS);
 
   for (i = 0; i <  MAX_RAM_SLOTS; i++) {
@@ -705,20 +708,21 @@ ReadSmb (
     ZeroMem (SpdBuf, MAX_SPD_SIZE);
     READ_SPD (SpdBuf, Base, i, SPD_MEMORY_TYPE);
 
+    if (SpdBuf[SPD_MEMORY_TYPE] == 0) {
+      // First 0x40 bytes of DDR4 spd second page is 0. Maybe we need to change page, so do that and retry.
+      //DBG (" - [%02d]: Got invalid type 0 @0x%x. Will set page and retry.\n", i, 0x50 + i);
+      SmbPage = 0xFF; // force page to be set
+      READ_SPD (SpdBuf, Base, i, SPD_MEMORY_TYPE);
+    }
+
     SpdType = SpdBuf[SPD_MEMORY_TYPE];
 
     if (SpdType == 0xFF) {
       DBG (" - [%02d]: Empty\n", i);
       continue;
-    } else if (SpdType == 0) {
-      // First 0x40 bytes of DDR4 spd second page is 0. Maybe we need to change page, so do that and retry.
-      DBG (" - [%02d]: Got invalid type %d @0x%x. Will set page and retry.\n", i, SpdType, 0x50 + i);
-      SmbPage = 0xFF; // force page to be set
-      READ_SPD (SpdBuf, Base, i, SPD_MEMORY_TYPE);
     }
 
     // Copy spd data into buffer
-    MsgLog (" - [%02d]: Type %d @0x%x\n", i, SpdType, 0x50 + i);
 
     switch (SpdType)  {
       case SPD_MEMORY_TYPE_SDRAM_DDR:
@@ -825,8 +829,11 @@ ReadSmb (
     }
 
     if (gSettings.RAM.SPD[i].ModuleSize == 0) {
+      DBG (" - [%02d]: Invalid\n", i);
       continue;
     }
+
+    MsgLog (" - [%02d]: Type %d @0x%x\n", i, SpdType, 0x50 + i);
 
     //SpdType = (Slot->spd[SPD_MEMORY_TYPE] < ((UINT8)12) ? Slot->spd[SPD_MEMORY_TYPE] : 0);
     //gRAM Type = spd_mem_to_smbios[SpdType];

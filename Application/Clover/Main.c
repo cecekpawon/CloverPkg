@@ -311,7 +311,9 @@ RefitMain (
       }
 
       gThemeChanged = FALSE;
-      MsgLog ("Choosing theme: %s\n", GlobalConfig.Theme);
+      if (GlobalConfig.Theme) {
+        MsgLog ("Choosing theme: %s\n", GlobalConfig.Theme);
+      }
 
       TmpArgs = PoolPrint (L"%a", gSettings.BootArgs);
       gSettings.OptionsBits = EncodeOptions (TmpArgs);

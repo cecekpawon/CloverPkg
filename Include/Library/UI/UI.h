@@ -181,7 +181,7 @@ typedef enum {
 
 /* This should be compatible with EFI_UGA_PIXEL */
 typedef struct {
-  UINT8 b, g, r, a;
+  UINT8   b, g, r, a;
 } EG_PIXEL;
 
 typedef struct {
@@ -282,8 +282,6 @@ typedef struct {
   BOOLEAN     Valid;
   BOOLEAN     BValue;
   UINT32      IValue;
-  //UINT64    UValue;
-  //CHAR8     *AValue;
   CHAR16      *SValue; // Max Size (see below) so the field can be edit by the GUI
   UINTN       LineShift;
   UINTN       ID;
