@@ -20,7 +20,7 @@
 
 #define S_INTELMODEL "Intel Graphics"
 
-extern CHAR8 ClassFix[];
+CHAR8 ClassFix[]                         = { 0x00, 0x00, 0x03, 0x00 };
 
 UINT8 RegTRUE[]                          = { 0x01, 0x00, 0x00, 0x00 };
 UINT8 RegFALSE[]                         = { 0x00, 0x00, 0x00, 0x00 };
@@ -71,18 +71,19 @@ UINT8 RegIgPlatformIdSNBDesktop[]        = { 0x10, 0x00, 0x03, 0x00 };
 
 UINT8 RegGfxYTile[]                      = { 0x01, 0x00, 0x00, 0x00 };
 
+
+#define AAPL_SNB_PLATFORM_ID  "AAPL,snb-platform-id"
+#define AAPL_IG_PLATFORM_ID   "AAPL,ig-platform-id"
+
 STATIC
 VOID
 SetIgPlatform (
   DevPropDevice   *device,
-  BOOLEAN         NeedIgPlatform,
   CHAR8           *Name,
   UINT8           *Value
 ) {
-  if (NeedIgPlatform) {
-    DevpropAddValue (device, Name, Value, 4);
-    MsgLog (" - %a: 0x%02x%02x%02x%02x\n", Name, Value[3], Value[2], Value[1], Value[0]);
-  }
+  DevpropAddValue (device, Name, Value, 4);
+  MsgLog (" - %a: 0x%08x\n", Name, *((UINT32 *)Value));
 }
 
 BOOLEAN
@@ -98,7 +99,7 @@ SetupGmaDevprop (
   DevPropDevice   *Device;
   INTN            i;
   UINT16          DevId = Dev->device_id;
-  BOOLEAN         Injected = FALSE, NeedIgPlatform = TRUE; // , NeedDualLink = TRUE
+  BOOLEAN         Injected = FALSE; // , NeedDualLink = TRUE
 
   Model = (CHAR8 *)AllocateCopyPool (AsciiStrSize (S_INTELMODEL), S_INTELMODEL);
 
@@ -131,10 +132,10 @@ SetupGmaDevprop (
         gSettings.AddProperties[i].ValueLen
       );
     }
-  }
 
-  if (Injected) {
-    DBG (" - custom IntelGFX properties injected\n");
+    if (Injected) {
+      DBG (" - custom properties injected\n");
+    }
   }
 
   if (gSettings.FakeIntel) {
@@ -156,19 +157,13 @@ SetupGmaDevprop (
   if (gSettings.IgPlatform != 0) {
     SetIgPlatform (
       Device,
-      NeedIgPlatform,
       (DevId < 0x0150)
-        ? "AAPL,snb-platform-id"
-        : "AAPL,ig-platform-id",
+        ? AAPL_SNB_PLATFORM_ID
+        : AAPL_IG_PLATFORM_ID,
       (UINT8 *)&gSettings.IgPlatform
     );
 
-    NeedIgPlatform = FALSE;
-  }
-
-  if (gSettings.DualLink) {
-    DevpropAddValue (Device, "AAPL00,DualLink", (UINT8 *)&gSettings.DualLink, 1);
-    //NeedDualLink = FALSE;
+    goto Next;
   }
 
   if (DevId >= 0x0102) {
@@ -176,8 +171,7 @@ SetupGmaDevprop (
     if (DevId >= 0x5000) {
       SetIgPlatform (
         Device,
-        NeedIgPlatform,
-        "AAPL,ig-platform-id",
+        AAPL_IG_PLATFORM_ID,
         gSettings.Mobile
           ? RegIgPlatformIdKBLMobile
           : RegIgPlatformIdKBLDesktop
@@ -190,8 +184,7 @@ SetupGmaDevprop (
     if (DevId >= 0x1900) {
       SetIgPlatform (
         Device,
-        NeedIgPlatform,
-        "AAPL,ig-platform-id",
+        AAPL_IG_PLATFORM_ID,
         gSettings.Mobile
           ? RegIgPlatformIdSKLMobile
           : RegIgPlatformIdSKLDesktop
@@ -204,8 +197,7 @@ SetupGmaDevprop (
     else if (DevId >= 0x1600) {
       SetIgPlatform (
         Device,
-        NeedIgPlatform,
-        "AAPL,ig-platform-id",
+        AAPL_IG_PLATFORM_ID,
         gSettings.Mobile
           ? RegIgPlatformIdBDWMobile
           : RegIgPlatformIdBDWDesktop
@@ -216,8 +208,7 @@ SetupGmaDevprop (
     else if (DevId >= 0x0400) {
       SetIgPlatform (
         Device,
-        NeedIgPlatform,
-        "AAPL,ig-platform-id",
+        AAPL_IG_PLATFORM_ID,
         gSettings.Mobile
           ? RegIgPlatformIdAzulMobile
           : RegIgPlatformIdAzulDesktop
@@ -228,8 +219,7 @@ SetupGmaDevprop (
     else if (DevId >= 0x0150) {
       SetIgPlatform (
         Device,
-        NeedIgPlatform,
-        "AAPL,ig-platform-id",
+        AAPL_IG_PLATFORM_ID,
         gSettings.Mobile
           ? RegIgPlatformIdCapriMobile
           : RegIgPlatformIdCapriDesktop
@@ -240,8 +230,7 @@ SetupGmaDevprop (
     else {
       SetIgPlatform (
         Device,
-        NeedIgPlatform,
-        "AAPL,snb-platform-id",
+        AAPL_SNB_PLATFORM_ID,
         gSettings.Mobile
           ? RegIgPlatformIdSNBMobile
           : RegIgPlatformIdSNBDesktop
@@ -250,6 +239,13 @@ SetupGmaDevprop (
   } else {
     DBG (" - card id=%x unsupported\n", DevId);
     return FALSE;
+  }
+
+  Next:
+
+  if (gSettings.DualLink) {
+    DevpropAddValue (Device, "AAPL00,DualLink", (UINT8 *)&gSettings.DualLink, 1);
+    //NeedDualLink = FALSE;
   }
 
   if (gSettings.NoDefaultProperties) {

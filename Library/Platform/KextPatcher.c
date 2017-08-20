@@ -486,11 +486,11 @@ AICPUPowerManagementPatch (
   Num = SearchAndReplace (Driver, DriverSize, &Search[0], ARRAY_SIZE (Search), &Replace[0], 0xCC, -1);
 
   MsgLog (
-    "- %a | Addr = 0x%x, Size = %d | BinPatch | %a: %d replaces done\n",
+    "- %a | Addr = 0x%x, Size = %d | BinPatch | %r: %d replaces done\n",
     kPropCFBundleIdentifierAICPUPM,
     Driver,
     DriverSize,
-    Num ? "Success" : "Error",
+    Num ? EFI_SUCCESS : EFI_NOT_FOUND,
     Num
   );
 }
@@ -557,7 +557,7 @@ AnyKextPatch (
           );
   }
 
-  MsgLog (" | %a: %d replaces done\n", Num ? "Success" : "Error", Num);
+  MsgLog (" | %r: %d replaces done\n", Num ? EFI_SUCCESS : EFI_NOT_FOUND, Num);
 }
 
 //

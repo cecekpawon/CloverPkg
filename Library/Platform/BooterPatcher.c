@@ -124,9 +124,9 @@ PatchBooter (
       }
 
       MsgLog (
-        " | Allowed: %a | %a: %d replaces done\n",
+        " | Allowed: %a | %r: %d replaces done\n",
         Entry->KernelAndKextPatches->BooterPatches[i].Disabled ? "No" : "Yes",
-        Num ? "Success" : "Error",
+        Num ? EFI_SUCCESS : EFI_NOT_FOUND,
         Num
       );
     }

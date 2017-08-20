@@ -3333,8 +3333,8 @@ ParseGraphicsSettings (
       Prop = GetProperty (DictPointer, "ig-platform-id");
       gSettings.IgPlatform = (UINT32)GetPropertyInteger (Prop, gSettings.IgPlatform);
 
-      Prop = GetProperty (DictPointer, "snb-platform-id");
-      gSettings.IgPlatform = (UINT32)GetPropertyInteger (Prop, gSettings.IgPlatform);
+      //Prop = GetProperty (DictPointer, "snb-platform-id");
+      //gSettings.IgPlatform = (UINT32)GetPropertyInteger (Prop, gSettings.IgPlatform);
     }
 
     if (gSettings.InjectIntel || gSettings.InjectATI) {
@@ -3368,10 +3368,10 @@ ParseGraphicsSettings (
       gSettings.NvidiaSingle = GetPropertyBool (GetProperty (DictPointer, "NvidiaSingle"), TRUE);
       gSettings.NvidiaNoEFI = GetPropertyBool (GetProperty (DictPointer, "NvidiaNoEFI"), FALSE);
 
-      Prop = GetProperty (DictPointer, "display-cfg");
-      if ((Prop != NULL) && (Prop->type == kTagTypeString)) {
-        Hex2Bin (Prop->string, (UINT8 *)&gSettings.Dcfg[0], 8);
-      }
+      //Prop = GetProperty (DictPointer, "display-cfg");
+      //if ((Prop != NULL) && (Prop->type == kTagTypeString)) {
+      //  Hex2Bin (Prop->string, (UINT8 *)&gSettings.Dcfg[0], 8);
+      //}
 
       Prop = GetProperty (DictPointer, "NVCAP");
       if ((Prop != NULL) && (Prop->type == kTagTypeString)) {

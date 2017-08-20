@@ -80,7 +80,7 @@ DrawLoadMessage (
     i = 3;
     while (i) {
       DrawTextXY (PoolPrint (L"%s %s", gLoadMessages[gMessageNow - 1], &gMessageDots[--i]), 0, GlobalConfig.UGAHeight - (Index * gRowHeight), X_IS_LEFT, gMessageClearWidth);
-      gBS->Stall (30000);
+      gBS->Stall (10000);
     }
   }
 }
@@ -136,20 +136,13 @@ RefitMain (
   TagPtr              ConfigDict;
   CHAR8               *NvramConfig = NULL;
 
-  // bootstrap
   gImageHandle  = ImageHandle;
-  /*Status = */EfiGetSystemConfigurationTable (&gEfiDxeServicesTableGuid, (VOID **)&gDS);
 
-  // To initialize 'gSelfRootDir', we should place it here
   Status = InitRefitLib (gImageHandle);
 
   if (EFI_ERROR (Status)) {
     return Status;
   }
-
-  // Init assets dir: misc
-  /*Status = */MkDir (gSelfRootDir, DIR_MISC);
-  // Should apply to: "ACPI/origin/" too
 
   gRT->GetTime (&Now, NULL);
 
@@ -351,8 +344,8 @@ RefitMain (
     DBG ("DefaultIndex=%d and gMainMenu.EntryCount=%d\n", DefaultIndex, gMainMenu.EntryCount);
 
     DefaultEntry = ((DefaultIndex >= 0) && ((UINTN)DefaultIndex < gMainMenu.EntryCount))
-      ? gMainMenu.Entries[DefaultIndex]
-      : NULL;
+                      ? gMainMenu.Entries[DefaultIndex]
+                      : NULL;
 
     MainLoopRunning = TRUE;
 
@@ -432,7 +425,7 @@ RefitMain (
       switch (ChosenEntry->Tag) {
         case TAG_RESET:    // Restart
           // Attempt warm reboot
-          gRT->ResetSystem (EfiResetWarm, EFI_SUCCESS, 0, NULL);
+          //gRT->ResetSystem (EfiResetWarm, EFI_SUCCESS, 0, NULL);
           // Warm reboot may not be supported attempt cold reboot
           gRT->ResetSystem (EfiResetCold, EFI_SUCCESS, 0, NULL);
           // Terminate the screen and just exit

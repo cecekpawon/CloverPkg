@@ -51,7 +51,7 @@
 CHAR16  *gSupportedOsType[3] = { OSTYPE_DARWIN_STR, OSTYPE_LINUX_STR, OSTYPE_WINDOWS_STR };
 
 #define EFI_BOOTX64                         L"\\BOOTX64.efi"
-#define EFI_GRUB64                          L"\\GRUBX64.efi"
+#define EFI_GRUBX64                         L"\\GRUBX64.efi"
 
 #define EFI_PATH                            L"\\EFI"
 #define EFI_BOOT_PATH                       EFI_PATH L"\\BOOT"
@@ -126,7 +126,6 @@ CONST CHAR16  *gOsxPathLCaches[] = {
 };
 
 CONST UINTN   gOsxPathLCachesCount = ARRAY_SIZE (gOsxPathLCaches);
-//CHAR8   *OsVerUndetected = "10.10.10";  //longer string
 
 // Linux loader path data
 typedef struct {
@@ -156,9 +155,9 @@ typedef struct {
 } ANDX86_PATH_DATA;
 
 STATIC ANDX86_PATH_DATA   AndroidEntryData[] = {
-  { EFI_PATH L"\\remixos" EFI_GRUB64, L"Remix",   L"remix,grub,linux",    { L"\\isolinux\\isolinux.bin",  L"\\initrd.img",          L"\\kernel" } },
-  { EFI_BOOT_PATH EFI_GRUB64,         L"Phoenix", L"phoenix,grub,linux",  { L"\\phoenix\\kernel",         L"\\phoenix\\initrd.img", L"\\phoenix\\ramdisk.img" } },
-  { BOOT_LOADER_PATH,                 L"Chrome",  L"chrome,grub,linux",   { L"\\syslinux\\vmlinuz.A",     L"\\syslinux\\vmlinuz.B", L"\\syslinux\\ldlinux.sys" } },
+  { EFI_PATH L"\\remixos" EFI_GRUBX64,  L"Remix",   L"remix,grub,linux",    { L"\\isolinux\\isolinux.bin",  L"\\initrd.img",          L"\\kernel" } },
+  { EFI_BOOT_PATH EFI_GRUBX64,          L"Phoenix", L"phoenix,grub,linux",  { L"\\phoenix\\kernel",         L"\\phoenix\\initrd.img", L"\\phoenix\\ramdisk.img" } },
+  { BOOT_LOADER_PATH,                   L"Chrome",  L"chrome,grub,linux",   { L"\\syslinux\\vmlinuz.A",     L"\\syslinux\\vmlinuz.B", L"\\syslinux\\ldlinux.sys" } },
 };
 
 STATIC CONST UINTN AndroidEntryDataCount = ARRAY_SIZE (AndroidEntryData);

@@ -398,16 +398,6 @@ ScanVolumeBootCode (
       }
     }
 
-    // NOTE: If you add an operating system with a name that starts with 'W' or 'L', you
-    //  need to fix AddLegacyEntry in main.c.
-
-#if REFIT_DEBUG > 0
-    DBG ("         Result of bootCode detection: %sbootable %s (%s)\n",
-        Volume->HasBootCode ? L"" : L"non-",
-        Volume->LegacyOS->Name ? Volume->LegacyOS->Name: L"unknown",
-        Volume->LegacyOS->IconName ? Volume->LegacyOS->IconName: L"legacy");
-#endif
-
     if (FindMem (SectorBuffer, 512, "Non-system disk", 15) >= 0) { // dummy FAT boot sector
       Volume->HasBootCode = FALSE;
     }
@@ -1491,11 +1481,6 @@ DirNextEntry (
           BufferSize, LastBufferSize, LastBufferSize * 2);
 
         BufferSize = LastBufferSize * 2;
-
-#if REFIT_DEBUG > 0
-      } else {
-        DBG ("Reallocating buffer from %d to %d\n", LastBufferSize, BufferSize);
-#endif
       }
 
       Buffer = EfiReallocatePool (Buffer, LastBufferSize, BufferSize);
@@ -1690,6 +1675,7 @@ FindESP (
 
     FreePool (Handles);
   }
+
   return Status;
 }
 
@@ -1730,10 +1716,13 @@ SaveFile (
 
   if (CreateNew) {
     // Write new file
+    MkDir (BaseDir, Dirname (FileName));
+
     Status = BaseDir->Open (
                         BaseDir, &FileHandle, FileName,
                         EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE, 0
                       );
+
     if (EFI_ERROR (Status)) {
       return Status;
     }
@@ -1756,13 +1745,41 @@ SaveFile (
   return Status;
 }
 
+STATIC
+EFI_STATUS
+InternalMkDir (
+  IN EFI_FILE_HANDLE    BaseDir,
+  EFI_FILE_HANDLE       *FileHandle,
+  IN CHAR16             *DirName
+) {
+  EFI_STATUS  Status;
+
+  Status = BaseDir->Open (
+                      BaseDir, FileHandle, DirName,
+                      EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE, EFI_FILE_DIRECTORY
+                    );
+
+  if (EFI_ERROR (Status)) {
+    // Create new dir
+    Status = BaseDir->Open (
+                        BaseDir, FileHandle, DirName,
+                        EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE, EFI_FILE_DIRECTORY
+                      );
+  }
+
+  return Status;
+}
+
+
 EFI_STATUS
 MkDir (
   IN EFI_FILE_HANDLE    BaseDir OPTIONAL,
   IN CHAR16             *DirName
 ) {
   EFI_STATUS        Status;
-  EFI_FILE_HANDLE   FileHandle;
+  EFI_FILE_HANDLE   *FileHandle = NULL;
+  UINTN             i = 0, Len;
+  CHAR16            Delim = L'\\';
 
   //DBG ("Looking up dir assets (%s):", DirName);
 
@@ -1775,19 +1792,21 @@ MkDir (
     }
   }
 
-  Status = BaseDir->Open (
-                      BaseDir, &FileHandle, DirName,
-                      EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE, EFI_FILE_DIRECTORY
-                    );
+  Len = StrLen (DirName);
 
-  if (EFI_ERROR (Status)) {
-    // Write new dir
-    //DBG ("%r, attempt to create one:", Status);
-    Status = BaseDir->Open (
-                        BaseDir, &FileHandle, DirName,
-                        EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE, EFI_FILE_DIRECTORY
-                      );
+  for (i = 0; i < Len; i++) {
+    if (DirName[i] == Delim) {
+      DirName[i] = 0;
+
+      if (StrLen (DirName)) { // Prefixed with '\\' will have no length
+        Status = InternalMkDir (BaseDir, FileHandle, DirName);
+      }
+
+      DirName[i] = Delim;
+    }
   }
+
+  Status = InternalMkDir (BaseDir, FileHandle, DirName);
 
   //DBG (" %r\n", Status);
   return Status;

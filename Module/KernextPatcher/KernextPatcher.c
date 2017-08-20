@@ -1325,7 +1325,7 @@ AnyKextPatch (
           );
   }
 
-  MsgLog (" | %a: %d replaces done\n", Num ? "Success" : "Error", Num);
+  MsgLog (" | %r: %d replaces done\n", Num ? EFI_SUCCESS : EFI_NOT_FOUND, Num);
 
   return Num;
 }
@@ -1531,7 +1531,7 @@ KernelUserPatch () {
       y++;
     }
 
-    MsgLog (" | %a: %d replaces done\n", Num ? "Success" : "Error", Num);
+    MsgLog (" | %r: %d replaces done\n", Num ? EFI_SUCCESS : EFI_NOT_FOUND, Num);
   }
 
   MsgLog ("%a: End\n", __FUNCTION__);

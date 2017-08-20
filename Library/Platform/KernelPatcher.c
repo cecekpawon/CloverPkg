@@ -734,7 +734,7 @@ KernelUserPatch (
       y++;
     }
 
-    DBG (" | %a: %d replaces done\n", Num ? "Success" : "Error", Num);
+    DBG (" | %r: %d replaces done\n", Num ? EFI_SUCCESS : EFI_NOT_FOUND, Num);
   }
 
   DBG ("%a: End\n", __FUNCTION__);

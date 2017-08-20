@@ -1054,7 +1054,7 @@ typedef struct {
   BOOLEAN                   NvidiaSingle;
   BOOLEAN                   NvidiaNoEFI;
   UINT64                    VRAM;
-  UINT8                     Dcfg[8];
+  //UINT8                     Dcfg[8];
   UINT8                     NVCAP[20];
   INT8                      BootDisplay;
   UINT32                    DualLink;

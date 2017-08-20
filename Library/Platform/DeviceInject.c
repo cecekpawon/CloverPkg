@@ -581,11 +581,10 @@ SetupEthernetDevprop (
         gSettings.AddProperties[i].ValueLen
       );
     }
-  }
 
-  if (Injected) {
-    MsgLog (" - Custom LAN properties injected\n");
-    //return TRUE;
+    if (Injected) {
+      MsgLog (" - Custom properties injected\n");
+    }
   }
 
   DBG (" - Setting dev.prop built-in=0x%x\n", Builtin);
@@ -700,7 +699,7 @@ SetupHdaDevprop (
     }
 
     if (Injected) {
-      DBG (" - custom HDMI properties injected, continue\n");
+      DBG (" - custom properties injected\n");
       //return TRUE;
     } else if (gSettings.UseIntelHDMI) {
       DBG (" - HDMI Audio, setting hda-gfx=onboard-1\n");
@@ -725,6 +724,10 @@ SetupHdaDevprop (
           (UINT8 *)gSettings.AddProperties[i].Value,
           gSettings.AddProperties[i].ValueLen
         );
+      }
+
+      if (Injected) {
+        DBG (" - custom properties injected\n");
       }
     }
 

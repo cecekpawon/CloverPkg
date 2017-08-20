@@ -88,7 +88,7 @@ LoadFontImage (
     goto F_EMBEDDED;
   } else {
     NewImage = LoadImage (gThemeDir, GlobalConfig.FontFileName);
-    DBG ("Loading font from ThemeDir: %a\n", NewImage ? "Success" : "Error");
+    DBG ("Loading font from ThemeDir: %r\n", NewImage ? EFI_SUCCESS : EFI_NOT_FOUND);
   }
 
   if (NewImage) {

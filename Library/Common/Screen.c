@@ -599,7 +599,7 @@ ScreenShot () {
   EFI_GRAPHICS_OUTPUT_BLT_PIXEL   *ImagePNG;
   UINTN                           ImageSize, i;
 
-  if (!egHasGraphics || !FileExists (gSelfRootDir, DIR_MISC)) {
+  if (!egHasGraphics /* || !FileExists (gSelfRootDir, DIR_MISC) */) {
     return EFI_NOT_READY;
   }
 
@@ -685,63 +685,6 @@ ReadAllKeyStrokes () {
 
   return GotKeyStrokes;
 }
-
-#if 0
-VOID
-PauseForKey (
-  CHAR16    *msg
-) {
-#if REFIT_DEBUG > 0
-  UINTN index;
-  if (msg) {
-    Print (L"\n %s", msg);
-  }
-
-  Print (L"\n* Hit any key to continue *");
-
-  if (ReadAllKeyStrokes ()) {  // remove buffered key strokes
-    gBS->Stall (5 * 1000000);      // 5 seconds delay
-    ReadAllKeyStrokes ();      // empty the buffer again
-  }
-
-  gBS->WaitForEvent (1, &gST->ConIn->WaitForKey, &index);
-  ReadAllKeyStrokes ();        // empty the buffer to protect the menu
-
-  Print (L"\n");
-#endif
-}
-
-#if REFIT_DEBUG > 0
-VOID
-DebugPause () {
-  // show console and wait for key
-  SwitchToText (FALSE);
-  PauseForKey (L"");
-
-  // reset error flag
-  HaveError = FALSE;
-}
-#endif
-
-VOID
-EndlessIdleLoop () {
-  UINTN index;
-
-  for (;;) {
-    ReadAllKeyStrokes ();
-    gBS->WaitForEvent (1, &gST->ConIn->WaitForKey, &index);
-  }
-}
-
-//
-// Error handling
-//
-/*
-VOID StatusToString (OUT CHAR16 *Buffer, EFI_STATUS Status) {
-  UnicodeSPrint (Buffer, 64, L"EFI Error %r", Status);
-}
-*/
-#endif
 
 BOOLEAN
 CheckFatalError (

@@ -112,7 +112,7 @@ ReadNvidiaPRAMIN (
   PCI_TYPE00            Pci;
   UINT32                VRam = 0, Bar0 = 0;
 
-  DBG ("read_nVidia_ROM\n");
+  DBG ("%a\n", __FUNCTION__);
 
   Status = gBS->OpenProtocol (
                   Dev->DeviceHandle,
@@ -197,7 +197,7 @@ ReadNvidiaPRAMIN (
   }
 
   if (EFI_ERROR (Status)) {
-    DBG ("read_nVidia_ROM failed\n");
+    DBG (" failed\n");
     return Status;
   }
 
@@ -214,7 +214,8 @@ ReadNvidiaPROM (
   PCI_TYPE00              Pci;
   UINT32                  Val;
 
-  DBG ("PROM\n");
+  DBG ("%a\n", __FUNCTION__);
+
   Status = gBS->OpenProtocol (
                   Dev->DeviceHandle,
                   &gEfiPciIoProtocolGuid,
@@ -269,7 +270,7 @@ ReadNvidiaPROM (
                           );
 
   if (EFI_ERROR (Status)) {
-    DBG ("read_nVidia_ROM failed\n");
+    DBG (" failed\n");
     return Status;
   }
 
@@ -311,11 +312,12 @@ DevpropAddNvidiaTemplate (
     //}
   }
 
-  if (gDevicesNumber == 1) {
-    DevpropAddValue (Device, "device_type", (UINT8 *)"NVDA,Parent", 11);
-  } else {
-    DevpropAddValue (Device, "device_type", (UINT8 *)"NVDA,Child", 10);
-  }
+  DevpropAddValue (
+    Device,
+    "device_type",
+    (gDevicesNumber == 1) ? (UINT8 *)"NVDA,Parent" : (UINT8 *)"NVDA,Child",
+    (gDevicesNumber == 1) ? 11 : 10
+  );
 }
 
 BOOLEAN
@@ -386,7 +388,7 @@ SetupNvidiaDevprop (
       ReadNvidiaPROM (Dev, Rom);
 
       if ((Rom[0] != 0x55) || (Rom[1] != 0xaa)) {
-        DBG (" - ERROR: Unable to locate nVidia Video BIOS\n");
+        DBG (" - ERROR: Unable to locate Nvidia Video BIOS\n");
         FreePool (Rom);
         Rom = NULL;
       }

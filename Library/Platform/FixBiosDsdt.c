@@ -66,8 +66,6 @@ UINT32      DisplayVendor[MAX_NUM_GFX];
 //UINT32      IMEIADR1;
 //UINT32      IMEIADR2;
 
-CHAR8       ClassFix[] =  { 0x00, 0x00, 0x03, 0x00 };
-
 UINT8       Dtgp[] = {                                              // Method (DTGP, 5, NotSerialized) ......
   0x14, 0x3F, 0x44, 0x54, 0x47, 0x50, 0x05, 0xA0,
   0x30, 0x93, 0x68, 0x11, 0x13, 0x0A, 0x10, 0xC6,
@@ -234,9 +232,8 @@ CheckHardware () {
             (Pci.Hdr.ClassCode[2] == PCI_CLASS_DISPLAY) &&
             (Pci.Hdr.ClassCode[1] == PCI_CLASS_DISPLAY_VGA)
           ) {
-
-            #if DEBUG_FIX
-            UINT32    DAdr1, DAdr2;
+            #if DEBUG_FIX_DSDT
+              UINT32    DAdr1, DAdr2;
             #endif
 
             //PCI_IO_DEVICE *PciIoDevice;
@@ -244,10 +241,10 @@ CheckHardware () {
             GetPciADR (DevicePath, &DisplayADR1[Display], &DisplayADR2[Display], NULL);
             DBG ("VideoCard devID = 0x%x\n", ((Pci.Hdr.DeviceId << 16) | Pci.Hdr.VendorId));
 
-            #if DEBUG_FIX
-            DAdr1 = DisplayADR1[Display];
-            DAdr2 = DisplayADR2[Display];
-            DBG (" - DisplayADR1[%02d]: 0x%x, DisplayADR2[%02d] = 0x%x\n", Display, DAdr1, Display, DAdr2);
+            #if DEBUG_FIX_DSDT
+              DAdr1 = DisplayADR1[Display];
+              DAdr2 = DisplayADR2[Display];
+              DBG (" - DisplayADR1[%02d]: 0x%x, DisplayADR2[%02d] = 0x%x\n", Display, DAdr1, Display, DAdr2);
             #endif
 
             //DAdr2 = DAdr1; //to avoid warning "unused variable" :(
@@ -324,8 +321,7 @@ CheckHardware () {
           // HDA and HDMI Audio
           if (
             (Pci.Hdr.ClassCode[2] == PCI_CLASS_MEDIA) &&
-            ((Pci.Hdr.ClassCode[1] == PCI_CLASS_MEDIA_HDA) ||
-            (Pci.Hdr.ClassCode[1] == PCI_CLASS_MEDIA_AUDIO))
+            ((Pci.Hdr.ClassCode[1] == PCI_CLASS_MEDIA_HDA) || (Pci.Hdr.ClassCode[1] == PCI_CLASS_MEDIA_AUDIO))
           ) {
             UINT32  layoutId = 0;
 
@@ -571,9 +567,9 @@ FindCPU (
   return;
 }
 
-//                start => move data start address
-//                offset => data move how many byte
-//                len => initial length of the buffer
+// Start => move data start address
+// Offset => data move how many byte
+// Len => initial length of the buffer
 // return final length of the buffer
 // we suppose that buffer allocation is more then len + offset
 
@@ -724,9 +720,6 @@ GetName (
 
   return TRUE;
 }
-
-// if (CmpAdr (Dsdt, j, NetworkADR1))
-// Name (_ADR, 0x90000)
 
 STATIC
 BOOLEAN

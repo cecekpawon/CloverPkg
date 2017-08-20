@@ -841,6 +841,7 @@ SetupAtiDevprop (
   CHAR8     Compatible[64], *DevPath;
   UINT32    FakeID = 0;
   INT32     i;
+  BOOLEAN   Injected = FALSE;
 
   if (!InitCard (Dev)) {
     return FALSE;
@@ -898,12 +899,18 @@ SetupAtiDevprop (
         continue;
       }
 
+      Injected = TRUE;
+
       DevpropAddValue (
         Card->device,
         gSettings.AddProperties[i].Key,
         (UINT8 *)gSettings.AddProperties[i].Value,
         gSettings.AddProperties[i].ValueLen
       );
+    }
+
+    if (Injected) {
+      DBG (" - custom properties injected\n");
     }
   }
 

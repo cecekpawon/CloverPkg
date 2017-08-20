@@ -1374,7 +1374,13 @@ FindCharDelimited (
   CHAR8    *FoundString = NULL;
 
   if (InString != NULL) {
-    UINTN    StartPos = 0, CurPos = 0, InLength = AsciiStrLen (InString);
+    UINTN    StartPos = 0, CurPos = 0, InLength = 0;
+
+    while (*InString == InChar) {
+      InString++;
+    }
+
+    InLength = AsciiStrLen (InString);
 
     // After while() loop, StartPos marks start of item #Index
     while ((Index > 0) && (CurPos < InLength)) {
