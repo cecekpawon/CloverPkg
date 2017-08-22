@@ -56,7 +56,7 @@
   ../../Library/Platform/Smbios.c
   ../../Library/Platform/Spd.c
   ../../Library/Platform/StateGenerator.c
-  ../../Library/Platform/VideoCardList.c
+  #../../Library/Platform/VideoCardList.c
 
   ../../Library/Common/Lib.c
   ../../Library/Common/Screen.c

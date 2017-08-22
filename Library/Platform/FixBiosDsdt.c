@@ -58,13 +58,6 @@ UINT32      HDMIADR2;
 UINT32      DisplayADR1[MAX_NUM_GFX];
 UINT32      DisplayADR2[MAX_NUM_GFX];
 UINT32      DisplayVendor[MAX_NUM_GFX];
-//UINT16      DisplayID[MAX_NUM_GFX];
-//UINT32      DisplaySubID[MAX_NUM_GFX];
-//UINT32      GfxlayoutId = 1;
-//PCI_DT      Displaydevice[MAX_NUM_GFX];
-
-//UINT32      IMEIADR1;
-//UINT32      IMEIADR2;
 
 UINT8       Dtgp[] = {                                              // Method (DTGP, 5, NotSerialized) ......
   0x14, 0x3F, 0x44, 0x54, 0x47, 0x50, 0x05, 0xA0,
@@ -236,48 +229,16 @@ CheckHardware () {
               UINT32    DAdr1, DAdr2;
             #endif
 
-            //PCI_IO_DEVICE *PciIoDevice;
-
             GetPciADR (DevicePath, &DisplayADR1[Display], &DisplayADR2[Display], NULL);
             DBG ("VideoCard devID = 0x%x\n", ((Pci.Hdr.DeviceId << 16) | Pci.Hdr.VendorId));
 
             #if DEBUG_FIX_DSDT
               DAdr1 = DisplayADR1[Display];
               DAdr2 = DisplayADR2[Display];
-              DBG (" - DisplayADR1[%02d]: 0x%x, DisplayADR2[%02d] = 0x%x\n", Display, DAdr1, Display, DAdr2);
+              DBG (" - [%02d]: DisplayADR1: 0x%x, DisplayADR2 = 0x%x\n", Display, DAdr1, DAdr2);
             #endif
 
-            //DAdr2 = DAdr1; //to avoid warning "unused variable" :(
             DisplayVendor[Display] = Pci.Hdr.VendorId;
-            //DisplayID[Display] = Pci.Hdr.DeviceId;
-            //DisplaySubID[Display] = (Pci.Device.SubsystemID << 16) | (Pci.Device.SubsystemVendorID << 0);
-            // for get Display data
-            //Displaydevice[Display].DeviceHandle = HandleBuffer[HandleIndex];
-            //Displaydevice[Display].dev.addr = (UINT32)PCIADDR (Bus, Device, Function);
-            //Displaydevice[Display].vendor_id = Pci.Hdr.VendorId;
-            //Displaydevice[Display].device_id = Pci.Hdr.DeviceId;
-            //Displaydevice[Display].revision = Pci.Hdr.RevisionID;
-            //Displaydevice[Display].subclass = Pci.Hdr.ClassCode[0];
-            //Displaydevice[Display].class_id = *((UINT16 *)(Pci.Hdr.ClassCode + 1));
-            //Displaydevice[Display].subsys_id.subsys.vendor_id = Pci.Device.SubsystemVendorID;
-            //Displaydevice[Display].subsys_id.subsys.device_id = Pci.Device.SubsystemID;
-
-            //
-            // Detect if PCI Express Device
-            //
-            //
-            // Go through the Capability list
-            //unused
-            /*
-            PciIoDevice = PCI_IO_DEVICE_FROM_PCI_IO_THIS (PciIo);
-            if (PciIoDevice->IsPciExp) {
-              if (Display==0)
-                Display1PCIE = TRUE;
-              else
-                Display2PCIE = TRUE;
-            }
-            DBG ("Display %d is %aPCIE\n", Display, (PciIoDevice->IsPciExp) ? "" :" not");
-            */
 
             Display++;
           }

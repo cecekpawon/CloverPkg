@@ -591,7 +591,7 @@ ReinitVolumes ();
 
 VOID
 DbgHeader (
-  CHAR8   *str
+  CHAR8   *Str
 );
 
 BOOLEAN

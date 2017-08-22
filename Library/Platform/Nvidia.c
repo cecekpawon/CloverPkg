@@ -338,7 +338,7 @@ SetupNvidiaDevprop (
   OPTION_ROM_PCI_HEADER     *RomPciHeader;
   CHAR8                     *Model = NULL, *DevicePath,
                             *VersionStr = (CHAR8 *)AllocateZeroPool (MaxBiosVersionLen);
-  CARDLIST                  *NVCard;
+  //CARDLIST                  *NVCard;
 
   DevicePath = GetPciDevPath (Dev);
   Bar[0] = PciConfigRead32 (Dev, PCI_BASE_ADDRESS_0);
@@ -349,6 +349,7 @@ SetupNvidiaDevprop (
   // get card type
   CardType = (REG32 (Dev->regs, 0) >> 20) & 0x1ff;
 
+  /*
   // First check if any value exist in the plist
   NVCard = FindCardWithIds (DeviceId, SubSysId);
 
@@ -362,6 +363,7 @@ SetupNvidiaDevprop (
       LoadVBios = NVCard->LoadVBios;
     }
   }
+  */
 
   if (LoadVBios) {
     UnicodeSPrint (

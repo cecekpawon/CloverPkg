@@ -3361,7 +3361,7 @@ ParseGraphicsSettings (
 
       gSettings.LoadVBios = GetPropertyBool (GetProperty (DictPointer, "LoadVBios"), FALSE);
 
-      FillCardList (DictPointer); //#@ Getcardslist
+      //FillCardList (DictPointer); //#@ Getcardslist
     }
 
     if (gSettings.InjectNVidia) {

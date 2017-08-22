@@ -52,7 +52,6 @@ Headers collection for procedures
 #include <Guid/FileSystemInfo.h>
 #include <Guid/FileSystemVolumeLabelInfo.h>
 
-#include <IndustryStandard/AppleSmBios.h>
 #include <IndustryStandard/Atapi.h>
 #include <IndustryStandard/Pci.h>
 
@@ -64,6 +63,7 @@ Headers collection for procedures
 #include <Protocol/FSInjectProtocol.h>
 #include <Protocol/MsgLog.h>
 
+#include <Library/Platform/AppleSmBios.h>
 #include <Library/Platform/DeviceInject.h>
 #include <Library/Platform/KextInject.h>
 
@@ -784,18 +784,18 @@ typedef struct {
   UINT8             *Mmio;
 } GFX_PROPERTIES;
 
-typedef struct {
-  UINT32            Signature;
-  LIST_ENTRY        Link;
-  CHAR8             Model[64];
-  UINT32            Id;
-  UINT32            SubId;
-  UINT64            VideoRam;
-  UINTN             VideoPorts;
-  BOOLEAN           LoadVBios;
-} CARDLIST;
+//typedef struct {
+//  UINT32            Signature;
+//  LIST_ENTRY        Link;
+//  CHAR8             Model[64];
+//  UINT32            Id;
+//  UINT32            SubId;
+//  UINT64            VideoRam;
+//  UINTN             VideoPorts;
+//  BOOLEAN           LoadVBios;
+//} CARDLIST;
 
-#define CARDLIST_SIGNATURE SIGNATURE_32('C','A','R','D')
+//#define CARDLIST_SIGNATURE SIGNATURE_32('C','A','R','D')
 
 // RAM
 
@@ -1505,16 +1505,16 @@ SetupNvidiaDevprop (
   PCI_DT    *Dev
 );
 
-VOID
-FillCardList (
-  TagPtr  CfgDict
-);
+//VOID
+//FillCardList (
+//  TagPtr  CfgDict
+//);
 
-CARDLIST *
-FindCardWithIds (
-  UINT32  Id,
-  UINT32  SubId
-);
+//CARDLIST *
+//FindCardWithIds (
+//  UINT32  Id,
+//  UINT32  SubId
+//);
 
 UINT32
 PatchBinACPI (

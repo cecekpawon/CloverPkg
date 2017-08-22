@@ -1749,22 +1749,26 @@ STATIC
 EFI_STATUS
 InternalMkDir (
   IN EFI_FILE_HANDLE    BaseDir,
-  EFI_FILE_HANDLE       *FileHandle,
   IN CHAR16             *DirName
 ) {
-  EFI_STATUS  Status;
+  EFI_STATUS        Status;
+  EFI_FILE_HANDLE   FileHandle;
 
   Status = BaseDir->Open (
-                      BaseDir, FileHandle, DirName,
+                      BaseDir, &FileHandle, DirName,
                       EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE, EFI_FILE_DIRECTORY
                     );
 
   if (EFI_ERROR (Status)) {
     // Create new dir
     Status = BaseDir->Open (
-                        BaseDir, FileHandle, DirName,
+                        BaseDir, &FileHandle, DirName,
                         EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE, EFI_FILE_DIRECTORY
                       );
+  }
+
+  if (!EFI_ERROR (Status)) {
+    FileHandle->Close (FileHandle);
   }
 
   return Status;
@@ -1776,39 +1780,49 @@ MkDir (
   IN EFI_FILE_HANDLE    BaseDir OPTIONAL,
   IN CHAR16             *DirName
 ) {
-  EFI_STATUS        Status;
-  EFI_FILE_HANDLE   *FileHandle = NULL;
-  UINTN             i = 0, Len;
+  EFI_STATUS        Status = EFI_ABORTED;
+  UINTN             i = 0, Len = StrLen (DirName);
   CHAR16            Delim = L'\\';
 
   //DBG ("Looking up dir assets (%s):", DirName);
+
+  if (!Len) {
+    return Status;
+  }
 
   if (BaseDir == NULL) {
     Status = FindESP (&BaseDir);
 
     if (EFI_ERROR (Status)) {
-      //DBG (" %r\n", Status);
       return Status;
     }
   }
 
-  Len = StrLen (DirName);
+  // 1: Immediately return if DirName already exists / success creating new dir.
+  Status = InternalMkDir (BaseDir, DirName);
 
+  if (!EFI_ERROR (Status)) {
+    return Status;
+  }
+
+  // 2: Recursively check / create.
   for (i = 0; i < Len; i++) {
     if (DirName[i] == Delim) {
-      DirName[i] = 0;
+      DirName[i] = '\0';
 
-      if (StrLen (DirName)) { // Prefixed with '\\' will have no length
-        Status = InternalMkDir (BaseDir, FileHandle, DirName);
+      if (StrLen (DirName)) { // Leading / trailing Delim will have no length.
+        Status = InternalMkDir (BaseDir, DirName);
       }
 
       DirName[i] = Delim;
     }
   }
 
-  Status = InternalMkDir (BaseDir, FileHandle, DirName);
+  // 3: Last attempt for DirName without trailing Delim.
+  if (DirName[Len - 1] != Delim) {
+    Status = InternalMkDir (BaseDir, DirName);
+  }
 
-  //DBG (" %r\n", Status);
   return Status;
 }
 
@@ -1825,7 +1839,7 @@ InitializeUnicodeCollationProtocol () {
   }
 
   //
-  // BUGBUG: Proper impelmentation is to locate all Unicode Collation Protocol
+  // BUGBUG: Proper implementation is to locate all Unicode Collation Protocol
   // instances first and then select one which support English language.
   // Current implementation just pick the first instance.
   //
@@ -1874,7 +1888,7 @@ Dirname (
       if ((Path[i] == '\\') || (Path[i] == '/')) {
         CHAR16  *DirName = AllocateCopyPool (i * sizeof (CHAR16), Path);
 
-        DirName[i] = 0;
+        DirName[i] = '\0';
 
         return DirName;
       }
@@ -1898,7 +1912,7 @@ ReplaceExtension (
 
   for (i = Len; i >= 0; i--) {
     if (Path[i] == '.') {
-      Path[i] = 0;
+      Path[i] = '\0';
       break;
     }
 
@@ -2095,24 +2109,9 @@ DumpVariable (
 
 VOID
 DbgHeader (
-  CHAR8   *str
+  CHAR8   *Str
 ) {
-  DebugLog (1, ":: %a\n", str);
-  /*
-  UINTN    len = 60 - AsciiStrSize (str);
-
-  if (len <= 3) {
-    DebugLog (1, "=== [ %a ] ===\n", str);
-    return;
-  } else {
-    CHAR8   *fill = AllocateZeroPool (len);
-
-    SetMem (fill, len, '=');
-    fill[len] = '\0';
-    DebugLog (1, "=== [ %a ] %a\n", str, fill);
-    FreePool (fill);
-  }
-  */
+  MsgLog (":: %a\n", Str);
 }
 
 BOOLEAN
